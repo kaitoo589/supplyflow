@@ -1,13 +1,5 @@
-import { useState } from "react";
-
-const products = [
-  { id: 1, title: "Minimalist leather wallet", price: 12.50, moq: 50, platform: "1688", image: "💼", category: "Accessories", supplier: "Guangzhou Leathercraft Co.", rating: 4.8 },
-  { id: 2, title: "Ceramic coffee mug set", price: 4.20, moq: 100, platform: "Taobao", image: "☕", category: "Home", supplier: "Jingdezhen Pottery", rating: 4.6 },
-  { id: 3, title: "Bamboo phone stand", price: 2.80, moq: 200, platform: "1688", image: "📱", category: "Tech", supplier: "Shenzhen EcoTech", rating: 4.9 },
-  { id: 4, title: "Canvas tote bag", price: 3.50, moq: 100, platform: "Weidian", image: "🛍️", category: "Accessories", supplier: "Hangzhou Textile", rating: 4.7 },
-  { id: 5, title: "Stainless water bottle", price: 6.90, moq: 50, platform: "Alibaba", image: "🍶", category: "Sports", supplier: "Yiwu Metal Works", rating: 4.5 },
-  { id: 6, title: "LED desk lamp", price: 15.00, moq: 30, platform: "1688", image: "💡", category: "Home", supplier: "Foshan Lighting", rating: 4.8 },
-];
+import { useState, useEffect } from "react";
+import { supabase } from "./supabase";
 
 const orders = [
   { id: "SF-001", product: "Minimalist leather wallet", status: "qc_pending", qty: 50, date: "2 jun" },
@@ -518,9 +510,34 @@ function ExtraServicesScreen({ onConfirm, onBack }) {
 export default function SupplyFlow() {
   const [tab, setTab] = useState("feed");
   const [cart, setCart] = useState([]);
+  const [products, setProducts] = useState([]);
+  const [loadingProducts, setLoadingProducts] = useState(true);
+  const [productsError, setProductsError] = useState(null);
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [qcAction, setQcAction] = useState(null);
   const [orderFilter, setOrderFilter] = useState("all");
+
+  useEffect(() => {
+    async function fetchProducts() {
+      setLoadingProducts(true);
+      setProductsError(null);
+
+      const { data, error } = await supabase
+        .from("products")
+        .select("*")
+        .order("id");
+
+      if (error) {
+        setProductsError(error.message);
+      } else {
+        setProducts(data ?? []);
+      }
+
+      setLoadingProducts(false);
+    }
+
+    fetchProducts();
+  }, []);
 
   const qcOrder = orders.find(o => o.status === "qc_pending");
 
@@ -635,53 +652,66 @@ export default function SupplyFlow() {
           </div>
 
           {/* Product grid */}
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-            {products.map(p => (
-              <div
-                key={p.id}
-                onClick={() => { setCart([...cart, p]); }}
-                style={{
-                  background: "#fff",
-                  borderRadius: 16,
-                  overflow: "hidden",
-                  border: "1px solid #E8E6E0",
-                  cursor: "pointer",
-                  transition: "transform 0.15s",
-                }}
-              >
-                <div style={{
-                  background: "#F0EEE8",
-                  height: 120,
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  fontSize: 48,
-                }}>
-                  {p.image}
-                </div>
-                <div style={{ padding: "10px 12px 12px" }}>
-                  <div style={{ fontSize: 12, color: "#999", marginBottom: 3 }}>{p.platform} · {p.category}</div>
-                  <div style={{ fontSize: 13, fontWeight: 600, color: "#1a1a1a", marginBottom: 6, lineHeight: 1.3 }}>{p.title}</div>
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                    <div style={{ fontSize: 15, fontWeight: 700, color: "#0F0E0C" }}>€{p.price.toFixed(2)}</div>
-                    <div style={{ fontSize: 11, color: "#aaa" }}>MOQ {p.moq}</div>
-                  </div>
+          {loadingProducts && (
+            <div style={{ textAlign: "center", padding: 40, color: "#999" }}>Producten laden...</div>
+          )}
+          {productsError && (
+            <div style={{ textAlign: "center", padding: 40, color: "#B45309" }}>
+              Kon producten niet laden: {productsError}
+            </div>
+          )}
+          {!loadingProducts && !productsError && products.length === 0 && (
+            <div style={{ textAlign: "center", padding: 40, color: "#999" }}>Geen producten gevonden</div>
+          )}
+          {!loadingProducts && !productsError && products.length > 0 && (
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+              {products.map(p => (
+                <div
+                  key={p.id}
+                  onClick={() => { setCart([...cart, p]); }}
+                  style={{
+                    background: "#fff",
+                    borderRadius: 16,
+                    overflow: "hidden",
+                    border: "1px solid #E8E6E0",
+                    cursor: "pointer",
+                    transition: "transform 0.15s",
+                  }}
+                >
                   <div style={{
-                    marginTop: 8,
-                    background: "#C8F135",
-                    color: "#0F0E0C",
-                    fontSize: 12,
-                    fontWeight: 700,
-                    padding: "6px 0",
-                    borderRadius: 8,
-                    textAlign: "center",
+                    background: "#F0EEE8",
+                    height: 120,
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    fontSize: 48,
                   }}>
-                    Bestellen
+                    {p.image}
+                  </div>
+                  <div style={{ padding: "10px 12px 12px" }}>
+                    <div style={{ fontSize: 12, color: "#999", marginBottom: 3 }}>{p.platform} · {p.category}</div>
+                    <div style={{ fontSize: 13, fontWeight: 600, color: "#1a1a1a", marginBottom: 6, lineHeight: 1.3 }}>{p.title}</div>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                      <div style={{ fontSize: 15, fontWeight: 700, color: "#0F0E0C" }}>€{Number(p.price).toFixed(2)}</div>
+                      <div style={{ fontSize: 11, color: "#aaa" }}>MOQ {p.moq}</div>
+                    </div>
+                    <div style={{
+                      marginTop: 8,
+                      background: "#C8F135",
+                      color: "#0F0E0C",
+                      fontSize: 12,
+                      fontWeight: 700,
+                      padding: "6px 0",
+                      borderRadius: 8,
+                      textAlign: "center",
+                    }}>
+                      Bestellen
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
         </div>
       )}
 

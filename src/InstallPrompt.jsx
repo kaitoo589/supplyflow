@@ -26,6 +26,18 @@ export default function InstallPrompt() {
   useEffect(() => {
     if (isStandalone() || localStorage.getItem(DISMISS_KEY)) return;
 
+    // Het install-signaal is mogelijk al vroeg gevangen (in index.html, vóór React).
+    if (window.__deferredInstallPrompt) {
+      setDeferred(window.__deferredInstallPrompt);
+      setShow(true);
+    }
+    const onInstallable = () => {
+      setDeferred(window.__deferredInstallPrompt);
+      setShow(true);
+    };
+    window.addEventListener("flowva-installable", onInstallable);
+
+    // Fallback: directe listener, voor het geval het pas later afgaat.
     const onPrompt = (e) => {
       e.preventDefault();
       setDeferred(e);
@@ -38,6 +50,7 @@ export default function InstallPrompt() {
     if (isiOS()) t = setTimeout(() => { setIosHint(true); setShow(true); }, 2500);
 
     return () => {
+      window.removeEventListener("flowva-installable", onInstallable);
       window.removeEventListener("beforeinstallprompt", onPrompt);
       clearTimeout(t);
     };

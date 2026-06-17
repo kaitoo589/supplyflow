@@ -24,6 +24,13 @@
       document.addEventListener('gesturestart', (e) => e.preventDefault());
       document.addEventListener('gesturechange', (e) => e.preventDefault());
       document.addEventListener('gestureend', (e) => e.preventDefault());
+      // Vang het install-signaal vroeg (kan vóór React-laden afgaan) én onderdruk
+      // de automatische volledig-scherm browser-popup. Mijn install-balk leest dit uit.
+      window.addEventListener('beforeinstallprompt', (e) => {
+        e.preventDefault();
+        window.__deferredInstallPrompt = e;
+        window.dispatchEvent(new Event('flowva-installable'));
+      });
       // PWA: service worker registreren (maakt de app installeerbaar)
       if ('serviceWorker' in navigator) {
         window.addEventListener('load', () => navigator.serviceWorker.register('/sw.js').catch(() => {}));

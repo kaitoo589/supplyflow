@@ -6,9 +6,13 @@ import AgentPanel from "./AgentPanel";
 import SupportWidget from "./SupportWidget";
 
 // De admin draait volledig in het gamified command center (ai-ops-hud).
-// In dev op poort 5181; in productie via VITE_HUD_URL.
+// Lokaal → poort 5181; op de live site → het gedeployde admin-dashboard.
+// VITE_HUD_URL overschrijft beide (zet die als je later admin.flowva.app koppelt).
 function AdminGate() {
-  const hudUrl = import.meta.env.VITE_HUD_URL || "http://localhost:5181";
+  const isLocal = ["localhost", "127.0.0.1"].includes(window.location.hostname);
+  const hudUrl =
+    import.meta.env.VITE_HUD_URL ||
+    (isLocal ? "http://localhost:5181" : "https://flowva-admin.vercel.app");
   return (
     <div style={{ fontFamily: "'Cascadia Mono', 'JetBrains Mono', Consolas, monospace", background: "#070b07", minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
       <div style={{ background: "#0b100b", border: "1px solid #2c4a2c", borderRadius: 8, padding: "28px 30px", maxWidth: 420, width: "100%", textAlign: "center" }}>

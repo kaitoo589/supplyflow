@@ -1,0 +1,15 @@
+{
+  "name": "Flowva",
+  "short_name": "Flowva",
+  "description": "Van de fabrieksvloer tot je deur — sourcing uit China met QC en tracking.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#F8F7F4",
+  "theme_color": "#FF5C00",
+  "icons": [
+    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

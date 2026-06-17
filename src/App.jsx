@@ -4,6 +4,7 @@ import SupplyFlowApp from "./supplyflow-app";
 import Auth, { ResetPassword } from "./Auth";
 import AgentPanel from "./AgentPanel";
 import SupportWidget from "./SupportWidget";
+import InstallPrompt from "./InstallPrompt";
 
 // De admin draait volledig in het gamified command center (ai-ops-hud).
 // Lokaal → poort 5181; op de live site → het gedeployde admin-dashboard.
@@ -143,13 +144,14 @@ export default function App() {
     return <PaymentSuccess session={session} />;
   }
 
-  if (!session) return <Auth />;
+  if (!session) return (<><Auth /><InstallPrompt /></>);
   if (role === "agent") return <AgentPanel />;
   if (role === "admin") return <AdminGate />;
   return (
     <>
       <SupplyFlowApp session={session} />
       <SupportWidget session={session} />
+      <InstallPrompt />
     </>
   );
 }

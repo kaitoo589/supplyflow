@@ -39,9 +39,9 @@ export async function pushStatus() {
 }
 
 export async function enablePush(session) {
-  if (!pushSupported()) throw new Error("Meldingen worden niet ondersteund op dit apparaat.");
+  if (!pushSupported()) throw new Error("Notifications aren't supported on this device.");
   const permission = await Notification.requestPermission();
-  if (permission !== "granted") throw new Error("Geen toestemming voor meldingen gegeven.");
+  if (permission !== "granted") throw new Error("Notification permission was not granted.");
 
   const reg = await navigator.serviceWorker.ready;
   let sub = await reg.pushManager.getSubscription();

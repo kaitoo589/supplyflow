@@ -20,13 +20,13 @@ function AdminGate() {
         <div style={{ fontSize: 44, marginBottom: 12 }}>🦊</div>
         <div style={{ color: "#ffb84d", fontSize: 15, fontWeight: 700, letterSpacing: 1, marginBottom: 8 }}>◆ FLOWVA ADMIN</div>
         <div style={{ color: "#6b9a6b", fontSize: 13, lineHeight: 1.6, marginBottom: 20 }}>
-          Je admin draait nu volledig in het command center — missies, producten en treasury in één dashboard. Log daar in met ditzelfde admin-account.
+          Your admin now runs entirely in the command center — missions, products and treasury in one dashboard. Log in there with this same admin account.
         </div>
         <a href={hudUrl} style={{ display: "block", background: "#ffb84d", color: "#2a1a00", borderRadius: 4, padding: "12px", fontSize: 14, fontWeight: 700, textDecoration: "none", marginBottom: 10 }}>
           ▸ OPEN COMMAND CENTER
         </a>
         <button onClick={() => supabase.auth.signOut()} style={{ width: "100%", background: "transparent", border: "1px dashed #2c4a2c", borderRadius: 4, color: "#5a7d5a", fontFamily: "inherit", fontSize: 12, padding: "10px", cursor: "pointer" }}>
-          uitloggen
+          Log out
         </button>
       </div>
     </div>

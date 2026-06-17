@@ -2,16 +2,12 @@ import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { ChevronUp, ChevronDown, X } from "lucide-react";
 
-// Install-balk: verschijnt alleen in Chrome (Android) of Safari (iOS), niet als
-// de app al geïnstalleerd is. Wegklikken = 1 dag snooze (komt morgen terug).
-// Subtiel ↑-pijltje morpht de balk omhoog naar een paneel met uitleg.
+// Install bar: only shows in Chrome (Android) or Safari (iOS), and never once the
+// app is already installed. Dismissing = snooze for 1 day (returns tomorrow).
+// A subtle ↑ arrow morphs the bar upward into a panel that explains the benefits.
 
-const SNOOZE_KEY = "flowva_install_snooze";   // datum (YYYY-MM-DD) van laatste wegklik
-const INSTALLED_KEY = "flowva_installed";     // gezet zodra de app standalone draait
-
-// >>> Uitlegtekst in het opengeklapte paneel — pas deze regel aan om te wisselen <<<
-const EXPLAIN_TEXT =
-  "Volg je bestelling van de fabriek tot je deur — en krijg een seintje bij elke stap. Geen app store nodig: Flowva komt als icoon op je beginscherm en opent fullscreen, net als een echte app.";
+const SNOOZE_KEY = "flowva_install_snooze";   // date (YYYY-MM-DD) of last dismissal
+const INSTALLED_KEY = "flowva_installed";     // set once the app runs standalone
 
 function isStandalone() {
   return (
@@ -40,11 +36,11 @@ export default function InstallPrompt() {
   const [expanded, setExpanded] = useState(false);
 
   useEffect(() => {
-    // Draait de app als geïnstalleerde app? Onthoud dat en toon nooit.
+    // Running as an installed app? Remember it and never show.
     if (isStandalone()) { localStorage.setItem(INSTALLED_KEY, "1"); return; }
-    // Eerder al gedetecteerd als geïnstalleerd → nooit tonen.
+    // Previously detected as installed → never show.
     if (localStorage.getItem(INSTALLED_KEY)) return;
-    // Vandaag weggeklikt → vandaag niet, morgen weer.
+    // Dismissed today → not today, but again tomorrow.
     if (localStorage.getItem(SNOOZE_KEY) === today()) return;
 
     let cancelled = false;
@@ -52,7 +48,7 @@ export default function InstallPrompt() {
 
     const maybeShow = () => {
       if (cancelled) return;
-      // Android/Chromium: het install-signaal is mogelijk al vroeg gevangen.
+      // Android/Chromium: the install signal may already have been captured early.
       if (window.__deferredInstallPrompt) { setDeferred(window.__deferredInstallPrompt); setShow(true); }
       const onInstallable = () => { setDeferred(window.__deferredInstallPrompt); setShow(true); };
       window.addEventListener("flowva-installable", onInstallable);
@@ -62,14 +58,14 @@ export default function InstallPrompt() {
         window.removeEventListener("flowva-installable", onInstallable);
         window.removeEventListener("beforeinstallprompt", onPrompt);
       });
-      // iOS: alleen in échte Safari (alleen daar kun je "Zet op beginscherm").
+      // iOS: only in real Safari (that's the only place with "Add to Home Screen").
       if (isiOS() && isSafari()) {
         const t = setTimeout(() => { setIosHint(true); setShow(true); }, 2500);
         cleanups.push(() => clearTimeout(t));
       }
     };
 
-    // Android Chrome kan ook actief detecteren of de PWA al geïnstalleerd is.
+    // Android Chrome can also actively detect whether the PWA is already installed.
     if (navigator.getInstalledRelatedApps) {
       navigator
         .getInstalledRelatedApps()
@@ -93,7 +89,7 @@ export default function InstallPrompt() {
     setDeferred(null);
     setShow(false);
   };
-  // Wegklikken = 1 dag snooze.
+  // Dismiss = snooze for 1 day.
   const dismiss = () => {
     setShow(false);
     localStorage.setItem(SNOOZE_KEY, today());
@@ -105,12 +101,12 @@ export default function InstallPrompt() {
   const installCta =
     iosHint ? (
       <div style={{ background: "#1A1917", borderRadius: 10, padding: "10px 12px", fontSize: 12.5, color: "#C9C6C1", lineHeight: 1.5 }}>
-        Tik onderin op <b style={{ color: "#fff" }}>Deel</b> ⬆️ → <b style={{ color: "#fff" }}>Zet op beginscherm</b> → Voeg toe.
+        Tap <b style={{ color: "#fff" }}>Share</b> ⬆️ at the bottom → <b style={{ color: "#fff" }}>Add to Home Screen</b> → Add.
       </div>
     ) : deferred ? (
       <motion.button whileTap={{ scale: 0.97 }} onClick={install}
         style={{ width: "100%", background: "#FF5C00", color: "#fff", border: "none", borderRadius: 12, padding: "13px", fontSize: 14, fontWeight: 700, cursor: "pointer", WebkitTapHighlightColor: "transparent" }}>
-        📲 Installeer Flowva
+        📲 Install Flowva
       </motion.button>
     ) : null;
 
@@ -130,15 +126,15 @@ export default function InstallPrompt() {
             <motion.div layout="position" style={{ padding: "12px 14px", display: "flex", alignItems: "center", gap: 12 }}>
               {fox}
               <div style={{ flex: 1, minWidth: 0, cursor: "pointer" }} onClick={() => setExpanded(true)}>
-                <div style={{ fontSize: 13, fontWeight: 700, color: "#fff" }}>Zet Flowva op je beginscherm</div>
-                <div style={{ fontSize: 11.5, color: "#9C9893" }}>Open als app — bekijk waarom</div>
+                <div style={{ fontSize: 13, fontWeight: 700, color: "#fff" }}>Add Flowva to your home screen</div>
+                <div style={{ fontSize: 11.5, color: "#9C9893" }}>Open as an app — see why</div>
               </div>
-              <motion.button whileTap={{ scale: 0.85 }} onClick={() => setExpanded(true)} aria-label="Meer info"
+              <motion.button whileTap={{ scale: 0.85 }} onClick={() => setExpanded(true)} aria-label="More info"
                 animate={{ y: [0, -2.5, 0] }} transition={{ duration: 1.6, repeat: Infinity, ease: "easeInOut" }}
                 style={{ width: 32, height: 32, borderRadius: "50%", background: "rgba(255,92,0,0.15)", border: "none", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", flexShrink: 0, WebkitTapHighlightColor: "transparent" }}>
                 <ChevronUp size={17} color="#FF5C00" strokeWidth={2.6} />
               </motion.button>
-              <motion.button whileTap={{ scale: 0.9 }} onClick={dismiss} aria-label="Sluiten"
+              <motion.button whileTap={{ scale: 0.9 }} onClick={dismiss} aria-label="Close"
                 style={{ width: 32, height: 32, borderRadius: "50%", background: "rgba(255,255,255,0.08)", border: "none", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", flexShrink: 0, WebkitTapHighlightColor: "transparent" }}>
                 <X size={14} color="#9C9893" />
               </motion.button>
@@ -146,21 +142,32 @@ export default function InstallPrompt() {
           ) : (
             <motion.div layout="position" style={{ padding: "8px 16px 16px" }}>
               <div style={{ display: "flex", justifyContent: "center", marginBottom: 2 }}>
-                <motion.button whileTap={{ scale: 0.85 }} onClick={() => setExpanded(false)} aria-label="Inklappen"
+                <motion.button whileTap={{ scale: 0.85 }} onClick={() => setExpanded(false)} aria-label="Collapse"
                   style={{ background: "none", border: "none", padding: 6, cursor: "pointer", WebkitTapHighlightColor: "transparent" }}>
                   <ChevronDown size={20} color="#5A5853" strokeWidth={2.4} />
                 </motion.button>
               </div>
               <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10 }}>
                 {fox}
-                <div style={{ fontSize: 15, fontWeight: 700, color: "#fff" }}>Waarom Flowva als app?</div>
+                <div style={{ fontSize: 15, fontWeight: 700, color: "#fff" }}>Why use Flowva as an app?</div>
               </div>
-              <div style={{ fontSize: 12.5, color: "#C9C6C1", lineHeight: 1.55, marginBottom: 12 }}>{EXPLAIN_TEXT}</div>
-              <div style={{ display: "flex", flexDirection: "column", gap: 7, marginBottom: 14 }}>
+              <div style={{ fontSize: 12.5, color: "#C9C6C1", lineHeight: 1.55, marginBottom: 14 }}>
+                Follow your order from the factory to your door — so you never miss an update!
+              </div>
+              <div style={{ fontSize: 13, fontWeight: 700, color: "#fff", marginBottom: 9 }}>When do you get a notification?</div>
+              <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 14 }}>
+                {["Quality-control photos", "Shipping", "Delivery"].map((text) => (
+                  <div key={text} style={{ display: "flex", alignItems: "center", gap: 11 }}>
+                    <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#FF5C00", flexShrink: 0 }} />
+                    <span style={{ fontSize: 12.5, color: "#C9C6C1" }}>{text}</span>
+                  </div>
+                ))}
+              </div>
+              <div style={{ height: 1, background: "rgba(255,255,255,0.08)", margin: "0 0 13px" }} />
+              <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 14 }}>
                 {[
-                  ["🔔", "Melding bij QC-foto's, verzending en bezorging"],
-                  ["⚡", "Sneller en fullscreen — net een echte app"],
-                  ["🦊", "Eigen icoon op je beginscherm"],
+                  ["⚡", "Faster and fullscreen — just like a real app"],
+                  ["🦊", "Your own icon on your home screen"],
                 ].map(([icon, text]) => (
                   <div key={text} style={{ display: "flex", alignItems: "center", gap: 10 }}>
                     <span style={{ fontSize: 15, width: 20, textAlign: "center", flexShrink: 0 }}>{icon}</span>
@@ -171,7 +178,7 @@ export default function InstallPrompt() {
               {installCta}
               <button onClick={dismiss}
                 style={{ width: "100%", marginTop: 8, background: "transparent", color: "#5A5853", border: "none", padding: "8px", fontSize: 12, fontWeight: 600, cursor: "pointer" }}>
-                Misschien later
+                Maybe later
               </button>
             </motion.div>
           )}

@@ -1,7 +1,7 @@
 {
   "name": "Flowva",
   "short_name": "Flowva",
-  "description": "Van de fabrieksvloer tot je deur — sourcing uit China met QC en tracking.",
+  "description": "From the factory floor to your door — sourcing from China with QC and tracking.",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",

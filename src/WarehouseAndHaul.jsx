@@ -198,7 +198,7 @@ function BoxContentsModal({ items, onRemove, onClose }) {
             </div>
             <div style={{ flex: 1 }}>
               <div style={{ fontSize: 13, fontWeight: 600, color: "#0F0E0C" }}>{order.product_title || order.product}</div>
-              <div style={{ fontSize: 11, color: "#aaa" }}>{order.weight_grams ? `${order.weight_grams}g` : "?"} · {order.qty} stuks</div>
+              <div style={{ fontSize: 11, color: "#aaa" }}>{order.weight_grams ? `${order.weight_grams}g` : "?"} · {order.qty} pcs</div>
             </div>
             <button onClick={() => onRemove(order.id)}
               style={{ background: "#FEE2E2", color: "#DC2626", border: "none", borderRadius: 8, padding: "6px 10px", fontSize: 12, fontWeight: 600, cursor: "pointer" }}>
@@ -231,10 +231,10 @@ function OrderDetailModal({ order, inHaul, onAdd, onRemove, onDispute, onClose }
             : <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100%", fontSize: 48 }}>📦</div>}
         </div>
         <div style={{ fontSize: 18, fontWeight: 700, color: "#0F0E0C", marginBottom: 4 }}>{order.product_title || order.product}</div>
-        <div style={{ fontSize: 13, color: "#aaa", marginBottom: 16 }}>{order.qty} stuks · {order.weight_grams ? `${order.weight_grams}g` : "weight unknown"}</div>
+        <div style={{ fontSize: 13, color: "#aaa", marginBottom: 16 }}>{order.qty} pcs · {order.weight_grams ? `${order.weight_grams}g` : "weight unknown"}</div>
         {order.qc_images?.length > 0 && (
           <div style={{ marginBottom: 16 }}>
-            <div style={{ fontSize: 12, fontWeight: 700, color: "#888", marginBottom: 8, letterSpacing: 1 }}>QC FOTO'S</div>
+            <div style={{ fontSize: 12, fontWeight: 700, color: "#888", marginBottom: 8, letterSpacing: 1 }}>QC PHOTOS</div>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
               {order.qc_images.map((url, i) => (
                 <div key={i} style={{ borderRadius: 10, overflow: "hidden", aspectRatio: "1", position: "relative" }}>
@@ -298,7 +298,7 @@ function OrderCard({ order, onDragStart, onDragEnd, inHaul, onOpenDetail }) {
           <div style={{ fontSize: 13, fontWeight: 600, color: "#0F0E0C", marginBottom: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
             {order.product_title || order.product}
           </div>
-          <div style={{ fontSize: 11, color: "#aaa" }}>{order.qty} stuks · {order.weight_grams ? `${order.weight_grams}g` : "no weight"}</div>
+          <div style={{ fontSize: 11, color: "#aaa" }}>{order.qty} pcs · {order.weight_grams ? `${order.weight_grams}g` : "no weight"}</div>
           {order.weight_grams && (
             <div style={{ fontSize: 11, color: "#6366F1", marginTop: 1 }}>~€{((order.weight_grams / 1000) * SHIPPING_RATE_PER_KG).toFixed(2)} shipping</div>
           )}
@@ -651,7 +651,7 @@ export function WarehouseTab({ session, haulItems = [], setHaulItems }) {
                 </div>
                 <div style={{ flex: 1 }}>
                   <div style={{ fontSize: 13, fontWeight: 600, color: "#0F0E0C" }}>{order.product_title || order.product}</div>
-                  <div style={{ fontSize: 11, color: "#aaa" }}>{order.weight_grams ? `${order.weight_grams}g` : `${order.qty} stuks`}</div>
+                  <div style={{ fontSize: 11, color: "#aaa" }}>{order.weight_grams ? `${order.weight_grams}g` : `${order.qty} pcs`}</div>
                 </div>
                 <div style={{ background: "#DCFCE7", color: "#166534", fontSize: 11, fontWeight: 700, padding: "4px 10px", borderRadius: 20, whiteSpace: "nowrap" }}>
                   📦 In parcel
@@ -671,7 +671,7 @@ export function WarehouseTab({ session, haulItems = [], setHaulItems }) {
                 </div>
                 <div>
                   <div style={{ fontSize: 13, fontWeight: 600, color: "#0F0E0C" }}>{order.product_title || order.product}</div>
-                  <div style={{ fontSize: 11, color: "#aaa" }}>{order.qty} stuks</div>
+                  <div style={{ fontSize: 11, color: "#aaa" }}>{order.qty} pcs</div>
                 </div>
               </div>
               <div style={{ background: "#FEF3C7", borderRadius: 8, padding: "8px 12px", fontSize: 12, color: "#B45309" }}>

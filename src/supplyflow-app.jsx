@@ -58,36 +58,36 @@ const foxMessages = {
 
 const extraServices = [
   {
-    category: "Productinspectie",
+    category: "Product inspection",
     icon: "🔍",
     items: [
-      { id: "detailed_photo", label: "Gedetailleerde foto's", desc: "Extra close-up foto's van het product", price: 2.00 },
-      { id: "detailed_inspection", label: "Gedetailleerde inspectie", desc: "Volledige kwaliteitscontrole", price: 5.50 },
-      { id: "reinspection", label: "Herkeuring", desc: "Opnieuw inspecteren na melding", price: 6.00 },
-      { id: "power_inspection", label: "Inschakelinspectie", desc: "Voor elektronica & apparaten", price: 12.00 },
+      { id: "detailed_photo", label: "Detailed photos", desc: "Extra close-up photos of the product", price: 2.00 },
+      { id: "detailed_inspection", label: "Detailed inspection", desc: "Full quality check", price: 5.50 },
+      { id: "reinspection", label: "Re-inspection", desc: "Inspect again after a report", price: 6.00 },
+      { id: "power_inspection", label: "Power-on inspection", desc: "For electronics & devices", price: 12.00 },
     ],
   },
   {
-    category: "Verpakkingsservice",
+    category: "Packaging service",
     icon: "📦",
     items: [
-      { id: "bubble_wrap", label: "Bubbeltjesfolie", desc: "Extra bescherming rondom product", price: 5.00 },
-      { id: "dust_bag", label: "Stofzakje", desc: "Stoffen beschermzak", price: 4.00 },
-      { id: "kraft_mailer", label: "Kraft bubbel envelop", desc: "Stevige kartonnen envelop", price: 3.00 },
-      { id: "plastic_seal", label: "Plastic sealing", desc: "Luchtdicht verpakt", price: 10.00 },
-      { id: "custom_epe", label: "Maatverpakking EPE", desc: "Op maat gemaakte schuimverpakking", price: 23.00 },
+      { id: "bubble_wrap", label: "Bubble wrap", desc: "Extra protection around the product", price: 5.00 },
+      { id: "dust_bag", label: "Dust bag", desc: "Fabric protective bag", price: 4.00 },
+      { id: "kraft_mailer", label: "Kraft bubble mailer", desc: "Sturdy cardboard envelope", price: 3.00 },
+      { id: "plastic_seal", label: "Plastic sealing", desc: "Airtight wrapping", price: 10.00 },
+      { id: "custom_epe", label: "Custom EPE packaging", desc: "Made-to-measure foam packaging", price: 23.00 },
     ],
   },
   {
-    category: "Extra diensten",
+    category: "Extra services",
     icon: "✨",
     items: [
-      { id: "video", label: "Productvideo", desc: "Korte video van het product", price: 20.00 },
-      { id: "model_photo", label: "Modelfoto's", desc: "Product gefotografeerd op model", price: 30.00 },
-      { id: "label_removal", label: "Label verwijderen", desc: "Originele labels verwijderen", price: 3.00 },
-      { id: "ironing", label: "Strijkservice", desc: "Kleding strijkvrij maken", price: 20.00 },
-      { id: "thread_trim", label: "Draadjes knippen", desc: "Losse draadjes verwijderen", price: 5.00 },
-      { id: "split_order", label: "Order splitsen", desc: "Bestelling opsplitsen", price: 2.00 },
+      { id: "video", label: "Product video", desc: "Short video of the product", price: 20.00 },
+      { id: "model_photo", label: "Model photos", desc: "Product photographed on a model", price: 30.00 },
+      { id: "label_removal", label: "Label removal", desc: "Remove original labels", price: 3.00 },
+      { id: "ironing", label: "Ironing service", desc: "Iron the clothing wrinkle-free", price: 20.00 },
+      { id: "thread_trim", label: "Thread trimming", desc: "Trim loose threads", price: 5.00 },
+      { id: "split_order", label: "Split order", desc: "Split the order into parts", price: 2.00 },
     ],
   },
 ];
@@ -473,7 +473,7 @@ function TransactionHistory({ session }) {
       <AnimatePresence initial={false}>
         {show && (
           <motion.div key="txbody" initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }} transition={{ height: { duration: 0.3, ease: [0.4, 0, 0.2, 1] }, opacity: { duration: 0.2 } }} style={{ overflow: "hidden" }}>
-            {loading ? <div style={{ textAlign: "center", padding: 20, color: "#aaa", fontSize: 13 }}>Laden...</div> :
+            {loading ? <div style={{ textAlign: "center", padding: 20, color: "#aaa", fontSize: 13 }}>Loading...</div> :
             transactions.length === 0 ? <div style={{ textAlign: "center", padding: 20, color: "#aaa", fontSize: 13 }}>No transactions yet</div> :
             transactions.map((t, i) => {
               const info = typeLabels[t.type] || { label: t.type, color: "#888" };
@@ -720,7 +720,7 @@ export default function SupplyFlow({ session }) {
     const ext = file.name.split(".").pop();
     const name = `avatars/${session.user.id}-${Date.now()}.${ext}`;
     const { error } = await supabase.storage.from("product-images").upload(name, file);
-    if (error) { alert("Upload mislukt: " + error.message); setAvatarUploading(false); return; }
+    if (error) { alert("Upload failed: " + error.message); setAvatarUploading(false); return; }
     const { data } = supabase.storage.from("product-images").getPublicUrl(name);
     await supabase.auth.updateUser({ data: { avatar_url: data.publicUrl } });
     setAvatarUploading(false);
@@ -942,14 +942,14 @@ export default function SupplyFlow({ session }) {
                       {agentReplied && (
                         <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 6 }}>
                           <span style={{ fontSize: 14 }}>💬</span>
-                          <span style={{ fontSize: 12, color: "#6366F1", fontWeight: 700 }}>Agent heeft gereageerd</span>
+                          <span style={{ fontSize: 12, color: "#6366F1", fontWeight: 700 }}>Agent replied</span>
                           <span style={{ width: 8, height: 8, borderRadius: "50%", background: "#6366F1", display: "inline-block" }} />
                         </div>
                       )}
                       {customerWaiting && (
                         <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 6 }}>
                           <span style={{ fontSize: 14 }}>💬</span>
-                          <span style={{ fontSize: 12, color: "#888" }}>Bericht nog niet gelezen door agent</span>
+                          <span style={{ fontSize: 12, color: "#888" }}>Not yet read by agent</span>
                         </div>
                       )}
                     </div>
@@ -1159,7 +1159,7 @@ export default function SupplyFlow({ session }) {
             <label style={{ position: "relative", cursor: "pointer", flexShrink: 0 }}>
               <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} transition={springBouncy}
                 style={{ width: 52, height: 52, borderRadius: "50%", overflow: "hidden", background: "#111111", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 24 }}>
-                {avatarUrl ? <img src={avatarUrl} alt="profielfoto" style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : "🦊"}
+                {avatarUrl ? <img src={avatarUrl} alt="profile photo" style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : "🦊"}
               </motion.div>
               <div style={{ position: "absolute", bottom: -2, right: -2, width: 19, height: 19, borderRadius: "50%", background: "#FF5C00", border: "2px solid #fff", display: "flex", alignItems: "center", justifyContent: "center" }}>
                 <Plus size={11} color="#fff" strokeWidth={3} />

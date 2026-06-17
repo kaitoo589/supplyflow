@@ -77,7 +77,7 @@ export default function InstallPrompt() {
             <div style={{ fontSize: 11.5, color: "#9C9893", lineHeight: 1.35 }}>
               {iosHint
                 ? "Tik op ‘Deel’ ⬆️ onderin → ‘Zet op beginscherm’"
-                : "Open als app — sneller, fullscreen, met icoon"}
+                : "Open als app"}
             </div>
           </div>
           {!iosHint && deferred && (

@@ -274,11 +274,11 @@ export default function Auth() {
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 12 }}>
               <div>
                 <label style={labelStyle}>First name</label>
-                <input style={inputStyle} placeholder="Kaito" value={form.voornaam} onChange={(e) => set("voornaam", e.target.value)} />
+                <input style={inputStyle} placeholder="Sam" value={form.voornaam} onChange={(e) => set("voornaam", e.target.value)} />
               </div>
               <div>
                 <label style={labelStyle}>Last name</label>
-                <input style={inputStyle} placeholder="Yamamoto" value={form.achternaam} onChange={(e) => set("achternaam", e.target.value)} />
+                <input style={inputStyle} placeholder="Jansen" value={form.achternaam} onChange={(e) => set("achternaam", e.target.value)} />
               </div>
             </div>
 

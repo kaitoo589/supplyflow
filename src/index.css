@@ -16,6 +16,8 @@ html,
 body {
   margin: 0;
   padding: 0;
+  /* Geen dubbel-tik-zoom + snellere taps (app-gevoel) */
+  touch-action: manipulation;
 }
 
 body {

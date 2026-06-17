@@ -17,6 +17,14 @@ function isStandalone() {
 function isiOS() {
   return /iphone|ipad|ipod/i.test(window.navigator.userAgent);
 }
+// Alleen Safari op iOS kan "Zet op beginscherm". Google-app/Chrome/Firefox/DDG niet.
+function isSafari() {
+  const ua = window.navigator.userAgent;
+  return (
+    /safari/i.test(ua) &&
+    !/(crios|fxios|edgios|duckduckgo|gsa|fban|fbav|instagram|line|micromessenger|samsungbrowser)/i.test(ua)
+  );
+}
 
 export default function InstallPrompt() {
   const [deferred, setDeferred] = useState(null);
@@ -88,9 +96,11 @@ export default function InstallPrompt() {
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ fontSize: 13, fontWeight: 700, color: "#fff" }}>Zet Flowva op je beginscherm</div>
             <div style={{ fontSize: 11.5, color: "#9C9893", lineHeight: 1.35 }}>
-              {iosHint
-                ? "Tik op ‘Deel’ ⬆️ onderin → ‘Zet op beginscherm’"
-                : "Open als app"}
+              {!iosHint
+                ? "Open als app"
+                : isSafari()
+                  ? "Tik op ‘Deel’ ⬆️ onderin → ‘Zet op beginscherm’"
+                  : "Open deze pagina even in Safari om te installeren"}
             </div>
           </div>
           {!iosHint && deferred && (

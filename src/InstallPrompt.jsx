@@ -53,9 +53,10 @@ export default function InstallPrompt() {
     };
     window.addEventListener("beforeinstallprompt", onPrompt);
 
-    // iOS heeft geen install-event → na een korte pauze de uitleg tonen.
+    // iOS: alleen in échte Safari tonen — alleen daar kun je "Zet op beginscherm".
+    // In de Google-app, Chrome-iOS, DuckDuckGo enz. verschijnt het balkje dus niet.
     let t;
-    if (isiOS()) t = setTimeout(() => { setIosHint(true); setShow(true); }, 2500);
+    if (isiOS() && isSafari()) t = setTimeout(() => { setIosHint(true); setShow(true); }, 2500);
 
     return () => {
       window.removeEventListener("flowva-installable", onInstallable);
@@ -96,11 +97,9 @@ export default function InstallPrompt() {
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ fontSize: 13, fontWeight: 700, color: "#fff" }}>Zet Flowva op je beginscherm</div>
             <div style={{ fontSize: 11.5, color: "#9C9893", lineHeight: 1.35 }}>
-              {!iosHint
-                ? "Open als app"
-                : isSafari()
-                  ? "Tik op ‘Deel’ ⬆️ onderin → ‘Zet op beginscherm’"
-                  : "Open deze pagina even in Safari om te installeren"}
+              {iosHint
+                ? "Tik op ‘Deel’ ⬆️ onderin → ‘Zet op beginscherm’"
+                : "Open als app"}
             </div>
           </div>
           {!iosHint && deferred && (

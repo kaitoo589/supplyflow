@@ -10,6 +10,7 @@ import ReviewPage from "./ReviewPage";
 import { problemTypes } from "./problemTypes";
 import { toChinese, toEnglish, hasChinese } from "./translate";
 import { serviceFee } from "./fees";
+import PushToggle from "./PushToggle";
 
 // Overgang tussen tabs/schermen: zacht in-/uitschuiven (Apple-stijl).
 const pageTransition = {
@@ -1204,6 +1205,7 @@ export default function SupplyFlow({ session }) {
               {loadingBalance ? "Loading..." : `+ Add €${topupAmount || "0"} via iDEAL`}
             </button>
           </div>
+          <PushToggle session={session} />
           <TransactionHistory session={session} />
           <div style={{ background: "#fff", border: "1px solid #E8E6E0", borderRadius: 16, padding: "16px 20px", marginBottom: 12 }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>

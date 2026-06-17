@@ -6,6 +6,9 @@
    ============================================================ */
 
 :root {
+  /* Flowva is een lichte app — vertel browsers dit zodat ze 'm niet
+     automatisch donker maken (zoals de Google-app's "auto dark mode"). */
+  color-scheme: light;
   font-family: 'Inter', 'Helvetica Neue', system-ui, sans-serif;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;

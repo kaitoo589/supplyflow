@@ -22,16 +22,11 @@ npx supabase secrets set VAPID_PUBLIC_KEY=<publiek> VAPID_PRIVATE_KEY=<prive> VA
 npx supabase functions deploy notify-order
 ```
 
-## 4) Database Webhook instellen
-Supabase → **Database → Webhooks → Create a new hook**:
-- **Name:** notify-order
-- **Table:** `public.orders` · **Events:** Update
-- **Type:** Supabase Edge Functions → kies `notify-order`
-- **HTTP Headers:** voeg toe `x-webhook-secret` = *(hetzelfde geheim als WEBHOOK_SECRET)*
-- **Create**.
-
-(Als je "HTTP Request" kiest i.p.v. de edge-function-optie, is de URL:
-`https://bjtpnuxjbazlbaoyflcx.supabase.co/functions/v1/notify-order`, methode POST.)
+## 4) Trigger op statuswijziging
+De dashboard "Database Webhook" kan falen met *"schema supabase_functions does not
+exist"*. Gebruik daarom een trigger met pg_net (betrouwbaarder):
+1. Supabase → **Database → Extensions** → zet **`pg_net`** aan.
+2. **SQL Editor** → draai `supabase/notify-order-trigger.sql` (URL + secret staan er al in).
 
 ## Testen
 1. Installeer Flowva (iPhone: Safari → Deel → Zet op beginscherm · Android: Chrome → Installeren).

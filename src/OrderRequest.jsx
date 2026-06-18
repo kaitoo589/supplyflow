@@ -237,7 +237,7 @@ export default function OrderRequest({ product, session, onClose, onSuccess, onA
               style={{ display: "flex", alignItems: "center", gap: 10, background: "#111111", borderRadius: 12, padding: "10px 14px", marginBottom: 16 }}>
               <span style={{ fontSize: 20, flexShrink: 0 }}>🦊</span>
               <span style={{ fontSize: 12, color: "#C9C6C1", lineHeight: 1.5 }}>
-                <b style={{ color: "#FF5C00" }}>Tip:</b> want more items? Add them to your request list and send everything in one go — separate requests each get their own service fee.
+                <b style={{ color: "#FF5C00" }}>Tip:</b> want more items? Add them to your cart and buy everything at once — separate orders each get their own service fee.
               </span>
             </motion.div>
 
@@ -259,7 +259,7 @@ export default function OrderRequest({ product, session, onClose, onSuccess, onA
                 disabled={loading}
                 style={{ width: "100%", marginTop: 8, background: "#fff", color: "#111111", border: "1.5px solid #111111", borderRadius: 14, padding: "14px", fontSize: 14, fontWeight: 700, cursor: "pointer" }}
               >
-                + Add to request list{listCount > 0 ? ` (${listCount})` : ""}
+                + Add to cart{listCount > 0 ? ` (${listCount})` : ""}
               </motion.button>
             )}
           </motion.div>

@@ -291,6 +291,10 @@ function QuoteAcceptance({ order, session, balance, allOrders = [], onAccepted }
 // Aanvraaglijst: alles in één keer versturen = één service fee over de bundel.
 // De sheet deelt z'n layoutId met het zwevende balkje en morpht ervandaan open.
 function RequestListSheet({ items, onRemove, onClose, onSend, sending, error }) {
+  const total = items.reduce((s, it) => s + Number(it.price || 0) * (it.qty || 1), 0);
+  const fee = serviceFee(total);
+  const perItem = items.length ? fee / items.length : fee;
+  const perItemColor = perItem >= 4 ? "#C9C6C1" : perItem >= 2 ? "#FF5C00" : "#16A34A";
   return (
     <>
       <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={onClose}
@@ -302,13 +306,13 @@ function RequestListSheet({ items, onRemove, onClose, onSend, sending, error }) 
           <div onClick={onClose} style={{ padding: "0 0 12px", cursor: "pointer" }}>
             <div style={{ width: 36, height: 4, background: "rgba(255,255,255,0.2)", borderRadius: 2, margin: "0 auto" }} />
           </div>
-          <div style={{ fontSize: 18, fontWeight: 700, color: "#fff", marginBottom: 14 }}>📋 Request list ({items.length})</div>
+          <div style={{ fontSize: 18, fontWeight: 700, color: "#fff", marginBottom: 14 }}>🛒 Shopping cart ({items.length})</div>
 
           <div style={{ display: "flex", gap: 10, alignItems: "flex-end", marginBottom: 16 }}>
             <span style={{ fontSize: 28, flexShrink: 0 }}>🦊</span>
             <SpeechBubble bg="#1E1D1A" color="#C9C6C1">
               <span style={{ fontSize: 12.5, lineHeight: 1.55 }}>
-                Smart move! Sending all your requests <b style={{ color: "#FF5C00" }}>in one go</b> means just <b style={{ color: "#FF5C00" }}>one service fee</b> (8%, min €5) over the whole bundle. Separate requests each get their own fee.
+                Smart move! Everything in one cart shares <b style={{ color: "#FF5C00" }}>one service fee</b> (8%, min €5) — so the more you add, the cheaper it gets <b style={{ color: "#FF5C00" }}>per item</b>. Buy things separately and you pay a fee every time.
               </span>
             </SpeechBubble>
           </div>
@@ -320,7 +324,7 @@ function RequestListSheet({ items, onRemove, onClose, onSend, sending, error }) 
               </div>
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ fontSize: 13, fontWeight: 600, color: "#fff", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{item.product_title}</div>
-                <div style={{ fontSize: 11.5, color: "#9C9893" }}>{item.qty} pcs{item.kleur ? ` · ${item.kleur}` : ""} · indicative €{Number(item.price).toFixed(2)}</div>
+                <div style={{ fontSize: 11.5, color: "#9C9893" }}>{item.qty} pcs{item.kleur ? ` · ${item.kleur}` : ""} · €{Number(item.price).toFixed(2)}</div>
               </div>
               <motion.button whileTap={{ scale: 0.85 }} onClick={() => onRemove(i)}
                 style={{ width: 28, height: 28, borderRadius: "50%", background: "rgba(255,255,255,0.08)", border: "1px solid rgba(255,255,255,0.12)", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", flexShrink: 0 }}>
@@ -329,13 +333,32 @@ function RequestListSheet({ items, onRemove, onClose, onSend, sending, error }) 
             </div>
           ))}
 
+          {items.length > 0 && (
+            <motion.div layout style={{ background: "#1E1D1A", borderRadius: 14, padding: "12px 14px", marginTop: 12 }}>
+              <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
+                <span style={{ fontSize: 12.5, color: "#9C9893" }}>Items</span>
+                <span style={{ fontSize: 12.5, color: "#fff", fontWeight: 600 }}>€{total.toFixed(2)}</span>
+              </div>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <span style={{ fontSize: 12.5, color: "#9C9893" }}>Service fee (8%, min €5)</span>
+                <span style={{ fontSize: 12.5, color: "#fff", fontWeight: 600 }}>€{fee.toFixed(2)}</span>
+              </div>
+              <div style={{ display: "flex", justifyContent: "flex-end", alignItems: "baseline", gap: 6, marginTop: 5 }}>
+                <span style={{ fontSize: 11, color: "#9C9893" }}>that's only</span>
+                <motion.span key={perItem.toFixed(2)} initial={{ scale: 1.3, opacity: 0.3 }} animate={{ scale: 1, opacity: 1 }} transition={{ type: "spring", stiffness: 420, damping: 18 }}
+                  style={{ fontSize: 19, fontWeight: 800, color: perItemColor }}>€{perItem.toFixed(2)}</motion.span>
+                <span style={{ fontSize: 11, fontWeight: 600, color: perItemColor }}>per item {perItem < 2 ? "🎉" : "🦊"}</span>
+              </div>
+            </motion.div>
+          )}
+
           {error && (
             <div style={{ background: "#FEE2E2", color: "#DC2626", borderRadius: 10, padding: "10px 14px", fontSize: 13, marginTop: 8 }}>{error}</div>
           )}
 
           <motion.button whileTap={sending ? undefined : { scale: 0.97 }} onClick={onSend} disabled={sending || items.length === 0}
             style={{ width: "100%", marginTop: 12, background: sending ? "#333" : "#FF5C00", color: "#fff", border: "none", borderRadius: 14, padding: "16px", fontSize: 15, fontWeight: 700, cursor: sending ? "default" : "pointer", WebkitTapHighlightColor: "transparent" }}>
-            {sending ? "Sending..." : `Send ${items.length} request${items.length > 1 ? "s" : ""} in one go →`}
+            {sending ? "Processing..." : "Buy everything at once →"}
           </motion.button>
         </motion.div>
       </motion.div>
@@ -1255,7 +1278,7 @@ export default function SupplyFlow({ session }) {
               style={{ padding: "12px 16px", display: "flex", alignItems: "center", gap: 12 }}>
               <span style={{ fontSize: 18 }}>📋</span>
               <div style={{ flex: 1 }}>
-                <div style={{ fontSize: 13, fontWeight: 700, color: "#fff" }}>Request list · {requestList.length} item{requestList.length > 1 ? "s" : ""}</div>
+                <div style={{ fontSize: 13, fontWeight: 700, color: "#fff" }}>Shopping cart · {requestList.length} item{requestList.length > 1 ? "s" : ""}</div>
                 <div style={{ fontSize: 11.5, color: "#9C9893" }}>Tap to open — one service fee 🦊</div>
               </div>
               <motion.div animate={{ y: [0, -3, 0] }} transition={{ duration: 1.4, repeat: Infinity, ease: "easeInOut" }}

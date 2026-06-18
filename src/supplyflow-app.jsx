@@ -23,37 +23,39 @@ const pageTransition = {
 import { topCategories, clothesCategories } from "./categories";
 
 const statusConfig = {
-  requested:            { label: "Request completed",        color: "#92400E", bg: "#FEF3C7", step: 0 },
-  quote_sent:           { label: "Pay quote",          color: "#6366F1", bg: "#EDE9FE", step: 1 },
-  quote_accepted:       { label: "Purchasing product",    color: "#0369A1", bg: "#E0F2FE", step: 2 },
-  purchased:            { label: "Purchase successful",           color: "#065F46", bg: "#D1FAE5", step: 3 },
-  shipped_local:        { label: "In transit in China",        color: "#0369A1", bg: "#E0F2FE", step: 4 },
-  qc_pending:           { label: "QC photos ready!",         color: "#065F46", bg: "#D1FAE5", step: 5 },
-  shipped_international:{ label: "Shipped internationally", color: "#065F46", bg: "#D1FAE5", step: 6 },
-  delivered:            { label: "Delivered",                  color: "#166534", bg: "#DCFCE7", step: 7 },
+  // requested/quote_sent bestaan niet meer in de flow (direct kopen) — blijven
+  // als vangnet voor eventuele oude orders, tonen als "Order placed".
+  requested:            { label: "Order placed",                color: "#0369A1", bg: "#E0F2FE", step: 0 },
+  quote_sent:           { label: "Order placed",                color: "#0369A1", bg: "#E0F2FE", step: 0 },
+  quote_accepted:       { label: "Order placed",                color: "#0369A1", bg: "#E0F2FE", step: 0 },
+  purchased:            { label: "Order placed",                color: "#0369A1", bg: "#E0F2FE", step: 0 },
+  bought:               { label: "Item bought successfully",    color: "#065F46", bg: "#D1FAE5", step: 1 },
+  shipped_local:        { label: "On its way to our warehouse", color: "#0369A1", bg: "#E0F2FE", step: 2 },
+  qc_pending:           { label: "QC photos ready",             color: "#065F46", bg: "#D1FAE5", step: 3 },
+  shipped_international: { label: "Shipped to you",             color: "#0369A1", bg: "#E0F2FE", step: 4 },
+  delivered:            { label: "Delivered",                   color: "#166534", bg: "#DCFCE7", step: 5 },
 };
 
 // Labels van de tracking-bolletjes — index = statusConfig[...].step.
 const trackingSteps = [
-  "Request completed",
-  "Pay quote",
-  "Purchasing product",
-  "Purchase successful",
-  "In transit in China",
-  "QC photos ready!",
-  "In transit",
+  "Order placed",
+  "Bought",
+  "To warehouse",
+  "QC photos",
+  "Shipped to you",
   "Delivered",
 ];
 
 const foxMessages = {
-  requested:            { msg: "Request received! 🎉 Our agent will now check availability, confirm the price and calculate local shipping costs. You'll receive a quote once everything is verified.", icon: "🛒" },
-  quote_sent:           { msg: "Your quote is ready! Check the exact price below and pay from your balance to confirm the order.", icon: "📋" },
-  quote_accepted:       { msg: "Payment received! Our agent is now purchasing the product on 1688.", icon: "💰" },
-  purchased:            { msg: "Done — your product has been purchased and is on its way to our warehouse in China.", icon: "✅" },
-  shipped_local:        { msg: "Your product is in transit within China to our warehouse.", icon: "🚚" },
-  qc_pending:           { msg: "Your product has arrived at our warehouse! Go to your warehouse to view it and add it to a parcel.", icon: "🏭" },
-  shipped_international:{ msg: "Your parcel is on its international journey. Hang tight!", icon: "✈️" },
-  delivered:            { msg: "Your order has been delivered. Enjoy!", icon: "🎉" },
+  requested:            { msg: "We've placed your order — the agent is purchasing it for you right now.", icon: "🛒" },
+  quote_sent:           { msg: "We've placed your order — the agent is purchasing it for you right now.", icon: "🛒" },
+  quote_accepted:       { msg: "We've placed your order — the agent is purchasing it for you right now.", icon: "🛒" },
+  purchased:            { msg: "We've placed your order — the agent is purchasing it for you right now.", icon: "🛒" },
+  bought:               { msg: "Bought! 🎉 Your item is paid for and getting ready to head to our warehouse.", icon: "✅" },
+  shipped_local:        { msg: "Your item is on its way to our warehouse in China.", icon: "🚚" },
+  qc_pending:           { msg: "Arrived & inspected! View the photos and add it to a parcel to ship.", icon: "🏭" },
+  shipped_international: { msg: "Your parcel is on its international journey — hang tight!", icon: "✈️" },
+  delivered:            { msg: "Delivered — enjoy! 🎉", icon: "🎉" },
 };
 
 const extraServices = [
@@ -95,13 +97,11 @@ const extraServices = [
 // Reiskaart: de route van fabriek (China) naar jouw huis, met checkpoints.
 // Tik op een checkpoint om je orders op die fase te filteren.
 const journeyStops = [
-  { key: "requested", label: "Request completed", Icon: Factory, statuses: ["requested"], x: 11, y: 18 },
-  { key: "quote_sent", label: "Pay quote", Icon: CreditCard, statuses: ["quote_sent"], x: 36, y: 10 },
-  { key: "quote_accepted", label: "Purchasing product", Icon: ShoppingBag, statuses: ["quote_accepted"], x: 62, y: 16 },
-  { key: "purchased", label: "Purchase successful", Icon: PackageCheck, statuses: ["purchased"], x: 86, y: 26 },
-  { key: "shipped_local", label: "In transit in China", Icon: Truck, statuses: ["shipped_local"], x: 72, y: 50 },
-  { key: "qc_pending", label: "QC photos ready!", Icon: Camera, statuses: ["qc_pending"], x: 46, y: 56 },
-  { key: "shipped_international", label: "In transit", Icon: Plane, statuses: ["shipped_international"], x: 20, y: 52 },
+  { key: "purchased", label: "Order placed", Icon: ShoppingBag, statuses: ["requested", "quote_sent", "quote_accepted", "purchased"], x: 11, y: 18 },
+  { key: "bought", label: "Bought", Icon: PackageCheck, statuses: ["bought"], x: 36, y: 10 },
+  { key: "shipped_local", label: "To warehouse", Icon: Truck, statuses: ["shipped_local"], x: 86, y: 26 },
+  { key: "qc_pending", label: "QC photos", Icon: Camera, statuses: ["qc_pending"], x: 72, y: 50 },
+  { key: "shipped_international", label: "Shipped to you", Icon: Plane, statuses: ["shipped_international"], x: 46, y: 56 },
   { key: "delivered", label: "Delivered", Icon: Home, statuses: ["delivered"], x: 13, y: 84, home: true },
 ];
 

@@ -15,12 +15,11 @@ webpush.setVapidDetails(VAPID_SUBJECT, VAPID_PUBLIC, VAPID_PRIVATE);
 
 // The message the customer sees for each order status.
 const MESSAGES: Record<string, { title: string; body: string }> = {
-  quote_sent: { title: "📋 Your quote is ready!", body: "Check the price and pay from your balance." },
-  quote_accepted: { title: "💰 Payment received", body: "We're buying your item now." },
-  purchased: { title: "✅ Purchased!", body: "Your item has been bought and is heading to the warehouse." },
-  shipped_local: { title: "🚚 On its way in China", body: "Your item is heading to our warehouse." },
-  qc_pending: { title: "📸 QC photos are ready!", body: "Check your item and approve it in the app." },
-  shipped_international: { title: "✈️ Shipped internationally", body: "Your parcel is on its way to you!" },
+  purchased: { title: "🛒 Order placed", body: "We're buying your item for you right now." },
+  bought: { title: "✅ Item bought!", body: "Your item is paid for and heading to our warehouse." },
+  shipped_local: { title: "🚚 On its way to our warehouse", body: "Your item is in transit in China." },
+  qc_pending: { title: "📸 QC photos are ready!", body: "View your item and add it to a parcel in the app." },
+  shipped_international: { title: "✈️ Shipped to you", body: "Your parcel is on its way to you!" },
   delivered: { title: "🎉 Delivered!", body: "Your order has arrived. Enjoy!" },
   cancelled: { title: "↩️ Order refunded", body: "An item was unavailable, so we've refunded it to your balance." },
 };

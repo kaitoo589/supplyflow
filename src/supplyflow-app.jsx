@@ -332,14 +332,14 @@ function RequestListSheet({ items, onRemove, onSetQty, onClose, onSend, sending,
         style={{ position: "fixed", inset: 0, zIndex: 300, background: "rgba(0,0,0,0.5)", backdropFilter: "blur(6px)" }} />
       <motion.div layoutId="request-list-morph" transition={springMorph}
         style={{ position: "fixed", bottom: 0, left: 0, right: 0, margin: "0 auto", width: "100%", maxWidth: 430, boxSizing: "border-box", background: "#111111", borderRadius: "24px 24px 0 0", zIndex: 301, maxHeight: "88vh", overflowY: "auto" }}>
-        <motion.div layout initial={{ opacity: 0 }} animate={{ opacity: 1, transition: { delay: 0.12, duration: 0.18 } }} exit={{ opacity: 0, transition: { duration: 0.08 } }}
+        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1, transition: { delay: 0.12, duration: 0.18 } }} exit={{ opacity: 0, transition: { duration: 0.08 } }}
           style={{ padding: "20px 20px 40px" }}>
           <div onClick={view === "checkout" ? () => setView("cart") : view === "placed" ? () => onFinish?.(false) : onClose} style={{ padding: "0 0 12px", cursor: "pointer" }}>
             <div style={{ width: 36, height: 4, background: "rgba(255,255,255,0.2)", borderRadius: 2, margin: "0 auto" }} />
           </div>
 
           {view === "cart" ? (
-            <motion.div layout="position" key="cart">
+            <motion.div key="cart">
               <div style={{ fontSize: 18, fontWeight: 700, color: "#fff", marginBottom: 14 }}>🛒 Shopping cart ({items.length})</div>
 
               <div style={{ display: "flex", gap: 10, alignItems: "flex-end", marginBottom: 16 }}>
@@ -400,7 +400,7 @@ function RequestListSheet({ items, onRemove, onSetQty, onClose, onSend, sending,
               </motion.button>
             </motion.div>
           ) : view === "checkout" ? (
-            <motion.div layout="position" key="checkout">
+            <motion.div key="checkout">
               <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 16 }}>
                 <motion.span layoutId="cart-fox" style={{ fontSize: 34, flexShrink: 0 }}>🦊</motion.span>
                 <div>
@@ -469,7 +469,7 @@ function RequestListSheet({ items, onRemove, onSetQty, onClose, onSend, sending,
               </motion.button>
             </motion.div>
           ) : (
-            <motion.div layout="position" key="placed">
+            <motion.div key="placed">
               <div style={{ textAlign: "center", marginBottom: 22, marginTop: 4 }}>
                 <motion.span layoutId="cart-fox" style={{ fontSize: 52, display: "inline-block", marginBottom: 12 }}>🦊</motion.span>
                 <div style={{ fontSize: 22, fontWeight: 700, color: "#FF5C00", marginBottom: 6 }}>Order placed! 🎉</div>

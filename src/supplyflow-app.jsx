@@ -312,7 +312,7 @@ function RequestListSheet({ items, onRemove, onClose, onSend, sending, error }) 
             <span style={{ fontSize: 28, flexShrink: 0 }}>🦊</span>
             <SpeechBubble bg="#1E1D1A" color="#C9C6C1">
               <span style={{ fontSize: 12.5, lineHeight: 1.55 }}>
-                Smart move! Everything in one cart shares <b style={{ color: "#FF5C00" }}>one service fee</b> (8%, min €5) — so the more you add, the cheaper it gets <b style={{ color: "#FF5C00" }}>per item</b>. Buy things separately and you pay a fee every time.
+                Smart move! Your whole cart shares <b style={{ color: "#FF5C00" }}>one service fee</b> (8%, min €5), so the more you add, the less it costs <b style={{ color: "#FF5C00" }}>per item</b>. From €62.50 it's just a flat 8% — the lowest it gets. Order things separately and each one carries its own fee.
               </span>
             </SpeechBubble>
           </div>
@@ -359,6 +359,11 @@ function RequestListSheet({ items, onRemove, onClose, onSend, sending, error }) 
           <motion.button whileTap={sending ? undefined : { scale: 0.97 }} onClick={onSend} disabled={sending || items.length === 0}
             style={{ width: "100%", marginTop: 12, background: sending ? "#333" : "#FF5C00", color: "#fff", border: "none", borderRadius: 14, padding: "16px", fontSize: 15, fontWeight: 700, cursor: sending ? "default" : "pointer", WebkitTapHighlightColor: "transparent" }}>
             {sending ? "Processing..." : "Buy everything at once →"}
+          </motion.button>
+
+          <motion.button whileTap={{ scale: 0.97 }} onClick={onClose}
+            style={{ width: "100%", marginTop: 8, background: "transparent", color: "#C9C6C1", border: "1px solid rgba(255,255,255,0.15)", borderRadius: 14, padding: "13px", fontSize: 13, fontWeight: 600, cursor: "pointer", WebkitTapHighlightColor: "transparent" }}>
+            ← Continue shopping &amp; reduce your fee per item
           </motion.button>
         </motion.div>
       </motion.div>

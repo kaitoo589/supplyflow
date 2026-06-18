@@ -3,6 +3,7 @@ import { supabase } from "./supabase";
 import OrderRequest from "./OrderRequest";
 import { WarehouseTab, TransitTab } from "./WarehouseAndHaul";
 import { motion, AnimatePresence } from "framer-motion";
+import { createPortal } from "react-dom";
 import { springSnappy, springSoft, springBouncy, springMorph } from "./motion";
 import { Search, SlidersHorizontal, Bell, Home, Package, Factory, User, ShoppingBag, Eye, Star, Plus, X, Plane, CreditCard, PackageCheck, Truck, Camera, ChevronUp } from "lucide-react";
 import { WordReveal, SpeechBubble } from "./MotionBits";
@@ -124,23 +125,118 @@ function ProgressRing({ percent }) {
   );
 }
 
+// Voortgang per product: 100% = QC-foto's klaar (qc_pending). Elke stap richting
+// QC telt voor 25% (Order placed = 25%). Verder dan QC blijft 100%.
+const QC_FULL_STEP = statusConfig.qc_pending.step;
+function productProgress(status) {
+  const step = statusConfig[status]?.step ?? 0;
+  return Math.min(100, Math.round(((step + 1) / (QC_FULL_STEP + 1)) * 100));
+}
+const PRODUCT_COLORS = ["#FF5C00", "#6366F1", "#16A34A", "#EAB308", "#EC4899"];
+
+// Tik op de ring → groot voortgangswiel: elk product een concentrische boog die
+// zich vult richting QC (= vol). Mijlpaal-streepjes tonen waar het % op slaat.
+function ProgressWheelModal({ items, onClose }) {
+  const cx = 140, cy = 140, outerR = 100, gap = 15, stroke = 8;
+  const rings = items.slice(0, 5);
+  const innerR = outerR - (rings.length - 1) * gap;
+  const overall = Math.round(items.reduce((s, o) => s + productProgress(o.status), 0) / items.length);
+  const pt = (r, pct) => {
+    const a = (-90 + 3.6 * pct) * Math.PI / 180;
+    return [cx + r * Math.cos(a), cy + r * Math.sin(a)];
+  };
+  const milestones = [
+    { pct: 25, label: "Placed" }, { pct: 50, label: "Bought" },
+    { pct: 75, label: "Warehouse" }, { pct: 100, label: "QC ✓" },
+  ];
+  return createPortal(
+    <>
+      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={onClose}
+        style={{ position: "fixed", inset: 0, zIndex: 360, background: "rgba(17,17,17,0.55)", backdropFilter: "blur(8px)" }} />
+      <motion.div initial={{ opacity: 0, scale: 0.9, y: 10 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.92, y: 10 }}
+        transition={{ type: "spring", stiffness: 300, damping: 26 }}
+        style={{ position: "fixed", inset: 0, zIndex: 361, display: "flex", alignItems: "center", justifyContent: "center", padding: 18, pointerEvents: "none" }}>
+        <div onClick={(e) => e.stopPropagation()} style={{ pointerEvents: "auto", background: "#fff", borderRadius: 26, padding: "20px 20px 18px", width: "100%", maxWidth: 360, boxShadow: "0 24px 70px rgba(0,0,0,0.32)" }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <div style={{ fontSize: 15, fontWeight: 800, color: "#111" }}>Order progress</div>
+            <motion.button whileTap={{ scale: 0.9 }} onClick={onClose} style={{ background: "#F3F1ED", border: "none", borderRadius: 999, width: 30, height: 30, fontSize: 15, color: "#777", cursor: "pointer", lineHeight: 1 }}>✕</motion.button>
+          </div>
+          <div style={{ fontSize: 11.5, color: "#9A968F", marginTop: 2, marginBottom: 6 }}>100% = quality-control photos ready</div>
+          <div style={{ position: "relative", width: "100%", maxWidth: 280, aspectRatio: "1", margin: "0 auto" }}>
+            <svg width="100%" height="100%" viewBox="0 0 280 280">
+              {milestones.map(m => {
+                const [x1, y1] = pt(innerR - stroke, m.pct);
+                const [x2, y2] = pt(outerR + 4, m.pct);
+                const [lx, ly] = pt(outerR + 17, m.pct);
+                return (
+                  <g key={m.pct}>
+                    <line x1={x1} y1={y1} x2={x2} y2={y2} stroke="#DAD7D0" strokeWidth="1.5" strokeDasharray="2 2.5" />
+                    <text x={lx} y={ly} fontSize="8.5" fontWeight="700" fill="#A8A5A0" textAnchor="middle" dominantBaseline="middle">{m.label}</text>
+                  </g>
+                );
+              })}
+              {rings.map((o, i) => {
+                const r = outerR - i * gap;
+                const circ = 2 * Math.PI * r;
+                const pct = productProgress(o.status);
+                const color = PRODUCT_COLORS[i % PRODUCT_COLORS.length];
+                return (
+                  <g key={o.id}>
+                    <circle cx={cx} cy={cy} r={r} fill="none" stroke="#F1EFE9" strokeWidth={stroke} />
+                    <motion.circle cx={cx} cy={cy} r={r} fill="none" stroke={color} strokeWidth={stroke} strokeLinecap="round"
+                      strokeDasharray={circ} initial={{ strokeDashoffset: circ }} animate={{ strokeDashoffset: circ * (1 - pct / 100) }}
+                      transition={{ duration: 0.8, delay: 0.07 * i, ease: "easeOut" }} transform={`rotate(-90 ${cx} ${cy})`} />
+                  </g>
+                );
+              })}
+            </svg>
+            <div style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", pointerEvents: "none" }}>
+              <div style={{ fontSize: 32, fontWeight: 800, color: "#111", lineHeight: 1 }}>{overall}%</div>
+              <div style={{ fontSize: 10, color: "#9A968F", fontWeight: 600, marginTop: 2 }}>to QC</div>
+            </div>
+          </div>
+          <div style={{ marginTop: 10, display: "flex", flexDirection: "column", gap: 7 }}>
+            {rings.map((o, i) => {
+              const s = statusConfig[o.status] || statusConfig.purchased;
+              const color = PRODUCT_COLORS[i % PRODUCT_COLORS.length];
+              return (
+                <div key={o.id} style={{ display: "flex", alignItems: "center", gap: 9 }}>
+                  <span style={{ width: 11, height: 11, borderRadius: 4, background: color, flexShrink: 0 }} />
+                  <span style={{ flex: 1, minWidth: 0, fontSize: 12, fontWeight: 600, color: "#222", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{o.product_title || o.product}</span>
+                  <span style={{ fontSize: 10, fontWeight: 700, color: s.color, background: s.bg, padding: "1px 7px", borderRadius: 20, flexShrink: 0 }}>{s.label}</span>
+                  <span style={{ fontSize: 12.5, fontWeight: 800, color, width: 36, textAlign: "right", flexShrink: 0 }}>{productProgress(o.status)}%</span>
+                </div>
+              );
+            })}
+            {items.length > rings.length && <div style={{ fontSize: 11, color: "#A8A5A0", textAlign: "center", marginTop: 2 }}>+{items.length - rings.length} more</div>}
+          </div>
+        </div>
+      </motion.div>
+    </>,
+    document.body
+  );
+}
+
 // Eén bestelling (= alle items uit dezelfde aankoop). Klap open → morpht omlaag,
 // toont elk item met z'n eigen status. Statussen mogen per item verschillen.
 function OrderGroupCard({ items, onOpenItem }) {
   const [open, setOpen] = useState(false);
+  const [wheel, setWheel] = useState(false);
   const date = items[0]?.date || "";
-  const maxStep = trackingSteps.length;
-  const percent = (items.reduce((s, o) => s + ((statusConfig[o.status]?.step ?? 0) + 1), 0) / (items.length * maxStep)) * 100;
+  const percent = Math.round(items.reduce((s, o) => s + productProgress(o.status), 0) / items.length);
   const whStep = statusConfig.qc_pending.step;
   const atWarehouse = items.filter(o => (statusConfig[o.status]?.step ?? 0) >= whStep).length;
   const anyProblem = items.some(o => o.problem_type);
+  const subtotal = items.reduce((s, o) => s + (Number(o.price) || 0), 0);
+  const fee = serviceFee(subtotal);
+  const total = subtotal + fee;
   return (
     <motion.div layout style={{ background: "#fff", border: "1px solid #E8E6E0", borderRadius: 16, marginBottom: 10, overflow: "hidden" }}>
       <motion.div whileTap={{ scale: 0.99 }} onClick={() => setOpen(o => !o)} style={{ display: "flex", alignItems: "center", gap: 12, padding: "13px 15px", cursor: "pointer" }}>
         <div style={{ display: "flex", flexShrink: 0 }}>
           {items.slice(0, 3).map((o, i) => (
-            <div key={o.id} style={{ width: 40, height: 40, borderRadius: 9, background: "#fff", boxShadow: "0 0 0 1px #F0EEE8", overflow: "hidden", marginLeft: i ? -14 : 0, display: "flex", alignItems: "center", justifyContent: "center", position: "relative", zIndex: 3 - i }}>
-              {o.variant_image ? <img src={o.variant_image} alt="" style={{ width: "100%", height: "100%", objectFit: "contain" }} /> : <span style={{ fontSize: 18 }}>📦</span>}
+            <div key={o.id} style={{ width: 40, height: 40, borderRadius: 9, background: "#fff", boxShadow: "0 0 0 1px #F0EEE8", overflow: "hidden", marginLeft: i ? -14 : 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
+              {o.variant_image ? <img src={o.variant_image} referrerPolicy="no-referrer" alt="" style={{ width: "100%", height: "100%", objectFit: "contain" }} /> : <span style={{ fontSize: 18 }}>📦</span>}
             </div>
           ))}
           {items.length > 3 && <div style={{ width: 40, height: 40, borderRadius: 9, background: "#F3F1ED", marginLeft: -14, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, fontWeight: 700, color: "#888" }}>+{items.length - 3}</div>}
@@ -150,11 +246,17 @@ function OrderGroupCard({ items, onOpenItem }) {
           <div style={{ fontSize: 13.5, fontWeight: 700, color: "#111", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
             {items[0].product_title || items[0].product}{items.length > 1 ? ` +${items.length - 1} more` : ""}
           </div>
+          <div style={{ display: "flex", alignItems: "baseline", gap: 5, marginTop: 2 }}>
+            <span style={{ fontSize: 13, fontWeight: 800, color: "#111" }}>€{total.toFixed(2)}</span>
+            <span style={{ fontSize: 10, color: "#A8A5A0" }}>incl. fees</span>
+          </div>
           <div style={{ fontSize: 11, color: anyProblem ? "#B45309" : "#8A8780", marginTop: 1 }}>
             {anyProblem ? "⚠️ Action needed" : `${atWarehouse}/${items.length} at warehouse`}
           </div>
         </div>
-        <ProgressRing percent={percent} />
+        <motion.div whileTap={{ scale: 0.85 }} onClick={(e) => { e.stopPropagation(); setWheel(true); }} title="Tap for progress breakdown" style={{ flexShrink: 0, cursor: "pointer" }}>
+          <ProgressRing percent={percent} />
+        </motion.div>
         <motion.div animate={{ rotate: open ? 0 : 180 }} transition={springSnappy} style={{ flexShrink: 0, display: "flex" }}>
           <ChevronUp size={18} color="#C9C6C1" strokeWidth={2.4} />
         </motion.div>
@@ -169,20 +271,34 @@ function OrderGroupCard({ items, onOpenItem }) {
                   <motion.div key={o.id} whileTap={{ scale: 0.98 }} onClick={() => onOpenItem(o)}
                     style={{ display: "flex", alignItems: "center", gap: 10, background: "#F8F7F4", borderRadius: 12, padding: "9px 11px", marginBottom: 6, cursor: "pointer" }}>
                     <div style={{ width: 38, height: 38, borderRadius: 8, background: "#fff", border: "1px solid #F0EEE8", overflow: "hidden", flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
-                      {o.variant_image ? <img src={o.variant_image} alt="" style={{ width: "100%", height: "100%", objectFit: "contain" }} /> : <span style={{ fontSize: 17 }}>📦</span>}
+                      {o.variant_image ? <img src={o.variant_image} referrerPolicy="no-referrer" alt="" style={{ width: "100%", height: "100%", objectFit: "contain" }} /> : <span style={{ fontSize: 17 }}>📦</span>}
                     </div>
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{ fontSize: 12.5, fontWeight: 600, color: "#111", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{o.product_title || o.product}</div>
-                      <div style={{ fontSize: 11, color: "#A8A5A0", marginBottom: 3 }}>{o.qty} pcs{o.kleur ? ` · ${o.kleur}` : ""}</div>
+                      <div style={{ fontSize: 11, color: "#A8A5A0", marginBottom: 3 }}>{o.qty} pcs{o.kleur ? ` · ${o.kleur}` : ""} · €{(Number(o.price) || 0).toFixed(2)}</div>
                       <div style={{ display: "inline-block", background: s.bg, color: s.color, fontSize: 10.5, fontWeight: 700, padding: "2px 9px", borderRadius: 20 }}>{s.label}{o.problem_type ? " · ⚠️" : ""}</div>
                     </div>
                     <div style={{ color: "#ccc", fontSize: 16, flexShrink: 0 }}>→</div>
                   </motion.div>
                 );
               })}
+              <div style={{ marginTop: 4, padding: "10px 12px", background: "#FAF9F6", borderRadius: 12, border: "1px solid #EFEDE7" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, color: "#6B6862", marginBottom: 5 }}>
+                  <span>Items ({items.length})</span><span>€{subtotal.toFixed(2)}</span>
+                </div>
+                <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, color: "#6B6862", marginBottom: 7 }}>
+                  <span>Service fee</span><span>€{fee.toFixed(2)}</span>
+                </div>
+                <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13.5, fontWeight: 800, color: "#111", borderTop: "1px solid #EAE7E0", paddingTop: 7 }}>
+                  <span>Total paid</span><span>€{total.toFixed(2)}</span>
+                </div>
+              </div>
             </div>
           </motion.div>
         )}
+      </AnimatePresence>
+      <AnimatePresence>
+        {wheel && <ProgressWheelModal items={items} onClose={() => setWheel(false)} />}
       </AnimatePresence>
     </motion.div>
   );
@@ -255,7 +371,7 @@ function PreviewGallery({ images }) {
       <div style={{ borderRadius: 16, overflow: "hidden", aspectRatio: "1", background: "#fff", marginBottom: 12 }}
         onTouchStart={e => { e.currentTarget._startX = e.touches[0].clientX; }}
         onTouchEnd={e => { const diff = e.currentTarget._startX - e.changedTouches[0].clientX; if (diff > 40 && current < images.length - 1) setCurrent(c => c+1); if (diff < -40 && current > 0) setCurrent(c => c-1); }}>
-        <img src={images[current]} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+        <img src={images[current]} referrerPolicy="no-referrer" alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
       </div>
       <div style={{ display: "flex", justifyContent: "center", gap: 6 }}>
         {images.map((_, i) => (<div key={i} onClick={() => setCurrent(i)} style={{ width: i === current ? 20 : 8, height: 8, borderRadius: 4, background: i === current ? "#0F0E0C" : "#E8E6E0", cursor: "pointer", transition: "all 0.2s" }} />))}
@@ -394,7 +510,7 @@ function RequestListSheet({ items, onRemove, onSetQty, onClose, onSend, sending,
 
   const itemThumb = (item) => (
     <div style={{ width: 46, height: 46, borderRadius: 10, background: "#fff", overflow: "hidden", flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
-      {item.variant_image ? <img src={item.variant_image} alt="" style={{ width: "100%", height: "100%", objectFit: "contain" }} /> : <span style={{ fontSize: 20 }}>📦</span>}
+      {item.variant_image ? <img src={item.variant_image} referrerPolicy="no-referrer" alt="" style={{ width: "100%", height: "100%", objectFit: "contain" }} /> : <span style={{ fontSize: 20 }}>📦</span>}
     </div>
   );
 
@@ -1124,7 +1240,7 @@ export default function SupplyFlow({ session }) {
                   style={{ background: "#fff", borderRadius: 18, overflow: "hidden", boxShadow: "0 1px 2px rgba(17,17,17,0.04), 0 6px 18px rgba(17,17,17,0.05)", cursor: "pointer" }}>
                   <div style={{ position: "relative" }}>
                     <motion.div layoutId={`pimg-${p.id}`} transition={springMorph} style={{ background: "#fff", height: 160, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 48, overflow: "hidden" }}>
-                      {p.image?.startsWith("http") ? <img src={p.image} alt={p.title} style={{ width: "100%", height: "100%", objectFit: "contain" }} /> : p.image}
+                      {p.image?.startsWith("http") ? <img src={p.image} referrerPolicy="no-referrer" alt={p.title} style={{ width: "100%", height: "100%", objectFit: "contain" }} /> : p.image}
                     </motion.div>
                     <motion.div layoutId={`plus-${p.id}`} transition={springMorph}
                       onClick={e => { e.stopPropagation(); setActionProduct(p); }}
@@ -1308,7 +1424,7 @@ export default function SupplyFlow({ session }) {
                 return orderImage ? (
                   <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={springSoft}
                     style={{ marginBottom: 10, borderRadius: 12, overflow: "hidden", position: "relative", background: "#fff" }}>
-                    <img src={orderImage} alt="your order" style={{ width: "100%", aspectRatio: "1", objectFit: "contain", display: "block" }} />
+                    <img src={orderImage} referrerPolicy="no-referrer" alt="your order" style={{ width: "100%", aspectRatio: "1", objectFit: "contain", display: "block" }} />
                     <div style={{ position: "absolute", top: 8, left: 8, background: "#0F0E0C", color: "#FF5C00", fontSize: 10, fontWeight: 700, padding: "4px 10px", borderRadius: 20 }}>
                       Your order{selectedOrder.kleur ? ` · ${selectedOrder.kleur}` : ""}
                     </div>
@@ -1318,7 +1434,7 @@ export default function SupplyFlow({ session }) {
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
                 {selectedOrder.qc_images.map((url, i) => (
                   <div key={i} style={{ borderRadius: 12, overflow: "hidden", aspectRatio: "1", position: "relative" }}>
-                    <img src={url} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                    <img src={url} referrerPolicy="no-referrer" alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
                     {i === 3 && <div style={{ position: "absolute", bottom: 6, left: 6, background: "rgba(0,0,0,0.7)", color: "#fff", fontSize: 10, padding: "2px 6px", borderRadius: 6 }}>⚖️ Weight</div>}
                   </div>
                 ))}
@@ -1665,7 +1781,7 @@ export default function SupplyFlow({ session }) {
       </AnimatePresence>
 
       {/* Bottom nav */}
-      <div style={{ position: "fixed", bottom: 0, left: "50%", transform: "translateX(-50%)", width: "100%", maxWidth: 430, background: "#fff", borderTop: "1px solid #ECEAE5", display: "flex", padding: "9px 0 15px" }}>
+      <div style={{ position: "fixed", zIndex: 100, bottom: 0, left: "50%", transform: "translateX(-50%)", width: "100%", maxWidth: 430, background: "#fff", borderTop: "1px solid #ECEAE5", display: "flex", padding: "9px 0 15px" }}>
         {[
           { id: "feed", Icon: Home, label: "Feed" },
           { id: "orders", Icon: Package, label: "Orders" },

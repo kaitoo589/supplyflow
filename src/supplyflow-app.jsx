@@ -403,7 +403,7 @@ function RequestListSheet({ items, onRemove, onSetQty, onClose, onSend, sending,
                 </div>
               </div>
 
-              <div style={{ background: "#1E1D1A", borderRadius: 14, padding: "12px 14px", marginBottom: 12 }}>
+              <motion.div layoutId="ck-ship" style={{ background: "#1E1D1A", borderRadius: 14, padding: "12px 14px", marginBottom: 12 }}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
                   <span style={{ fontSize: 11.5, fontWeight: 700, color: "#9C9893", letterSpacing: 0.3 }}>📦 SHIPPING TO</span>
                   {onEditAddress && <button onClick={onEditAddress} style={{ background: "none", border: "none", color: "#FF5C00", fontSize: 12, fontWeight: 700, cursor: "pointer" }}>Edit</button>}
@@ -418,7 +418,7 @@ function RequestListSheet({ items, onRemove, onSetQty, onClose, onSend, sending,
                 ) : (
                   <div style={{ fontSize: 12.5, color: "#F59E0B" }}>⚠️ No shipping address yet — tap Edit to add one.</div>
                 )}
-              </div>
+              </motion.div>
 
               {items.map((item, i) => (
                 <motion.div layoutId={`citem-${i}`} key={i} style={{ display: "flex", alignItems: "center", gap: 10, background: "#1A1917", borderRadius: 12, padding: "8px 10px", marginBottom: 6 }}>
@@ -431,33 +431,33 @@ function RequestListSheet({ items, onRemove, onSetQty, onClose, onSend, sending,
                 </motion.div>
               ))}
 
-              <div style={{ background: "#1E1D1A", borderRadius: 14, padding: "12px 14px", marginTop: 6, marginBottom: 12 }}>
+              <motion.div layoutId="ck-items" style={{ background: "#1E1D1A", borderRadius: "14px 14px 0 0", padding: "12px 14px", marginTop: 6 }}>
                 <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
                   <span style={{ fontSize: 12.5, color: "#9C9893" }}>Items</span>
                   <span style={{ fontSize: 12.5, color: "#fff" }}>€{total.toFixed(2)}</span>
                 </div>
-                <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8 }}>
+                <div style={{ display: "flex", justifyContent: "space-between" }}>
                   <span style={{ fontSize: 12.5, color: "#9C9893" }}>Service fee (8%, min €5)</span>
                   <span style={{ fontSize: 12.5, color: "#fff" }}>€{fee.toFixed(2)}</span>
                 </div>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", borderTop: "1px solid rgba(255,255,255,0.1)", paddingTop: 8 }}>
-                  <span style={{ fontSize: 14, fontWeight: 700, color: "#fff" }}>Total now</span>
-                  <span style={{ fontSize: 20, fontWeight: 800, color: "#FF5C00" }}>€{charge.toFixed(2)}</span>
-                </div>
-              </div>
+              </motion.div>
+              <motion.div layoutId="ck-total" style={{ background: "#1E1D1A", borderRadius: "0 0 14px 14px", padding: "12px 14px", marginBottom: 12, borderTop: "1px solid rgba(255,255,255,0.1)", display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
+                <span style={{ fontSize: 14, fontWeight: 700, color: "#fff" }}>Total now</span>
+                <span style={{ fontSize: 20, fontWeight: 800, color: "#FF5C00" }}>€{charge.toFixed(2)}</span>
+              </motion.div>
 
-              <div style={{ background: "rgba(99,102,241,0.12)", borderRadius: 12, padding: "10px 13px", marginBottom: 12, fontSize: 11.5, color: "#A5B4FC", lineHeight: 1.5 }}>
+              <motion.div layoutId="ck-boat" style={{ background: "rgba(99,102,241,0.12)", borderRadius: 12, padding: "10px 13px", marginBottom: 12, fontSize: 11.5, color: "#A5B4FC", lineHeight: 1.5 }}>
                 🚢 International shipping is billed <b>later, by weight</b>, once your items reach the warehouse — so you only pay for what you actually ship.
-              </div>
+              </motion.div>
 
               {errorBlock}
 
-              <motion.button whileTap={sending || !hasAddress ? undefined : { scale: 0.97 }} onClick={onSend} disabled={sending || !hasAddress || items.length === 0}
+              <motion.button layoutId="ck-confirm-btn" whileTap={sending || !hasAddress ? undefined : { scale: 0.97 }} onClick={onSend} disabled={sending || !hasAddress || items.length === 0}
                 style={{ width: "100%", marginTop: 4, background: sending ? "#333" : !hasAddress ? "#444" : "#FF5C00", color: "#fff", border: "none", borderRadius: 14, padding: "16px", fontSize: 15, fontWeight: 700, cursor: sending || !hasAddress ? "default" : "pointer", WebkitTapHighlightColor: "transparent" }}>
                 {sending ? "Processing payment…" : !hasAddress ? "Add an address to continue" : `Confirm & pay €${charge.toFixed(2)} →`}
               </motion.button>
 
-              <motion.button whileTap={{ scale: 0.97 }} onClick={() => setView("cart")}
+              <motion.button layoutId="ck-back-btn" whileTap={{ scale: 0.97 }} onClick={() => setView("cart")}
                 style={{ width: "100%", marginTop: 8, background: "transparent", color: "#C9C6C1", border: "1px solid rgba(255,255,255,0.15)", borderRadius: 14, padding: "13px", fontSize: 13, fontWeight: 600, cursor: "pointer", WebkitTapHighlightColor: "transparent" }}>
                 ← Back to cart
               </motion.button>
@@ -1433,11 +1433,11 @@ export default function SupplyFlow({ session }) {
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
               onClick={() => setSuccessProduct(null)}
               style={{ position: "fixed", inset: 0, zIndex: 200, background: "rgba(0,0,0,0.8)", backdropFilter: "blur(8px)" }} />
-            <motion.div initial={{ opacity: 0, y: 40 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 40 }}
+            <motion.div layout initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
               style={{ position: "fixed", bottom: 0, left: 0, right: 0, background: "#0F0E0C", borderRadius: "24px 24px 0 0", zIndex: 201, padding: "32px 24px 48px" }}>
               <div style={{ width: 36, height: 4, background: "#333", borderRadius: 2, margin: "0 auto 24px" }} />
               <div style={{ textAlign: "center", marginBottom: 24 }}>
-                <div style={{ fontSize: 56, marginBottom: 16 }}>🦊</div>
+                <motion.span layoutId="cart-fox" style={{ fontSize: 56, display: "inline-block", marginBottom: 16 }}>🦊</motion.span>
                 <div style={{ fontSize: 22, fontWeight: 700, color: "#FF5C00", marginBottom: 8 }}>Order placed! 🎉</div>
                 <div style={{ fontSize: 14, color: "#888", lineHeight: 1.6 }}>
                   We're getting it from the factory:
@@ -1445,26 +1445,26 @@ export default function SupplyFlow({ session }) {
               </div>
               <div style={{ display: "flex", flexDirection: "column", gap: 10, marginBottom: 28 }}>
                 {[
-                  { icon: "🛒", text: "Buying your item from the supplier" },
-                  { icon: "📸", text: "Taking quality-control photos" },
-                  { icon: "🏭", text: "Storing it safely in the warehouse" },
-                  { icon: "✈️", text: "Shipping it to your door" },
-                ].map((item, i) => (
-                  <div key={i} style={{ display: "flex", alignItems: "center", gap: 12, background: "#1A1917", borderRadius: 10, padding: "10px 14px" }}>
+                  { icon: "🛒", text: "Buying your item from the supplier", lid: "ck-ship" },
+                  { icon: "📸", text: "Taking quality-control photos", lid: "ck-items" },
+                  { icon: "🏭", text: "Storing it safely in the warehouse", lid: "ck-total" },
+                  { icon: "✈️", text: "Shipping it to your door", lid: "ck-boat" },
+                ].map((item) => (
+                  <motion.div layoutId={item.lid} key={item.lid} style={{ display: "flex", alignItems: "center", gap: 12, background: "#1A1917", borderRadius: 10, padding: "10px 14px" }}>
                     <span style={{ fontSize: 18 }}>{item.icon}</span>
                     <span style={{ fontSize: 13, color: "#CCC" }}>{item.text}</span>
-                  </div>
+                  </motion.div>
                 ))}
               </div>
-              <motion.button whileTap={{ scale: 0.97 }}
+              <motion.button layoutId="ck-confirm-btn" whileTap={{ scale: 0.97 }}
                 onClick={() => { setSuccessProduct(null); setOrderSuccess(false); setTab("orders"); setSelectedOrder(null); }}
                 style={{ width: "100%", background: "#FF5C00", color: "#fff", border: "none", borderRadius: 12, padding: "14px", fontSize: 15, fontWeight: 700, cursor: "pointer", WebkitTapHighlightColor: "transparent" }}>
                 Track it in Orders →
               </motion.button>
-              <button onClick={() => { setSuccessProduct(null); setOrderSuccess(false); }}
+              <motion.button layoutId="ck-back-btn" onClick={() => { setSuccessProduct(null); setOrderSuccess(false); }}
                 style={{ width: "100%", background: "transparent", color: "#888", border: "none", padding: "12px", fontSize: 14, fontWeight: 600, cursor: "pointer", marginTop: 6 }}>
                 Back to feed
-              </button>
+              </motion.button>
             </motion.div>
           </>
         ) : null}

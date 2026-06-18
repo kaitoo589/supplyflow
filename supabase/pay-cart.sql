@@ -7,11 +7,20 @@
 -- Voer uit in: Supabase → SQL Editor → New query → plak → Run.
 -- ============================================================
 
--- Zorg dat de kolommen die pay_cart nodig heeft bestaan (idempotent).
+-- Zorg dat alle kolommen die pay_cart gebruikt bestaan (idempotent).
+alter table public.orders add column if not exists product text;
+alter table public.orders add column if not exists product_title text;
+alter table public.orders add column if not exists source_url text;
+alter table public.orders add column if not exists platform text;
+alter table public.orders add column if not exists price numeric;
+alter table public.orders add column if not exists qty integer;
+alter table public.orders add column if not exists kleur text;
+alter table public.orders add column if not exists opmerking text;
+alter table public.orders add column if not exists variant_image text;
+alter table public.orders add column if not exists date text;
 alter table public.orders add column if not exists request_group_id text;
 alter table public.orders add column if not exists quoted_total numeric;
 alter table public.orders add column if not exists quote_accepted_at timestamptz;
-alter table public.orders add column if not exists variant_image text;
 
 -- Service fee = 8% van het totaal, minimaal €5. Hier meegeleverd zodat
 -- pay-cart.sql op zichzelf werkt (ook als service-fee.sql nog niet is gedraaid).

@@ -631,34 +631,27 @@ export default function SupplyFlow({ session }) {
     localStorage.setItem("supplyflow_request_list", JSON.stringify(requestList));
   }, [requestList]);
 
+  // Instant checkout: reken de hele mand in één keer af (server-side pay_cart).
   const submitRequestList = async () => {
     if (!requestList.length || sendingList) return;
     setSendingList(true);
     setListError(null);
-    const groupId = "SF-G-" + Date.now();
-    const date = new Date().toLocaleDateString("en-GB", { day: "numeric", month: "short" });
-    let payloads = requestList.map((item, i) => ({
-      ...item,
-      id: `SF-${Date.now()}-${i + 1}`,
-      user_id: session.user.id,
-      status: "requested",
-      request_group_id: groupId,
-      date,
-    }));
-    let { error } = await supabase.from("orders").insert(payloads);
-    // Vangnet: kolommen die nog niet bestaan (SQL nog niet gedraaid) strippen en opnieuw.
-    for (const col of ["request_group_id", "variant_image"]) {
-      if (error && new RegExp(col, "i").test(error.message)) {
-        payloads = payloads.map(({ [col]: _omit, ...rest }) => rest);
-        ({ error } = await supabase.from("orders").insert(payloads));
-      }
-    }
+    const { data, error } = await supabase.rpc("pay_cart", { p_items: requestList });
     setSendingList(false);
     if (error) { setListError(error.message); return; }
+    if (!data?.ok) {
+      setListError(
+        data?.error === "Insufficient balance"
+          ? "Insufficient balance — top up to complete your order."
+          : data?.error || "Something went wrong. Please try again."
+      );
+      return;
+    }
     setRequestList([]);
     setShowRequestList(false);
     setOrderSuccess(true);
     fetchOrders();
+    fetchBalance();
   };
 
   useEffect(() => {
@@ -1343,18 +1336,17 @@ export default function SupplyFlow({ session }) {
               <div style={{ width: 36, height: 4, background: "#333", borderRadius: 2, margin: "0 auto 24px" }} />
               <div style={{ textAlign: "center", marginBottom: 24 }}>
                 <div style={{ fontSize: 56, marginBottom: 16 }}>🦊</div>
-                <div style={{ fontSize: 22, fontWeight: 700, color: "#FF5C00", marginBottom: 8 }}>Request sent!</div>
+                <div style={{ fontSize: 22, fontWeight: 700, color: "#FF5C00", marginBottom: 8 }}>Order placed! 🎉</div>
                 <div style={{ fontSize: 14, color: "#888", lineHeight: 1.6 }}>
-                  Our agent will get started right away:
+                  We're getting it from the factory:
                 </div>
               </div>
               <div style={{ display: "flex", flexDirection: "column", gap: 10, marginBottom: 28 }}>
                 {[
-                  { icon: "🔍", text: "Checking if the product is still in stock" },
-                  { icon: "📏", text: "Verifying your size/variant is available" },
-                  { icon: "💰", text: "Confirming the exact price" },
-                  { icon: "🚚", text: "Calculating local shipping costs" },
-                  { icon: "📋", text: "Sending you a quote" },
+                  { icon: "🛒", text: "Buying your item from the supplier" },
+                  { icon: "📸", text: "Taking quality-control photos" },
+                  { icon: "🏭", text: "Storing it safely in the warehouse" },
+                  { icon: "✈️", text: "Shipping it to your door" },
                 ].map((item, i) => (
                   <div key={i} style={{ display: "flex", alignItems: "center", gap: 12, background: "#1A1917", borderRadius: 10, padding: "10px 14px" }}>
                     <span style={{ fontSize: 18 }}>{item.icon}</span>
@@ -1365,7 +1357,7 @@ export default function SupplyFlow({ session }) {
               <motion.button whileTap={{ scale: 0.97 }}
                 onClick={() => { setSuccessProduct(null); setOrderSuccess(false); setTab("orders"); setSelectedOrder(null); }}
                 style={{ width: "100%", background: "#FF5C00", color: "#fff", border: "none", borderRadius: 12, padding: "14px", fontSize: 15, fontWeight: 700, cursor: "pointer", WebkitTapHighlightColor: "transparent" }}>
-                View your request in Orders →
+                Track it in Orders →
               </motion.button>
               <button onClick={() => { setSuccessProduct(null); setOrderSuccess(false); }}
                 style={{ width: "100%", background: "transparent", color: "#888", border: "none", padding: "12px", fontSize: 14, fontWeight: 600, cursor: "pointer", marginTop: 6 }}>

@@ -23,9 +23,18 @@ begin
 end;
 $$;
 
+-- Op UPDATE (oude offerte-flow: agent → klant betaalt offerte)
 drop trigger if exists place_bucky_order_trg on public.orders;
 create trigger place_bucky_order_trg
   after update on public.orders
   for each row
   when (new.status = 'quote_accepted' and old.status is distinct from 'quote_accepted')
+  execute function public.trigger_place_bucky_order();
+
+-- Op INSERT (nieuwe instant-checkout: order wordt meteen als 'quote_accepted' aangemaakt)
+drop trigger if exists place_bucky_order_ins_trg on public.orders;
+create trigger place_bucky_order_ins_trg
+  after insert on public.orders
+  for each row
+  when (new.status = 'quote_accepted')
   execute function public.trigger_place_bucky_order();

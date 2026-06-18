@@ -49,22 +49,18 @@ export default function OrderRequest({ product, session, onClose, onSuccess, onA
     if (!item) return;
     setLoading(true);
     setError(null);
-    const payload = {
-      ...item,
-      id: "SF-" + Date.now(),
-      user_id: session.user.id,
-      status: "requested",
-      date: new Date().toLocaleDateString("en-GB", { day: "numeric", month: "short" }),
-    };
-    let { error } = await supabase.from("orders").insert(payload);
-    // Vangnet: als de variant_image-kolom nog niet bestaat (SQL nog niet gedraaid),
-    // plaats de aanvraag dan zonder die foto i.p.v. te falen.
-    if (error && /variant_image/i.test(error.message)) {
-      delete payload.variant_image;
-      ({ error } = await supabase.from("orders").insert(payload));
-    }
+    // Instant checkout: koop dit item direct af (server-side pay_cart).
+    const { data, error } = await supabase.rpc("pay_cart", { p_items: [item] });
     setLoading(false);
     if (error) { setError(error.message); return; }
+    if (!data?.ok) {
+      setError(
+        data?.error === "Insufficient balance"
+          ? "Insufficient balance — top up to complete your order."
+          : data?.error || "Something went wrong. Please try again."
+      );
+      return;
+    }
     onSuccess();
   };
 
@@ -132,7 +128,7 @@ export default function OrderRequest({ product, session, onClose, onSuccess, onA
                 </motion.div>
                 <motion.div layoutId={`platform-${product.id}`} transition={spring}
                   style={{ fontSize: 13, color: "#888", marginTop: 4 }}>
-                  {product.platform} · indicative €{Number(product.price).toFixed(2)}
+                  {product.platform} · €{Number(product.price).toFixed(2)}
                 </motion.div>
               </div>
               <motion.button
@@ -229,7 +225,7 @@ export default function OrderRequest({ product, session, onClose, onSuccess, onA
 
             <motion.div variants={fadeUp}
               style={{ background: "#F8F7F4", borderRadius: 10, padding: "10px 14px", marginBottom: 10, fontSize: 12, color: "#888" }}>
-              💡 Price is indicative. The agent confirms the final price including local shipping costs. A service fee (8%, min €5) is added when you pay the quote.
+              💡 A service fee (8%, min €5) is added at checkout — shared across your whole cart, so bundling makes it cheaper per item. International shipping is paid later, by weight.
             </motion.div>
 
             {/* Vos-tip: aanvragen bundelen = één service fee i.p.v. één per aanvraag */}
@@ -248,7 +244,7 @@ export default function OrderRequest({ product, session, onClose, onSuccess, onA
               disabled={loading}
               style={{ width: "100%", background: loading ? "#E8E6E0" : "#FF5C00", color: "#fff", border: "none", borderRadius: 14, padding: "16px", fontSize: 15, fontWeight: 700, cursor: loading ? "default" : "pointer" }}
             >
-              {loading ? "Processing..." : "Send request →"}
+              {loading ? "Processing..." : "Buy now →"}
             </motion.button>
 
             {onAddToList && (

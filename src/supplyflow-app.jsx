@@ -290,7 +290,7 @@ function QuoteAcceptance({ order, session, balance, allOrders = [], onAccepted }
 
 // Aanvraaglijst: alles in één keer versturen = één service fee over de bundel.
 // De sheet deelt z'n layoutId met het zwevende balkje en morpht ervandaan open.
-function RequestListSheet({ items, onRemove, onSetQty, onClose, onSend, sending, error, session, onEditAddress, onTopUp }) {
+function RequestListSheet({ items, onRemove, onSetQty, onClose, onSend, sending, error, session, onEditAddress, onTopUp, onFinish }) {
   const [view, setView] = useState("cart");
   const total = items.reduce((s, it) => s + Number(it.price || 0) * (it.qty || 1), 0);
   const fee = serviceFee(total);
@@ -302,6 +302,12 @@ function RequestListSheet({ items, onRemove, onSetQty, onClose, onSend, sending,
   const cityLine = [m.postcode, m.stad].filter(Boolean).join(" ");
   const hasAddress = !!(m.adres && m.stad);
   const lowBalance = /balance|saldo/i.test(error || "");
+
+  // Bevestig & betaal → bij succes morpht de sheet naar de "placed"-weergave.
+  const confirmAndPay = async () => {
+    const ok = await onSend();
+    if (ok) setView("placed");
+  };
 
   const itemThumb = (item) => (
     <div style={{ width: 46, height: 46, borderRadius: 10, background: "#fff", overflow: "hidden", flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
@@ -322,13 +328,13 @@ function RequestListSheet({ items, onRemove, onSetQty, onClose, onSend, sending,
 
   return (
     <>
-      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={onClose}
+      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={view === "placed" ? () => onFinish?.(false) : onClose}
         style={{ position: "fixed", inset: 0, zIndex: 300, background: "rgba(0,0,0,0.5)", backdropFilter: "blur(6px)" }} />
       <motion.div layoutId="request-list-morph" transition={springMorph}
         style={{ position: "fixed", bottom: 0, left: 0, right: 0, margin: "0 auto", width: "100%", maxWidth: 430, boxSizing: "border-box", background: "#111111", borderRadius: "24px 24px 0 0", zIndex: 301, maxHeight: "88vh", overflowY: "auto" }}>
         <motion.div layout initial={{ opacity: 0 }} animate={{ opacity: 1, transition: { delay: 0.12, duration: 0.18 } }} exit={{ opacity: 0, transition: { duration: 0.08 } }}
           style={{ padding: "20px 20px 40px" }}>
-          <div onClick={view === "checkout" ? () => setView("cart") : onClose} style={{ padding: "0 0 12px", cursor: "pointer" }}>
+          <div onClick={view === "checkout" ? () => setView("cart") : view === "placed" ? () => onFinish?.(false) : onClose} style={{ padding: "0 0 12px", cursor: "pointer" }}>
             <div style={{ width: 36, height: 4, background: "rgba(255,255,255,0.2)", borderRadius: 2, margin: "0 auto" }} />
           </div>
 
@@ -393,7 +399,7 @@ function RequestListSheet({ items, onRemove, onSetQty, onClose, onSend, sending,
                 ← Continue shopping &amp; reduce your fee per item
               </motion.button>
             </motion.div>
-          ) : (
+          ) : view === "checkout" ? (
             <motion.div layout="position" key="checkout">
               <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 16 }}>
                 <motion.span layoutId="cart-fox" style={{ fontSize: 34, flexShrink: 0 }}>🦊</motion.span>
@@ -452,7 +458,7 @@ function RequestListSheet({ items, onRemove, onSetQty, onClose, onSend, sending,
 
               {errorBlock}
 
-              <motion.button layoutId="ck-confirm-btn" whileTap={sending || !hasAddress ? undefined : { scale: 0.97 }} onClick={onSend} disabled={sending || !hasAddress || items.length === 0}
+              <motion.button layoutId="ck-confirm-btn" whileTap={sending || !hasAddress ? undefined : { scale: 0.97 }} onClick={confirmAndPay} disabled={sending || !hasAddress || items.length === 0}
                 style={{ width: "100%", marginTop: 4, background: sending ? "#333" : !hasAddress ? "#444" : "#FF5C00", color: "#fff", border: "none", borderRadius: 14, padding: "16px", fontSize: 15, fontWeight: 700, cursor: sending || !hasAddress ? "default" : "pointer", WebkitTapHighlightColor: "transparent" }}>
                 {sending ? "Processing payment…" : !hasAddress ? "Add an address to continue" : `Confirm & pay €${charge.toFixed(2)} →`}
               </motion.button>
@@ -460,6 +466,35 @@ function RequestListSheet({ items, onRemove, onSetQty, onClose, onSend, sending,
               <motion.button layoutId="ck-back-btn" whileTap={{ scale: 0.97 }} onClick={() => setView("cart")}
                 style={{ width: "100%", marginTop: 8, background: "transparent", color: "#C9C6C1", border: "1px solid rgba(255,255,255,0.15)", borderRadius: 14, padding: "13px", fontSize: 13, fontWeight: 600, cursor: "pointer", WebkitTapHighlightColor: "transparent" }}>
                 ← Back to cart
+              </motion.button>
+            </motion.div>
+          ) : (
+            <motion.div layout="position" key="placed">
+              <div style={{ textAlign: "center", marginBottom: 22, marginTop: 4 }}>
+                <motion.span layoutId="cart-fox" style={{ fontSize: 52, display: "inline-block", marginBottom: 12 }}>🦊</motion.span>
+                <div style={{ fontSize: 22, fontWeight: 700, color: "#FF5C00", marginBottom: 6 }}>Order placed! 🎉</div>
+                <div style={{ fontSize: 13, color: "#888" }}>We're getting it from the factory:</div>
+              </div>
+              <div style={{ display: "flex", flexDirection: "column", gap: 10, marginBottom: 22 }}>
+                {[
+                  { icon: "🛒", text: "Buying your item from the supplier", lid: "ck-ship" },
+                  { icon: "📸", text: "Taking quality-control photos", lid: "ck-items" },
+                  { icon: "🏭", text: "Storing it safely in the warehouse", lid: "ck-total" },
+                  { icon: "✈️", text: "Shipping it to your door", lid: "ck-boat" },
+                ].map((s) => (
+                  <motion.div layoutId={s.lid} key={s.lid} style={{ display: "flex", alignItems: "center", gap: 12, background: "#1A1917", borderRadius: 10, padding: "12px 14px" }}>
+                    <span style={{ fontSize: 18 }}>{s.icon}</span>
+                    <span style={{ fontSize: 13, color: "#CCC" }}>{s.text}</span>
+                  </motion.div>
+                ))}
+              </div>
+              <motion.button layoutId="ck-confirm-btn" whileTap={{ scale: 0.97 }} onClick={() => onFinish?.(true)}
+                style={{ width: "100%", background: "#FF5C00", color: "#fff", border: "none", borderRadius: 14, padding: "16px", fontSize: 15, fontWeight: 700, cursor: "pointer", WebkitTapHighlightColor: "transparent" }}>
+                Track it in Orders →
+              </motion.button>
+              <motion.button layoutId="ck-back-btn" whileTap={{ scale: 0.97 }} onClick={() => onFinish?.(false)}
+                style={{ width: "100%", marginTop: 8, background: "transparent", color: "#888", border: "none", borderRadius: 14, padding: "13px", fontSize: 13, fontWeight: 600, cursor: "pointer", WebkitTapHighlightColor: "transparent" }}>
+                Back to feed
               </motion.button>
             </motion.div>
           )}
@@ -730,26 +765,25 @@ export default function SupplyFlow({ session }) {
   }, [requestList]);
 
   // Instant checkout: reken de hele mand in één keer af (server-side pay_cart).
+  // Geeft true terug bij succes → de sheet morpht dan naar de "placed"-weergave.
   const submitRequestList = async () => {
-    if (!requestList.length || sendingList) return;
+    if (!requestList.length || sendingList) return false;
     setSendingList(true);
     setListError(null);
     const { data, error } = await supabase.rpc("pay_cart", { p_items: requestList });
     setSendingList(false);
-    if (error) { setListError(error.message); return; }
+    if (error) { setListError(error.message); return false; }
     if (!data?.ok) {
       setListError(
         data?.error === "Insufficient balance"
           ? "Insufficient balance — top up to complete your order."
           : data?.error || "Something went wrong. Please try again."
       );
-      return;
+      return false;
     }
-    setRequestList([]);
-    setShowRequestList(false);
-    setOrderSuccess(true);
     fetchOrders();
     fetchBalance();
+    return true;
   };
 
   useEffect(() => {
@@ -1400,6 +1434,7 @@ export default function SupplyFlow({ session }) {
             session={session}
             onEditAddress={() => { setShowRequestList(false); setTab("profile"); setShowEditProfile(true); }}
             onTopUp={() => { setShowRequestList(false); setTab("profile"); }}
+            onFinish={(goOrders) => { setRequestList([]); setShowRequestList(false); if (goOrders) { setTab("orders"); setSelectedOrder(null); } }}
           />
         )}
       </AnimatePresence>

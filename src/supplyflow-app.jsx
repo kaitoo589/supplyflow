@@ -290,81 +290,179 @@ function QuoteAcceptance({ order, session, balance, allOrders = [], onAccepted }
 
 // Aanvraaglijst: alles in één keer versturen = één service fee over de bundel.
 // De sheet deelt z'n layoutId met het zwevende balkje en morpht ervandaan open.
-function RequestListSheet({ items, onRemove, onClose, onSend, sending, error }) {
+function RequestListSheet({ items, onRemove, onSetQty, onClose, onSend, sending, error, session, onEditAddress, onTopUp }) {
+  const [view, setView] = useState("cart");
   const total = items.reduce((s, it) => s + Number(it.price || 0) * (it.qty || 1), 0);
   const fee = serviceFee(total);
+  const charge = total + fee;
   const perItem = items.length ? fee / items.length : fee;
   const perItemColor = perItem >= 4 ? "#C9C6C1" : perItem >= 2 ? "#FF5C00" : "#16A34A";
+  const m = session?.user?.user_metadata || {};
+  const addrName = `${m.voornaam || ""} ${m.achternaam || ""}`.trim();
+  const cityLine = [m.postcode, m.stad].filter(Boolean).join(" ");
+  const hasAddress = !!(m.adres && m.stad);
+  const lowBalance = /balance|saldo/i.test(error || "");
+
+  const itemThumb = (item) => (
+    <div style={{ width: 46, height: 46, borderRadius: 10, background: "#fff", overflow: "hidden", flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
+      {item.variant_image ? <img src={item.variant_image} alt="" style={{ width: "100%", height: "100%", objectFit: "contain" }} /> : <span style={{ fontSize: 20 }}>📦</span>}
+    </div>
+  );
+
+  const errorBlock = error ? (
+    <div style={{ background: "#FEE2E2", color: "#DC2626", borderRadius: 10, padding: "10px 14px", fontSize: 13, marginTop: 10 }}>
+      {error}
+      {lowBalance && onTopUp && (
+        <button onClick={onTopUp} style={{ display: "block", width: "100%", marginTop: 8, background: "#DC2626", color: "#fff", border: "none", borderRadius: 8, padding: "8px", fontSize: 12.5, fontWeight: 700, cursor: "pointer" }}>
+          Top up your balance →
+        </button>
+      )}
+    </div>
+  ) : null;
+
   return (
     <>
       <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={onClose}
         style={{ position: "fixed", inset: 0, zIndex: 300, background: "rgba(0,0,0,0.5)", backdropFilter: "blur(6px)" }} />
       <motion.div layoutId="request-list-morph" transition={springMorph}
         style={{ position: "fixed", bottom: 0, left: 0, right: 0, margin: "0 auto", width: "100%", maxWidth: 430, boxSizing: "border-box", background: "#111111", borderRadius: "24px 24px 0 0", zIndex: 301, maxHeight: "88vh", overflowY: "auto" }}>
-        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1, transition: { delay: 0.12, duration: 0.18 } }} exit={{ opacity: 0, transition: { duration: 0.08 } }}
+        <motion.div layout initial={{ opacity: 0 }} animate={{ opacity: 1, transition: { delay: 0.12, duration: 0.18 } }} exit={{ opacity: 0, transition: { duration: 0.08 } }}
           style={{ padding: "20px 20px 40px" }}>
-          <div onClick={onClose} style={{ padding: "0 0 12px", cursor: "pointer" }}>
+          <div onClick={view === "checkout" ? () => setView("cart") : onClose} style={{ padding: "0 0 12px", cursor: "pointer" }}>
             <div style={{ width: 36, height: 4, background: "rgba(255,255,255,0.2)", borderRadius: 2, margin: "0 auto" }} />
           </div>
-          <div style={{ fontSize: 18, fontWeight: 700, color: "#fff", marginBottom: 14 }}>🛒 Shopping cart ({items.length})</div>
 
-          <div style={{ display: "flex", gap: 10, alignItems: "flex-end", marginBottom: 16 }}>
-            <span style={{ fontSize: 28, flexShrink: 0 }}>🦊</span>
-            <SpeechBubble bg="#1E1D1A" color="#C9C6C1">
-              <span style={{ fontSize: 12.5, lineHeight: 1.55 }}>
-                Smart move! Your whole cart shares <b style={{ color: "#FF5C00" }}>one service fee</b> (8%, min €5), so the more you add, the less it costs <b style={{ color: "#FF5C00" }}>per item</b>. From €62.50 it's just a flat 8% — the lowest it gets. Order things separately and each one carries its own fee.
-              </span>
-            </SpeechBubble>
-          </div>
+          {view === "cart" ? (
+            <motion.div layout="position" key="cart">
+              <div style={{ fontSize: 18, fontWeight: 700, color: "#fff", marginBottom: 14 }}>🛒 Shopping cart ({items.length})</div>
 
-          {items.map((item, i) => (
-            <div key={i} style={{ display: "flex", alignItems: "center", gap: 12, background: "#1A1917", borderRadius: 14, padding: "10px 12px", marginBottom: 8 }}>
-              <div style={{ width: 46, height: 46, borderRadius: 10, background: "#fff", overflow: "hidden", flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
-                {item.variant_image ? <img src={item.variant_image} alt="" style={{ width: "100%", height: "100%", objectFit: "contain" }} /> : <span style={{ fontSize: 20 }}>📦</span>}
+              <div style={{ display: "flex", gap: 10, alignItems: "flex-end", marginBottom: 16 }}>
+                <motion.span layoutId="cart-fox" style={{ fontSize: 28, flexShrink: 0 }}>🦊</motion.span>
+                <SpeechBubble bg="#1E1D1A" color="#C9C6C1">
+                  <span style={{ fontSize: 12.5, lineHeight: 1.55 }}>
+                    Smart move! Your whole cart shares <b style={{ color: "#FF5C00" }}>one service fee</b> (8%, min €5), so the more you add, the less it costs <b style={{ color: "#FF5C00" }}>per item</b>. From €62.50 it's just a flat 8% — the lowest it gets. Order things separately and each one carries its own fee.
+                  </span>
+                </SpeechBubble>
               </div>
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontSize: 13, fontWeight: 600, color: "#fff", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{item.product_title}</div>
-                <div style={{ fontSize: 11.5, color: "#9C9893" }}>{item.qty} pcs{item.kleur ? ` · ${item.kleur}` : ""} · €{Number(item.price).toFixed(2)}</div>
-              </div>
-              <motion.button whileTap={{ scale: 0.85 }} onClick={() => onRemove(i)}
-                style={{ width: 28, height: 28, borderRadius: "50%", background: "rgba(255,255,255,0.08)", border: "1px solid rgba(255,255,255,0.12)", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", flexShrink: 0 }}>
-                <X size={13} color="#9C9893" />
+
+              {items.map((item, i) => (
+                <motion.div layoutId={`citem-${i}`} key={i} style={{ display: "flex", alignItems: "center", gap: 12, background: "#1A1917", borderRadius: 14, padding: "10px 12px", marginBottom: 8 }}>
+                  {itemThumb(item)}
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: 13, fontWeight: 600, color: "#fff", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{item.product_title}</div>
+                    <div style={{ fontSize: 11.5, color: "#9C9893" }}>{item.kleur ? `${item.kleur} · ` : ""}€{Number(item.price).toFixed(2)}</div>
+                  </div>
+                  <div style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
+                    <motion.button whileTap={{ scale: 0.85 }} onClick={() => ((item.qty || 1) > 1 ? onSetQty(i, item.qty - 1) : onRemove(i))}
+                      style={{ width: 26, height: 26, borderRadius: "50%", background: "rgba(255,255,255,0.08)", border: "1px solid rgba(255,255,255,0.12)", color: "#C9C6C1", fontSize: 16, fontWeight: 700, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", lineHeight: 1 }}>−</motion.button>
+                    <span style={{ fontSize: 13, fontWeight: 700, color: "#fff", minWidth: 14, textAlign: "center" }}>{item.qty || 1}</span>
+                    <motion.button whileTap={{ scale: 0.85 }} onClick={() => onSetQty(i, (item.qty || 1) + 1)}
+                      style={{ width: 26, height: 26, borderRadius: "50%", background: "rgba(255,255,255,0.08)", border: "1px solid rgba(255,255,255,0.12)", color: "#C9C6C1", fontSize: 16, fontWeight: 700, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", lineHeight: 1 }}>+</motion.button>
+                  </div>
+                </motion.div>
+              ))}
+
+              {items.length > 0 && (
+                <motion.div layout style={{ background: "#1E1D1A", borderRadius: 14, padding: "12px 14px", marginTop: 12 }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
+                    <span style={{ fontSize: 12.5, color: "#9C9893" }}>Items</span>
+                    <span style={{ fontSize: 12.5, color: "#fff", fontWeight: 600 }}>€{total.toFixed(2)}</span>
+                  </div>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                    <span style={{ fontSize: 12.5, color: "#9C9893" }}>Service fee (8%, min €5)</span>
+                    <span style={{ fontSize: 12.5, color: "#fff", fontWeight: 600 }}>€{fee.toFixed(2)}</span>
+                  </div>
+                  <div style={{ display: "flex", justifyContent: "flex-end", alignItems: "baseline", gap: 6, marginTop: 5 }}>
+                    <span style={{ fontSize: 11, color: "#9C9893" }}>that's only</span>
+                    <motion.span key={perItem.toFixed(2)} initial={{ scale: 1.3, opacity: 0.3 }} animate={{ scale: 1, opacity: 1 }} transition={{ type: "spring", stiffness: 420, damping: 18 }}
+                      style={{ fontSize: 19, fontWeight: 800, color: perItemColor }}>€{perItem.toFixed(2)}</motion.span>
+                    <span style={{ fontSize: 11, fontWeight: 600, color: perItemColor }}>per item {perItem < 2 ? "🎉" : "🦊"}</span>
+                  </div>
+                </motion.div>
+              )}
+
+              {errorBlock}
+
+              <motion.button whileTap={items.length ? { scale: 0.97 } : undefined} onClick={() => items.length && setView("checkout")} disabled={items.length === 0}
+                style={{ width: "100%", marginTop: 12, background: items.length ? "#FF5C00" : "#333", color: "#fff", border: "none", borderRadius: 14, padding: "16px", fontSize: 15, fontWeight: 700, cursor: items.length ? "pointer" : "default", WebkitTapHighlightColor: "transparent" }}>
+                Go to checkout →
               </motion.button>
-            </div>
-          ))}
 
-          {items.length > 0 && (
-            <motion.div layout style={{ background: "#1E1D1A", borderRadius: 14, padding: "12px 14px", marginTop: 12 }}>
-              <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
-                <span style={{ fontSize: 12.5, color: "#9C9893" }}>Items</span>
-                <span style={{ fontSize: 12.5, color: "#fff", fontWeight: 600 }}>€{total.toFixed(2)}</span>
+              <motion.button whileTap={{ scale: 0.97 }} onClick={onClose}
+                style={{ width: "100%", marginTop: 8, background: "transparent", color: "#C9C6C1", border: "1px solid rgba(255,255,255,0.15)", borderRadius: 14, padding: "13px", fontSize: 13, fontWeight: 600, cursor: "pointer", WebkitTapHighlightColor: "transparent" }}>
+                ← Continue shopping &amp; reduce your fee per item
+              </motion.button>
+            </motion.div>
+          ) : (
+            <motion.div layout="position" key="checkout">
+              <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 16 }}>
+                <motion.span layoutId="cart-fox" style={{ fontSize: 34, flexShrink: 0 }}>🦊</motion.span>
+                <div>
+                  <div style={{ fontSize: 18, fontWeight: 700, color: "#fff" }}>Checkout</div>
+                  <div style={{ fontSize: 12, color: "#9C9893" }}>Just confirm and we'll start sourcing.</div>
+                </div>
               </div>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                <span style={{ fontSize: 12.5, color: "#9C9893" }}>Service fee (8%, min €5)</span>
-                <span style={{ fontSize: 12.5, color: "#fff", fontWeight: 600 }}>€{fee.toFixed(2)}</span>
+
+              <div style={{ background: "#1E1D1A", borderRadius: 14, padding: "12px 14px", marginBottom: 12 }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
+                  <span style={{ fontSize: 11.5, fontWeight: 700, color: "#9C9893", letterSpacing: 0.3 }}>📦 SHIPPING TO</span>
+                  {onEditAddress && <button onClick={onEditAddress} style={{ background: "none", border: "none", color: "#FF5C00", fontSize: 12, fontWeight: 700, cursor: "pointer" }}>Edit</button>}
+                </div>
+                {hasAddress ? (
+                  <div style={{ fontSize: 12.5, color: "#C9C6C1", lineHeight: 1.55 }}>
+                    {addrName && <div style={{ color: "#fff", fontWeight: 600 }}>{addrName}</div>}
+                    <div>{m.adres}</div>
+                    <div>{cityLine}{m.land ? `, ${m.land}` : ""}</div>
+                    {m.telefoon && <div style={{ color: "#9C9893" }}>{m.telefoon}</div>}
+                  </div>
+                ) : (
+                  <div style={{ fontSize: 12.5, color: "#F59E0B" }}>⚠️ No shipping address yet — tap Edit to add one.</div>
+                )}
               </div>
-              <div style={{ display: "flex", justifyContent: "flex-end", alignItems: "baseline", gap: 6, marginTop: 5 }}>
-                <span style={{ fontSize: 11, color: "#9C9893" }}>that's only</span>
-                <motion.span key={perItem.toFixed(2)} initial={{ scale: 1.3, opacity: 0.3 }} animate={{ scale: 1, opacity: 1 }} transition={{ type: "spring", stiffness: 420, damping: 18 }}
-                  style={{ fontSize: 19, fontWeight: 800, color: perItemColor }}>€{perItem.toFixed(2)}</motion.span>
-                <span style={{ fontSize: 11, fontWeight: 600, color: perItemColor }}>per item {perItem < 2 ? "🎉" : "🦊"}</span>
+
+              {items.map((item, i) => (
+                <motion.div layoutId={`citem-${i}`} key={i} style={{ display: "flex", alignItems: "center", gap: 10, background: "#1A1917", borderRadius: 12, padding: "8px 10px", marginBottom: 6 }}>
+                  {itemThumb(item)}
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: 12.5, fontWeight: 600, color: "#fff", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{item.product_title}</div>
+                    <div style={{ fontSize: 11, color: "#9C9893" }}>{item.qty || 1} pcs{item.kleur ? ` · ${item.kleur}` : ""}</div>
+                  </div>
+                  <div style={{ fontSize: 12.5, fontWeight: 700, color: "#fff", flexShrink: 0 }}>€{(Number(item.price) * (item.qty || 1)).toFixed(2)}</div>
+                </motion.div>
+              ))}
+
+              <div style={{ background: "#1E1D1A", borderRadius: 14, padding: "12px 14px", marginTop: 6, marginBottom: 12 }}>
+                <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
+                  <span style={{ fontSize: 12.5, color: "#9C9893" }}>Items</span>
+                  <span style={{ fontSize: 12.5, color: "#fff" }}>€{total.toFixed(2)}</span>
+                </div>
+                <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8 }}>
+                  <span style={{ fontSize: 12.5, color: "#9C9893" }}>Service fee (8%, min €5)</span>
+                  <span style={{ fontSize: 12.5, color: "#fff" }}>€{fee.toFixed(2)}</span>
+                </div>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", borderTop: "1px solid rgba(255,255,255,0.1)", paddingTop: 8 }}>
+                  <span style={{ fontSize: 14, fontWeight: 700, color: "#fff" }}>Total now</span>
+                  <span style={{ fontSize: 20, fontWeight: 800, color: "#FF5C00" }}>€{charge.toFixed(2)}</span>
+                </div>
               </div>
+
+              <div style={{ background: "rgba(99,102,241,0.12)", borderRadius: 12, padding: "10px 13px", marginBottom: 12, fontSize: 11.5, color: "#A5B4FC", lineHeight: 1.5 }}>
+                🚢 International shipping is billed <b>later, by weight</b>, once your items reach the warehouse — so you only pay for what you actually ship.
+              </div>
+
+              {errorBlock}
+
+              <motion.button whileTap={sending || !hasAddress ? undefined : { scale: 0.97 }} onClick={onSend} disabled={sending || !hasAddress || items.length === 0}
+                style={{ width: "100%", marginTop: 4, background: sending ? "#333" : !hasAddress ? "#444" : "#FF5C00", color: "#fff", border: "none", borderRadius: 14, padding: "16px", fontSize: 15, fontWeight: 700, cursor: sending || !hasAddress ? "default" : "pointer", WebkitTapHighlightColor: "transparent" }}>
+                {sending ? "Processing payment…" : !hasAddress ? "Add an address to continue" : `Confirm & pay €${charge.toFixed(2)} →`}
+              </motion.button>
+
+              <motion.button whileTap={{ scale: 0.97 }} onClick={() => setView("cart")}
+                style={{ width: "100%", marginTop: 8, background: "transparent", color: "#C9C6C1", border: "1px solid rgba(255,255,255,0.15)", borderRadius: 14, padding: "13px", fontSize: 13, fontWeight: 600, cursor: "pointer", WebkitTapHighlightColor: "transparent" }}>
+                ← Back to cart
+              </motion.button>
             </motion.div>
           )}
-
-          {error && (
-            <div style={{ background: "#FEE2E2", color: "#DC2626", borderRadius: 10, padding: "10px 14px", fontSize: 13, marginTop: 8 }}>{error}</div>
-          )}
-
-          <motion.button whileTap={sending ? undefined : { scale: 0.97 }} onClick={onSend} disabled={sending || items.length === 0}
-            style={{ width: "100%", marginTop: 12, background: sending ? "#333" : "#FF5C00", color: "#fff", border: "none", borderRadius: 14, padding: "16px", fontSize: 15, fontWeight: 700, cursor: sending ? "default" : "pointer", WebkitTapHighlightColor: "transparent" }}>
-            {sending ? "Processing..." : "Buy everything at once →"}
-          </motion.button>
-
-          <motion.button whileTap={{ scale: 0.97 }} onClick={onClose}
-            style={{ width: "100%", marginTop: 8, background: "transparent", color: "#C9C6C1", border: "1px solid rgba(255,255,255,0.15)", borderRadius: 14, padding: "13px", fontSize: 13, fontWeight: 600, cursor: "pointer", WebkitTapHighlightColor: "transparent" }}>
-            ← Continue shopping &amp; reduce your fee per item
-          </motion.button>
         </motion.div>
       </motion.div>
     </>
@@ -1294,10 +1392,14 @@ export default function SupplyFlow({ session }) {
           <RequestListSheet
             items={requestList}
             onRemove={(i) => setRequestList(list => list.filter((_, idx) => idx !== i))}
+            onSetQty={(i, q) => setRequestList(list => list.map((it, idx) => idx === i ? { ...it, qty: Math.max(1, q) } : it))}
             onClose={() => setShowRequestList(false)}
             onSend={submitRequestList}
             sending={sendingList}
             error={listError}
+            session={session}
+            onEditAddress={() => { setShowRequestList(false); setTab("profile"); setShowEditProfile(true); }}
+            onTopUp={() => { setShowRequestList(false); setTab("profile"); }}
           />
         )}
       </AnimatePresence>

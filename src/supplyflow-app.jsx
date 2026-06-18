@@ -105,6 +105,89 @@ const journeyStops = [
   { key: "delivered", label: "Delivered", Icon: Home, statuses: ["delivered"], x: 13, y: 84, home: true },
 ];
 
+// Ronde voortgangsring (% van de reis afgelegd) rechts op de groepskaart.
+function ProgressRing({ percent }) {
+  const r = 15, c = 2 * Math.PI * r;
+  const pct = Math.max(0, Math.min(100, percent));
+  const off = c * (1 - pct / 100);
+  const color = pct >= 100 ? "#16A34A" : "#FF5C00";
+  return (
+    <div style={{ position: "relative", width: 38, height: 38, flexShrink: 0 }}>
+      <svg width="38" height="38" viewBox="0 0 38 38">
+        <circle cx="19" cy="19" r={r} fill="none" stroke="#F0EEE8" strokeWidth="3.5" />
+        <motion.circle cx="19" cy="19" r={r} fill="none" stroke={color} strokeWidth="3.5" strokeLinecap="round"
+          strokeDasharray={c} initial={{ strokeDashoffset: c }} animate={{ strokeDashoffset: off }} transition={{ duration: 0.7, ease: "easeOut" }}
+          transform="rotate(-90 19 19)" />
+      </svg>
+      <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 9.5, fontWeight: 800, color }}>{Math.round(pct)}%</div>
+    </div>
+  );
+}
+
+// Eén bestelling (= alle items uit dezelfde aankoop). Klap open → morpht omlaag,
+// toont elk item met z'n eigen status. Statussen mogen per item verschillen.
+function OrderGroupCard({ items, onOpenItem }) {
+  const [open, setOpen] = useState(false);
+  const date = items[0]?.date || "";
+  const maxStep = trackingSteps.length;
+  const percent = (items.reduce((s, o) => s + ((statusConfig[o.status]?.step ?? 0) + 1), 0) / (items.length * maxStep)) * 100;
+  const whStep = statusConfig.qc_pending.step;
+  const atWarehouse = items.filter(o => (statusConfig[o.status]?.step ?? 0) >= whStep).length;
+  const anyProblem = items.some(o => o.problem_type);
+  return (
+    <motion.div layout style={{ background: "#fff", border: "1px solid #E8E6E0", borderRadius: 16, marginBottom: 10, overflow: "hidden" }}>
+      <motion.div whileTap={{ scale: 0.99 }} onClick={() => setOpen(o => !o)} style={{ display: "flex", alignItems: "center", gap: 12, padding: "13px 15px", cursor: "pointer" }}>
+        <div style={{ display: "flex", flexShrink: 0 }}>
+          {items.slice(0, 3).map((o, i) => (
+            <div key={o.id} style={{ width: 40, height: 40, borderRadius: 9, background: "#fff", boxShadow: "0 0 0 1px #F0EEE8", overflow: "hidden", marginLeft: i ? -14 : 0, display: "flex", alignItems: "center", justifyContent: "center", position: "relative", zIndex: 3 - i }}>
+              {o.variant_image ? <img src={o.variant_image} alt="" style={{ width: "100%", height: "100%", objectFit: "contain" }} /> : <span style={{ fontSize: 18 }}>📦</span>}
+            </div>
+          ))}
+          {items.length > 3 && <div style={{ width: 40, height: 40, borderRadius: 9, background: "#F3F1ED", marginLeft: -14, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, fontWeight: 700, color: "#888" }}>+{items.length - 3}</div>}
+        </div>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ fontSize: 11, color: "#A8A5A0" }}>{date} · {items.length} item{items.length > 1 ? "s" : ""}</div>
+          <div style={{ fontSize: 13.5, fontWeight: 700, color: "#111", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+            {items[0].product_title || items[0].product}{items.length > 1 ? ` +${items.length - 1} more` : ""}
+          </div>
+          <div style={{ fontSize: 11, color: anyProblem ? "#B45309" : "#8A8780", marginTop: 1 }}>
+            {anyProblem ? "⚠️ Action needed" : `${atWarehouse}/${items.length} at warehouse`}
+          </div>
+        </div>
+        <ProgressRing percent={percent} />
+        <motion.div animate={{ rotate: open ? 0 : 180 }} transition={springSnappy} style={{ flexShrink: 0, display: "flex" }}>
+          <ChevronUp size={18} color="#C9C6C1" strokeWidth={2.4} />
+        </motion.div>
+      </motion.div>
+      <AnimatePresence initial={false}>
+        {open && (
+          <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }} transition={{ type: "spring", stiffness: 260, damping: 30 }} style={{ overflow: "hidden" }}>
+            <div style={{ padding: "2px 12px 12px" }}>
+              {items.map(o => {
+                const s = statusConfig[o.status] || statusConfig.purchased;
+                return (
+                  <motion.div key={o.id} whileTap={{ scale: 0.98 }} onClick={() => onOpenItem(o)}
+                    style={{ display: "flex", alignItems: "center", gap: 10, background: "#F8F7F4", borderRadius: 12, padding: "9px 11px", marginBottom: 6, cursor: "pointer" }}>
+                    <div style={{ width: 38, height: 38, borderRadius: 8, background: "#fff", border: "1px solid #F0EEE8", overflow: "hidden", flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                      {o.variant_image ? <img src={o.variant_image} alt="" style={{ width: "100%", height: "100%", objectFit: "contain" }} /> : <span style={{ fontSize: 17 }}>📦</span>}
+                    </div>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontSize: 12.5, fontWeight: 600, color: "#111", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{o.product_title || o.product}</div>
+                      <div style={{ fontSize: 11, color: "#A8A5A0", marginBottom: 3 }}>{o.qty} pcs{o.kleur ? ` · ${o.kleur}` : ""}</div>
+                      <div style={{ display: "inline-block", background: s.bg, color: s.color, fontSize: 10.5, fontWeight: 700, padding: "2px 9px", borderRadius: 20 }}>{s.label}{o.problem_type ? " · ⚠️" : ""}</div>
+                    </div>
+                    <div style={{ color: "#ccc", fontSize: 16, flexShrink: 0 }}>→</div>
+                  </motion.div>
+                );
+              })}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </motion.div>
+  );
+}
+
 function TreasureMap({ activeFilter, onSelect, orders }) {
   const countFor = (statuses) => orders.filter(o => statuses.includes(o.status)).length;
   return (
@@ -1073,49 +1156,21 @@ export default function SupplyFlow({ session }) {
         <motion.div key="orders-list" {...pageTransition} style={{ paddingBottom: 80, width: "100%" }}>
           <TreasureMap activeFilter={orderFilter} onSelect={setOrderFilter} orders={orders} />
           <div style={{ padding: "16px 20px" }}>
-            {orders.filter(matchesFilter).map(order => {
-              const s = statusConfig[order.status] || statusConfig.requested;
-              const agentReplied = order.last_message_sender === "agent" && order.last_message_read === false;
-              const customerWaiting = order.last_message_sender === "customer" && order.last_message_read === false;
-              const hasMessage = agentReplied || customerWaiting;
-              return (
-                <motion.div key={order.id}
-                  whileTap={{ scale: 0.985 }} whileHover={{ y: -2 }} transition={springSnappy}
-                  style={{ background: "#fff", border: "1px solid #E8E6E0", borderRadius: 14, padding: "14px 16px", marginBottom: 10, cursor: "pointer" }}>
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}
-                    onClick={() => { setSelectedOrder(order); setConfirmCancel(false); }}>
-                    <div style={{ flex: 1 }}>
-                      <div style={{ fontSize: 12, color: "#aaa", marginBottom: 3 }}>{order.id} · {order.qty} pcs</div>
-                      <div style={{ fontSize: 14, fontWeight: 600, color: "#1a1a1a", marginBottom: 6 }}>{order.product_title || order.product}</div>
-                      <div style={{ display: "inline-block", background: s.bg, color: s.color, fontSize: 11, fontWeight: 700, padding: "3px 10px", borderRadius: 20 }}>{s.label}</div>
-                      {order.problem_type && (
-                        <div style={{ display: "inline-block", background: "#FFF7ED", color: "#B45309", border: "1px solid #F59E0B", fontSize: 11, fontWeight: 700, padding: "2px 10px", borderRadius: 20, marginLeft: 6 }}>⚠️ Action needed</div>
-                      )}
-                      {/* Chat status onder de badge */}
-                      {agentReplied && (
-                        <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 6 }}>
-                          <span style={{ fontSize: 14 }}>💬</span>
-                          <span style={{ fontSize: 12, color: "#6366F1", fontWeight: 700 }}>Agent replied</span>
-                          <span style={{ width: 8, height: 8, borderRadius: "50%", background: "#6366F1", display: "inline-block" }} />
-                        </div>
-                      )}
-                      {customerWaiting && (
-                        <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 6 }}>
-                          <span style={{ fontSize: 14 }}>💬</span>
-                          <span style={{ fontSize: 12, color: "#888" }}>Not yet read by agent</span>
-                        </div>
-                      )}
-                    </div>
-                    <div style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
-                      {agentReplied && (
-                        <div style={{ width: 10, height: 10, borderRadius: "50%", background: "#6366F1" }} />
-                      )}
-                      <div style={{ color: "#ccc", fontSize: 18 }}>→</div>
-                    </div>
-                  </div>
-                </motion.div>
-              );
-            })}
+            {(() => {
+              // Groepeer orders per aankoop (request_group_id); losse orders = eigen groep.
+              const grouped = orders.reduce((acc, o) => {
+                const k = o.request_group_id || o.id;
+                (acc[k] = acc[k] || []).push(o);
+                return acc;
+              }, {});
+              return Object.values(grouped)
+                .filter(items => items.some(matchesFilter))         // groep tonen als één item bij het filter past
+                .sort((a, b) => (a[0].id < b[0].id ? 1 : -1))       // nieuwste bovenaan
+                .map(items => (
+                  <OrderGroupCard key={items[0].request_group_id || items[0].id} items={items}
+                    onOpenItem={(o) => { setSelectedOrder(o); setConfirmCancel(false); }} />
+                ));
+            })()}
             {orders.filter(matchesFilter).length === 0 && (
               <div style={{ textAlign: "center", padding: "60px 0", color: "#aaa" }}>
                 <div style={{ position: "relative", display: "inline-block", fontSize: 48, marginBottom: 12, lineHeight: 1 }}>

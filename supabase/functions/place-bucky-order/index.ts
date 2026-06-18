@@ -147,7 +147,20 @@ Deno.serve(async (req) => {
 
   const res = await buckyPost("/api/rest/v2/adapt/adaptation/order/shop-order/create", orderBody);
   if (res?.success !== true || !res?.data?.shopOrderNo) {
-    return await fail(order.id, `BuckyDrop weigerde de bestelling: ${res?.info || "onbekende fout"}`);
+    // BuckyDrop bereikt + gestructureerd afgewezen (numerieke code, bijv. uitverkocht)
+    // → klant automatisch terugbetalen en order annuleren.
+    if (typeof res?.code === "number") {
+      await admin.rpc("refund_order", {
+        p_order_id: order.id,
+        p_reason: `BuckyDrop rejected: ${res?.info || "order could not be placed"}`,
+      });
+      return new Response(JSON.stringify({ ok: false, refunded: true, reason: res?.info }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+    // Geen code = tijdelijke/netwerkfout → flaggen voor herproberen, NIET terugbetalen.
+    return await fail(order.id, `Temporary error placing order: ${res?.info || "unknown"}`);
   }
 
   // Gelukt: ordernummer opslaan en status → purchased (triggert ook de "Gekocht"-push).

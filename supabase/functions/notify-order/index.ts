@@ -13,15 +13,16 @@ const WEBHOOK_SECRET = Deno.env.get("WEBHOOK_SECRET")!;
 
 webpush.setVapidDetails(VAPID_SUBJECT, VAPID_PUBLIC, VAPID_PRIVATE);
 
-// Per orderstatus de melding die de klant ziet.
+// The message the customer sees for each order status.
 const MESSAGES: Record<string, { title: string; body: string }> = {
-  quote_sent: { title: "📋 Je offerte staat klaar!", body: "Bekijk de prijs en betaal vanuit je saldo." },
-  quote_accepted: { title: "💰 Betaling ontvangen", body: "Je agent koopt je product nu in." },
-  purchased: { title: "✅ Gekocht!", body: "Je product is gekocht en gaat naar het warehouse." },
-  shipped_local: { title: "🚚 Onderweg in China", body: "Je product is onderweg naar ons warehouse." },
-  qc_pending: { title: "📸 QC-foto's staan klaar!", body: "Bekijk je product en keur het goed in de app." },
-  shipped_international: { title: "✈️ Internationaal verzonden", body: "Je pakket is onderweg naar je toe!" },
-  delivered: { title: "🎉 Bezorgd!", body: "Je bestelling is bezorgd. Veel plezier!" },
+  quote_sent: { title: "📋 Your quote is ready!", body: "Check the price and pay from your balance." },
+  quote_accepted: { title: "💰 Payment received", body: "We're buying your item now." },
+  purchased: { title: "✅ Purchased!", body: "Your item has been bought and is heading to the warehouse." },
+  shipped_local: { title: "🚚 On its way in China", body: "Your item is heading to our warehouse." },
+  qc_pending: { title: "📸 QC photos are ready!", body: "Check your item and approve it in the app." },
+  shipped_international: { title: "✈️ Shipped internationally", body: "Your parcel is on its way to you!" },
+  delivered: { title: "🎉 Delivered!", body: "Your order has arrived. Enjoy!" },
+  cancelled: { title: "↩️ Order refunded", body: "An item was unavailable, so we've refunded it to your balance." },
 };
 
 Deno.serve(async (req) => {

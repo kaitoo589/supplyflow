@@ -7,6 +7,13 @@
 -- Voer uit in: Supabase → SQL Editor → New query → plak → Run.
 -- ============================================================
 
+-- Service fee = 8% van het totaal, minimaal €5. Hier meegeleverd zodat
+-- pay-cart.sql op zichzelf werkt (ook als service-fee.sql nog niet is gedraaid).
+create or replace function public.service_fee_for(p_total numeric)
+returns numeric language sql immutable as $$
+  select greatest(round(p_total * 0.08, 2), 5.00);
+$$;
+
 create or replace function public.pay_cart(p_items jsonb)
 returns json
 language plpgsql

@@ -1324,7 +1324,7 @@ export default function SupplyFlow({ session }) {
               <PreviewGallery images={previewProduct.preview_images} />
               <button onClick={() => { setPreviewProduct(null); setSelectedProduct(previewProduct); }}
                 style={{ width: "100%", marginTop: 20, background: "#FF5C00", color: "#fff", border: "none", borderRadius: 12, padding: "14px", fontSize: 14, fontWeight: 700, cursor: "pointer" }}>
-                Request →
+                View product →
               </button>
             </motion.div>
           </>
@@ -1395,7 +1395,7 @@ export default function SupplyFlow({ session }) {
                   </div>
                   <div style={{ background: "#fff", borderRadius: "14px 14px 0 0" }}>
                   {[
-                    { Icon: ShoppingBag, label: "Request", sub: "Request a quote", accent: true, show: true,
+                    { Icon: ShoppingBag, label: "View product", sub: "Choose options & add to cart", accent: true, show: true,
                       go: () => { const p = actionProduct; setActionProduct(null); setSelectedProduct(p); } },
                     { Icon: Eye, label: "Product preview", sub: "View extra photos", accent: false, show: actionProduct.preview_images?.length > 0,
                       go: () => { const p = actionProduct; setActionProduct(null); setPreviewProduct(p); } },

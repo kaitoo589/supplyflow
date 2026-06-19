@@ -128,7 +128,7 @@ export default function OrderRequest({ product, session, onClose, onSuccess, onA
                 </motion.div>
                 <motion.div layoutId={`platform-${product.id}`} transition={spring}
                   style={{ fontSize: 13, color: "#888", marginTop: 4 }}>
-                  {product.platform} · €{Number(product.price).toFixed(2)}
+                  {product.platform} · €{Number(product.price).toFixed(2)} · factory price
                 </motion.div>
               </div>
               <motion.button
@@ -225,7 +225,7 @@ export default function OrderRequest({ product, session, onClose, onSuccess, onA
 
             <motion.div variants={fadeUp}
               style={{ background: "#F8F7F4", borderRadius: 10, padding: "10px 14px", marginBottom: 10, fontSize: 12, color: "#888" }}>
-              💡 A service fee (8%, min €5) is added at checkout — shared across your whole cart, so bundling makes it cheaper per item. International shipping is paid later, by weight.
+              💡 A service fee (8%, min €5) is added at checkout — shared across your whole cart, so bundling makes it cheaper per item. International shipping is paid later, per parcel — so bundling keeps that cheap too.
             </motion.div>
 
             {/* Vos-tip: aanvragen bundelen = één service fee i.p.v. één per aanvraag */}

@@ -1329,8 +1329,11 @@ export default function SupplyFlow({ session }) {
                   <div style={{ padding: "11px 13px 13px" }}>
                     <div style={{ fontSize: 11.5, color: "#A8A5A0", marginBottom: 3 }}>{p.platform} · {p.category}</div>
                     <div style={{ fontSize: 13.5, fontWeight: 600, color: "#111111", marginBottom: 7, lineHeight: 1.35 }}>{p.title}</div>
-                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                      <div style={{ fontSize: 15, fontWeight: 700, color: "#111111" }}>€{Number(p.price).toFixed(2)}</div>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end" }}>
+                      <div>
+                        <div style={{ fontSize: 15, fontWeight: 700, color: "#111111" }}>€{Number(p.price).toFixed(2)}</div>
+                        <div style={{ fontSize: 9.5, color: "#A8A5A0", marginTop: 1, lineHeight: 1.2 }}>factory price · +fees &amp; shipping</div>
+                      </div>
                       {Number(p.rating) > 0
                         ? <div style={{ fontSize: 11.5, fontWeight: 600, color: "#111111" }}>★ {Number(p.rating).toFixed(1)}</div>
                         : <div style={{ fontSize: 11, color: "#A8A5A0" }}>MOQ {p.moq}</div>}

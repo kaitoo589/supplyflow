@@ -181,6 +181,39 @@ export default function OrderRequest({ product, session, onClose, onSuccess, onA
               </motion.div>
             )}
 
+            {(() => {
+              const fname = product.supplier && product.supplier !== product.platform ? product.supplier : null;
+              const st = product.factory_stats;
+              if (!fname && !st) return null;
+              const stats = st ? [
+                { label: "Repurchase rate", v: st.repurchase },
+                { label: "Service score", v: st.service },
+                { label: "On-time delivery", v: st.ontime },
+                { label: "Positive reviews", v: st.reviews },
+              ].filter(s => s.v) : [];
+              return (
+                <motion.div variants={fadeUp} style={{ background: "#F8F7F4", borderRadius: 14, padding: "12px 14px", marginBottom: 24 }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 9, marginBottom: stats.length ? 10 : 0 }}>
+                    <span style={{ fontSize: 17 }}>🏭</span>
+                    <div>
+                      <div style={{ fontSize: 11, color: "#A8A5A0", fontWeight: 600 }}>Factory</div>
+                      <div style={{ fontSize: 13.5, fontWeight: 700, color: "#111" }}>{fname || "Verified supplier"}</div>
+                    </div>
+                  </div>
+                  {stats.length > 0 && (
+                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+                      {stats.map(s => (
+                        <div key={s.label} style={{ background: "#fff", borderRadius: 10, padding: "8px 10px", border: "1px solid #EFEDE7" }}>
+                          <div style={{ fontSize: 15, fontWeight: 800, color: "#FF5C00" }}>{s.v}</div>
+                          <div style={{ fontSize: 10.5, color: "#8A8780" }}>{s.label}</div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </motion.div>
+              );
+            })()}
+
             {/* Aantal */}
             <motion.div variants={fadeUp} style={{ marginBottom: 24 }}>
               <div style={{ fontSize: 13, fontWeight: 600, color: "#0F0E0C", marginBottom: 10 }}>Quantity</div>

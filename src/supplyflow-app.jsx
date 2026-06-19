@@ -1066,7 +1066,7 @@ export default function SupplyFlow({ session }) {
     async function fetchProducts() {
       setLoadingProducts(true); setProductsError(null);
       const { data, error } = await supabase.from("products").select("*").order("id");
-      if (error) { setProductsError(error.message); } else { setProducts(data ?? []); }
+      if (error) { setProductsError(error.message); } else { setProducts((data ?? []).filter(p => !p.hidden)); }
       setLoadingProducts(false);
     }
     fetchProducts();

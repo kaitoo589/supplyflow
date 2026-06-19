@@ -44,6 +44,8 @@ declare
   v_group text;
   v_item jsonb;
   v_line numeric;
+  v_price numeric;
+  v_unknown int;
   v_qty int;
   v_id text;
   v_first_id text;
@@ -56,10 +58,24 @@ begin
     return json_build_object('ok', false, 'error', 'Cart is empty');
   end if;
 
-  -- Totaal = som(prijs × aantal)
-  select coalesce(sum( (e->>'price')::numeric * greatest(coalesce((e->>'qty')::int, 1), 1) ), 0)
-    into v_total
+  -- BEVEILIGING: de prijs komt SERVER-SIDE uit public.products (match op source_url),
+  -- NOOIT uit de client-JSON — anders kan een klant pay_cart aanroepen met price=0.01
+  -- en elk product bijna gratis kopen. Onbekend product / ontbrekende source_url = weigeren.
+  select
+    coalesce(sum(
+      (select pr.price from public.products pr where pr.source_url = (e->>'source_url') limit 1)
+      * greatest(coalesce((e->>'qty')::int, 1), 1)
+    ), 0),
+    count(*) filter (
+      where (e->>'source_url') is null
+         or not exists (select 1 from public.products pr where pr.source_url = (e->>'source_url') and pr.price is not null)
+    )
+    into v_total, v_unknown
   from jsonb_array_elements(p_items) e;
+
+  if v_unknown > 0 then
+    return json_build_object('ok', false, 'error', 'One or more products are no longer available');
+  end if;
 
   v_fee := service_fee_for(v_total);   -- max(8%, €5)
   v_charge := v_total + v_fee;
@@ -78,7 +94,9 @@ begin
   loop
     v_i := v_i + 1;
     v_qty := greatest(coalesce((v_item->>'qty')::int, 1), 1);
-    v_line := (v_item->>'price')::numeric * v_qty;
+    -- Prijs server-side uit products (NOOIT de client-prijs vertrouwen).
+    select pr.price into v_price from public.products pr where pr.source_url = (v_item->>'source_url') and pr.price is not null limit 1;
+    v_line := v_price * v_qty;
     v_id := 'SF-' || floor(extract(epoch from clock_timestamp()) * 1000)::bigint || '-' || v_i;
     if v_i = 1 then v_first_id := v_id; end if;
 

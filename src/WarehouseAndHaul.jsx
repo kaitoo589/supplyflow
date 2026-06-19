@@ -331,41 +331,74 @@ function OrderCard({ order, onDragStart, onDragEnd, inHaul, onOpenDetail }) {
 
 function ConfirmHaul({ session, haulItems, balance, onBack, onSuccess }) {
   const [confirming, setConfirming] = useState(false);
+  const [quoting, setQuoting] = useState(true);
+  const [channels, setChannels] = useState(null);   // echte BuckyDrop-kanalen (productie)
+  const [selected, setSelected] = useState(null);
+  const [mode, setMode] = useState("estimate");      // "live" = echte tarieven | "estimate" = fallback
+  const orderIds = haulItems.map(o => o.id);
   const totalWeight = haulItems.reduce((s, o) => s + (o.weight_grams || 0), 0);
   const goodsValue = haulItems.reduce((s, o) => s + (Number(o.price) || 0), 0);
+
+  // Schatting (fallback zolang we op de sandbox zitten / als de quote faalt).
   const estimate = shippingEstimate(totalWeight / 1000);
   const shipBuffered = r2(estimate * BUFFER_MULTIPLIER);
-  const vat = r2((goodsValue + estimate) * IMPORT_VAT);
-  const toPay = r2(shipBuffered + vat);
+  const vatEst = r2((goodsValue + estimate) * IMPORT_VAT);
+  const toPayEst = r2(shipBuffered + vatEst);
+
+  // Live tarieven ophalen bij het openen.
+  useEffect(() => {
+    let on = true;
+    (async () => {
+      try {
+        const { data, error } = await supabase.functions.invoke("haul-shipping", {
+          body: { action: "quote", orderIds },
+        });
+        if (!on) return;
+        if (!error && data?.ok && !data.isSandbox && Array.isArray(data.channels) && data.channels.length) {
+          setChannels(data.channels);
+          setSelected(data.channels[0].serviceCode);  // goedkoopste (server sorteert)
+          setMode("live");
+        } else {
+          setMode("estimate");
+        }
+      } catch { if (on) setMode("estimate"); }
+      finally { if (on) setQuoting(false); }
+    })();
+    return () => { on = false; };
+  }, []);
+
+  const liveChannel = channels?.find(c => c.serviceCode === selected) || null;
+  const liveAmount = liveChannel ? r2(liveChannel.priceEur + (liveChannel.taxInclusive ? 0 : r2(liveChannel.priceEur * IMPORT_VAT))) : 0;
+  const toPay = mode === "live" ? liveAmount : toPayEst;
   const canAfford = balance >= toPay;
 
+  // Live afrekenen: de edge function her-quote't + rekent server-side het echte tarief af.
+  const payLive = async () => {
+    if (!liveChannel || !canAfford) return;
+    setConfirming(true);
+    const { data, error } = await supabase.functions.invoke("haul-shipping", {
+      body: { action: "pay", orderIds, serviceCode: liveChannel.serviceCode },
+    });
+    setConfirming(false);
+    if (error || !data?.ok) { alert("Payment failed: " + (error?.message || data?.error || "unknown error")); return; }
+    onSuccess();
+  };
+
+  // Fallback-afrekenen via de schatting (pay_shipping).
   const confirmHaul = async () => {
     if (!canAfford) return;
     setConfirming(true);
-    // 1. Maak het pakket aan
-    const { data: haul, error } = await supabase.from("hauls").insert({
-      user_id: session.user.id, status: "confirmed",
-      estimate_eur: estimate, paid_eur: toPay, items: haulItems.map(o => o.id),
-    }).select().single();
-    if (error) { alert("Something went wrong: " + error.message); setConfirming(false); return; }
-    // 2. Betaal veilig via de database (zie supabase/pay-shipping.sql):
-    //    bedrag wordt server-side berekend en van je balance afgeschreven.
-    const { data: pay, error: payError } = await supabase.rpc("pay_shipping", {
-      p_order_ids: haulItems.map(o => o.id),
-    });
+    const { data: pay, error: payError } = await supabase.rpc("pay_shipping", { p_order_ids: orderIds });
     if (payError || (pay && pay.ok === false)) {
-      // Betaling mislukt → pakket weer verwijderen
-      await supabase.from("hauls").delete().eq("id", haul.id);
       alert("Payment failed: " + (payError?.message || pay?.error || "unknown error"));
       setConfirming(false);
       return;
     }
-    for (const order of haulItems) {
-      await supabase.from("haul_items").insert({ haul_id: haul.id, order_id: order.id });
-    }
-    // Pakket is betaald → orders gaan naar "In transit", zodat de status
-    // in Orders en op de journey map meteen klopt.
-    await supabase.from("orders").update({ status: "shipped_international" }).in("id", haulItems.map(o => o.id));
+    const { data: haul } = await supabase.from("hauls").insert({
+      user_id: session.user.id, status: "confirmed", estimate_eur: estimate, paid_eur: toPayEst, items: orderIds,
+    }).select().single();
+    if (haul) for (const id of orderIds) await supabase.from("haul_items").insert({ haul_id: haul.id, order_id: id });
+    await supabase.from("orders").update({ status: "shipped_international" }).in("id", orderIds);
     setConfirming(false);
     onSuccess();
   };
@@ -376,12 +409,12 @@ function ConfirmHaul({ session, haulItems, balance, onBack, onSuccess }) {
       <div style={{ fontSize: 16, fontWeight: 700, color: "#0F0E0C", marginBottom: 4 }}>Confirm shipping</div>
       <div style={{ fontSize: 13, color: "#aaa", marginBottom: 20 }}>Review your parcel before paying</div>
       <div style={{ background: "#fff", border: "1px solid #E8E6E0", borderRadius: 14, padding: 16, marginBottom: 16 }}>
-        <div style={{ fontSize: 13, fontWeight: 700, color: "#0F0E0C", marginBottom: 12 }}>Products ({haulItems.length})</div>
+        <div style={{ fontSize: 13, fontWeight: 700, color: "#0F0E0C", marginBottom: 12 }}>Products ({haulItems.length}) · {totalWeight}g</div>
         {haulItems.map((o, i) => (
           <div key={i} style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 0", borderBottom: i < haulItems.length - 1 ? "1px solid #F0EEE8" : "none" }}>
             <div style={{ width: 36, height: 36, borderRadius: 8, background: "#fff", border: "1px solid #F0EEE8", overflow: "hidden", flexShrink: 0 }}>
-              {o.variant_image ? <img src={o.variant_image} alt="" style={{ width: "100%", height: "100%", objectFit: "contain" }} />
-                : o.qc_images?.[0] ? <img src={o.qc_images[0]} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+              {o.variant_image ? <img src={o.variant_image} referrerPolicy="no-referrer" alt="" style={{ width: "100%", height: "100%", objectFit: "contain" }} />
+                : o.qc_images?.[0] ? <img src={o.qc_images[0]} referrerPolicy="no-referrer" alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
                 : <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100%", fontSize: 16 }}>📦</div>}
             </div>
             <div style={{ flex: 1 }}>
@@ -391,25 +424,61 @@ function ConfirmHaul({ session, haulItems, balance, onBack, onSuccess }) {
           </div>
         ))}
       </div>
-      <motion.div layoutId="confirmHaul" transition={springMorph} style={{ background: "#0F0E0C", borderRadius: 14, padding: 16, marginBottom: 16 }}>
-        <div style={{ fontSize: 13, fontWeight: 700, color: "#FF5C00", marginBottom: 12 }}>Cost overview</div>
-        {[
-          { label: "Total weight", value: `${totalWeight}g` },
-          { label: "Shipping estimate", value: `€${estimate.toFixed(2)}` },
-          { label: "Safety buffer (×1.3)", value: `+€${(shipBuffered - estimate).toFixed(2)}` },
-          { label: "Import VAT (21%)", value: `€${vat.toFixed(2)}` },
-        ].map((row, i) => (
-          <div key={i} style={{ display: "flex", justifyContent: "space-between", marginBottom: 8 }}>
-            <span style={{ fontSize: 13, color: "#888" }}>{row.label}</span>
-            <span style={{ fontSize: 13, color: "#fff" }}>{row.value}</span>
+
+      {quoting ? (
+        <motion.div layoutId="confirmHaul" transition={springMorph} style={{ background: "#0F0E0C", borderRadius: 14, padding: 22, marginBottom: 16, textAlign: "center" }}>
+          <motion.div animate={{ rotate: 360 }} transition={{ repeat: Infinity, duration: 1, ease: "linear" }} style={{ width: 22, height: 22, border: "2.5px solid #333", borderTopColor: "#FF5C00", borderRadius: "50%", margin: "0 auto 10px" }} />
+          <div style={{ fontSize: 12.5, color: "#C9C6C1" }}>Finding the best shipping rate to your address…</div>
+        </motion.div>
+      ) : mode === "live" ? (
+        <motion.div layoutId="confirmHaul" transition={springMorph} style={{ background: "#0F0E0C", borderRadius: 14, padding: 16, marginBottom: 16 }}>
+          <div style={{ fontSize: 13, fontWeight: 700, color: "#FF5C00", marginBottom: 4 }}>Choose your shipping</div>
+          <div style={{ fontSize: 11, color: "#888", marginBottom: 12 }}>Live BuckyDrop rates — you pay exactly this, no surprises.</div>
+          {channels.map(c => {
+            const all = r2(c.priceEur + (c.taxInclusive ? 0 : r2(c.priceEur * IMPORT_VAT)));
+            const sel = c.serviceCode === selected;
+            return (
+              <motion.div key={c.serviceCode} whileTap={{ scale: 0.99 }} onClick={() => setSelected(c.serviceCode)}
+                style={{ display: "flex", alignItems: "center", gap: 10, padding: "11px 12px", marginBottom: 8, borderRadius: 12, cursor: "pointer", background: sel ? "rgba(255,92,0,0.12)" : "rgba(255,255,255,0.04)", border: `1.5px solid ${sel ? "#FF5C00" : "transparent"}` }}>
+                <div style={{ width: 18, height: 18, borderRadius: "50%", border: `2px solid ${sel ? "#FF5C00" : "#555"}`, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                  {sel && <div style={{ width: 9, height: 9, borderRadius: "50%", background: "#FF5C00" }} />}
+                </div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: 13, fontWeight: 600, color: "#fff", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{c.name}</div>
+                  <div style={{ fontSize: 11, color: "#9C9893" }}>{c.minDays}–{c.maxDays} days{c.taxInclusive ? " · duties included" : " · +21% VAT"}</div>
+                </div>
+                <div style={{ fontSize: 14, fontWeight: 800, color: "#fff", flexShrink: 0 }}>€{all.toFixed(2)}</div>
+              </motion.div>
+            );
+          })}
+          <div style={{ borderTop: "1px solid #333", marginTop: 4, paddingTop: 10, display: "flex", justifyContent: "space-between" }}>
+            <span style={{ fontSize: 14, fontWeight: 700, color: "#fff" }}>Pay now</span>
+            <span style={{ fontSize: 14, fontWeight: 700, color: "#FF5C00" }}>€{toPay.toFixed(2)}</span>
           </div>
-        ))}
-        <div style={{ borderTop: "1px solid #333", paddingTop: 10, display: "flex", justifyContent: "space-between" }}>
-          <span style={{ fontSize: 14, fontWeight: 700, color: "#fff" }}>Pay now</span>
-          <span style={{ fontSize: 14, fontWeight: 700, color: "#FF5C00" }}>€{toPay.toFixed(2)}</span>
-        </div>
-        <div style={{ marginTop: 10, fontSize: 11, color: "#555", lineHeight: 1.5 }}>✅ All duties prepaid (DDP) — nothing to pay on delivery. After we ship, the shipping-buffer difference comes back to your balance.</div>
-      </motion.div>
+          <div style={{ marginTop: 8, fontSize: 11, color: "#555", lineHeight: 1.5 }}>{liveChannel?.taxInclusive ? "✅ Duties prepaid (DDP) — nothing to pay on delivery." : "21% import VAT included above."}</div>
+        </motion.div>
+      ) : (
+        <motion.div layoutId="confirmHaul" transition={springMorph} style={{ background: "#0F0E0C", borderRadius: 14, padding: 16, marginBottom: 16 }}>
+          <div style={{ fontSize: 13, fontWeight: 700, color: "#FF5C00", marginBottom: 12 }}>Cost overview <span style={{ color: "#666", fontWeight: 500 }}>· estimate</span></div>
+          {[
+            { label: "Total weight", value: `${totalWeight}g` },
+            { label: "Shipping estimate", value: `€${estimate.toFixed(2)}` },
+            { label: "Safety buffer (×1.3)", value: `+€${(shipBuffered - estimate).toFixed(2)}` },
+            { label: "Import VAT (21%)", value: `€${vatEst.toFixed(2)}` },
+          ].map((row, i) => (
+            <div key={i} style={{ display: "flex", justifyContent: "space-between", marginBottom: 8 }}>
+              <span style={{ fontSize: 13, color: "#888" }}>{row.label}</span>
+              <span style={{ fontSize: 13, color: "#fff" }}>{row.value}</span>
+            </div>
+          ))}
+          <div style={{ borderTop: "1px solid #333", paddingTop: 10, display: "flex", justifyContent: "space-between" }}>
+            <span style={{ fontSize: 14, fontWeight: 700, color: "#fff" }}>Pay now</span>
+            <span style={{ fontSize: 14, fontWeight: 700, color: "#FF5C00" }}>€{toPayEst.toFixed(2)}</span>
+          </div>
+          <div style={{ marginTop: 10, fontSize: 11, color: "#555", lineHeight: 1.5 }}>✅ All duties prepaid (DDP) — nothing to pay on delivery. After we ship, the shipping-buffer difference comes back to your balance.</div>
+        </motion.div>
+      )}
+
       <div style={{ background: canAfford ? "#F0FDF4" : "#FEF3C7", border: `1px solid ${canAfford ? "#10B981" : "#F59E0B"}`, borderRadius: 12, padding: "12px 16px", marginBottom: 20 }}>
         <div style={{ display: "flex", justifyContent: "space-between" }}>
           <span style={{ fontSize: 13, color: canAfford ? "#065F46" : "#92400E" }}>Your balance</span>
@@ -417,9 +486,9 @@ function ConfirmHaul({ session, haulItems, balance, onBack, onSuccess }) {
         </div>
         {!canAfford && <div style={{ fontSize: 12, color: "#B45309", marginTop: 6 }}>You're €{(toPay - balance).toFixed(2)} short.</div>}
       </div>
-      <button onClick={confirmHaul} disabled={!canAfford || confirming}
-        style={{ width: "100%", background: !canAfford || confirming ? "#E8E6E0" : "#FF5C00", color: "#fff", border: "none", borderRadius: 12, padding: "14px", fontSize: 14, fontWeight: 700, cursor: !canAfford || confirming ? "default" : "pointer" }}>
-        {confirming ? "Processing..." : !canAfford ? "Insufficient balance" : `Confirm & pay €${toPay.toFixed(2)}`}
+      <button onClick={mode === "live" ? payLive : confirmHaul} disabled={quoting || !canAfford || confirming || (mode === "live" && !liveChannel)}
+        style={{ width: "100%", background: quoting || !canAfford || confirming ? "#E8E6E0" : "#FF5C00", color: "#fff", border: "none", borderRadius: 12, padding: "14px", fontSize: 14, fontWeight: 700, cursor: quoting || !canAfford || confirming ? "default" : "pointer" }}>
+        {confirming ? "Processing..." : quoting ? "Calculating…" : !canAfford ? "Insufficient balance" : `Confirm & pay €${toPay.toFixed(2)}`}
       </button>
     </div>
   );

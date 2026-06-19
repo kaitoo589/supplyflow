@@ -41,3 +41,8 @@ entrypoint = "./functions/place-bucky-order/index.ts"
 enabled = true
 verify_jwt = false
 entrypoint = "./functions/buckydrop-webhook/index.ts"
+
+[functions.haul-shipping]
+enabled = true
+verify_jwt = false
+entrypoint = "./functions/haul-shipping/index.ts"

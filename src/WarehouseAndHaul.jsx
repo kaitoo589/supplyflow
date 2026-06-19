@@ -591,7 +591,10 @@ export function WarehouseTab({ session, haulItems = [], setHaulItems }) {
   return (
     <div style={{ padding: "16px 20px", paddingBottom: 100 }}>
       <div style={{ fontSize: 16, fontWeight: 700, color: "#0F0E0C", marginBottom: 2 }}>My warehouse</div>
-      <div style={{ fontSize: 13, color: "#aaa", marginBottom: 16 }}>Products ready for international shipping</div>
+      <div style={{ fontSize: 13, color: "#aaa", marginBottom: 12 }}>Products ready for international shipping</div>
+      <div style={{ background: "#FFF7ED", border: "1px solid #FCD9B6", borderRadius: 12, padding: "10px 13px", marginBottom: 16, fontSize: 12, color: "#92400E", lineHeight: 1.5 }}>
+        💡 Shipping is charged <b>per parcel</b>, not per item. Send everything together in one box — the more you bundle, the less you pay per item.
+      </div>
 
       {/* Drop zone */}
       <div
@@ -620,12 +623,20 @@ export function WarehouseTab({ session, haulItems = [], setHaulItems }) {
           </div>
         </div>
 
-        {haulItems.length > 0 && (
-          <motion.div initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }}
-            style={{ textAlign: "center", marginTop: 10, fontSize: 12, color: "#8B6914", fontWeight: 600 }}>
-            {haulItems.length} item{haulItems.length !== 1 ? "s" : ""} · {totalWeight}g · ~€{r2(shippingEstimate(totalWeight / 1000) * BUFFER_MULTIPLIER).toFixed(2)} ship + VAT at checkout
-          </motion.div>
-        )}
+        {haulItems.length > 0 && (() => {
+          const ship = r2(shippingEstimate(totalWeight / 1000) * BUFFER_MULTIPLIER);
+          const perItem = r2(ship / haulItems.length);
+          return (
+            <motion.div initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} style={{ textAlign: "center", marginTop: 10 }}>
+              <div style={{ fontSize: 12, color: "#8B6914", fontWeight: 600 }}>
+                {haulItems.length} item{haulItems.length !== 1 ? "s" : ""} · {totalWeight}g · ~€{ship.toFixed(2)} ship + VAT at checkout
+              </div>
+              <div style={{ fontSize: 11.5, color: "#5C3D0A", fontWeight: 700, marginTop: 3 }}>
+                ≈ €{perItem.toFixed(2)} per item — add more to lower this 📦
+              </div>
+            </motion.div>
+          );
+        })()}
       </div>
 
       <AnimatePresence>

@@ -912,6 +912,68 @@ function EditProfileSheet({ session, onClose }) {
   );
 }
 
+// Altijd bereikbare uitleg-pagina (Profile + automatisch bij de eerste keer).
+// Zet de verwachting vooraf: fabrieksprijs + fee + verzending, en waarom bundelen loont.
+function HowItWorksSheet({ onClose }) {
+  const steps = [
+    { icon: "🏭", title: "Shop straight from the factory", body: "You see the real 1688 & Taobao factory prices — no inflated retail markup. What it costs in China is what you pay." },
+    { icon: "🛒", title: "A small service fee", body: "We buy it, check it and handle everything for you. The fee is 8% (min €5) per order — so ordering a few items at once keeps the fee tiny per item." },
+    { icon: "🏬", title: "Your items wait in your China warehouse", body: "Bought items gather safely in your personal warehouse. No rush — keep adding to your haul." },
+    { icon: "📸", title: "QC photos before it ships", body: "We photograph your actual item so you see exactly what you're getting — no surprises on the doorstep." },
+    { icon: "📦", title: "Ship it all in one parcel", body: "International shipping is charged per parcel, not per item. So the more you bundle, the cheaper it gets per item:" },
+  ];
+  const ship = [
+    { n: "1 t-shirt", per: "€9.30" },
+    { n: "5 t-shirts", per: "€2.66" },
+    { n: "A full haul (25+)", per: "~€1.30" },
+  ];
+  return (
+    <>
+      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={onClose}
+        style={{ position: "fixed", inset: 0, zIndex: 300, background: "rgba(0,0,0,0.5)", backdropFilter: "blur(6px)" }} />
+      <motion.div initial={{ y: "100%" }} animate={{ y: 0 }} exit={{ y: "100%" }}
+        transition={{ type: "spring", stiffness: 320, damping: 34 }}
+        style={{ position: "fixed", bottom: 0, left: 0, right: 0, margin: "0 auto", width: "100%", maxWidth: 430, boxSizing: "border-box", background: "#fff", borderRadius: "24px 24px 0 0", zIndex: 301, maxHeight: "92vh", overflowY: "auto", padding: "20px 20px 40px" }}>
+        <div style={{ width: 36, height: 4, background: "#E8E6E0", borderRadius: 2, margin: "0 auto 16px" }} />
+        <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 3 }}>
+          <span style={{ fontSize: 26 }}>🦊</span>
+          <div style={{ fontSize: 20, fontWeight: 800, color: "#0F0E0C" }}>How Flowva works</div>
+        </div>
+        <div style={{ fontSize: 13, color: "#8A8780", marginBottom: 18 }}>Factory prices, real photos, one smart parcel.</div>
+
+        {steps.map((s, i) => (
+          <div key={i} style={{ display: "flex", gap: 13, marginBottom: 15 }}>
+            <div style={{ width: 40, height: 40, borderRadius: 12, background: "#FFF0E7", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20, flexShrink: 0 }}>{s.icon}</div>
+            <div style={{ flex: 1 }}>
+              <div style={{ fontSize: 14.5, fontWeight: 700, color: "#0F0E0C", marginBottom: 2 }}>{i + 1}. {s.title}</div>
+              <div style={{ fontSize: 13, color: "#6B6862", lineHeight: 1.5 }}>{s.body}</div>
+            </div>
+          </div>
+        ))}
+
+        <div style={{ background: "#F8F7F4", borderRadius: 14, padding: "10px 14px", marginBottom: 16 }}>
+          {ship.map((r, i) => (
+            <div key={i} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "6px 0", borderBottom: i < ship.length - 1 ? "1px solid #ECEAE5" : "none" }}>
+              <span style={{ fontSize: 13, color: "#6B6862" }}>{r.n} in one parcel</span>
+              <span style={{ fontSize: 13.5, fontWeight: 800, color: i === ship.length - 1 ? "#16A34A" : "#0F0E0C" }}>{r.per} <span style={{ fontWeight: 500, color: "#A8A5A0", fontSize: 11 }}>/ item</span></span>
+            </div>
+          ))}
+        </div>
+
+        <div style={{ background: "#0F0E0C", borderRadius: 16, padding: "15px 18px", marginBottom: 18 }}>
+          <div style={{ fontSize: 13, fontWeight: 800, color: "#FF5C00", marginBottom: 4 }}>The golden rule 🪙</div>
+          <div style={{ fontSize: 13.5, color: "#E8E6E0", lineHeight: 1.55 }}>Build your haul, then ship it as one box. The more you bundle, the less you pay per item — on both the fee and the shipping.</div>
+        </div>
+
+        <motion.button whileTap={{ scale: 0.97 }} onClick={onClose}
+          style={{ width: "100%", background: "#FF5C00", color: "#fff", border: "none", borderRadius: 12, padding: "14px", fontSize: 15, fontWeight: 700, cursor: "pointer", WebkitTapHighlightColor: "transparent" }}>
+          Got it 🦊
+        </motion.button>
+      </motion.div>
+    </>
+  );
+}
+
 export default function SupplyFlow({ session }) {
   const [tab, setTab] = useState("feed");
   const [products, setProducts] = useState([]);
@@ -928,6 +990,7 @@ export default function SupplyFlow({ session }) {
   const [reviewProduct, setReviewProduct] = useState(null);
   const [actionProduct, setActionProduct] = useState(null);
   const [showEditProfile, setShowEditProfile] = useState(false);
+  const [showHowItWorks, setShowHowItWorks] = useState(false);
   const [avatarUploading, setAvatarUploading] = useState(false);
   const [showNotifs, setShowNotifs] = useState(false);
   const [confirmCancel, setConfirmCancel] = useState(false);
@@ -962,6 +1025,20 @@ export default function SupplyFlow({ session }) {
   useEffect(() => {
     localStorage.setItem("supplyflow_request_list", JSON.stringify(requestList));
   }, [requestList]);
+
+  // Toon "How Flowva works" één keer automatisch bij de allereerste keer.
+  useEffect(() => {
+    try {
+      if (!localStorage.getItem("flowva_seen_howitworks")) {
+        const t = setTimeout(() => setShowHowItWorks(true), 900);
+        return () => clearTimeout(t);
+      }
+    } catch { /* localStorage kan geblokkeerd zijn */ }
+  }, []);
+  const closeHowItWorks = () => {
+    try { localStorage.setItem("flowva_seen_howitworks", "1"); } catch { /* ignore */ }
+    setShowHowItWorks(false);
+  };
 
   // Instant checkout: reken de hele mand in één keer af (server-side pay_cart).
   // Geeft true terug bij succes → de sheet morpht dan naar de "placed"-weergave.
@@ -1441,7 +1518,7 @@ export default function SupplyFlow({ session }) {
               </div>
               {selectedOrder.weight_grams && (
                 <div style={{ marginTop: 10, background: "#F0FDF4", borderRadius: 10, padding: "10px 14px", fontSize: 13, color: "#065F46", fontWeight: 600 }}>
-                  ⚖️ Weight: {selectedOrder.weight_grams}g · ~€{((selectedOrder.weight_grams / 1000) * 10).toFixed(2)} shipping
+                  ⚖️ Weight: {selectedOrder.weight_grams}g · shipping is charged per parcel — bundle to save
                 </div>
               )}
               <button onClick={() => setTab("warehouse")} style={{ width: "100%", marginTop: 10, background: "#FF5C00", color: "#fff", border: "none", borderRadius: 12, padding: "12px", fontSize: 14, fontWeight: 700, cursor: "pointer" }}>
@@ -1530,6 +1607,15 @@ export default function SupplyFlow({ session }) {
             </button>
           </div>
           <PushToggle session={session} />
+          <motion.div whileTap={{ scale: 0.98 }} onClick={() => setShowHowItWorks(true)}
+            style={{ background: "#fff", border: "1px solid #E8E6E0", borderRadius: 16, padding: "15px 18px", marginBottom: 12, display: "flex", alignItems: "center", gap: 12, cursor: "pointer" }}>
+            <div style={{ width: 38, height: 38, borderRadius: 11, background: "#FFF0E7", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18, flexShrink: 0 }}>🦊</div>
+            <div style={{ flex: 1 }}>
+              <div style={{ fontSize: 14, fontWeight: 700, color: "#0F0E0C" }}>How Flowva works</div>
+              <div style={{ fontSize: 12, color: "#A8A5A0" }}>Prices, fees, shipping & the haul model</div>
+            </div>
+            <div style={{ color: "#C9C6C1", fontSize: 18 }}>→</div>
+          </motion.div>
           <TransactionHistory session={session} />
           <div style={{ background: "#fff", border: "1px solid #E8E6E0", borderRadius: 16, padding: "16px 20px", marginBottom: 12 }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
@@ -1727,6 +1813,11 @@ export default function SupplyFlow({ session }) {
         {showEditProfile && (
           <EditProfileSheet session={session} onClose={() => setShowEditProfile(false)} />
         )}
+      </AnimatePresence>
+
+      {/* Uitleg: hoe Flowva werkt */}
+      <AnimatePresence>
+        {showHowItWorks && <HowItWorksSheet onClose={closeHowItWorks} />}
       </AnimatePresence>
 
       {/* Review-pagina */}

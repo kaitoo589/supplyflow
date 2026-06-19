@@ -13,6 +13,7 @@ export default function OrderRequest({ product, session, onClose, onSuccess, onA
   const [error, setError] = useState(null);
   const [direction, setDirection] = useState(0);
   const [missingVariants, setMissingVariants] = useState([]);
+  const [showSizeGuide, setShowSizeGuide] = useState(false);
 
   const productVariants = product.sizes?.length > 0 ? product.sizes : null;
 
@@ -80,6 +81,7 @@ export default function OrderRequest({ product, session, onClose, onSuccess, onA
   };
 
   return (
+    <>
     <AnimatePresence>
       <motion.div
         key="backdrop"
@@ -232,6 +234,13 @@ export default function OrderRequest({ product, session, onClose, onSuccess, onA
 
             
 
+            {product.size_chart?.measures?.length > 0 && (
+              <motion.button variants={fadeUp} type="button" onClick={() => setShowSizeGuide(true)}
+                style={{ width: "100%", marginBottom: 16, background: "#F8F7F4", color: "#111", border: "1px solid #E8E6E0", borderRadius: 12, padding: "12px", fontSize: 13.5, fontWeight: 700, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
+                📐 Size guide
+              </motion.button>
+            )}
+
             {error && (
               <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }}
                 style={{ background: "#FEE2E2", color: "#DC2626", borderRadius: 10, padding: "10px 14px", fontSize: 13, marginBottom: 12 }}>
@@ -278,5 +287,45 @@ export default function OrderRequest({ product, session, onClose, onSuccess, onA
         </motion.div>
       </div>
     </AnimatePresence>
+
+    {showSizeGuide && product.size_chart && (() => {
+      const sc = product.size_chart;
+      const C = ["#E24B4A", "#2FA56E", "#E0A500", "#378ADD", "#FF7A1A", "#7F77DD", "#D4537E"];
+      return (
+        <>
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setShowSizeGuide(false)}
+            style={{ position: "fixed", inset: 0, zIndex: 200, background: "rgba(0,0,0,0.55)", backdropFilter: "blur(6px)" }} />
+          <motion.div initial={{ y: "100%" }} animate={{ y: 0 }} transition={{ type: "spring", stiffness: 320, damping: 34 }}
+            style={{ position: "fixed", bottom: 0, left: 0, right: 0, margin: "0 auto", width: "100%", maxWidth: 430, boxSizing: "border-box", background: "#fff", borderRadius: "24px 24px 0 0", zIndex: 201, maxHeight: "88vh", overflowY: "auto", padding: "20px 20px 40px" }}>
+            <div style={{ width: 36, height: 4, background: "#E8E6E0", borderRadius: 2, margin: "0 auto 16px" }} />
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
+              <div style={{ fontSize: 18, fontWeight: 700, color: "#0F0E0C" }}>Size guide</div>
+              <button onClick={() => setShowSizeGuide(false)} style={{ background: "#F3F1ED", border: "none", borderRadius: 999, width: 30, height: 30, fontSize: 15, color: "#777", cursor: "pointer" }}>✕</button>
+            </div>
+            <div style={{ fontSize: 12, color: "#8A8780", marginBottom: 12 }}>Measurements in cm — the colors match the sketch below.</div>
+            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
+              <thead><tr>
+                <th style={{ textAlign: "left", padding: "7px 4px", color: "#888", fontWeight: 600, borderBottom: "1px solid #ECEAE5" }}>Size</th>
+                {sc.measures.map((m, i) => <th key={m} style={{ textAlign: "right", padding: "7px 4px", color: C[i % C.length], fontWeight: 700, borderBottom: "1px solid #ECEAE5", whiteSpace: "nowrap" }}>{m}</th>)}
+              </tr></thead>
+              <tbody>
+                {sc.sizes.map((sz) => (
+                  <tr key={sz}>
+                    <td style={{ padding: "8px 4px", fontWeight: 700, color: "#111", borderBottom: "1px solid #F4F2EE" }}>{sz}</td>
+                    {sc.measures.map((m, i) => <td key={m} style={{ textAlign: "right", padding: "8px 4px", fontWeight: 700, color: C[i % C.length], borderBottom: "1px solid #F4F2EE" }}>{(sc.rows?.[sz] || [])[i] ?? "–"}</td>)}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            {sc.sketch && (
+              <div style={{ marginTop: 16, background: "#fff", border: "1px solid #F0EEE8", borderRadius: 16, padding: 12, maxWidth: 300, margin: "16px auto 0", aspectRatio: "1" }}>
+                <img src={sc.sketch} referrerPolicy="no-referrer" alt="size sketch" style={{ width: "100%", height: "100%", objectFit: "contain" }} />
+              </div>
+            )}
+          </motion.div>
+        </>
+      );
+    })()}
+    </>
   );
 }

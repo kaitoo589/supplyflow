@@ -1619,6 +1619,14 @@ export default function SupplyFlow({ session }) {
             </div>
             <div style={{ color: "#C9C6C1", fontSize: 18 }}>→</div>
           </motion.div>
+          <a href="/returns" style={{ textDecoration: "none", background: "#fff", border: "1px solid #E8E6E0", borderRadius: 16, padding: "15px 18px", marginBottom: 12, display: "flex", alignItems: "center", gap: 12 }}>
+            <div style={{ width: 38, height: 38, borderRadius: 11, background: "#F3F1ED", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18, flexShrink: 0 }}>↩️</div>
+            <div style={{ flex: 1 }}>
+              <div style={{ fontSize: 14, fontWeight: 700, color: "#0F0E0C" }}>Returns &amp; withdrawal</div>
+              <div style={{ fontSize: 12, color: "#A8A5A0" }}>Cancel an order or read the policy</div>
+            </div>
+            <div style={{ color: "#C9C6C1", fontSize: 18 }}>→</div>
+          </a>
           <TransactionHistory session={session} />
           <div style={{ background: "#fff", border: "1px solid #E8E6E0", borderRadius: 16, padding: "16px 20px", marginBottom: 12 }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>

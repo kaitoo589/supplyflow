@@ -5,6 +5,8 @@ import Auth, { ResetPassword } from "./Auth";
 import AgentPanel from "./AgentPanel";
 import SupportWidget from "./SupportWidget";
 import InstallPrompt from "./InstallPrompt";
+import WithdrawalPage from "./WithdrawalPage";
+import ReturnsPage from "./ReturnsPage";
 
 // De admin draait volledig in het gamified command center (ai-ops-hud).
 // Lokaal → poort 5181; op de live site → het gedeployde admin-dashboard.
@@ -134,6 +136,10 @@ export default function App() {
 
     return () => { mounted = false; clearTimeout(safety); subscription.unsubscribe(); };
   }, []);
+
+  // Publieke pagina's — geen login/auth nodig (EU-herroepingsknop + retourbeleid).
+  if (window.location.pathname === "/withdraw") return <WithdrawalPage />;
+  if (window.location.pathname === "/returns") return <ReturnsPage />;
 
   if (loading) {
     return (

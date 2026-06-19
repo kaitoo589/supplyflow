@@ -46,3 +46,8 @@ entrypoint = "./functions/buckydrop-webhook/index.ts"
 enabled = true
 verify_jwt = false
 entrypoint = "./functions/haul-shipping/index.ts"
+
+[functions.withdrawal-request]
+enabled = true
+verify_jwt = false
+entrypoint = "./functions/withdrawal-request/index.ts"

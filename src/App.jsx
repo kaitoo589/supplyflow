@@ -100,26 +100,39 @@ export default function App() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    supabase.auth.getSession().then(async ({ data: { session } }) => {
-      setSession(session);
-      if (session) {
-        const { data } = await supabase.from("profiles").select("role").eq("id", session.user.id).single();
-        setRole(data?.role || "customer");
-      }
-      setLoading(false);
-    });
+    let mounted = true;
+    // Begrens elke netwerk-call zodat een trage/koude PWA-start nooit op het
+    // laadscherm blijft hangen (bug: app startte soms niet → sluiten + heropenen).
+    const withTimeout = (p, ms) =>
+      Promise.race([Promise.resolve(p), new Promise((r) => setTimeout(() => r(null), ms))]);
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
+    const resolveSession = async (session) => {
+      if (!mounted) return;
       setSession(session);
       if (session) {
-        const { data } = await supabase.from("profiles").select("role").eq("id", session.user.id).single();
-        setRole(data?.role || "customer");
-      } else {
+        const res = await withTimeout(
+          supabase.from("profiles").select("role").eq("id", session.user.id).single(),
+          4000
+        ).catch(() => null);
+        if (mounted) setRole(res?.data?.role || "customer");
+      } else if (mounted) {
         setRole(null);
       }
+      if (mounted) setLoading(false);
+    };
+
+    withTimeout(supabase.auth.getSession(), 5000)
+      .then((res) => resolveSession(res?.data?.session ?? null))
+      .catch(() => { if (mounted) setLoading(false); });
+
+    // Absoluut vangnet: nooit langer dan 6s op "Loading..." blijven staan.
+    const safety = setTimeout(() => { if (mounted) setLoading(false); }, 6000);
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      resolveSession(session);
     });
 
-    return () => subscription.unsubscribe();
+    return () => { mounted = false; clearTimeout(safety); subscription.unsubscribe(); };
   }, []);
 
   if (loading) {

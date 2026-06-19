@@ -1,8 +1,9 @@
 // Flowva service worker — installeerbaarheid + push-notificaties.
-// Bewust GÉÉN agressieve cache: altijd vers van het netwerk (geen oude app).
+// Bewust GÉÉN fetch-handler: zo zit de SW NIET in het laadpad. Dat voorkomt de
+// iOS-PWA koude-start-hang (app laadde pas na sluiten/heropenen) én er wordt
+// nooit een oude versie geserveerd (altijd vers van het netwerk).
 self.addEventListener('install', () => self.skipWaiting());
 self.addEventListener('activate', (e) => e.waitUntil(self.clients.claim()));
-self.addEventListener('fetch', () => {});
 
 // Inkomende push → toon de notificatie.
 self.addEventListener('push', (event) => {

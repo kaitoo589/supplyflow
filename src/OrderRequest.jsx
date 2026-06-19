@@ -19,7 +19,10 @@ export default function OrderRequest({ product, session, onClose, onSuccess, onA
   // Foto die hoort bij de laatst gekozen optie (bijv. "Wit" → witte foto),
   // anders de standaard productfoto.
   const variantImage = Object.values(selectedVariants).map(opt => product.variant_images?.[opt]).filter(Boolean).pop();
-  const displayImage = variantImage || (product.image?.startsWith("http") ? product.image : null);
+  // Hoofdfoto-galerij: alle officiële foto's, klant tikt erdoorheen.
+  const photos = [...new Set([...(product.gallery || []), product.image].filter(u => typeof u === "string" && u.startsWith("http")))];
+  const [galleryPhoto, setGalleryPhoto] = useState(photos[0] || null);
+  const displayImage = variantImage || galleryPhoto || (product.image?.startsWith("http") ? product.image : null);
 
   // Valideert varianten en bouwt het order-item (zonder id/status) —
   // gedeeld door "direct versturen" en "toevoegen aan aanvraaglijst".
@@ -152,6 +155,19 @@ export default function OrderRequest({ product, session, onClose, onSuccess, onA
                     transition={{ duration: 0.3, ease: [0.32, 0.72, 0, 1] }}
                     style={{ width: "100%", height: "100%", objectFit: "contain", display: "block" }} />
                 </AnimatePresence>
+              </motion.div>
+            )}
+            {photos.length > 1 && (
+              <motion.div variants={fadeUp} style={{ display: "flex", gap: 8, overflowX: "auto", marginBottom: product.description ? 16 : 24, paddingBottom: 2 }}>
+                {photos.map((url) => {
+                  const active = !variantImage && displayImage === url;
+                  return (
+                    <button key={url} onClick={() => setGalleryPhoto(url)}
+                      style={{ flexShrink: 0, width: 54, height: 54, borderRadius: 10, overflow: "hidden", border: `2px solid ${active ? "#FF5C00" : "#E8E6E0"}`, background: "#fff", padding: 0, cursor: "pointer" }}>
+                      <img src={url} referrerPolicy="no-referrer" alt="" style={{ width: "100%", height: "100%", objectFit: "contain" }} />
+                    </button>
+                  );
+                })}
               </motion.div>
             )}
 

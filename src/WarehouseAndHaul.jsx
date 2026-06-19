@@ -6,8 +6,18 @@ import { springBouncy, springMorph, springSoft } from "./motion";
 import { WordReveal, SpeechBubble } from "./MotionBits";
 import { Plane, MapPin } from "lucide-react";
 
-const SHIPPING_RATE_PER_KG = 10;
-const BUFFER_MULTIPLIER = 1.5;
+// Verzendmodel China → NL: een first-weight-blok (eerste 0,5 kg) + tarief per extra kg,
+// dan een veiligheidsbuffer (verschil komt terug) en 21% invoer-BTW (DDP — wij schieten
+// voor, klant betaalt niets op de stoep). Houd dit GELIJK aan supabase/pay-shipping.sql.
+const SHIP_FIRST_KG = 0.5;       // first-weight blok
+const SHIP_FIRST_EUR = 9.0;      // kost van dat eerste blok
+const SHIP_PER_KG = 8.5;         // per extra kg daarboven
+const BUFFER_MULTIPLIER = 1.3;   // schatting kan ~30% afwijken → buffer, rest terug
+const IMPORT_VAT = 0.21;         // NL invoer-BTW op (goederen + verzending)
+const r2 = (x) => Math.round(x * 100) / 100;
+function shippingEstimate(weightKg) {
+  return SHIP_FIRST_EUR + Math.max(0, weightKg - SHIP_FIRST_KG) * SHIP_PER_KG;
+}
 
 function Confetti({ active }) {
   const pieces = Array.from({ length: 60 }, (_, i) => i);
@@ -247,7 +257,7 @@ function OrderDetailModal({ order, inHaul, onAdd, onRemove, onDispute, onClose }
         )}
         {order.weight_grams && (
           <div style={{ background: "#F0FDF4", border: "1px solid #10B981", borderRadius: 12, padding: "10px 14px", marginBottom: 16, fontSize: 13, color: "#065F46", fontWeight: 600 }}>
-            ~€{((order.weight_grams / 1000) * SHIPPING_RATE_PER_KG).toFixed(2)} shipping
+            Adds {order.weight_grams}g to your parcel — shipping is charged per parcel, so bundling items keeps it cheap.
           </div>
         )}
         <div style={{ display: "flex", gap: 10 }}>
@@ -299,9 +309,6 @@ function OrderCard({ order, onDragStart, onDragEnd, inHaul, onOpenDetail }) {
             {order.product_title || order.product}
           </div>
           <div style={{ fontSize: 11, color: "#aaa" }}>{order.qty} pcs · {order.weight_grams ? `${order.weight_grams}g` : "no weight"}</div>
-          {order.weight_grams && (
-            <div style={{ fontSize: 11, color: "#6366F1", marginTop: 1 }}>~€{((order.weight_grams / 1000) * SHIPPING_RATE_PER_KG).toFixed(2)} shipping</div>
-          )}
         </div>
         <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 6, flexShrink: 0 }}>
           {inHaul && <div style={{ background: "#10B981", color: "#fff", fontSize: 10, fontWeight: 700, padding: "2px 8px", borderRadius: 20 }}>✓ In box</div>}
@@ -325,8 +332,11 @@ function OrderCard({ order, onDragStart, onDragEnd, inHaul, onOpenDetail }) {
 function ConfirmHaul({ session, haulItems, balance, onBack, onSuccess }) {
   const [confirming, setConfirming] = useState(false);
   const totalWeight = haulItems.reduce((s, o) => s + (o.weight_grams || 0), 0);
-  const estimate = (totalWeight / 1000) * SHIPPING_RATE_PER_KG;
-  const toPay = estimate * BUFFER_MULTIPLIER;
+  const goodsValue = haulItems.reduce((s, o) => s + (Number(o.price) || 0), 0);
+  const estimate = shippingEstimate(totalWeight / 1000);
+  const shipBuffered = r2(estimate * BUFFER_MULTIPLIER);
+  const vat = r2((goodsValue + estimate) * IMPORT_VAT);
+  const toPay = r2(shipBuffered + vat);
   const canAfford = balance >= toPay;
 
   const confirmHaul = async () => {
@@ -386,7 +396,8 @@ function ConfirmHaul({ session, haulItems, balance, onBack, onSuccess }) {
         {[
           { label: "Total weight", value: `${totalWeight}g` },
           { label: "Shipping estimate", value: `€${estimate.toFixed(2)}` },
-          { label: "Safety buffer (×1.5)", value: `+€${(toPay - estimate).toFixed(2)}` },
+          { label: "Safety buffer (×1.3)", value: `+€${(shipBuffered - estimate).toFixed(2)}` },
+          { label: "Import VAT (21%)", value: `€${vat.toFixed(2)}` },
         ].map((row, i) => (
           <div key={i} style={{ display: "flex", justifyContent: "space-between", marginBottom: 8 }}>
             <span style={{ fontSize: 13, color: "#888" }}>{row.label}</span>
@@ -397,7 +408,7 @@ function ConfirmHaul({ session, haulItems, balance, onBack, onSuccess }) {
           <span style={{ fontSize: 14, fontWeight: 700, color: "#fff" }}>Pay now</span>
           <span style={{ fontSize: 14, fontWeight: 700, color: "#FF5C00" }}>€{toPay.toFixed(2)}</span>
         </div>
-        <div style={{ marginTop: 10, fontSize: 11, color: "#555", lineHeight: 1.5 }}>After shipping you'll get the difference back in your balance.</div>
+        <div style={{ marginTop: 10, fontSize: 11, color: "#555", lineHeight: 1.5 }}>✅ All duties prepaid (DDP) — nothing to pay on delivery. After we ship, the shipping-buffer difference comes back to your balance.</div>
       </motion.div>
       <div style={{ background: canAfford ? "#F0FDF4" : "#FEF3C7", border: `1px solid ${canAfford ? "#10B981" : "#F59E0B"}`, borderRadius: 12, padding: "12px 16px", marginBottom: 20 }}>
         <div style={{ display: "flex", justifyContent: "space-between" }}>
@@ -612,7 +623,7 @@ export function WarehouseTab({ session, haulItems = [], setHaulItems }) {
         {haulItems.length > 0 && (
           <motion.div initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }}
             style={{ textAlign: "center", marginTop: 10, fontSize: 12, color: "#8B6914", fontWeight: 600 }}>
-            {haulItems.length} item{haulItems.length !== 1 ? "s" : ""} · {totalWeight}g · ~€{((totalWeight / 1000) * SHIPPING_RATE_PER_KG * BUFFER_MULTIPLIER).toFixed(2)} (incl. buffer)
+            {haulItems.length} item{haulItems.length !== 1 ? "s" : ""} · {totalWeight}g · ~€{r2(shippingEstimate(totalWeight / 1000) * BUFFER_MULTIPLIER).toFixed(2)} ship + VAT at checkout
           </motion.div>
         )}
       </div>
@@ -769,7 +780,7 @@ export function TransitTab({ session, orders = [] }) {
             )}
 
             <div style={{ display: "flex", justifyContent: "space-between", marginBottom: haul.tracking_number || !shipped ? 10 : 0 }}>
-              <span style={{ fontSize: 12, color: "#8A8780" }}>Shipping paid</span>
+              <span style={{ fontSize: 12, color: "#8A8780" }}>Paid (shipping + VAT)</span>
               <span style={{ fontSize: 12, fontWeight: 700, color: "#111111" }}>€{Number(haul.paid_eur || 0).toFixed(2)}</span>
             </div>
 

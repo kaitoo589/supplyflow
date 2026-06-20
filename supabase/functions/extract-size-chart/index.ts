@@ -23,47 +23,20 @@ function json(obj: unknown, status = 200) {
   });
 }
 
-// rows[i] hoort bij sizes[i]; rows[i][j] is de waarde voor measures[j].
-const SIZE_CHART_SCHEMA = {
-  type: "object",
-  properties: {
-    found: {
-      type: "boolean",
-      description: "true alleen als de afbeelding daadwerkelijk een maattabel is",
-    },
-    unit: {
-      type: "string",
-      description: "meeteenheid van de waarden, bijv. 'cm' of 'inch'; leeg als onbekend",
-    },
-    measures: {
-      type: "array",
-      items: { type: "string" },
-      description:
-        "kolomkoppen (metingen) in beknopt Engels, bijv. Waist, Hip, Length. Geen komma's.",
-    },
-    sizes: {
-      type: "array",
-      items: { type: "string" },
-      description: "rij-labels (maten) zoals afgebeeld, bijv. S, M, L of 30, 32. Geen komma's.",
-    },
-    rows: {
-      type: "array",
-      items: { type: "array", items: { type: "string" } },
-      description:
-        "rows[i] hoort bij sizes[i]; rows[i][j] is de waarde voor measures[j]. Lege string voor onleesbare cellen.",
-    },
-    confidence: {
-      type: "number",
-      description: "zekerheid 0-1 dat de extractie correct en volledig is",
-    },
-    notes: {
-      type: "string",
-      description: "korte opmerking over onzekerheden of vertalingen; leeg indien geen",
-    },
-  },
-  required: ["found", "unit", "measures", "sizes", "rows", "confidence", "notes"],
-  additionalProperties: false,
-} as const;
+// Gevraagde JSON-vorm. rows[i] hoort bij sizes[i]; rows[i][j] bij measures[j].
+// We vragen Claude direct om dit JSON-object (geen structured-output API) zodat de
+// call kogelvrij werkt met vision op opus-4-8, zonder afhankelijkheid van
+// output_config/thinking-combinaties.
+const SHAPE_HINT = `Antwoord met UITSLUITEND een geldig JSON-object — geen uitleg, geen markdown-codeblok. Exacte sleutels en vorm:
+{
+  "found": true,            // boolean; false als de afbeelding geen maattabel is
+  "unit": "cm",             // "cm" of "inch"; "" als onbekend
+  "measures": ["Waist"],    // kolomkoppen (metingen), beknopt Engels, GEEN komma's
+  "sizes": ["S","M"],       // rij-labels (maten), GEEN komma's
+  "rows": [["72"],["76"]],  // rows[i] hoort bij sizes[i]; rows[i][j] bij measures[j]; "" voor onleesbaar
+  "confidence": 0.9,        // getal 0-1
+  "notes": ""               // korte opmerking of ""
+}`;
 
 const SYSTEM_PROMPT =
   "Je bent een nauwkeurige assistent die maattabellen (size charts) uit afbeeldingen leest " +
@@ -131,27 +104,27 @@ Deno.serve(async (req) => {
     const anthropic = new Anthropic({ apiKey });
     const response = await anthropic.messages.create({
       model: "claude-opus-4-8",
-      max_tokens: 16000,
-      thinking: { type: "adaptive" },
+      max_tokens: 4096,
       system: SYSTEM_PROMPT,
       messages: [
         {
           role: "user",
           content: [
             { type: "image", source: { type: "base64", media_type: mt, data: base64 } },
-            {
-              type: "text",
-              text: "Lees deze maattabel en geef de gestructureerde data terug volgens het schema.",
-            },
+            { type: "text", text: `Lees deze maattabel en geef de gestructureerde data terug.\n\n${SHAPE_HINT}` },
           ],
         },
       ],
-      output_config: { format: { type: "json_schema", schema: SIZE_CHART_SCHEMA } },
     });
     const textBlock = response.content.find((b) => b.type === "text") as
       | { text?: string }
       | undefined;
-    const chart = JSON.parse(textBlock?.text ?? "{}");
+    const raw = textBlock?.text ?? "";
+    // Robuust: pak het JSON-object uit de tekst (evt. binnen ```-fences of met omringende tekst).
+    const fenced = raw.match(/```(?:json)?\s*([\s\S]*?)```/)?.[1] ?? raw;
+    const s = fenced.indexOf("{");
+    const e = fenced.lastIndexOf("}");
+    const chart = JSON.parse(s >= 0 && e > s ? fenced.slice(s, e + 1) : fenced);
     return json({ ok: true, chart });
   } catch (apiErr) {
     console.error("extract-size-chart API error:", apiErr);

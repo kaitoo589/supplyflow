@@ -51,3 +51,8 @@ entrypoint = "./functions/haul-shipping/index.ts"
 enabled = true
 verify_jwt = false
 entrypoint = "./functions/withdrawal-request/index.ts"
+
+[functions.check-cart-prices]
+enabled = true
+verify_jwt = false
+entrypoint = "./functions/check-cart-prices/index.ts"

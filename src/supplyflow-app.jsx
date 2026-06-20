@@ -489,8 +489,10 @@ function QuoteAcceptance({ order, session, balance, allOrders = [], onAccepted }
 
 // Aanvraaglijst: alles in één keer versturen = één service fee over de bundel.
 // De sheet deelt z'n layoutId met het zwevende balkje en morpht ervandaan open.
-function RequestListSheet({ items, onRemove, onSetQty, onClose, onSend, sending, error, session, onEditAddress, onTopUp, onFinish }) {
+function RequestListSheet({ items, onRemove, onSetQty, onClose, onSend, sending, error, session, onEditAddress, onTopUp, onFinish, flagged }) {
   const [view, setView] = useState("cart");
+  const isHeld = (item) => !!flagged && flagged.has(item.source_url);
+  const heldCount = items.filter(isHeld).length;
   const total = items.reduce((s, it) => s + Number(it.price || 0) * (it.qty || 1), 0);
   const fee = serviceFee(total);
   const charge = total + fee;
@@ -550,13 +552,23 @@ function RequestListSheet({ items, onRemove, onSetQty, onClose, onSend, sending,
                 </SpeechBubble>
               </div>
 
-              {items.map((item, i) => (
-                <motion.div layoutId={`citem-${i}`} key={i} style={{ display: "flex", alignItems: "center", gap: 12, background: "#1A1917", borderRadius: 14, padding: "10px 12px", marginBottom: 8 }}>
+              {items.map((item, i) => {
+                const held = isHeld(item);
+                return (
+                <motion.div layoutId={`citem-${i}`} key={i} style={{ display: "flex", alignItems: "center", gap: 12, background: "#1A1917", borderRadius: 14, padding: "10px 12px", marginBottom: 8, opacity: held ? 0.6 : 1 }}>
                   {itemThumb(item)}
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontSize: 13, fontWeight: 600, color: "#fff", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{item.product_title}</div>
-                    <div style={{ fontSize: 11.5, color: "#9C9893" }}>{item.kleur ? `${item.kleur} · ` : ""}€{Number(item.price).toFixed(2)}</div>
+                    <div style={{ fontSize: 13, fontWeight: 600, color: "#fff", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", textDecoration: held ? "line-through" : "none" }}>{item.product_title}</div>
+                    {held ? (
+                      <div style={{ fontSize: 11, color: "#F59E0B", fontWeight: 600 }}>⏸ On hold — supplier price changed</div>
+                    ) : (
+                      <div style={{ fontSize: 11.5, color: "#9C9893" }}>{item.kleur ? `${item.kleur} · ` : ""}€{Number(item.price).toFixed(2)}</div>
+                    )}
                   </div>
+                  {held ? (
+                    <button onClick={() => onRemove(i)}
+                      style={{ flexShrink: 0, background: "rgba(245,158,11,0.15)", color: "#F59E0B", border: "1px solid rgba(245,158,11,0.35)", borderRadius: 9, padding: "7px 12px", fontSize: 12, fontWeight: 700, cursor: "pointer", WebkitTapHighlightColor: "transparent" }}>Remove</button>
+                  ) : (
                   <div style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
                     <motion.button whileTap={{ scale: 0.85 }} onClick={() => ((item.qty || 1) > 1 ? onSetQty(i, item.qty - 1) : onRemove(i))}
                       style={{ width: 26, height: 26, borderRadius: "50%", background: "rgba(255,255,255,0.08)", border: "1px solid rgba(255,255,255,0.12)", color: "#C9C6C1", fontSize: 16, fontWeight: 700, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", lineHeight: 1 }}>−</motion.button>
@@ -564,8 +576,10 @@ function RequestListSheet({ items, onRemove, onSetQty, onClose, onSend, sending,
                     <motion.button whileTap={{ scale: 0.85 }} onClick={() => onSetQty(i, (item.qty || 1) + 1)}
                       style={{ width: 26, height: 26, borderRadius: "50%", background: "rgba(255,255,255,0.08)", border: "1px solid rgba(255,255,255,0.12)", color: "#C9C6C1", fontSize: 16, fontWeight: 700, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", lineHeight: 1 }}>+</motion.button>
                   </div>
+                  )}
                 </motion.div>
-              ))}
+                );
+              })}
 
               {items.length > 0 && (
                 <motion.div layout style={{ background: "#1E1D1A", borderRadius: 14, padding: "12px 14px", marginTop: 12 }}>
@@ -588,9 +602,14 @@ function RequestListSheet({ items, onRemove, onSetQty, onClose, onSend, sending,
 
               {errorBlock}
 
-              <motion.button whileTap={items.length ? { scale: 0.97 } : undefined} onClick={() => items.length && setView("checkout")} disabled={items.length === 0}
-                style={{ width: "100%", marginTop: 12, background: items.length ? "#FF5C00" : "#333", color: "#fff", border: "none", borderRadius: 14, padding: "16px", fontSize: 15, fontWeight: 700, cursor: items.length ? "pointer" : "default", WebkitTapHighlightColor: "transparent" }}>
-                Go to checkout →
+              {heldCount > 0 && (
+                <div style={{ background: "rgba(245,158,11,0.12)", color: "#F59E0B", borderRadius: 10, padding: "10px 13px", fontSize: 12, marginTop: 10, lineHeight: 1.5 }}>
+                  ⏸ {heldCount === 1 ? "An item is" : `${heldCount} items are`} temporarily on hold because the supplier's price changed. Remove {heldCount === 1 ? "it" : "them"} to continue, or keep {heldCount === 1 ? "it" : "them"} and check back soon — you haven't been charged.
+                </div>
+              )}
+              <motion.button whileTap={items.length && !heldCount ? { scale: 0.97 } : undefined} onClick={() => items.length && !heldCount && setView("checkout")} disabled={items.length === 0 || heldCount > 0}
+                style={{ width: "100%", marginTop: 12, background: items.length && !heldCount ? "#FF5C00" : "#333", color: "#fff", border: "none", borderRadius: 14, padding: "16px", fontSize: 15, fontWeight: 700, cursor: items.length && !heldCount ? "pointer" : "default", WebkitTapHighlightColor: "transparent" }}>
+                {heldCount > 0 ? "Remove on-hold items to continue" : "Go to checkout →"}
               </motion.button>
 
               <motion.button whileTap={{ scale: 0.97 }} onClick={onClose}
@@ -625,16 +644,19 @@ function RequestListSheet({ items, onRemove, onSetQty, onClose, onSend, sending,
                 )}
               </motion.div>
 
-              {items.map((item, i) => (
-                <motion.div layoutId={`citem-${i}`} key={i} style={{ display: "flex", alignItems: "center", gap: 10, background: "#1A1917", borderRadius: 12, padding: "8px 10px", marginBottom: 6 }}>
+              {items.map((item, i) => {
+                const held = isHeld(item);
+                return (
+                <motion.div layoutId={`citem-${i}`} key={i} style={{ display: "flex", alignItems: "center", gap: 10, background: "#1A1917", borderRadius: 12, padding: "8px 10px", marginBottom: 6, opacity: held ? 0.6 : 1 }}>
                   {itemThumb(item)}
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontSize: 12.5, fontWeight: 600, color: "#fff", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{item.product_title}</div>
-                    <div style={{ fontSize: 11, color: "#9C9893" }}>{item.qty || 1} pcs{item.kleur ? ` · ${item.kleur}` : ""}</div>
+                    <div style={{ fontSize: 12.5, fontWeight: 600, color: "#fff", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", textDecoration: held ? "line-through" : "none" }}>{item.product_title}</div>
+                    <div style={{ fontSize: 11, color: held ? "#F59E0B" : "#9C9893" }}>{held ? "⏸ On hold — price changed" : `${item.qty || 1} pcs${item.kleur ? ` · ${item.kleur}` : ""}`}</div>
                   </div>
-                  <div style={{ fontSize: 12.5, fontWeight: 700, color: "#fff", flexShrink: 0 }}>€{(Number(item.price) * (item.qty || 1)).toFixed(2)}</div>
+                  <div style={{ fontSize: 12.5, fontWeight: 700, color: held ? "#F59E0B" : "#fff", flexShrink: 0 }}>{held ? "—" : `€${(Number(item.price) * (item.qty || 1)).toFixed(2)}`}</div>
                 </motion.div>
-              ))}
+                );
+              })}
 
               <motion.div style={{ background: "#1E1D1A", borderRadius: "14px 14px 0 0", padding: "12px 14px", marginTop: 6 }}>
                 <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
@@ -657,9 +679,14 @@ function RequestListSheet({ items, onRemove, onSetQty, onClose, onSend, sending,
 
               {errorBlock}
 
-              <motion.button whileTap={sending || !hasAddress ? undefined : { scale: 0.97 }} onClick={confirmAndPay} disabled={sending || !hasAddress || items.length === 0}
-                style={{ width: "100%", marginTop: 4, background: sending ? "#333" : !hasAddress ? "#444" : "#FF5C00", color: "#fff", border: "none", borderRadius: 14, padding: "16px", fontSize: 15, fontWeight: 700, cursor: sending || !hasAddress ? "default" : "pointer", WebkitTapHighlightColor: "transparent" }}>
-                {sending ? "Processing payment…" : !hasAddress ? "Add an address to continue" : `Confirm & pay €${charge.toFixed(2)} →`}
+              {heldCount > 0 && (
+                <div style={{ background: "rgba(245,158,11,0.12)", color: "#F59E0B", borderRadius: 10, padding: "10px 13px", fontSize: 12, marginTop: 10, lineHeight: 1.5 }}>
+                  ⏸ {heldCount === 1 ? "An item is" : `${heldCount} items are`} on hold (supplier price changed). Go back to your cart to remove {heldCount === 1 ? "it" : "them"}, or keep {heldCount === 1 ? "it" : "them"} and check back soon. You haven't been charged.
+                </div>
+              )}
+              <motion.button whileTap={sending || !hasAddress || heldCount ? undefined : { scale: 0.97 }} onClick={confirmAndPay} disabled={sending || !hasAddress || items.length === 0 || heldCount > 0}
+                style={{ width: "100%", marginTop: 4, background: sending ? "#333" : (!hasAddress || heldCount) ? "#444" : "#FF5C00", color: "#fff", border: "none", borderRadius: 14, padding: "16px", fontSize: 15, fontWeight: 700, cursor: sending || !hasAddress || heldCount ? "default" : "pointer", WebkitTapHighlightColor: "transparent" }}>
+                {sending ? "Processing payment…" : heldCount > 0 ? "Resolve on-hold items first" : !hasAddress ? "Add an address to continue" : `Confirm & pay €${charge.toFixed(2)} →`}
               </motion.button>
 
               <motion.button whileTap={{ scale: 0.97 }} onClick={() => setView("cart")}
@@ -1021,10 +1048,24 @@ export default function SupplyFlow({ session }) {
   const [showRequestList, setShowRequestList] = useState(false);
   const [sendingList, setSendingList] = useState(false);
   const [listError, setListError] = useState(null);
+  // Source_urls van cart-items die "on hold" staan wegens een prijswijziging.
+  const [flaggedUrls, setFlaggedUrls] = useState([]);
 
   useEffect(() => {
     localStorage.setItem("supplyflow_request_list", JSON.stringify(requestList));
   }, [requestList]);
+
+  // Bij openen van de winkelwagen: lees de price_alert-vlag voor de cart-items, zodat
+  // een door iemand anders getriggerde prijswijziging hier proactief "on hold" toont.
+  useEffect(() => {
+    if (!showRequestList) return;
+    const urls = [...new Set(requestList.map((it) => it.source_url).filter(Boolean))];
+    if (!urls.length) return;
+    supabase.from("products").select("source_url").in("source_url", urls).eq("price_alert", true)
+      .then(({ data }) => {
+        if (data?.length) setFlaggedUrls((prev) => [...new Set([...prev, ...data.map((d) => d.source_url)])]);
+      });
+  }, [showRequestList]);
 
   // Toon "How Flowva works" één keer automatisch bij de allereerste keer.
   useEffect(() => {
@@ -1046,6 +1087,20 @@ export default function SupplyFlow({ session }) {
     if (!requestList.length || sendingList) return false;
     setSendingList(true);
     setListError(null);
+    // Live prijscheck vóór afschrijven: items met een leverancier-prijswijziging worden
+    // geblokkeerd (en in de DB gevlagd), zodat de klant nooit te veel betaalt.
+    try {
+      const { data: chk } = await supabase.functions.invoke("check-cart-prices", {
+        body: { items: requestList.map((it) => ({ source_url: it.source_url, kleur: it.kleur })) },
+      });
+      if (chk?.anyChanged) {
+        const urls = (chk.items || []).filter((x) => x.changed).map((x) => x.source_url);
+        setFlaggedUrls((prev) => [...new Set([...prev, ...urls])]);
+        setListError("Some items had a supplier price change and are on hold. Remove them to continue — you haven't been charged.");
+        setSendingList(false);
+        return false;
+      }
+    } catch { /* check onbereikbaar → fail-open; pay_cart + post-pay refund vangen het af */ }
     const { data, error } = await supabase.rpc("pay_cart", { p_items: requestList });
     setSendingList(false);
     if (error) { setListError(error.message); return false; }
@@ -1159,8 +1214,13 @@ export default function SupplyFlow({ session }) {
   const qcOrder = orders.find(o => o.status === "qc_pending");
   const avatarUrl = session?.user?.user_metadata?.avatar_url || null;
 
+  // Cart-items die "on hold" staan wegens een prijswijziging (gededupliceerd op source_url).
+  const flaggedInCart = [...new Map(
+    requestList.filter((it) => it.source_url && flaggedUrls.includes(it.source_url)).map((it) => [it.source_url, it])
+  ).values()];
   // Meldingen afgeleid uit je orders: probleem, offerte klaar, agent reageerde, pakket bezorgd.
   const notifications = [
+    ...flaggedInCart.map((it) => ({ icon: "⏸️", text: `On hold: ${it.product_title} — the supplier's price changed`, cart: true })),
     ...orders.filter(o => o.problem_type).map(o => ({ icon: "⚠️", text: `Action needed: issue with ${o.product_title || o.product}`, order: o })),
     ...orders.filter(o => o.status === "quote_sent").map(o => ({ icon: "📋", text: `Quote received for ${o.product_title || o.product}`, order: o })),
     ...orders.filter(o => o.last_message_sender === "agent" && o.last_message_read === false).map(o => ({ icon: "💬", text: `Your agent replied (${o.product_title || o.product})`, order: o })),
@@ -1228,7 +1288,7 @@ export default function SupplyFlow({ session }) {
                     </div>
                   )}
                   {notifications.map((n, i) => (
-                    <div key={i} onClick={() => { setShowNotifs(false); setTab("orders"); setSelectedOrder(n.order); }}
+                    <div key={i} onClick={() => { setShowNotifs(false); if (n.cart) { setShowRequestList(true); } else { setTab("orders"); setSelectedOrder(n.order); } }}
                       style={{ display: "flex", alignItems: "center", gap: 10, padding: "11px 14px", borderBottom: i < notifications.length - 1 ? "1px solid #F0EEE8" : "none", cursor: "pointer" }}>
                       <span style={{ fontSize: 17 }}>{n.icon}</span>
                       <span style={{ fontSize: 12.5, color: "#333", lineHeight: 1.4, flex: 1 }}>{n.text}</span>
@@ -1704,7 +1764,8 @@ export default function SupplyFlow({ session }) {
             session={session}
             onEditAddress={() => { setShowRequestList(false); setTab("profile"); setShowEditProfile(true); }}
             onTopUp={() => { setShowRequestList(false); setTab("profile"); }}
-            onFinish={(goOrders) => { setRequestList([]); setShowRequestList(false); if (goOrders) { setTab("orders"); setSelectedOrder(null); } }}
+            onFinish={(goOrders) => { setRequestList([]); setFlaggedUrls([]); setShowRequestList(false); if (goOrders) { setTab("orders"); setSelectedOrder(null); } }}
+            flagged={new Set(flaggedUrls)}
           />
         )}
       </AnimatePresence>

@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { supabase } from "./supabase";
 import OrderRequest from "./OrderRequest";
+import Friends from "./Friends";
 import { WarehouseTab, TransitTab } from "./WarehouseAndHaul";
 import { motion, AnimatePresence } from "framer-motion";
 import { createPortal } from "react-dom";
@@ -1050,10 +1051,31 @@ export default function SupplyFlow({ session }) {
   const [listError, setListError] = useState(null);
   // Source_urls van cart-items die "on hold" staan wegens een prijswijziging.
   const [flaggedUrls, setFlaggedUrls] = useState([]);
+  // Flowva Friends: groep-sheet + actieve groep om "voor te shoppen".
+  const [showFriends, setShowFriends] = useState(false);
+  const [friendsJoinCode, setFriendsJoinCode] = useState(null);
+  const [activeGroup, setActiveGroup] = useState(() => {
+    try { return JSON.parse(localStorage.getItem("flowva_active_group") || "null"); } catch { return null; }
+  });
 
   useEffect(() => {
     localStorage.setItem("supplyflow_request_list", JSON.stringify(requestList));
   }, [requestList]);
+
+  // Flowva Friends: actieve groep onthouden + een ?join=CODE-link openen.
+  useEffect(() => {
+    try { localStorage.setItem("flowva_active_group", JSON.stringify(activeGroup)); } catch { /* ignore */ }
+  }, [activeGroup]);
+  useEffect(() => {
+    try {
+      const code = new URLSearchParams(window.location.search).get("join");
+      if (code) {
+        setFriendsJoinCode(code.toUpperCase());
+        setShowFriends(true);
+        window.history.replaceState({}, "", window.location.pathname);
+      }
+    } catch { /* ignore */ }
+  }, []);
 
   // Bij openen van de winkelwagen: lees de price_alert-vlag voor de cart-items, zodat
   // een door iemand anders getriggerde prijswijziging hier proactief "on hold" toont.
@@ -1681,6 +1703,15 @@ export default function SupplyFlow({ session }) {
             </div>
             <div style={{ color: "#C9C6C1", fontSize: 18 }}>→</div>
           </motion.div>
+          <motion.div whileTap={{ scale: 0.98 }} onClick={() => { setFriendsJoinCode(null); setShowFriends(true); }}
+            style={{ background: "#fff", border: "1px solid #E8E6E0", borderRadius: 16, padding: "15px 18px", marginBottom: 12, display: "flex", alignItems: "center", gap: 12, cursor: "pointer" }}>
+            <div style={{ width: 38, height: 38, borderRadius: 11, background: "#FFF0E7", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18, flexShrink: 0 }}>🦊</div>
+            <div style={{ flex: 1 }}>
+              <div style={{ fontSize: 14, fontWeight: 700, color: "#0F0E0C" }}>Flowva Friends</div>
+              <div style={{ fontSize: 12, color: "#A8A5A0" }}>Order together — cheaper shipping &amp; fees</div>
+            </div>
+            <div style={{ color: "#C9C6C1", fontSize: 18 }}>→</div>
+          </motion.div>
           <a href="/returns" style={{ textDecoration: "none", background: "#fff", border: "1px solid #E8E6E0", borderRadius: 16, padding: "15px 18px", marginBottom: 12, display: "flex", alignItems: "center", gap: 12 }}>
             <div style={{ width: 38, height: 38, borderRadius: 11, background: "#F3F1ED", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18, flexShrink: 0 }}>↩️</div>
             <div style={{ flex: 1 }}>
@@ -1723,13 +1754,27 @@ export default function SupplyFlow({ session }) {
             onClose={() => setSelectedProduct(null)}
             onSuccess={() => { setSuccessProduct(selectedProduct); setSelectedProduct(null); fetchOrders(); }}
             listCount={requestList.length}
-            onAddToList={(item) => { setRequestList(list => [...list, item]); setSelectedProduct(null); }} />
+            onAddToList={(item) => { setRequestList(list => [...list, item]); setSelectedProduct(null); }}
+            activeGroup={activeGroup} onActiveGroupGone={() => setActiveGroup(null)} />
         )}
       </AnimatePresence>
 
       {/* Zwevende aanvraaglijst-balk: morpht open naar de zwarte lijst-sheet
           (zelfde layoutId — het balkje IS de dichtgevouwen lijst) */}
       <AnimatePresence>
+        {showFriends && (
+          <Friends session={session} initialJoinCode={friendsJoinCode}
+            activeGroupId={activeGroup?.id}
+            onShopForGroup={(g) => setActiveGroup(g)}
+            onClose={() => { setShowFriends(false); setFriendsJoinCode(null); }} />
+        )}
+        {activeGroup && !selectedProduct && !showFriends && !showRequestList && (
+          <div style={{ position: "fixed", top: 64, left: "50%", transform: "translateX(-50%)", zIndex: 90, background: "#111111", color: "#fff", borderRadius: 999, padding: "7px 8px 7px 14px", display: "flex", alignItems: "center", gap: 10, fontSize: 12.5, fontWeight: 600, boxShadow: "0 4px 16px rgba(0,0,0,0.18)", maxWidth: "92%" }}>
+            <span style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>🦊 Shopping for <b style={{ color: "#FF5C00" }}>{activeGroup.name}</b></span>
+            <button onClick={() => setShowFriends(true)} style={{ background: "#FF5C00", color: "#fff", border: "none", borderRadius: 999, padding: "5px 11px", fontSize: 11.5, fontWeight: 700, cursor: "pointer", whiteSpace: "nowrap" }}>Open</button>
+            <button onClick={() => setActiveGroup(null)} aria-label="stop shopping for group" style={{ background: "transparent", border: "none", color: "#9C9893", fontSize: 14, cursor: "pointer", padding: "0 2px" }}>✕</button>
+          </div>
+        )}
         {requestList.length > 0 && !showRequestList && !selectedProduct && (
           <motion.div layoutId="request-list-morph" transition={springMorph}
             onClick={() => { setListError(null); setShowRequestList(true); }}

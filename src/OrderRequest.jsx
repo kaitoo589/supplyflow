@@ -2,10 +2,11 @@ import { useState } from "react";
 import { supabase } from "./supabase";
 import { motion, AnimatePresence } from "framer-motion";
 import { springMorph } from "./motion";
+import { ffAddItem } from "./ffApi";
 
 const spring = springMorph;
 
-export default function OrderRequest({ product, session, onClose, onSuccess, onAddToList, listCount = 0 }) {
+export default function OrderRequest({ product, session, onClose, onSuccess, onAddToList, listCount = 0, activeGroup = null, onActiveGroupGone }) {
   const [selectedVariants, setSelectedVariants] = useState({});
   const [aantal, setAantal] = useState(1);
   const [opmerking, setOpmerking] = useState("");
@@ -14,6 +15,7 @@ export default function OrderRequest({ product, session, onClose, onSuccess, onA
   const [direction, setDirection] = useState(0);
   const [missingVariants, setMissingVariants] = useState([]);
   const [showSizeGuide, setShowSizeGuide] = useState(false);
+  const [addedToGroup, setAddedToGroup] = useState(false);
 
   const productVariants = product.sizes?.length > 0 ? product.sizes : null;
 
@@ -83,6 +85,24 @@ export default function OrderRequest({ product, session, onClose, onSuccess, onA
     const item = buildItem();
     if (!item) return;
     onAddToList(item);
+  };
+
+  // Flowva Friends: voeg dit item toe aan de gedeelde mand van de actieve groep.
+  const handleAddToGroup = async () => {
+    if (!activeGroup) return;
+    const item = buildItem();
+    if (!item) return;
+    setLoading(true); setError(null);
+    const r = await ffAddItem(activeGroup.id, item);
+    setLoading(false);
+    if (!r.ok) {
+      setError(r.error || "Could not add to the group");
+      // Groep bestaat niet meer / geen lid / gesloten → stop met "voor deze groep shoppen".
+      if (/not a member|not found|closed|full/i.test(r.error || "")) onActiveGroupGone?.();
+      return;
+    }
+    setAddedToGroup(true);
+    setTimeout(() => setAddedToGroup(false), 1600);
   };
 
   const stagger = { animate: { transition: { staggerChildren: 0.06 } } };
@@ -328,6 +348,19 @@ export default function OrderRequest({ product, session, onClose, onSuccess, onA
               </span>
             </motion.div>
 
+            {activeGroup && (
+              <>
+                <motion.div variants={fadeUp} style={{ display: "flex", alignItems: "center", gap: 6, background: "rgba(255,92,0,0.1)", border: "1px solid rgba(255,92,0,0.3)", borderRadius: 12, padding: "10px 13px", marginBottom: 10, fontSize: 12.5, color: "#B45309" }}>
+                  🦊 Shopping for <b style={{ marginLeft: 2 }}>{activeGroup.name}</b>
+                </motion.div>
+                <motion.button variants={fadeUp} whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.96 }}
+                  onClick={handleAddToGroup} disabled={loading}
+                  style={{ width: "100%", marginBottom: 12, background: addedToGroup ? "#16A34A" : "#FF5C00", color: "#fff", border: "none", borderRadius: 14, padding: "16px", fontSize: 15, fontWeight: 700, cursor: loading ? "default" : "pointer" }}>
+                  {addedToGroup ? `✓ Added to ${activeGroup.name}` : loading ? "Adding…" : `+ Add to ${activeGroup.name}`}
+                </motion.button>
+                <div style={{ textAlign: "center", fontSize: 11, color: "#A8A5A0", marginBottom: 10 }}>— or shop solo —</div>
+              </>
+            )}
             <motion.button
               variants={fadeUp}
               whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.96 }}

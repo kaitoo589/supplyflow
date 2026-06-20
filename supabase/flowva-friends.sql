@@ -27,8 +27,10 @@ create table if not exists public.flowva_group_members (
   id          uuid primary key default gen_random_uuid(),
   group_id    uuid not null references public.flowva_groups(id) on delete cascade,
   user_id     uuid not null references auth.users(id),
-  role        text not null default 'member' check (role in ('admin','member')),
-  ready       boolean not null default false,                -- Fase 3: ready-up
+  role         text not null default 'member' check (role in ('admin','member')),
+  display_name text,                                          -- gedenormaliseerd voor de lobby
+  avatar_url   text,
+  ready        boolean not null default false,                -- Fase 3: ready-up
   held_amount numeric not null default 0,                    -- Fase 3: vastgehouden bedrag
   joined_at   timestamptz not null default now(),
   unique (group_id, user_id)
@@ -52,6 +54,10 @@ create table if not exists public.flowva_group_items (
 create index if not exists ff_members_group_idx on public.flowva_group_members(group_id);
 create index if not exists ff_members_user_idx  on public.flowva_group_members(user_id);
 create index if not exists ff_items_group_idx   on public.flowva_group_items(group_id);
+
+-- Naam/avatar gedenormaliseerd voor de lobby (idempotent als de tabel al bestond).
+alter table public.flowva_group_members add column if not exists display_name text;
+alter table public.flowva_group_members add column if not exists avatar_url   text;
 
 -- ── Lidmaatschap-helper (SECURITY DEFINER → voorkomt RLS-recursie) ───────────
 create or replace function public.ff_is_member(p_group uuid)
@@ -87,7 +93,7 @@ create policy ff_items_read   on public.flowva_group_items
 create or replace function public.ff_create_group(
   p_name text default 'Squad', p_max_size int default 5, p_join_mode text default 'open')
 returns json language plpgsql security definer set search_path = public as $$
-declare v_uid uuid := auth.uid(); v_id uuid := gen_random_uuid(); v_code text; v_size int;
+declare v_uid uuid := auth.uid(); v_id uuid := gen_random_uuid(); v_code text; v_size int; v_meta jsonb; v_name text;
 begin
   if v_uid is null then return json_build_object('ok', false, 'error', 'Not logged in'); end if;
   v_size := least(greatest(coalesce(p_max_size, 5), 2), 7);
@@ -99,7 +105,10 @@ begin
   values (v_id, coalesce(nullif(trim(p_name), ''), 'Squad'), v_uid, v_uid, v_size,
           case when p_join_mode in ('open', 'approve') then p_join_mode else 'open' end,
           'gathering', v_code, now() + interval '48 hours');
-  insert into flowva_group_members(group_id, user_id, role) values (v_id, v_uid, 'admin');
+  select raw_user_meta_data into v_meta from auth.users where id = v_uid;
+  v_name := nullif(trim(coalesce(v_meta->>'voornaam', '') || ' ' || coalesce(v_meta->>'achternaam', '')), '');
+  insert into flowva_group_members(group_id, user_id, role, display_name, avatar_url)
+  values (v_id, v_uid, 'admin', v_name, v_meta->>'avatar_url');
   return json_build_object('ok', true, 'group_id', v_id, 'invite_code', v_code);
 end; $$;
 
@@ -107,7 +116,7 @@ end; $$;
 -- Roster wijzigt → ready van iedereen reset (fee-tier verandert).
 create or replace function public.ff_join_group(p_invite_code text)
 returns json language plpgsql security definer set search_path = public as $$
-declare v_uid uuid := auth.uid(); v_g flowva_groups%rowtype; v_count int;
+declare v_uid uuid := auth.uid(); v_g flowva_groups%rowtype; v_count int; v_meta jsonb; v_name text;
 begin
   if v_uid is null then return json_build_object('ok', false, 'error', 'Not logged in'); end if;
   select * into v_g from flowva_groups where invite_code = upper(trim(p_invite_code)) for update;
@@ -118,7 +127,10 @@ begin
   end if;
   select count(*) into v_count from flowva_group_members where group_id = v_g.id;
   if v_count >= v_g.max_size then return json_build_object('ok', false, 'error', 'This group is full'); end if;
-  insert into flowva_group_members(group_id, user_id, role) values (v_g.id, v_uid, 'member');
+  select raw_user_meta_data into v_meta from auth.users where id = v_uid;
+  v_name := nullif(trim(coalesce(v_meta->>'voornaam', '') || ' ' || coalesce(v_meta->>'achternaam', '')), '');
+  insert into flowva_group_members(group_id, user_id, role, display_name, avatar_url)
+  values (v_g.id, v_uid, 'member', v_name, v_meta->>'avatar_url');
   update flowva_group_members set ready = false where group_id = v_g.id;  -- roster-reset
   update flowva_groups set updated_at = now() where id = v_g.id;
   return json_build_object('ok', true, 'group_id', v_g.id);

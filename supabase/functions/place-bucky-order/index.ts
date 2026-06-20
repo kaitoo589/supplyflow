@@ -114,8 +114,10 @@ Deno.serve(async (req) => {
   const price = sku.priceYuan;
   if (price == null) return await fail(order.id, "Geen ¥-prijs bekend voor deze variant.");
 
-  // Klantadres uit user_metadata (auth.users).
-  const { data: userRes } = await admin.auth.admin.getUserById(order.user_id);
+  // Klantadres uit user_metadata (auth.users). Bij een Flowva Friends-groeps-order
+  // gaat het pakket naar de HOST (host_user_id), niet naar het individuele lid.
+  const addressUserId = order.host_user_id || order.user_id;
+  const { data: userRes } = await admin.auth.admin.getUserById(addressUserId);
   const m = (userRes?.user?.user_metadata ?? {}) as Record<string, string>;
   const land = m.land || "Netherlands";
 

@@ -1,10 +1,13 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import {
   ffMyGroups, ffPreview, ffCreateGroup, ffJoinGroup, ffLeaveGroup,
-  ffKickMember, ffSetHost, ffUpdateSettings, ffRemoveItem, ffFetchGroup,
+  ffKickMember, ffSetHost, ffUpdateSettings, ffAddItem, ffRemoveItem, ffFetchGroup,
   ffSetReady, ffUnready, checkGroupPrices, estimateMemberFee,
+  ffPostMessage, ffShareItem, ffReact, ffNudge, ffFetchMessages, subscribeGroup, groupSavings,
   inviteLink, whatsappShare,
 } from "./ffApi";
+
+const REACTIONS = ["❤️", "🔥", "😂", "👍"];
 
 const AV_COLORS = ["#FF5C00", "#378ADD", "#16A34A", "#D4537E", "#7F77DD", "#E0A500", "#1D9E75"];
 
@@ -28,6 +31,12 @@ function Avatar({ name, url, size = 38, seed }) {
 function memberLabel(m, self) {
   if (self) return "You";
   return m.display_name || `Friend ${String(m.user_id || "").slice(0, 4).toUpperCase()}`;
+}
+// Klein "+"-knopje dat de emoji-keuzes uitklapt om op een bericht te reageren.
+function ReactPicker({ onPick }) {
+  const [open, setOpen] = useState(false);
+  if (!open) return <button onClick={() => setOpen(true)} style={{ background: "#1E1D1A", border: "none", borderRadius: 10, padding: "1px 7px", fontSize: 11, cursor: "pointer", color: "#9C9893" }}>＋</button>;
+  return <span style={{ display: "flex", gap: 2 }}>{REACTIONS.map((e) => <button key={e} onClick={() => { onPick(e); setOpen(false); }} style={{ background: "#1E1D1A", border: "none", borderRadius: 10, padding: "1px 5px", fontSize: 12, cursor: "pointer" }}>{e}</button>)}</span>;
 }
 
 const sheet = { position: "fixed", bottom: 0, left: 0, right: 0, margin: "0 auto", width: "100%", maxWidth: 430, boxSizing: "border-box", background: "#111111", borderRadius: "24px 24px 0 0", zIndex: 401, maxHeight: "90vh", overflowY: "auto", color: "#fff" };
@@ -60,6 +69,10 @@ export default function Friends({ session, onClose, initialJoinCode, onShopForGr
   // ready-up (Fase 3)
   const [readyBusy, setReadyBusy] = useState(false);
   const [flaggedUrls, setFlaggedUrls] = useState([]);
+  // social (Fase 4)
+  const [messages, setMessages] = useState([]);
+  const [chatInput, setChatInput] = useState("");
+  const [nudgedAt, setNudgedAt] = useState({});   // userId → epoch ms (cooldown)
 
   const loadGroups = useCallback(async () => {
     setLoading(true);
@@ -70,15 +83,20 @@ export default function Friends({ session, onClose, initialJoinCode, onShopForGr
   }, []);
 
   const openIdRef = useRef(null);
+  const loadMessages = useCallback(async (id) => {
+    const msgs = await ffFetchMessages(id);
+    if (openIdRef.current === id) setMessages(msgs);
+  }, []);
   const openLobby = useCallback(async (id) => {
     openIdRef.current = id;
-    setOpenId(id); setView("lobby"); setLobby(null); setErr(""); setFlaggedUrls([]);
+    setOpenId(id); setView("lobby"); setLobby(null); setErr(""); setFlaggedUrls([]); setMessages([]);
     const r = await ffFetchGroup(id);
     if (openIdRef.current !== id) return;            // navigatie veranderde tijdens fetch
     if (r.error) { setErr(r.error); return; }
     setLobby(r);
     setEditName(r.group?.name || ""); setEditMax(r.group?.max_size || 5);
-  }, []);
+    loadMessages(id);
+  }, [loadMessages]);
   const refreshLobby = useCallback(async () => {
     const id = openId;
     if (!id) return;
@@ -92,15 +110,25 @@ export default function Friends({ session, onClose, initialJoinCode, onShopForGr
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Lichte polling in de lobby zodat je live ziet wanneer een vriend ready wordt of
-  // de order plaatst (Fase 4 vervangt dit door Supabase realtime). Stopt zodra de groep
-  // geplaatst is (niets verandert meer) en slaat een tick over tijdens een eigen actie.
+  // De busy-vlaggen lezen we via refs, zodat het realtime-kanaal NIET bij elke actie
+  // afbreekt+heropent (dat liet events vallen en kon realtime stilleggen).
+  const readyBusyRef = useRef(false); const busyRef = useRef(false);
+  useEffect(() => { readyBusyRef.current = readyBusy; }, [readyBusy]);
+  useEffect(() => { busyRef.current = busy; }, [busy]);
+
+  // Realtime: live updates van leden/items/status/chat (Fase 4). Eén kanaal per groep;
+  // bij elke wijziging halen we de groep (en bij een chat-event de berichten) opnieuw op.
+  // Een trage fallback-poll (15s) vangt het zeldzame geval op dat realtime wegvalt.
   const lobbyStatus = lobby?.group?.status;
   useEffect(() => {
-    if (view !== "lobby" || !openId || (lobbyStatus && lobbyStatus !== "gathering")) return;
-    const t = setInterval(() => { if (!readyBusy && !busy) refreshLobby(); }, 4000);
-    return () => clearInterval(t);
-  }, [view, openId, lobbyStatus, readyBusy, busy, refreshLobby]);
+    if (view !== "lobby" || !openId) return;
+    const unsub = subscribeGroup(openId, (table) => {
+      if (table === "flowva_group_messages") loadMessages(openId);
+      else refreshLobby();
+    });
+    const t = setInterval(() => { if (!readyBusyRef.current && !busyRef.current) refreshLobby(); }, 15000);
+    return () => { unsub(); clearInterval(t); };
+  }, [view, openId, refreshLobby, loadMessages]);
 
   // Groep niet meer in 'gathering' (geplaatst/geannuleerd) → de "Shopping for X"-pil
   // mag weg; je kunt niet meer voor deze groep shoppen.
@@ -183,6 +211,40 @@ export default function Friends({ session, onClose, initialJoinCode, onShopForGr
     } finally {
       setReadyBusy(false);
     }
+  }
+
+  // ── Social (Fase 4) ──────────────────────────────────────────────────────
+  async function doNudge(targetUserId) {
+    setNudgedAt((p) => ({ ...p, [targetUserId]: Date.now() }));   // optimistische cooldown
+    const r = await ffNudge(lobby.group.id, targetUserId);
+    if (!r.ok) { setErr(r.error || "Could not nudge"); setNudgedAt((p) => ({ ...p, [targetUserId]: 0 })); }
+  }
+  async function doPostMessage() {
+    const body = chatInput.trim();
+    if (!body || !lobby?.group) return;
+    setChatInput("");
+    const r = await ffPostMessage(lobby.group.id, body);
+    if (!r.ok) { setErr(r.error || "Could not send"); setChatInput((cur) => cur ? cur : body); return; }
+    loadMessages(lobby.group.id);
+  }
+  async function doShareItem(itemId) {
+    if (!lobby?.group) return;
+    const r = await ffShareItem(lobby.group.id, itemId);
+    if (!r.ok) setErr(r.error || "Could not share");
+    else loadMessages(lobby.group.id);
+  }
+  async function doReact(messageId, emoji) {
+    const r = await ffReact(messageId, emoji);
+    if (r.ok) loadMessages(lobby.group.id);
+  }
+  // Een gedeeld item overnemen in je eigen mand.
+  async function doAddShared(it) {
+    if (!lobby?.group || !it) return;
+    const r = await ffAddItem(lobby.group.id, {
+      source_url: it.source_url, product_title: it.product_title, platform: it.platform,
+      price: it.price, qty: 1, kleur: it.kleur, variant_image: it.variant_image,
+    });
+    if (!r.ok) setErr(r.error || "Could not add"); else refreshLobby();
   }
 
   const copyLink = (c) => { try { navigator.clipboard?.writeText(inviteLink(c)); } catch { /* ignore */ } };
@@ -287,6 +349,7 @@ export default function Friends({ session, onClose, initialJoinCode, onShopForGr
     const priceUnknown = myItems.some((it) => it.price == null || isNaN(Number(it.price)));  // prijs nog niet bekend → niet laten betalen
     const isSolo = members.length === 1;
     const someFlagged = myItems.some((it) => flaggedUrls.includes(it.source_url));
+    const savings = groupSavings(members, lobby?.items);   // geschatte besparing samen vs. solo
     body = (
       <>
         {header(g ? g.name : "Group", () => { setErr(""); openIdRef.current = null; setView("list"); loadGroups(); })}
@@ -312,6 +375,7 @@ export default function Friends({ session, onClose, initialJoinCode, onShopForGr
             {members.map((m) => {
               const self = m.user_id === myUid;
               const mCount = (itemsByOwner[m.user_id] || []).length;
+              const nudgeCooled = Date.now() - (nudgedAt[m.user_id] || 0) < 60000;
               return (
                 <div key={m.id} style={{ display: "flex", alignItems: "center", gap: 11, padding: "8px 0" }}>
                   <Avatar name={m.display_name} url={m.avatar_url} seed={m.user_id} />
@@ -329,6 +393,12 @@ export default function Friends({ session, onClose, initialJoinCode, onShopForGr
                       : (!isPlaced && mCount === 0)
                         ? <span style={{ background: "rgba(224,165,0,0.14)", color: "#E0A500", borderRadius: 8, padding: "4px 8px", fontSize: 11, fontWeight: 700 }}>needs items</span>
                         : <span style={{ color: "#6b6862", fontSize: 11 }}>not ready</span>}
+                    {!self && !isPlaced && !m.ready && mCount > 0 && (
+                      <button disabled={nudgeCooled} onClick={() => doNudge(m.user_id)}
+                        style={{ background: nudgeCooled ? "#1E1D1A" : "rgba(255,92,0,0.14)", border: "none", color: nudgeCooled ? "#6b6862" : "#FF5C00", borderRadius: 8, padding: "5px 9px", fontSize: 11, fontWeight: 700, cursor: nudgeCooled ? "default" : "pointer" }}>
+                        {nudgeCooled ? "nudged ✓" : "👋 nudge"}
+                      </button>
+                    )}
                     {isAdmin && !self && !isPlaced && (
                       <>
                         {g.host_id !== m.user_id && <button onClick={async () => { const r = await ffSetHost(g.id, m.user_id); if (r && !r.ok) setErr(r.error); refreshLobby(); }} style={{ background: "#1E1D1A", border: "none", color: "#9C9893", borderRadius: 8, padding: "5px 9px", fontSize: 11, cursor: "pointer" }}>host</button>}
@@ -339,6 +409,16 @@ export default function Friends({ session, onClose, initialJoinCode, onShopForGr
                 </div>
               );
             })}
+
+            {/* savings counter */}
+            {members.length >= 2 && savings > 0 && (
+              <div style={{ marginTop: 12, background: "linear-gradient(180deg,#26211c,#1A1917)", border: "1px solid rgba(255,92,0,0.2)", borderRadius: 14, padding: "12px 14px", display: "flex", alignItems: "center", gap: 10 }}>
+                <span style={{ fontSize: 22 }}>💸</span>
+                <div style={{ fontSize: 12.5, color: "#C9C6C1", lineHeight: 1.45 }}>
+                  Your squad is saving about <b style={{ color: "#FF8A3D" }}>€{savings.toFixed(2)}</b> together vs. ordering solo — it grows as more friends join.
+                </div>
+              </div>
+            )}
 
             {/* shared cart */}
             <div style={{ fontSize: 12, color: "#9C9893", margin: "16px 2px 8px" }}>Shared cart</div>
@@ -366,6 +446,7 @@ export default function Friends({ session, onClose, initialJoinCode, onShopForGr
                             {flaggedUrls.includes(it.source_url) && <span style={{ color: "#F0997B", marginLeft: 6 }}>· on hold</span>}
                           </div>
                         </div>
+                        {self && !isPlaced && <button onClick={() => doShareItem(it.id)} title="Share to chat" style={{ background: "none", border: "none", color: "#777", fontSize: 14, cursor: "pointer" }}>↗</button>}
                         {self && !isPlaced && <button onClick={async () => { const r = await ffRemoveItem(it.id); if (r && !r.ok) setErr(r.error); refreshLobby(); }} style={{ background: "none", border: "none", color: "#777", fontSize: 14, cursor: "pointer" }}>✕</button>}
                       </div>
                     ))}
@@ -450,6 +531,51 @@ export default function Friends({ session, onClose, initialJoinCode, onShopForGr
                 <button style={{ ...ghostBtn, marginTop: 8, color: "#E24B4A", borderColor: "rgba(226,75,74,0.3)" }} disabled={busy} onClick={doLeave}>Leave group</button>
               </>
             )}
+
+            {/* squad chat */}
+            <div style={{ fontSize: 12, color: "#9C9893", margin: "22px 2px 8px" }}>Squad chat</div>
+            <div style={{ background: "#161513", borderRadius: 14, padding: "10px 12px" }}>
+              <div style={{ maxHeight: 240, overflowY: "auto", display: "flex", flexDirection: "column", gap: 9, marginBottom: 9 }}>
+                {messages.length === 0 ? (
+                  <div style={{ textAlign: "center", color: "#6b6862", fontSize: 12, padding: "12px 0" }}>No messages yet — say hi 👋</div>
+                ) : messages.map((msg) => {
+                  const mine = msg.user_id === myUid;
+                  const author = members.find((m) => m.user_id === msg.user_id);
+                  const name = msg.user_id ? (author ? memberLabel(author, mine) : "Friend") : "Flowva";
+                  const sharedItem = msg.kind === "share" ? (lobby.items || []).find((it) => it.id === msg.item_id) : null;
+                  return (
+                    <div key={msg.id} style={{ display: "flex", flexDirection: "column", alignItems: mine ? "flex-end" : "flex-start", gap: 3 }}>
+                      <div style={{ fontSize: 10, color: "#6b6862", padding: "0 4px" }}>{name}</div>
+                      {msg.kind === "share" && sharedItem ? (
+                        <div style={{ background: "#221d18", border: "1px solid #2c2b29", borderRadius: 12, padding: 8, maxWidth: "88%", display: "flex", gap: 9, alignItems: "center" }}>
+                          <div style={{ width: 40, height: 40, borderRadius: 8, background: "#26211c", overflow: "hidden", flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                            {sharedItem.variant_image?.startsWith("http") ? <img src={sharedItem.variant_image} referrerPolicy="no-referrer" alt="" style={{ width: "100%", height: "100%", objectFit: "contain" }} /> : <span style={{ fontSize: 17 }}>📦</span>}
+                          </div>
+                          <div style={{ minWidth: 0 }}>
+                            <div style={{ fontSize: 12, color: "#fff", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: 160 }}>{sharedItem.product_title}</div>
+                            <div style={{ fontSize: 10.5, color: "#9C9893" }}>{sharedItem.price != null ? `€${Number(sharedItem.price).toFixed(2)}` : "shared an item"}</div>
+                            {!isPlaced && sharedItem.owner_id !== myUid && <button onClick={() => doAddShared(sharedItem)} style={{ marginTop: 5, background: "rgba(255,92,0,0.16)", border: "none", color: "#FF5C00", borderRadius: 8, padding: "4px 9px", fontSize: 11, fontWeight: 700, cursor: "pointer" }}>+ Add to my cart</button>}
+                          </div>
+                        </div>
+                      ) : (
+                        <div style={{ background: mine ? "#FF5C00" : "#222", color: mine ? "#fff" : "#eee", borderRadius: 12, padding: "7px 11px", fontSize: 13, maxWidth: "80%", wordBreak: "break-word" }}>{msg.body}</div>
+                      )}
+                      <div style={{ display: "flex", gap: 4, alignItems: "center", flexWrap: "wrap" }}>
+                        {Object.entries(msg.reactions || {}).map(([emoji, uids]) => (
+                          <button key={emoji} onClick={() => doReact(msg.id, emoji)}
+                            style={{ background: (uids || []).includes(myUid) ? "rgba(255,92,0,0.2)" : "#1E1D1A", border: "none", borderRadius: 10, padding: "1px 6px", fontSize: 11, cursor: "pointer", color: "#ddd" }}>{emoji} {(uids || []).length}</button>
+                        ))}
+                        <ReactPicker onPick={(e) => doReact(msg.id, e)} />
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+              <div style={{ display: "flex", gap: 6 }}>
+                <input style={{ ...input, padding: "10px 12px" }} value={chatInput} onChange={(e) => setChatInput(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") doPostMessage(); }} placeholder="Message your squad…" maxLength={500} />
+                <button onClick={doPostMessage} style={{ background: "#FF5C00", border: "none", color: "#fff", borderRadius: 12, padding: "0 16px", fontSize: 13, fontWeight: 700, cursor: "pointer" }}>Send</button>
+              </div>
+            </div>
           </div>
         )}
       </>

@@ -1057,6 +1057,7 @@ export default function SupplyFlow({ session }) {
   const [activeGroup, setActiveGroup] = useState(() => {
     try { return JSON.parse(localStorage.getItem("flowva_active_group") || "null"); } catch { return null; }
   });
+  const [groupToast, setGroupToast] = useState(null);   // {kind,name} als de actieve groep van status wisselt
 
   useEffect(() => {
     localStorage.setItem("supplyflow_request_list", JSON.stringify(requestList));
@@ -1066,6 +1067,27 @@ export default function SupplyFlow({ session }) {
   useEffect(() => {
     try { localStorage.setItem("flowva_active_group", JSON.stringify(activeGroup)); } catch { /* ignore */ }
   }, [activeGroup]);
+
+  // App-niveau: volg de actieve groep ook met de Friends-sheet dicht, zodat je merkt
+  // dat de order geplaatst is (of de groep verviel) — ook als je aan het shoppen bent.
+  useEffect(() => {
+    const gid = activeGroup?.id;
+    const gname = activeGroup?.name;
+    if (!gid) return;
+    const channel = supabase.channel(`ff-active-${gid}`)
+      .on("postgres_changes", { event: "UPDATE", schema: "public", table: "flowva_groups", filter: `id=eq.${gid}` },
+        (payload) => {
+          const st = payload.new?.status;
+          if (st && st !== "gathering") { setActiveGroup(null); setGroupToast({ kind: st, name: payload.new?.name || gname }); }
+        })
+      .subscribe();
+    return () => supabase.removeChannel(channel);
+  }, [activeGroup?.id, activeGroup?.name]);
+  useEffect(() => {
+    if (!groupToast) return;
+    const t = setTimeout(() => setGroupToast(null), 8000);
+    return () => clearTimeout(t);
+  }, [groupToast]);
   useEffect(() => {
     try {
       const code = new URLSearchParams(window.location.search).get("join");
@@ -1767,6 +1789,18 @@ export default function SupplyFlow({ session }) {
             activeGroupId={activeGroup?.id}
             onShopForGroup={(g) => setActiveGroup(g)}
             onClose={() => { setShowFriends(false); setFriendsJoinCode(null); }} />
+        )}
+        {groupToast && (
+          <div onClick={() => { setGroupToast(null); setShowFriends(true); }}
+            style={{ position: "fixed", top: 12, left: "50%", transform: "translateX(-50%)", zIndex: 350, width: "calc(100% - 24px)", maxWidth: 406, boxSizing: "border-box", background: "#0F0E0C", border: `1px solid ${groupToast.kind === "placed" ? "rgba(52,209,123,0.35)" : "rgba(226,75,74,0.35)"}`, borderRadius: 14, padding: "12px 14px", boxShadow: "0 12px 40px rgba(0,0,0,0.45)", cursor: "pointer", display: "flex", alignItems: "center", gap: 10 }}>
+            <span style={{ fontSize: 22 }}>{groupToast.kind === "placed" ? "🎉" : "↩️"}</span>
+            <div style={{ flex: 1, fontSize: 12.5, color: "#fff", lineHeight: 1.4 }}>
+              {groupToast.kind === "placed"
+                ? <>Your group <b>{groupToast.name || "order"}</b> is placed — everyone's in! Tap to view.</>
+                : <>Your group <b>{groupToast.name || ""}</b> closed. Tap for details.</>}
+            </div>
+            <button onClick={(e) => { e.stopPropagation(); setGroupToast(null); }} aria-label="dismiss" style={{ background: "transparent", border: "none", color: "#9C9893", fontSize: 14, cursor: "pointer" }}>✕</button>
+          </div>
         )}
         {activeGroup && !selectedProduct && !showFriends && !showRequestList && (
           <div style={{ position: "fixed", top: 64, left: "50%", transform: "translateX(-50%)", zIndex: 90, background: "#111111", color: "#fff", borderRadius: 999, padding: "7px 8px 7px 14px", display: "flex", alignItems: "center", gap: 10, fontSize: 12.5, fontWeight: 600, boxShadow: "0 4px 16px rgba(0,0,0,0.18)", maxWidth: "92%" }}>

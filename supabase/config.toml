@@ -56,3 +56,9 @@ entrypoint = "./functions/withdrawal-request/index.ts"
 enabled = true
 verify_jwt = false
 entrypoint = "./functions/check-cart-prices/index.ts"
+
+[functions.ff-nudge]
+enabled = true
+verify_jwt = false
+import_map = "./functions/ff-nudge/deno.json"
+entrypoint = "./functions/ff-nudge/index.ts"

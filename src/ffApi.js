@@ -50,6 +50,57 @@ export function estimateMemberFee(size, total) {
   return Math.max(Math.round(t * pct * 100) / 100, min);
 }
 
+// ── Fase 4 — social/realtime ────────────────────────────────────────────────
+export const ffPostMessage = (id, body) => rpc("ff_post_message", { p_group_id: id, p_body: body });
+export const ffShareItem   = (id, itemId) => rpc("ff_share_item", { p_group_id: id, p_item_id: itemId });
+export const ffReact       = (msgId, emoji) => rpc("ff_react", { p_message_id: msgId, p_emoji: emoji });
+
+export async function ffNudge(groupId, targetUserId) {
+  try {
+    const { data, error } = await supabase.functions.invoke("ff-nudge", { body: { groupId, targetUserId } });
+    if (error) return { ok: false, error: error.message };
+    return data || { ok: false, error: "No response" };
+  } catch (e) { return { ok: false, error: e?.message || "Nudge failed" }; }
+}
+
+export async function ffFetchMessages(groupId) {
+  const { data } = await supabase
+    .from("flowva_group_messages").select("*").eq("group_id", groupId).order("created_at");
+  return data || [];
+}
+
+// Eén realtime-kanaal dat álle FF-tabellen voor deze groep volgt → cb(table) bij wijziging.
+export function subscribeGroup(groupId, cb) {
+  const ch = supabase.channel(`ff-group-${groupId}`);
+  ["flowva_groups", "flowva_group_members", "flowva_group_items", "flowva_group_messages"].forEach((table) => {
+    const filter = table === "flowva_groups" ? `id=eq.${groupId}` : `group_id=eq.${groupId}`;
+    ch.on("postgres_changes", { event: "*", schema: "public", table, filter }, () => cb(table));
+  });
+  ch.subscribe();
+  return () => { try { supabase.removeChannel(ch); } catch { /* ignore */ } };
+}
+
+// Geschatte besparing van samen bestellen vs. ieder solo (indicatief/marketing).
+// Fee: solo 8%/€5 vs groeps-tier per persoon. Verzending: solo betaalt ieder een eigen
+// first-weight-blok (~€9); samen deel je er één → ruwe schat (N-1)×€9.
+export function groupSavings(members, items) {
+  const SHIP_FIRST_EUR = 9;
+  const byOwner = {};
+  (items || []).forEach((it) => {
+    byOwner[it.owner_id] = (byOwner[it.owner_id] || 0) + (Number(it.price) || 0) * Math.max(Number(it.qty) || 1, 1);
+  });
+  const n = (members || []).length;
+  let feeSaved = 0;
+  (members || []).forEach((m) => {
+    const t = byOwner[m.user_id] || 0;
+    if (t > 0) feeSaved += Math.max(estimateMemberFee(1, t) - estimateMemberFee(n, t), 0);
+  });
+  // Alleen leden die ÉCHT items hebben besparen verzending (een leeg lid verstuurt niets).
+  const ownersWithItems = Object.keys(byOwner).filter((k) => byOwner[k] > 0).length;
+  const shipSaved = Math.max(ownersWithItems - 1, 0) * SHIP_FIRST_EUR;
+  return Math.round((feeSaved + shipSaved) * 100) / 100;
+}
+
 // Volledige groep ophalen: groep + leden + gedeelde mand (RLS staat lezen toe voor leden).
 export async function ffFetchGroup(groupId) {
   const [g, members, items] = await Promise.all([

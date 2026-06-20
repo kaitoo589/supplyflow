@@ -51,8 +51,3 @@ entrypoint = "./functions/haul-shipping/index.ts"
 enabled = true
 verify_jwt = false
 entrypoint = "./functions/withdrawal-request/index.ts"
-
-[functions.extract-size-chart]
-enabled = true
-verify_jwt = false
-entrypoint = "./functions/extract-size-chart/index.ts"

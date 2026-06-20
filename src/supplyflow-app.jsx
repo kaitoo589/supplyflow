@@ -21,7 +21,7 @@ const pageTransition = {
   transition: { type: "spring", stiffness: 320, damping: 32, mass: 0.8 },
 };
 
-import { topCategories, clothesCategories } from "./categories";
+// Categorieën + subcategorieën worden nu dynamisch uit de producten afgeleid.
 
 const statusConfig = {
   // requested/quote_sent bestaan niet meer in de flow (direct kopen) — blijven
@@ -1172,13 +1172,14 @@ export default function SupplyFlow({ session }) {
   // Alleen categorie-chips tonen waar echt producten in zitten — lege
   // categorieën blijven verborgen tot de admin er iets aan toevoegt.
   const presentCats = new Set(products.map(p => p.category).filter(Boolean));
-  const visibleCategories = topCategories.filter(c => c === "All" || presentCats.has(c));
-  const presentSubs = new Set(products.filter(p => p.category === "Clothes").map(p => p.subcategory).filter(Boolean));
+  const visibleCategories = ["All", ...[...presentCats].sort()];
+  // Subcategorieën leiden we per categorie af uit de producten zelf — zo werkt
+  // het voor élke (zelf toegevoegde) categorie, niet alleen Clothes.
+  const subsForCategory = (cat) => [...new Set(products.filter(p => p.category === cat).map(p => p.subcategory).filter(Boolean))];
   const visibleProducts = products.filter(p => {
     const matchCat =
       activeCategory === "All" ? true :
-      activeCategory === "Clothes" ? (p.category === "Clothes" && (!activeSub || p.subcategory === activeSub)) :
-      p.category === activeCategory;
+      (p.category === activeCategory && (!activeSub || p.subcategory === activeSub));
     const q = search.trim().toLowerCase();
     const matchSearch = !q || (p.title || "").toLowerCase().includes(q);
     return matchCat && matchSearch;
@@ -1277,12 +1278,13 @@ export default function SupplyFlow({ session }) {
           <div style={{ display: "flex", gap: 8, overflowX: "auto", marginBottom: 18, paddingBottom: 4 }}>
             {visibleCategories.map((c) => {
               const active = activeCategory === c;
-              const label = c === "Clothes" && activeSub ? `Clothes · ${activeSub}` : c;
+              const hasSubs = c !== "All" && subsForCategory(c).length > 0;
+              const label = c === activeCategory && activeSub ? `${c} · ${activeSub}` : c;
               return (
                 <motion.div key={c} layout whileTap={{ scale: 0.92 }} transition={springSnappy}
                   onClick={() => {
-                    if (c === "Clothes") { setActiveCategory("Clothes"); setShowClothesPicker(true); }
-                    else { setActiveCategory(c); setActiveSub(null); }
+                    setActiveCategory(c); setActiveSub(null);
+                    if (hasSubs) setShowClothesPicker(true);
                   }}
                   style={{ position: "relative", display: "flex", alignItems: "center", gap: 5, padding: "8px 15px", borderRadius: 20, background: active ? "transparent" : "#fff", color: active ? "#fff" : "#555", fontSize: 13, fontWeight: active ? 600 : 500, border: "1px solid " + (active ? "transparent" : "#ECEAE5"), whiteSpace: "nowrap", cursor: "pointer", WebkitTapHighlightColor: "transparent" }}>
                   {/* Glijdend pilletje achter de actieve chip — zelfde patroon als de bottom-nav */}
@@ -1291,7 +1293,7 @@ export default function SupplyFlow({ session }) {
                       style={{ position: "absolute", inset: 0, background: "#111111", borderRadius: 20, zIndex: 0 }} />
                   )}
                   <span style={{ position: "relative", zIndex: 1, display: "flex", alignItems: "center", gap: 5 }}>
-                    {label}{c === "Clothes" && <span style={{ fontSize: 9, opacity: 0.7 }}>▾</span>}
+                    {label}{hasSubs && <span style={{ fontSize: 9, opacity: 0.7 }}>▾</span>}
                   </span>
                 </motion.div>
               );
@@ -1858,7 +1860,8 @@ export default function SupplyFlow({ session }) {
               </div>
               {/* Alleen subcategorieën met producten — lege blijven verborgen */}
               {(() => {
-                const subs = clothesCategories.flatMap(g => g.items).filter(s => presentSubs.has(s));
+                const pickerCat = activeCategory !== "All" ? activeCategory : (visibleCategories.slice(1).find((c) => subsForCategory(c).length > 0) || visibleCategories[1] || null);
+                const subs = pickerCat ? subsForCategory(pickerCat) : [];
                 if (subs.length === 0) {
                   return <div style={{ textAlign: "center", padding: "24px 0", color: "#aaa", fontSize: 13 }}>🦊 No subcategories yet — they appear as products are added.</div>;
                 }
@@ -1868,7 +1871,7 @@ export default function SupplyFlow({ session }) {
                       const sel = activeSub === it;
                       return (
                         <motion.button key={it} whileTap={{ scale: 0.9 }} transition={springSnappy}
-                          onClick={() => { setActiveSub(it); setActiveCategory("Clothes"); setShowClothesPicker(false); }}
+                          onClick={() => { setActiveSub(it); setActiveCategory(pickerCat); setShowClothesPicker(false); }}
                           style={{ padding: "8px 14px", borderRadius: 20, border: "1px solid " + (sel ? "#0F0E0C" : "#E8E6E0"), background: sel ? "#0F0E0C" : "#fff", color: sel ? "#FF5C00" : "#555", fontSize: 13, fontWeight: 600, cursor: "pointer", WebkitTapHighlightColor: "transparent" }}>
                           {it}
                         </motion.button>

@@ -189,6 +189,20 @@ export default function OrderRequest({ product, session, onClose, onSuccess, onA
               </motion.div>
             )}
 
+            {product.material?.length > 0 && (
+              <motion.div variants={fadeUp} style={{ marginBottom: 24 }}>
+                <div style={{ fontSize: 13, fontWeight: 600, color: "#0F0E0C", marginBottom: 8 }}>Materials</div>
+                <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+                  {product.material.map((m, i) => (
+                    <div key={i} style={{ background: "#F8F7F4", borderRadius: 10, padding: "7px 12px", display: "flex", alignItems: "baseline", gap: 6 }}>
+                      <span style={{ fontSize: 13, fontWeight: 700, color: "#111" }}>{m.name}</span>
+                      {m.pct ? <span style={{ fontSize: 12, fontWeight: 700, color: "#FF5C00" }}>{String(m.pct).replace("%", "")}%</span> : null}
+                    </div>
+                  ))}
+                </div>
+              </motion.div>
+            )}
+
             {(() => {
               const fname = product.supplier && product.supplier !== product.platform ? product.supplier : null;
               const st = product.factory_stats;

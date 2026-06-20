@@ -71,8 +71,10 @@ body {
     animation: sf-blob-b 23s ease-in-out infinite alternate;
   }
 
-  /* Het telefoon-frame: schaduw rond het app-paneel */
-  #root > div {
+  /* Het telefoon-frame: schaduw rond het app-paneel. Alleen het EERSTE kind
+     (het echte app-paneel) — niet de losse fixed elementen zoals de install-balk,
+     anders rekt die uit tot volledige hoogte en krijg je een zwart scherm. */
+  #root > div:first-child {
     min-height: 100svh;
     box-shadow: 0 24px 90px rgba(0, 0, 0, 0.55);
   }

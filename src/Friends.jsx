@@ -1,11 +1,29 @@
 import { useState, useEffect, useCallback, useRef } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { springMorph } from "./motion";
 import {
   ffMyGroups, ffPreview, ffCreateGroup, ffJoinGroup, ffLeaveGroup,
-  ffKickMember, ffSetHost, ffUpdateSettings, ffAddItem, ffRemoveItem, ffFetchGroup,
+  ffKickMember, ffSetHost, ffSetAdmin, ffSetPrivate, ffUpdateSettings, ffAddItem, ffRemoveItem, ffFetchGroup,
   ffSetReady, ffUnready, checkGroupPrices, estimateMemberFee,
-  ffPostMessage, ffShareItem, ffReact, ffNudge, ffFetchMessages, subscribeGroup, groupSavings,
+  ffPostMessage, ffShareItem, ffReact, ffNudge, ffFetchMessages, subscribeGroup,
   inviteLink, whatsappShare,
 } from "./ffApi";
+
+// Native deel-sheet (Apple/Android eigen icoon) met kopieer-fallback.
+async function nativeShare(code, name) {
+  const url = inviteLink(code);
+  const text = `Join my Flowva group "${name || "Squad"}" — we order together so shipping + fees are way cheaper!`;
+  if (navigator.share) { try { await navigator.share({ title: "Flowva Friends", text, url }); return true; } catch { return false; } }
+  try { await navigator.clipboard?.writeText(`${text} ${url}`); } catch { /* ignore */ }
+  return false;
+}
+const isApple = typeof navigator !== "undefined" && /iphone|ipad|ipod|mac/i.test(navigator.userAgent);
+// Apple-deel-icoon (vierkant met pijl omhoog) vs Android (drie verbonden punten).
+function ShareGlyph({ size = 16, color = "#9C9893" }) {
+  return isApple
+    ? <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 16V4M12 4l-4 4M12 4l4 4"/><path d="M5 12v6a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-6"/></svg>
+    : <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="M8.6 13.5l6.8 4M15.4 6.5l-6.8 4"/></svg>;
+}
 
 const REACTIONS = ["❤️", "🔥", "😂", "👍"];
 
@@ -46,6 +64,45 @@ const ghostBtn = { width: "100%", background: "transparent", color: "#C9C6C1", b
 const input = { width: "100%", boxSizing: "border-box", background: "#1A1917", border: "1px solid #2c2b29", borderRadius: 12, padding: "12px 14px", fontSize: 14, color: "#fff", outline: "none" };
 const label = { fontSize: 12, color: "#9C9893", margin: "0 2px 6px", display: "block" };
 
+// Fee-overzicht (popover via het %-icoon): de tier-tabel + jouw huidige fee.
+function FeeInfo({ onClose, members, myTotal, myFee }) {
+  const tiers = [
+    { n: "Solo", pct: "8%", min: "€5" }, { n: "2", pct: "5%", min: "€4" }, { n: "3", pct: "4%", min: "€3.50" },
+    { n: "4", pct: "3.5%", min: "€3" }, { n: "5", pct: "3%", min: "€3" }, { n: "6", pct: "3%", min: "€2.50" }, { n: "7", pct: "2.5%", min: "€2.50" },
+  ];
+  return (
+    <div onClick={onClose} style={{ position: "fixed", inset: 0, zIndex: 410, background: "rgba(0,0,0,0.6)", display: "flex", alignItems: "flex-end", justifyContent: "center" }}>
+      <div onClick={(e) => e.stopPropagation()} style={{ width: "100%", maxWidth: 430, boxSizing: "border-box", background: "#161513", borderRadius: "20px 20px 0 0", padding: "18px 18px 28px", color: "#fff" }}>
+        <div style={{ display: "flex", alignItems: "center", marginBottom: 6 }}>
+          <div style={{ flex: 1, fontSize: 16, fontWeight: 800 }}>How the group fee works</div>
+          <button onClick={onClose} style={{ background: "#1E1D1A", border: "none", color: "#9C9893", width: 30, height: 30, borderRadius: "50%", fontSize: 14, cursor: "pointer" }}>✕</button>
+        </div>
+        <div style={{ fontSize: 12.5, color: "#C9C6C1", lineHeight: 1.55, marginBottom: 14 }}>
+          Everyone pays a small service fee on their <b>own</b> items — but the more friends in the group, the lower the % and the lower the minimum. So per person it's cheaper than ordering solo.
+        </div>
+        <div style={{ background: "#1A1917", borderRadius: 12, overflow: "hidden", marginBottom: 14 }}>
+          {tiers.map((t, i) => {
+            const active = (t.n === "Solo" && members <= 1) || t.n === String(members);
+            return (
+              <div key={t.n} style={{ display: "flex", padding: "9px 14px", background: active ? "rgba(255,92,0,0.12)" : "transparent", borderTop: i ? "1px solid #211f1c" : "none" }}>
+                <div style={{ flex: 1, fontSize: 12.5, fontWeight: active ? 700 : 500, color: active ? "#FF8A3D" : "#C9C6C1" }}>{t.n === "Solo" ? "Just you" : `${t.n} friends`}{active ? " · you" : ""}</div>
+                <div style={{ width: 64, fontSize: 12.5, color: "#9C9893", textAlign: "right" }}>{t.pct}</div>
+                <div style={{ width: 72, fontSize: 12.5, color: "#9C9893", textAlign: "right" }}>min {t.min}</div>
+              </div>
+            );
+          })}
+        </div>
+        {myTotal > 0 && (
+          <div style={{ fontSize: 12.5, color: "#C9C6C1", lineHeight: 1.5 }}>
+            Your items: <b style={{ color: "#fff" }}>€{myTotal.toFixed(2)}</b> · your fee now: <b style={{ color: "#FF8A3D" }}>€{myFee.toFixed(2)}</b>
+          </div>
+        )}
+        <div style={{ fontSize: 10.5, color: "#6b6862", marginTop: 12, lineHeight: 1.5 }}>Shipping is separate and split by weight when the parcel ships — that's where a group saves the most.</div>
+      </div>
+    </div>
+  );
+}
+
 export default function Friends({ session, onClose, initialJoinCode, onShopForGroup, activeGroupId }) {
   const myUid = session?.user?.id;
   const [view, setView] = useState(initialJoinCode ? "join" : "list");
@@ -73,6 +130,14 @@ export default function Friends({ session, onClose, initialJoinCode, onShopForGr
   const [messages, setMessages] = useState([]);
   const [chatInput, setChatInput] = useState("");
   const [nudgedAt, setNudgedAt] = useState({});   // userId → epoch ms (cooldown)
+  // redesign
+  const [showFeeInfo, setShowFeeInfo] = useState(false);
+  const [chatOpen, setChatOpen] = useState(false);
+  const [shareCopied, setShareCopied] = useState(false);
+  const doShare = async (code, name) => {
+    const shared = await nativeShare(code, name);
+    if (!shared) { setShareCopied(true); setTimeout(() => setShareCopied(false), 1800); }   // desktop → naar klembord
+  };
 
   const loadGroups = useCallback(async () => {
     setLoading(true);
@@ -250,11 +315,16 @@ export default function Friends({ session, onClose, initialJoinCode, onShopForGr
   const copyLink = (c) => { try { navigator.clipboard?.writeText(inviteLink(c)); } catch { /* ignore */ } };
 
   // ── Views ──────────────────────────────────────────────────────────────────
-  const header = (title, back) => (
-    <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "16px 18px 8px" }}>
-      {back && <button onClick={back} style={{ background: "none", border: "none", color: "#9C9893", fontSize: 20, cursor: "pointer", padding: 0, lineHeight: 1 }}>‹</button>}
-      <div style={{ fontSize: 18, fontWeight: 700, flex: 1 }}>{title}</div>
-      <button onClick={onClose} aria-label="close" style={{ background: "#1E1D1A", border: "none", color: "#9C9893", width: 30, height: 30, borderRadius: "50%", fontSize: 15, cursor: "pointer" }}>✕</button>
+  const iconBtn = (key, onClick, label, child) => (
+    <button key={key} onClick={onClick} aria-label={label} title={label}
+      style={{ background: "#1E1D1A", border: "none", color: "#9C9893", width: 30, height: 30, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14, cursor: "pointer", flexShrink: 0 }}>{child}</button>
+  );
+  const header = (title, back, extra) => (
+    <div style={{ display: "flex", alignItems: "center", gap: 7, padding: "16px 18px 8px" }}>
+      {back && <button onClick={back} style={{ background: "none", border: "none", color: "#9C9893", fontSize: 20, cursor: "pointer", padding: 0, lineHeight: 1, flexShrink: 0 }}>‹</button>}
+      <div style={{ fontSize: 18, fontWeight: 700, flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{title}</div>
+      {extra}
+      {iconBtn("close", onClose, "close", "✕")}
     </div>
   );
   const errLine = err ? <div style={{ background: "#3a1414", color: "#F0997B", borderRadius: 10, padding: "9px 12px", fontSize: 12.5, margin: "0 18px 10px" }}>{err}</div> : null;
@@ -322,10 +392,10 @@ export default function Friends({ session, onClose, initialJoinCode, onShopForGr
           {preview && (
             <div style={{ background: "#1A1917", borderRadius: 14, padding: "14px", marginTop: 16 }}>
               <div style={{ fontSize: 15, fontWeight: 700 }}>{preview.name}</div>
-              <div style={{ fontSize: 12.5, color: "#9C9893", marginTop: 2 }}>{preview.member_count}/{preview.max_size} friends · {preview.status === "gathering" ? "open to join" : "closed"}</div>
-              <button style={{ ...primaryBtn, marginTop: 14, opacity: busy || preview.is_full || preview.status !== "gathering" ? 0.5 : 1 }}
-                disabled={busy || preview.is_full || preview.status !== "gathering"} onClick={doJoin}>
-                {preview.is_full ? "Group is full" : preview.status !== "gathering" ? "Group is closed" : busy ? "Joining…" : `Join ${preview.name} →`}
+              <div style={{ fontSize: 12.5, color: "#9C9893", marginTop: 2 }}>{preview.member_count}/{preview.max_size} friends · {preview.is_private ? "🔒 private — invite only" : preview.status === "gathering" ? "open to join" : "closed"}</div>
+              <button style={{ ...primaryBtn, marginTop: 14, opacity: busy || preview.is_full || preview.is_private || preview.status !== "gathering" ? 0.5 : 1 }}
+                disabled={busy || preview.is_full || preview.is_private || preview.status !== "gathering"} onClick={doJoin}>
+                {preview.is_private ? "Private group" : preview.is_full ? "Group is full" : preview.status !== "gathering" ? "Group is closed" : busy ? "Joining…" : `Join ${preview.name} →`}
               </button>
             </div>
           )}
@@ -349,10 +419,18 @@ export default function Friends({ session, onClose, initialJoinCode, onShopForGr
     const priceUnknown = myItems.some((it) => it.price == null || isNaN(Number(it.price)));  // prijs nog niet bekend → niet laten betalen
     const isSolo = members.length === 1;
     const someFlagged = myItems.some((it) => flaggedUrls.includes(it.source_url));
-    const savings = groupSavings(members, lobby?.items);   // geschatte besparing samen vs. solo
+    // JOUW fee-besparing: wat je solo aan fee zou betalen vs. in deze groep (exact).
+    const myFeeSavings = myTotal > 0 ? Math.round((estimateMemberFee(1, myTotal) - myFee) * 100) / 100 : 0;
     body = (
       <>
-        {header(g ? g.name : "Group", () => { setErr(""); openIdRef.current = null; setView("list"); loadGroups(); })}
+        {header(g ? g.name : "Group", () => { setErr(""); openIdRef.current = null; setView("list"); loadGroups(); },
+          g && (
+            <>
+              {iconBtn("fee", () => setShowFeeInfo(true), "Fee breakdown", <span style={{ fontWeight: 800, fontSize: 13 }}>%</span>)}
+              {iconBtn("share", () => doShare(g.invite_code, g.name), "Share invite", <ShareGlyph />)}
+              {isAdmin && !isPlaced && iconBtn("settings", () => setEditing((v) => !v), "Group settings", <span style={{ fontSize: 14 }}>⚙️</span>)}
+            </>
+          ))}
         {errLine}
         {!g ? (
           <div style={{ textAlign: "center", color: "#777", padding: "30px 0", fontSize: 13 }}>Loading group…</div>
@@ -402,6 +480,7 @@ export default function Friends({ session, onClose, initialJoinCode, onShopForGr
                     {isAdmin && !self && !isPlaced && (
                       <>
                         {g.host_id !== m.user_id && <button onClick={async () => { const r = await ffSetHost(g.id, m.user_id); if (r && !r.ok) setErr(r.error); refreshLobby(); }} style={{ background: "#1E1D1A", border: "none", color: "#9C9893", borderRadius: 8, padding: "5px 9px", fontSize: 11, cursor: "pointer" }}>host</button>}
+                        <button onClick={async () => { if (!window.confirm(`Make ${memberLabel(m, false)} the admin? You'll hand over control and can't undo this yourself.`)) return; const r = await ffSetAdmin(g.id, m.user_id); if (r && !r.ok) setErr(r.error); refreshLobby(); }} style={{ background: "rgba(255,92,0,0.12)", border: "none", color: "#FF5C00", borderRadius: 8, padding: "5px 9px", fontSize: 11, cursor: "pointer" }}>make admin</button>
                         <button onClick={async () => { const r = await ffKickMember(g.id, m.user_id); if (r && !r.ok) setErr(r.error); refreshLobby(); }} style={{ background: "rgba(226,75,74,0.14)", border: "none", color: "#E24B4A", borderRadius: 8, padding: "5px 9px", fontSize: 11, cursor: "pointer" }}>remove</button>
                       </>
                     )}
@@ -410,12 +489,12 @@ export default function Friends({ session, onClose, initialJoinCode, onShopForGr
               );
             })}
 
-            {/* savings counter */}
-            {members.length >= 2 && savings > 0 && (
+            {/* personal fee savings (exact) */}
+            {myFeeSavings > 0 && (
               <div style={{ marginTop: 12, background: "linear-gradient(180deg,#26211c,#1A1917)", border: "1px solid rgba(255,92,0,0.2)", borderRadius: 14, padding: "12px 14px", display: "flex", alignItems: "center", gap: 10 }}>
                 <span style={{ fontSize: 22 }}>💸</span>
                 <div style={{ fontSize: 12.5, color: "#C9C6C1", lineHeight: 1.45 }}>
-                  Your squad is saving about <b style={{ color: "#FF8A3D" }}>€{savings.toFixed(2)}</b> together vs. ordering solo — it grows as more friends join.
+                  <b style={{ color: "#FF8A3D" }}>You save €{myFeeSavings.toFixed(2)}</b> in fees by ordering in this group instead of solo{members.length >= 2 ? "" : " — it grows as friends join"}.
                 </div>
               </div>
             )}
@@ -455,28 +534,34 @@ export default function Friends({ session, onClose, initialJoinCode, onShopForGr
               })
             )}
 
-            {/* admin settings */}
-            {isAdmin && !isPlaced && (
-              <div style={{ marginTop: 12 }}>
-                {!editing ? (
-                  <button style={{ ...ghostBtn, padding: "10px" }} onClick={() => setEditing(true)}>Group settings</button>
-                ) : (
-                  <div style={{ background: "#1A1917", borderRadius: 14, padding: "12px 14px" }}>
-                    <label style={label}>Group name</label>
-                    <input style={input} value={editName} onChange={(e) => setEditName(e.target.value)} maxLength={40} />
-                    <label style={{ ...label, marginTop: 12 }}>Max friends (min {lobby.members.length})</label>
-                    <div style={{ display: "flex", gap: 6, marginBottom: 12 }}>
-                      {[2, 3, 4, 5, 6, 7].map((n) => (
-                        <button key={n} disabled={n < lobby.members.length} onClick={() => setEditMax(n)}
-                          style={{ flex: 1, background: editMax === n ? "#FF5C00" : "#26211c", color: n < lobby.members.length ? "#555" : editMax === n ? "#fff" : "#9C9893", border: "none", borderRadius: 8, padding: "9px 0", fontSize: 13, fontWeight: 700, cursor: n < lobby.members.length ? "default" : "pointer" }}>{n}</button>
-                      ))}
-                    </div>
-                    <div style={{ display: "flex", gap: 8 }}>
-                      <button style={{ ...primaryBtn, padding: "11px" }} disabled={busy} onClick={doSaveSettings}>Save</button>
-                      <button style={{ ...ghostBtn, width: "auto", padding: "11px 16px" }} onClick={() => setEditing(false)}>Cancel</button>
-                    </div>
+            {/* admin settings — geopend via het ⚙️-icoon in de header */}
+            {isAdmin && !isPlaced && editing && (
+              <div style={{ marginTop: 12, background: "#1A1917", borderRadius: 14, padding: "12px 14px" }}>
+                <label style={label}>Group name</label>
+                <input style={input} value={editName} onChange={(e) => setEditName(e.target.value)} maxLength={40} />
+                <label style={{ ...label, marginTop: 12 }}>Max friends (min {lobby.members.length})</label>
+                <div style={{ display: "flex", gap: 6, marginBottom: 4 }}>
+                  {[2, 3, 4, 5, 6, 7].map((n) => (
+                    <button key={n} disabled={n < lobby.members.length} onClick={() => setEditMax(n)}
+                      style={{ flex: 1, background: editMax === n ? "#FF5C00" : "#26211c", color: n < lobby.members.length ? "#555" : editMax === n ? "#fff" : "#9C9893", border: "none", borderRadius: 8, padding: "9px 0", fontSize: 13, fontWeight: 700, cursor: n < lobby.members.length ? "default" : "pointer" }}>{n}</button>
+                  ))}
+                </div>
+                <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "14px 0 12px", borderTop: "1px solid #2c2b29", marginTop: 12 }}>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontSize: 13, fontWeight: 600, color: "#fff" }}>Private group</div>
+                    <div style={{ fontSize: 11, color: "#9C9893" }}>{g.is_private ? "Locked — no one new can join" : "Anyone with the link can join"}</div>
                   </div>
-                )}
+                  <div onClick={async () => { const r = await ffSetPrivate(g.id, !g.is_private); if (r && !r.ok) setErr(r.error); refreshLobby(); }}
+                    role="switch" aria-checked={!!g.is_private}
+                    style={{ width: 44, height: 26, borderRadius: 999, background: g.is_private ? "#FF5C00" : "#3a3a37", position: "relative", cursor: "pointer", flexShrink: 0, transition: "background .2s" }}>
+                    <div style={{ position: "absolute", top: 3, left: g.is_private ? 21 : 3, width: 20, height: 20, borderRadius: "50%", background: "#fff", transition: "left .2s" }} />
+                  </div>
+                </div>
+                <div style={{ display: "flex", gap: 8 }}>
+                  <button style={{ ...primaryBtn, padding: "11px" }} disabled={busy} onClick={doSaveSettings}>Save name & size</button>
+                  <button style={{ ...ghostBtn, width: "auto", padding: "11px 16px" }} onClick={() => setEditing(false)}>Close</button>
+                </div>
+                <div style={{ fontSize: 10.5, color: "#6b6862", marginTop: 10, lineHeight: 1.5 }}>Tip: hand over admin or host on any member above. Make someone else admin and these settings move to them.</div>
               </div>
             )}
 
@@ -525,24 +610,41 @@ export default function Friends({ session, onClose, initialJoinCode, onShopForGr
                 </div>
 
                 <button style={{ ...ghostBtn, marginTop: 12, color: activeGroupId === g.id ? "#34D17B" : "#FF5C00", borderColor: activeGroupId === g.id ? "rgba(52,209,123,0.3)" : "rgba(255,92,0,0.3)" }}
-                  onClick={() => { onShopForGroup?.({ id: g.id, name: g.name }); onClose?.(); }}>
-                  {activeGroupId === g.id ? "✓ Shopping for this group" : "+ Shop for this group"}
+                  onClick={() => { if (activeGroupId === g.id) { onShopForGroup?.(null); } else { onShopForGroup?.({ id: g.id, name: g.name }); onClose?.(); } }}>
+                  {activeGroupId === g.id ? "✓ Shopping here — tap to stop" : "+ Shop for this group"}
                 </button>
                 <button style={{ ...ghostBtn, marginTop: 8, color: "#E24B4A", borderColor: "rgba(226,75,74,0.3)" }} disabled={busy} onClick={doLeave}>Leave group</button>
               </>
             )}
 
-            {/* squad chat */}
-            <div style={{ fontSize: 12, color: "#9C9893", margin: "22px 2px 8px" }}>Squad chat</div>
-            <div style={{ background: "#161513", borderRadius: 14, padding: "10px 12px" }}>
-              <div style={{ maxHeight: 240, overflowY: "auto", display: "flex", flexDirection: "column", gap: 9, marginBottom: 9 }}>
+            {/* squad chat — morphing icoon ↔ paneel */}
+            <div style={{ marginTop: 22 }}>
+              <AnimatePresence initial={false}>
+                {!chatOpen ? (
+                  <motion.button key="chatpill" layoutId="ff-chat" transition={springMorph} onClick={() => setChatOpen(true)}
+                    style={{ width: "100%", display: "flex", alignItems: "center", gap: 10, background: "#161513", border: "1px solid #2c2b29", borderRadius: 14, padding: "12px 14px", cursor: "pointer", color: "#fff" }}>
+                    <span style={{ fontSize: 18 }}>💬</span>
+                    <div style={{ flex: 1, textAlign: "left", minWidth: 0 }}>
+                      <div style={{ fontSize: 13, fontWeight: 700 }}>Squad chat</div>
+                      <div style={{ fontSize: 11, color: "#9C9893" }}>{messages.length ? `${messages.length} message${messages.length === 1 ? "" : "s"} — tap to open` : "Say hi to your squad 👋"}</div>
+                    </div>
+                    <span style={{ color: "#6b6862", fontSize: 15 }}>▾</span>
+                  </motion.button>
+                ) : (
+                  <motion.div key="chatpanel" layoutId="ff-chat" transition={springMorph}
+                    style={{ background: "#161513", borderRadius: 14, padding: "10px 12px", overflow: "hidden" }}>
+                    <div style={{ display: "flex", alignItems: "center", marginBottom: 8 }}>
+                      <div style={{ flex: 1, fontSize: 13, fontWeight: 700, color: "#fff" }}>💬 Squad chat</div>
+                      <button onClick={() => setChatOpen(false)} style={{ background: "none", border: "none", color: "#9C9893", fontSize: 16, cursor: "pointer" }}>▴</button>
+                    </div>
+                    <div style={{ maxHeight: 240, overflowY: "auto", display: "flex", flexDirection: "column", gap: 9, marginBottom: 9 }}>
                 {messages.length === 0 ? (
                   <div style={{ textAlign: "center", color: "#6b6862", fontSize: 12, padding: "12px 0" }}>No messages yet — say hi 👋</div>
                 ) : messages.map((msg) => {
                   const mine = msg.user_id === myUid;
                   const author = members.find((m) => m.user_id === msg.user_id);
                   const name = msg.user_id ? (author ? memberLabel(author, mine) : "Friend") : "Flowva";
-                  const sharedItem = msg.kind === "share" ? (lobby.items || []).find((it) => it.id === msg.item_id) : null;
+                  const sharedItem = msg.kind === "share" ? ((msg.item_id && (lobby.items || []).find((it) => it.id === msg.item_id)) || msg.product || null) : null;
                   return (
                     <div key={msg.id} style={{ display: "flex", flexDirection: "column", alignItems: mine ? "flex-end" : "flex-start", gap: 3 }}>
                       <div style={{ fontSize: 10, color: "#6b6862", padding: "0 4px" }}>{name}</div>
@@ -570,12 +672,16 @@ export default function Friends({ session, onClose, initialJoinCode, onShopForGr
                     </div>
                   );
                 })}
-              </div>
-              <div style={{ display: "flex", gap: 6 }}>
-                <input style={{ ...input, padding: "10px 12px" }} value={chatInput} onChange={(e) => setChatInput(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") doPostMessage(); }} placeholder="Message your squad…" maxLength={500} />
-                <button onClick={doPostMessage} style={{ background: "#FF5C00", border: "none", color: "#fff", borderRadius: 12, padding: "0 16px", fontSize: 13, fontWeight: 700, cursor: "pointer" }}>Send</button>
-              </div>
+                    </div>
+                    <div style={{ display: "flex", gap: 6 }}>
+                      <input style={{ ...input, padding: "10px 12px" }} value={chatInput} onChange={(e) => setChatInput(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") doPostMessage(); }} placeholder="Message your squad…" maxLength={500} />
+                      <button onClick={doPostMessage} style={{ background: "#FF5C00", border: "none", color: "#fff", borderRadius: 12, padding: "0 16px", fontSize: 13, fontWeight: 700, cursor: "pointer" }}>Send</button>
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </div>
+            {showFeeInfo && <FeeInfo onClose={() => setShowFeeInfo(false)} members={members.length} myTotal={myTotal} myFee={myFee} />}
           </div>
         )}
       </>
@@ -591,6 +697,9 @@ export default function Friends({ session, onClose, initialJoinCode, onShopForGr
         </div>
         {body}
       </div>
+      {shareCopied && (
+        <div style={{ position: "fixed", bottom: 24, left: "50%", transform: "translateX(-50%)", zIndex: 420, background: "#0F0E0C", color: "#fff", borderRadius: 999, padding: "10px 18px", fontSize: 13, fontWeight: 600, boxShadow: "0 8px 30px rgba(0,0,0,0.5)" }}>🔗 Invite link copied!</div>
+      )}
     </>
   );
 }

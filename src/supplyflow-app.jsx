@@ -2,6 +2,8 @@ import { useState, useEffect, useRef } from "react";
 import { supabase } from "./supabase";
 import OrderRequest from "./OrderRequest";
 import Friends from "./Friends";
+import GroupModeGlow from "./GroupModeGlow";
+import { ffMyGroups } from "./ffApi";
 import { WarehouseTab, TransitTab } from "./WarehouseAndHaul";
 import { motion, AnimatePresence } from "framer-motion";
 import { createPortal } from "react-dom";
@@ -1058,6 +1060,21 @@ export default function SupplyFlow({ session }) {
     try { return JSON.parse(localStorage.getItem("flowva_active_group") || "null"); } catch { return null; }
   });
   const [groupToast, setGroupToast] = useState(null);   // {kind,name} als de actieve groep van status wisselt
+  const [myGroups, setMyGroups] = useState([]);         // groepen waar ik in zit (voor de profiel-switch)
+  const loadMyGroups = async () => {
+    const r = await ffMyGroups();
+    if (!r.ok) return;
+    const groups = r.groups || [];
+    setMyGroups(groups);
+    // Een opgeslagen actieve groep die niet meer 'gathering' is (of weg) → groep-modus uit.
+    setActiveGroup((cur) => {
+      if (!cur) return cur;
+      const g = groups.find((x) => x.group_id === cur.id);
+      return g && g.status === "gathering" ? cur : null;
+    });
+  };
+  useEffect(() => { if (session && (tab === "profile" || !showFriends)) loadMyGroups(); // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tab, showFriends, session]);
 
   useEffect(() => {
     localStorage.setItem("supplyflow_request_list", JSON.stringify(requestList));
@@ -1292,11 +1309,12 @@ export default function SupplyFlow({ session }) {
   return (
     <div style={{ fontFamily: "'Inter', 'Helvetica Neue', sans-serif", background: "#F8F7F4", minHeight: "100vh", maxWidth: 430, margin: "0 auto", width: "100%", position: "relative" }}>
 
+      <GroupModeGlow key={activeGroup?.id || "none"} active={!!activeGroup} />
       {/* Header */}
-      <div style={{ padding: "16px 20px 10px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 9 }}>
-          <div style={{ width: 30, height: 30, borderRadius: "50%", background: "#111111", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 15 }}>🦊</div>
-          <div style={{ fontSize: 12, fontWeight: 700, letterSpacing: 2.5, color: "#111111" }}>FLOWVA</div>
+      <div style={{ padding: "16px 20px 10px", display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 9, minWidth: 0 }}>
+          <div style={{ width: 30, height: 30, borderRadius: "50%", background: "#111111", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 15, boxShadow: activeGroup ? "0 0 0 2px rgba(255,92,0,0.6)" : "none", transition: "box-shadow .3s", flexShrink: 0 }}>🦊</div>
+          <div style={{ fontSize: 12, fontWeight: 700, letterSpacing: 2.5, color: "#111111", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>FLOWVA{activeGroup && <span style={{ color: "#FF5C00" }}> FRIENDS</span>}</div>
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
           <div style={{ background: "#EFEDE8", borderRadius: 20, padding: "7px 13px", display: "flex", gap: 6, alignItems: "baseline" }}>
@@ -1386,6 +1404,7 @@ export default function SupplyFlow({ session }) {
               const label = c === activeCategory && activeSub ? `${c} · ${activeSub}` : c;
               return (
                 <motion.div key={c} layout whileTap={{ scale: 0.92 }} transition={springSnappy}
+                  className={activeGroup ? "ff-cat-on" : ""}
                   onClick={() => {
                     setActiveCategory(c); setActiveSub(null);
                     if (hasSubs) setShowClothesPicker(true);
@@ -1725,15 +1744,44 @@ export default function SupplyFlow({ session }) {
             </div>
             <div style={{ color: "#C9C6C1", fontSize: 18 }}>→</div>
           </motion.div>
-          <motion.div whileTap={{ scale: 0.98 }} onClick={() => { setFriendsJoinCode(null); setShowFriends(true); }}
-            style={{ background: "#fff", border: "1px solid #E8E6E0", borderRadius: 16, padding: "15px 18px", marginBottom: 12, display: "flex", alignItems: "center", gap: 12, cursor: "pointer" }}>
-            <div style={{ width: 38, height: 38, borderRadius: 11, background: "#FFF0E7", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18, flexShrink: 0 }}>🦊</div>
-            <div style={{ flex: 1 }}>
-              <div style={{ fontSize: 14, fontWeight: 700, color: "#0F0E0C" }}>Flowva Friends</div>
-              <div style={{ fontSize: 12, color: "#A8A5A0" }}>Order together — cheaper shipping &amp; fees</div>
+          {/* Flowva Friends — groep-modus switch */}
+          <div style={{ background: "#fff", border: `1px solid ${activeGroup ? "rgba(255,92,0,0.5)" : "#E8E6E0"}`, borderRadius: 16, padding: "15px 18px", marginBottom: 12, boxShadow: activeGroup ? "0 0 0 3px rgba(255,92,0,0.08)" : "none" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+              <div style={{ width: 38, height: 38, borderRadius: 11, background: "#FFF0E7", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18, flexShrink: 0 }}>🦊</div>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontSize: 14, fontWeight: 700, color: "#0F0E0C" }}>Flowva Friends</div>
+                <div style={{ fontSize: 12, color: "#A8A5A0", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{activeGroup ? `Shopping for ${activeGroup.name}` : "Order together — pick a group to shop in"}</div>
+              </div>
+              <div onClick={() => { if (activeGroup) setActiveGroup(null); }} role="switch" aria-checked={!!activeGroup}
+                style={{ width: 46, height: 27, borderRadius: 999, background: activeGroup ? "#FF5C00" : "#E3E1DC", position: "relative", cursor: activeGroup ? "pointer" : "default", flexShrink: 0, transition: "background .2s" }}>
+                <motion.div layout transition={springSnappy} style={{ position: "absolute", top: 3, left: activeGroup ? 22 : 3, width: 21, height: 21, borderRadius: "50%", background: "#fff", boxShadow: "0 1px 3px rgba(0,0,0,0.2)" }} />
+              </div>
             </div>
-            <div style={{ color: "#C9C6C1", fontSize: 18 }}>→</div>
-          </motion.div>
+            {!activeGroup && (
+              <div style={{ marginTop: 12 }}>
+                {myGroups.filter((g) => g.status === "gathering").length > 0 ? (
+                  <div style={{ display: "flex", flexDirection: "column", gap: 7 }}>
+                    {myGroups.filter((g) => g.status === "gathering").map((g) => (
+                      <button key={g.group_id} onClick={() => setActiveGroup({ id: g.group_id, name: g.name })}
+                        style={{ display: "flex", alignItems: "center", gap: 10, background: "#F8F7F4", border: "1px solid #ECEAE5", borderRadius: 12, padding: "10px 12px", cursor: "pointer", textAlign: "left", width: "100%" }}>
+                        <div style={{ width: 30, height: 30, borderRadius: 9, background: "#FF5C00", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14, flexShrink: 0 }}>🦊</div>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{ fontSize: 13, fontWeight: 600, color: "#111111" }}>{g.name}{g.role === "admin" ? " · admin" : ""}</div>
+                          <div style={{ fontSize: 11, color: "#A8A5A0" }}>{g.member_count}/{g.max_size} friends</div>
+                        </div>
+                        <span style={{ fontSize: 12, fontWeight: 700, color: "#FF5C00", flexShrink: 0 }}>Shop →</span>
+                      </button>
+                    ))}
+                    <button onClick={() => { setFriendsJoinCode(null); setShowFriends(true); }}
+                      style={{ background: "transparent", border: "none", color: "#A8A5A0", fontSize: 12, fontWeight: 600, cursor: "pointer", padding: "6px 0 0", textAlign: "left" }}>+ Create, join or manage groups</button>
+                  </div>
+                ) : (
+                  <button onClick={() => { setFriendsJoinCode(null); setShowFriends(true); }}
+                    style={{ width: "100%", background: "#FFF0E7", border: "1px dashed rgba(255,92,0,0.4)", color: "#FF5C00", borderRadius: 12, padding: "12px", fontSize: 13, fontWeight: 700, cursor: "pointer" }}>{myGroups.length > 0 ? "View or manage your groups →" : "Join or create a group first →"}</button>
+                )}
+              </div>
+            )}
+          </div>
           <a href="/returns" style={{ textDecoration: "none", background: "#fff", border: "1px solid #E8E6E0", borderRadius: 16, padding: "15px 18px", marginBottom: 12, display: "flex", alignItems: "center", gap: 12 }}>
             <div style={{ width: 38, height: 38, borderRadius: 11, background: "#F3F1ED", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18, flexShrink: 0 }}>↩️</div>
             <div style={{ flex: 1 }}>
@@ -1803,16 +1851,28 @@ export default function SupplyFlow({ session }) {
           </div>
         )}
         {activeGroup && !selectedProduct && !showFriends && !showRequestList && (
-          <div style={{ position: "fixed", top: 64, left: "50%", transform: "translateX(-50%)", zIndex: 90, background: "#111111", color: "#fff", borderRadius: 999, padding: "7px 8px 7px 14px", display: "flex", alignItems: "center", gap: 10, fontSize: 12.5, fontWeight: 600, boxShadow: "0 4px 16px rgba(0,0,0,0.18)", maxWidth: "92%" }}>
-            <span style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>🦊 Shopping for <b style={{ color: "#FF5C00" }}>{activeGroup.name}</b></span>
-            <button onClick={() => setShowFriends(true)} style={{ background: "#FF5C00", color: "#fff", border: "none", borderRadius: 999, padding: "5px 11px", fontSize: 11.5, fontWeight: 700, cursor: "pointer", whiteSpace: "nowrap" }}>Open</button>
-            <button onClick={() => setActiveGroup(null)} aria-label="stop shopping for group" style={{ background: "transparent", border: "none", color: "#9C9893", fontSize: 14, cursor: "pointer", padding: "0 2px" }}>✕</button>
-          </div>
+          <motion.div initial={{ y: 24, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={springMorph}
+            onClick={() => setShowFriends(true)}
+            style={{ position: "fixed", bottom: 78, left: 0, right: 0, margin: "0 auto", width: "calc(100% - 40px)", maxWidth: 390, background: "#111111", borderRadius: 16, overflow: "hidden", cursor: "pointer", zIndex: 301, boxShadow: "0 12px 40px rgba(255,92,0,0.28)", border: "1px solid rgba(255,92,0,0.4)" }}>
+            <div style={{ padding: "12px 16px", display: "flex", alignItems: "center", gap: 12 }}>
+              <span style={{ fontSize: 18 }}>🦊</span>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontSize: 13, fontWeight: 700, color: "#fff", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{activeGroup.name} · group cart</div>
+                <div style={{ fontSize: 11.5, color: "#9C9893" }}>Tap to open your squad 🦊</div>
+              </div>
+              <motion.div animate={{ y: [0, -3, 0] }} transition={{ duration: 1.4, repeat: Infinity, ease: "easeInOut" }}
+                style={{ width: 30, height: 30, borderRadius: "50%", background: "rgba(255,92,0,0.15)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                <ChevronUp size={16} color="#FF5C00" strokeWidth={2.5} />
+              </motion.div>
+              <button onClick={(e) => { e.stopPropagation(); setActiveGroup(null); }} aria-label="exit group mode"
+                style={{ background: "rgba(255,255,255,0.08)", border: "none", color: "#9C9893", width: 26, height: 26, borderRadius: "50%", fontSize: 12, cursor: "pointer", flexShrink: 0 }}>✕</button>
+            </div>
+          </motion.div>
         )}
-        {requestList.length > 0 && !showRequestList && !selectedProduct && (
+        {requestList.length > 0 && !showRequestList && !selectedProduct && !showFriends && (
           <motion.div layoutId="request-list-morph" transition={springMorph}
             onClick={() => { setListError(null); setShowRequestList(true); }}
-            style={{ position: "fixed", bottom: 78, left: 0, right: 0, margin: "0 auto", width: "calc(100% - 40px)", maxWidth: 390, background: "#111111", borderRadius: 16, overflow: "hidden", cursor: "pointer", zIndex: 301, boxShadow: "0 12px 40px rgba(17,17,17,0.35)" }}>
+            style={{ position: "fixed", bottom: activeGroup ? 142 : 78, left: 0, right: 0, margin: "0 auto", width: "calc(100% - 40px)", maxWidth: 390, background: "#111111", borderRadius: 16, overflow: "hidden", cursor: "pointer", zIndex: 301, boxShadow: "0 12px 40px rgba(17,17,17,0.35)", opacity: activeGroup ? 0.94 : 1 }}>
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1, transition: { delay: 0.1, duration: 0.16 } }} exit={{ opacity: 0, transition: { duration: 0.08 } }}
               style={{ padding: "12px 16px", display: "flex", alignItems: "center", gap: 12 }}>
               <span style={{ fontSize: 18 }}>📋</span>

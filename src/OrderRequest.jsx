@@ -2,7 +2,7 @@ import { useState } from "react";
 import { supabase } from "./supabase";
 import { motion, AnimatePresence } from "framer-motion";
 import { springMorph } from "./motion";
-import { ffAddItem } from "./ffApi";
+import { ffAddItem, ffShareProduct } from "./ffApi";
 
 const spring = springMorph;
 
@@ -16,6 +16,7 @@ export default function OrderRequest({ product, session, onClose, onSuccess, onA
   const [missingVariants, setMissingVariants] = useState([]);
   const [showSizeGuide, setShowSizeGuide] = useState(false);
   const [addedToGroup, setAddedToGroup] = useState(false);
+  const [sharedToGroup, setSharedToGroup] = useState(false);
 
   const productVariants = product.sizes?.length > 0 ? product.sizes : null;
 
@@ -103,6 +104,21 @@ export default function OrderRequest({ product, session, onClose, onSuccess, onA
     }
     setAddedToGroup(true);
     setTimeout(() => setAddedToGroup(false), 1600);
+  };
+
+  // Flowva Friends: deel dit product in de groepschat (zonder het zelf toe te voegen).
+  const handleShareToGroup = async () => {
+    if (!activeGroup) return;
+    const item = buildItem();
+    if (!item) return;
+    const r = await ffShareProduct(activeGroup.id, item);
+    if (!r.ok) {
+      setError(r.error || "Could not share to the group");
+      if (/not a member|not found|closed/i.test(r.error || "")) onActiveGroupGone?.();
+      return;
+    }
+    setSharedToGroup(true);
+    setTimeout(() => setSharedToGroup(false), 1600);
   };
 
   const stagger = { animate: { transition: { staggerChildren: 0.06 } } };
@@ -355,29 +371,24 @@ export default function OrderRequest({ product, session, onClose, onSuccess, onA
                 </motion.div>
                 <motion.button variants={fadeUp} whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.96 }}
                   onClick={handleAddToGroup} disabled={loading}
-                  style={{ width: "100%", marginBottom: 12, background: addedToGroup ? "#16A34A" : "#FF5C00", color: "#fff", border: "none", borderRadius: 14, padding: "16px", fontSize: 15, fontWeight: 700, cursor: loading ? "default" : "pointer" }}>
+                  style={{ width: "100%", marginBottom: 8, background: addedToGroup ? "#16A34A" : "#FF5C00", color: "#fff", border: "none", borderRadius: 14, padding: "16px", fontSize: 15, fontWeight: 700, cursor: loading ? "default" : "pointer" }}>
                   {addedToGroup ? `✓ Added to ${activeGroup.name}` : loading ? "Adding…" : `+ Add to ${activeGroup.name}`}
                 </motion.button>
-                <div style={{ textAlign: "center", fontSize: 11, color: "#A8A5A0", marginBottom: 10 }}>— or shop solo —</div>
+                <motion.button variants={fadeUp} whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.96 }}
+                  onClick={handleShareToGroup} disabled={loading}
+                  style={{ width: "100%", marginBottom: 12, background: sharedToGroup ? "rgba(52,209,123,0.15)" : "rgba(255,92,0,0.08)", color: sharedToGroup ? "#16A34A" : "#FF5C00", border: `1.5px solid ${sharedToGroup ? "rgba(52,209,123,0.4)" : "rgba(255,92,0,0.35)"}`, borderRadius: 14, padding: "13px", fontSize: 14, fontWeight: 700, cursor: "pointer" }}>
+                  {sharedToGroup ? "✓ Shared to the group" : "↗ Share to group"}
+                </motion.button>
+                <div style={{ textAlign: "center", fontSize: 11, color: "#A8A5A0", marginBottom: 10 }}>— or add to your own cart —</div>
               </>
             )}
-            <motion.button
-              variants={fadeUp}
-              whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.96 }}
-              onClick={handleSubmit}
-              disabled={loading}
-              style={{ width: "100%", background: loading ? "#E8E6E0" : "#FF5C00", color: "#fff", border: "none", borderRadius: 14, padding: "16px", fontSize: 15, fontWeight: 700, cursor: loading ? "default" : "pointer" }}
-            >
-              {loading ? "Processing..." : "Buy now →"}
-            </motion.button>
-
             {onAddToList && (
               <motion.button
                 variants={fadeUp}
                 whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.96 }}
                 onClick={handleAddToList}
                 disabled={loading}
-                style={{ width: "100%", marginTop: 8, background: "#fff", color: "#111111", border: "1.5px solid #111111", borderRadius: 14, padding: "14px", fontSize: 14, fontWeight: 700, cursor: "pointer" }}
+                style={{ width: "100%", background: activeGroup ? "#fff" : "#FF5C00", color: activeGroup ? "#111111" : "#fff", border: activeGroup ? "1.5px solid #111111" : "none", borderRadius: 14, padding: activeGroup ? "14px" : "16px", fontSize: activeGroup ? 14 : 15, fontWeight: 700, cursor: "pointer" }}
               >
                 + Add to cart{listCount > 0 ? ` (${listCount})` : ""}
               </motion.button>

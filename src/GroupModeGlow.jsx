@@ -13,7 +13,7 @@ export default function GroupModeGlow({ active, dimmed }) {
         .ff-edge {
           position:fixed; left:6px; right:6px; margin:0 auto; max-width:420px;
           top:calc(env(safe-area-inset-top, 0px) + 6px);
-          bottom:calc(72px + env(safe-area-inset-bottom, 0px));   /* boven de bottom-nav */
+          bottom:66px;   /* net boven de bottom-nav (die zit op bottom:0 zonder eigen safe-area) */
           z-index:95; pointer-events:none; border-radius:26px;
           animation: ffIn .55s ease-out; transition: opacity .25s ease;
         }

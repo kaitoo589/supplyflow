@@ -370,7 +370,7 @@ export default function OrderRequest({ product, session, onClose, onSuccess, onA
                   🦊 Shopping for <b style={{ marginLeft: 2 }}>{activeGroup.name}</b>
                 </motion.div>
                 <motion.button variants={fadeUp} whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.96 }}
-                  onClick={handleAddToGroup} disabled={loading}
+                  onClick={handleAddToGroup} disabled={loading || addedToGroup}
                   style={{ width: "100%", marginBottom: 8, background: addedToGroup ? "#16A34A" : "#FF5C00", color: "#fff", border: "none", borderRadius: 14, padding: "16px", fontSize: 15, fontWeight: 700, cursor: loading ? "default" : "pointer" }}>
                   {addedToGroup ? `✓ Added to ${activeGroup.name}` : loading ? "Adding…" : `+ Add to ${activeGroup.name}`}
                 </motion.button>

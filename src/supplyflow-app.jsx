@@ -1068,13 +1068,16 @@ export default function SupplyFlow({ session }) {
   const favKey = (p) => (p && (p.source_url || p.id)) || "";
   const isFavorite = (p) => favorites.includes(favKey(p));
   const toggleFavorite = (p) => { const k = favKey(p); if (!k) return; setFavorites((f) => f.includes(k) ? f.filter((x) => x !== k) : [...f, k]); };
+  const [infoToast, setInfoToast] = useState("");
+  useEffect(() => { if (!infoToast) return; const t = setTimeout(() => setInfoToast(""), 3500); return () => clearTimeout(t); }, [infoToast]);
   // Open de productpagina vanuit een groeps-item/share-kaart (sluit de Friends-sheet).
   const openProductByUrl = async (item) => {
     const url = item?.source_url;
-    if (!url) return;
+    if (!url) { setInfoToast("This item can't be opened."); return; }
     let prod = products.find((p) => p.source_url === url);
-    if (!prod) { const { data } = await supabase.from("products").select("*").eq("source_url", url).limit(1); prod = data?.[0] || null; }
-    if (!prod) return;
+    if (!prod) { const { data } = await supabase.from("products").select("*").eq("source_url", url).not("hidden", "is", true).limit(1); prod = data?.[0] || null; }
+    if (prod?.hidden) prod = null;
+    if (!prod) { setInfoToast("This item is no longer available."); return; }
     setShowFriends(false); setFriendsGroupId(null);
     setSelectedProduct(prod);
   };
@@ -1452,7 +1455,7 @@ export default function SupplyFlow({ session }) {
           {loadingProducts && <div style={{ textAlign: "center", padding: 40, color: "#999" }}>Loading products...</div>}
           {productsError && <div style={{ textAlign: "center", padding: 40, color: "#B45309" }}>Couldn't load products: {productsError}</div>}
           {!loadingProducts && !productsError && products.length === 0 && <div style={{ textAlign: "center", padding: 40, color: "#999" }}>No products found</div>}
-          {!loadingProducts && !productsError && products.length > 0 && visibleProducts.length === 0 && <div style={{ textAlign: "center", padding: 40, color: "#999" }}>No results found</div>}
+          {!loadingProducts && !productsError && products.length > 0 && visibleProducts.length === 0 && <div style={{ textAlign: "center", padding: 40, color: "#999", lineHeight: 1.5 }}>{showFavoritesOnly ? "No favorites yet — tap the ☆ on any product to save it here." : "No results found"}</div>}
           {!loadingProducts && !productsError && visibleProducts.length > 0 && (
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
               {/* popLayout: kaarten faden in/uit bij categoriewissel en de rest
@@ -1899,6 +1902,9 @@ export default function SupplyFlow({ session }) {
             </div>
             <button onClick={(e) => { e.stopPropagation(); setGroupToast(null); }} aria-label="dismiss" style={{ background: "transparent", border: "none", color: "#9C9893", fontSize: 14, cursor: "pointer" }}>✕</button>
           </div>
+        )}
+        {infoToast && (
+          <div style={{ position: "fixed", bottom: 90, left: "50%", transform: "translateX(-50%)", zIndex: 350, background: "#0F0E0C", color: "#fff", borderRadius: 999, padding: "10px 18px", fontSize: 13, fontWeight: 600, boxShadow: "0 8px 30px rgba(0,0,0,0.4)", maxWidth: "90%", textAlign: "center" }}>{infoToast}</div>
         )}
         {activeGroup && tab === "feed" && !selectedProduct && !showFriends && !showRequestList && (
           <motion.div initial={{ y: 24, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 30, opacity: 0, scale: 0.96 }} whileTap={{ scale: 0.97 }} transition={springMorph}

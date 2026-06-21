@@ -5,7 +5,7 @@ import {
   ffMyGroups, ffPreview, ffCreateGroup, ffJoinGroup, ffLeaveGroup,
   ffKickMember, ffSetHost, ffSetAdmin, ffSetPrivate, ffUpdateSettings, ffAddItem, ffRemoveItem, ffFetchGroup,
   ffSetReady, ffUnready, checkGroupPrices, estimateMemberFee, ffSyncProfile,
-  ffPostMessage, ffShareItem, ffReact, ffNudge, ffFetchMessages, subscribeGroup,
+  ffPostMessage, ffReact, ffNudge, ffFetchMessages, subscribeGroup,
   inviteLink, whatsappShare,
 } from "./ffApi";
 
@@ -54,25 +54,6 @@ function memberLabel(m, self) {
   if (self) return "You";
   const n = m.display_name ? String(m.display_name).slice(0, 40) : "";
   return n || `Friend ${String(m.user_id || "").slice(0, 4).toUpperCase()}`;
-}
-// Klein "+"-knopje dat de emoji-keuzes uitklapt om op een bericht te reageren.
-// Reactie-kiezer in WhatsApp-stijl: een klein react-knopje dat een afgeronde
-// emoji-balk openklapt (geen los "+").
-function ReactPicker({ onPick }) {
-  const [open, setOpen] = useState(false);
-  if (!open) return (
-    <button onClick={() => setOpen(true)} aria-label="React" style={{ background: "#1E1D1A", border: "none", borderRadius: "50%", width: 22, height: 22, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, cursor: "pointer", opacity: 0.8 }}>🙂</button>
-  );
-  return (
-    <motion.div initial={{ scale: 0.7, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={springMorph}
-      style={{ display: "flex", alignItems: "center", gap: 1, background: "#2c2c2c", borderRadius: 999, padding: "3px 5px", boxShadow: "0 4px 16px rgba(0,0,0,0.45)" }}>
-      {REACTIONS.map((e) => (
-        <motion.button key={e} whileTap={{ scale: 0.8 }} whileHover={{ scale: 1.25 }} onClick={() => { onPick(e); setOpen(false); }}
-          style={{ background: "none", border: "none", borderRadius: "50%", padding: "2px 3px", fontSize: 17, cursor: "pointer", lineHeight: 1 }}>{e}</motion.button>
-      ))}
-      <button onClick={() => setOpen(false)} aria-label="close" style={{ background: "none", border: "none", color: "#9C9893", fontSize: 12, cursor: "pointer", padding: "0 3px" }}>✕</button>
-    </motion.div>
-  );
 }
 
 const sheet = { position: "fixed", bottom: 0, left: 0, right: 0, margin: "0 auto", width: "100%", maxWidth: 430, boxSizing: "border-box", background: "#111111", borderRadius: "24px 24px 0 0", zIndex: 401, maxHeight: "90vh", overflowY: "auto", color: "#fff" };
@@ -164,14 +145,20 @@ export default function Friends({ session, onClose, initialJoinCode, initialGrou
   const [nudgedAt, setNudgedAt] = useState({});   // userId → epoch ms (cooldown)
   const [reactingId, setReactingId] = useState(null);   // bericht-id met open WhatsApp-reactiebalk
   const pressTimer = useRef(null);
-  const startPress = (id) => { endPress(); pressTimer.current = setTimeout(() => setReactingId(id), 380); };
+  const pressStart = useRef({ x: 0, y: 0 });
   const endPress = () => { if (pressTimer.current) { clearTimeout(pressTimer.current); pressTimer.current = null; } };
+  const startPress = (id, e) => { endPress(); pressStart.current = { x: e.clientX, y: e.clientY }; pressTimer.current = setTimeout(() => setReactingId(id), 380); };
+  const movePress = (e) => { if (pressTimer.current && (Math.abs(e.clientX - pressStart.current.x) > 10 || Math.abs(e.clientY - pressStart.current.y) > 10)) endPress(); };
+  // Long-press-handlers (scroll/drag annuleert de press → geen reactiebalk bij scrollen).
+  const pressProps = (id) => ({ onPointerDown: (e) => startPress(id, e), onPointerMove: movePress, onPointerUp: endPress, onPointerLeave: endPress, onPointerCancel: endPress, onContextMenu: (e) => e.preventDefault() });
+  useEffect(() => () => endPress(), []);                        // timer opruimen bij unmount
   // redesign
   const [showFeeInfo, setShowFeeInfo] = useState(false);
   const [chatOpen, setChatOpen] = useState(false);
   const [showInvite, setShowInvite] = useState(false);
   const [shareCopied, setShareCopied] = useState(false);
   const [showLeaveConfirm, setShowLeaveConfirm] = useState(false);
+  useEffect(() => { if (!chatOpen) setReactingId(null); }, [chatOpen]);   // chat dicht → reactiebalk weg
   const doShare = async (code, name) => {
     const shared = await nativeShare(code, name);
     if (!shared) { setShareCopied(true); setTimeout(() => setShareCopied(false), 1800); }   // desktop → naar klembord
@@ -339,12 +326,6 @@ export default function Friends({ session, onClose, initialJoinCode, initialGrou
     const r = await ffPostMessage(lobby.group.id, body);
     if (!r.ok) { setErr(r.error || "Could not send"); setChatInput((cur) => cur ? cur : body); return; }
     loadMessages(lobby.group.id);
-  }
-  async function doShareItem(itemId) {
-    if (!lobby?.group) return;
-    const r = await ffShareItem(lobby.group.id, itemId);
-    if (!r.ok) setErr(r.error || "Could not share");
-    else loadMessages(lobby.group.id);
   }
   async function doReact(messageId, emoji) {
     const r = await ffReact(messageId, emoji);
@@ -583,7 +564,7 @@ export default function Friends({ session, onClose, initialJoinCode, initialGrou
                             {flaggedUrls.includes(it.source_url) && <span style={{ color: "#F0997B", marginLeft: 6 }}>· on hold</span>}
                           </div>
                         </div>
-                        <button onClick={() => onOpenProduct?.(it)} title="View item" style={{ background: "none", border: "none", color: "#777", fontSize: 15, cursor: "pointer" }}>↗</button>
+                        {it.source_url && <button onClick={() => onOpenProduct?.(it)} title="View item" style={{ background: "none", border: "none", color: "#777", fontSize: 15, cursor: "pointer" }}>↗</button>}
                         {self && !isPlaced && <button onClick={async () => { const r = await ffRemoveItem(it.id); if (r && !r.ok) setErr(r.error); refreshLobby(); }} style={{ background: "none", border: "none", color: "#777", fontSize: 14, cursor: "pointer" }}>✕</button>}
                       </div>
                     ))}
@@ -666,7 +647,7 @@ export default function Friends({ session, onClose, initialJoinCode, initialGrou
                         <span style={{ fontSize: 10, color: "#6b6862" }}>{name}</span>
                       </div>
                       {msg.kind === "share" && sharedItem ? (
-                        <div onPointerDown={() => startPress(msg.id)} onPointerUp={endPress} onPointerLeave={endPress} onContextMenu={(e) => e.preventDefault()}
+                        <div {...pressProps(msg.id)}
                           style={{ background: "#221d18", border: "1px solid #2c2b29", borderRadius: 12, padding: 8, maxWidth: "88%", display: "flex", gap: 9, alignItems: "center" }}>
                           <div style={{ width: 40, height: 40, borderRadius: 8, background: "#26211c", overflow: "hidden", flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
                             {sharedItem.variant_image?.startsWith("http") ? <img src={sharedItem.variant_image} referrerPolicy="no-referrer" alt="" style={{ width: "100%", height: "100%", objectFit: "contain" }} /> : <span style={{ fontSize: 17 }}>📦</span>}
@@ -675,13 +656,13 @@ export default function Friends({ session, onClose, initialJoinCode, initialGrou
                             <div style={{ fontSize: 12, color: "#fff", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: 160 }}>{sharedItem.product_title}</div>
                             <div style={{ fontSize: 10.5, color: "#9C9893" }}>{sharedItem.price != null ? `€${Number(sharedItem.price).toFixed(2)}` : "shared an item"}</div>
                             <div style={{ display: "flex", gap: 6, marginTop: 5, flexWrap: "wrap" }}>
-                              <button onClick={() => onOpenProduct?.(sharedItem)} style={{ background: "#1E1D1A", border: "none", color: "#C9C6C1", borderRadius: 8, padding: "4px 9px", fontSize: 11, fontWeight: 700, cursor: "pointer" }}>↗ View</button>
+                              {sharedItem.source_url && <button onClick={() => onOpenProduct?.(sharedItem)} style={{ background: "#1E1D1A", border: "none", color: "#C9C6C1", borderRadius: 8, padding: "4px 9px", fontSize: 11, fontWeight: 700, cursor: "pointer" }}>↗ View</button>}
                               {!isPlaced && sharedItem.owner_id !== myUid && <button onClick={() => doAddShared(sharedItem)} style={{ background: "rgba(255,92,0,0.16)", border: "none", color: "#FF5C00", borderRadius: 8, padding: "4px 9px", fontSize: 11, fontWeight: 700, cursor: "pointer" }}>+ Add to my cart</button>}
                             </div>
                           </div>
                         </div>
                       ) : (
-                        <div onPointerDown={() => startPress(msg.id)} onPointerUp={endPress} onPointerLeave={endPress} onContextMenu={(e) => e.preventDefault()}
+                        <div {...pressProps(msg.id)}
                           style={{ background: mine ? "#FF5C00" : "#222", color: mine ? "#fff" : "#eee", borderRadius: 12, padding: "7px 11px", fontSize: 13, maxWidth: "80%", wordBreak: "break-word", WebkitUserSelect: "none", userSelect: "none", cursor: "pointer" }}>{msg.body}</div>
                       )}
                       <div style={{ display: "flex", gap: 4, alignItems: "center", flexWrap: "wrap" }}>
@@ -719,7 +700,7 @@ export default function Friends({ session, onClose, initialJoinCode, initialGrou
             <AnimatePresence>
               {editing && isAdmin && !isPlaced && (
                 <motion.div key="settings" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.18 }}
-                  onClick={() => setEditing(false)} style={{ position: "fixed", inset: 0, zIndex: 410, background: "rgba(0,0,0,0.6)", display: "flex", alignItems: "flex-end", justifyContent: "center" }}>
+                  onClick={() => setEditing(false)} style={{ position: "fixed", inset: 0, zIndex: 412, background: "rgba(0,0,0,0.6)", display: "flex", alignItems: "flex-end", justifyContent: "center" }}>
                   <motion.div initial={{ y: "100%" }} animate={{ y: 0 }} exit={{ y: "100%" }} transition={springMorph}
                     onClick={(e) => e.stopPropagation()} style={{ width: "100%", maxWidth: 430, boxSizing: "border-box", background: "#161513", borderRadius: "20px 20px 0 0", padding: "18px 18px 28px", color: "#fff", maxHeight: "86vh", overflowY: "auto" }}>
                     <div style={{ display: "flex", alignItems: "center", marginBottom: 14 }}>

@@ -133,7 +133,7 @@ function FeeInfo({ onClose, members, myTotal, myFee }) {
   );
 }
 
-export default function Friends({ session, onClose, initialJoinCode, initialGroupId, onShopForGroup, activeGroupId }) {
+export default function Friends({ session, onClose, initialJoinCode, initialGroupId, onShopForGroup, onOpenProduct, activeGroupId }) {
   const myUid = session?.user?.id;
   const myAvatar = session?.user?.user_metadata?.avatar_url || null;   // mijn live foto (member-rij kan verouderd zijn)
   const avatarOf = (m) => (m && m.user_id === myUid ? (myAvatar || m.avatar_url) : (m && m.avatar_url));
@@ -162,6 +162,10 @@ export default function Friends({ session, onClose, initialJoinCode, initialGrou
   const [messages, setMessages] = useState([]);
   const [chatInput, setChatInput] = useState("");
   const [nudgedAt, setNudgedAt] = useState({});   // userId → epoch ms (cooldown)
+  const [reactingId, setReactingId] = useState(null);   // bericht-id met open WhatsApp-reactiebalk
+  const pressTimer = useRef(null);
+  const startPress = (id) => { endPress(); pressTimer.current = setTimeout(() => setReactingId(id), 380); };
+  const endPress = () => { if (pressTimer.current) { clearTimeout(pressTimer.current); pressTimer.current = null; } };
   // redesign
   const [showFeeInfo, setShowFeeInfo] = useState(false);
   const [chatOpen, setChatOpen] = useState(false);
@@ -579,7 +583,7 @@ export default function Friends({ session, onClose, initialJoinCode, initialGrou
                             {flaggedUrls.includes(it.source_url) && <span style={{ color: "#F0997B", marginLeft: 6 }}>· on hold</span>}
                           </div>
                         </div>
-                        {self && !isPlaced && <button onClick={() => doShareItem(it.id)} title="Share to chat" style={{ background: "none", border: "none", color: "#777", fontSize: 14, cursor: "pointer" }}>↗</button>}
+                        <button onClick={() => onOpenProduct?.(it)} title="View item" style={{ background: "none", border: "none", color: "#777", fontSize: 15, cursor: "pointer" }}>↗</button>
                         {self && !isPlaced && <button onClick={async () => { const r = await ffRemoveItem(it.id); if (r && !r.ok) setErr(r.error); refreshLobby(); }} style={{ background: "none", border: "none", color: "#777", fontSize: 14, cursor: "pointer" }}>✕</button>}
                       </div>
                     ))}
@@ -588,36 +592,6 @@ export default function Friends({ session, onClose, initialJoinCode, initialGrou
               })
             )}
 
-            {/* admin settings — geopend via het ⚙️-icoon in de header */}
-            {isAdmin && !isPlaced && editing && (
-              <div style={{ marginTop: 12, background: "#1A1917", borderRadius: 14, padding: "12px 14px" }}>
-                <label style={label}>Group name</label>
-                <input style={input} value={editName} onChange={(e) => setEditName(e.target.value)} maxLength={40} />
-                <label style={{ ...label, marginTop: 12 }}>Max friends (min {lobby.members.length})</label>
-                <div style={{ display: "flex", gap: 6, marginBottom: 4 }}>
-                  {[2, 3, 4, 5, 6, 7].map((n) => (
-                    <button key={n} disabled={n < lobby.members.length} onClick={() => setEditMax(n)}
-                      style={{ flex: 1, background: editMax === n ? "#FF5C00" : "#26211c", color: n < lobby.members.length ? "#555" : editMax === n ? "#fff" : "#9C9893", border: "none", borderRadius: 8, padding: "9px 0", fontSize: 13, fontWeight: 700, cursor: n < lobby.members.length ? "default" : "pointer" }}>{n}</button>
-                  ))}
-                </div>
-                <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "14px 0 12px", borderTop: "1px solid #2c2b29", marginTop: 12 }}>
-                  <div style={{ flex: 1 }}>
-                    <div style={{ fontSize: 13, fontWeight: 600, color: "#fff" }}>Private group</div>
-                    <div style={{ fontSize: 11, color: "#9C9893" }}>{g.is_private ? "Locked — no one new can join" : "Anyone with the link can join"}</div>
-                  </div>
-                  <div onClick={async () => { const r = await ffSetPrivate(g.id, !g.is_private); if (r && !r.ok) setErr(r.error); refreshLobby(); }}
-                    role="switch" aria-checked={!!g.is_private}
-                    style={{ width: 44, height: 26, borderRadius: 999, background: g.is_private ? "#FF5C00" : "#3a3a37", position: "relative", cursor: "pointer", flexShrink: 0, transition: "background .2s" }}>
-                    <div style={{ position: "absolute", top: 3, left: g.is_private ? 21 : 3, width: 20, height: 20, borderRadius: "50%", background: "#fff", transition: "left .2s" }} />
-                  </div>
-                </div>
-                <div style={{ display: "flex", gap: 8 }}>
-                  <button style={{ ...primaryBtn, padding: "11px" }} disabled={busy} onClick={doSaveSettings}>Save name & size</button>
-                  <button style={{ ...ghostBtn, width: "auto", padding: "11px 16px" }} onClick={() => setEditing(false)}>Close</button>
-                </div>
-                <div style={{ fontSize: 10.5, color: "#6b6862", marginTop: 10, lineHeight: 1.5 }}>Tip: hand over admin or host on any member above. Make someone else admin and these settings move to them.</div>
-              </div>
-            )}
 
             {/* actions */}
             {isPlaced ? (
@@ -692,25 +666,41 @@ export default function Friends({ session, onClose, initialJoinCode, initialGrou
                         <span style={{ fontSize: 10, color: "#6b6862" }}>{name}</span>
                       </div>
                       {msg.kind === "share" && sharedItem ? (
-                        <div style={{ background: "#221d18", border: "1px solid #2c2b29", borderRadius: 12, padding: 8, maxWidth: "88%", display: "flex", gap: 9, alignItems: "center" }}>
+                        <div onPointerDown={() => startPress(msg.id)} onPointerUp={endPress} onPointerLeave={endPress} onContextMenu={(e) => e.preventDefault()}
+                          style={{ background: "#221d18", border: "1px solid #2c2b29", borderRadius: 12, padding: 8, maxWidth: "88%", display: "flex", gap: 9, alignItems: "center" }}>
                           <div style={{ width: 40, height: 40, borderRadius: 8, background: "#26211c", overflow: "hidden", flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
                             {sharedItem.variant_image?.startsWith("http") ? <img src={sharedItem.variant_image} referrerPolicy="no-referrer" alt="" style={{ width: "100%", height: "100%", objectFit: "contain" }} /> : <span style={{ fontSize: 17 }}>📦</span>}
                           </div>
                           <div style={{ minWidth: 0 }}>
                             <div style={{ fontSize: 12, color: "#fff", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: 160 }}>{sharedItem.product_title}</div>
                             <div style={{ fontSize: 10.5, color: "#9C9893" }}>{sharedItem.price != null ? `€${Number(sharedItem.price).toFixed(2)}` : "shared an item"}</div>
-                            {!isPlaced && sharedItem.owner_id !== myUid && <button onClick={() => doAddShared(sharedItem)} style={{ marginTop: 5, background: "rgba(255,92,0,0.16)", border: "none", color: "#FF5C00", borderRadius: 8, padding: "4px 9px", fontSize: 11, fontWeight: 700, cursor: "pointer" }}>+ Add to my cart</button>}
+                            <div style={{ display: "flex", gap: 6, marginTop: 5, flexWrap: "wrap" }}>
+                              <button onClick={() => onOpenProduct?.(sharedItem)} style={{ background: "#1E1D1A", border: "none", color: "#C9C6C1", borderRadius: 8, padding: "4px 9px", fontSize: 11, fontWeight: 700, cursor: "pointer" }}>↗ View</button>
+                              {!isPlaced && sharedItem.owner_id !== myUid && <button onClick={() => doAddShared(sharedItem)} style={{ background: "rgba(255,92,0,0.16)", border: "none", color: "#FF5C00", borderRadius: 8, padding: "4px 9px", fontSize: 11, fontWeight: 700, cursor: "pointer" }}>+ Add to my cart</button>}
+                            </div>
                           </div>
                         </div>
                       ) : (
-                        <div style={{ background: mine ? "#FF5C00" : "#222", color: mine ? "#fff" : "#eee", borderRadius: 12, padding: "7px 11px", fontSize: 13, maxWidth: "80%", wordBreak: "break-word" }}>{msg.body}</div>
+                        <div onPointerDown={() => startPress(msg.id)} onPointerUp={endPress} onPointerLeave={endPress} onContextMenu={(e) => e.preventDefault()}
+                          style={{ background: mine ? "#FF5C00" : "#222", color: mine ? "#fff" : "#eee", borderRadius: 12, padding: "7px 11px", fontSize: 13, maxWidth: "80%", wordBreak: "break-word", WebkitUserSelect: "none", userSelect: "none", cursor: "pointer" }}>{msg.body}</div>
                       )}
                       <div style={{ display: "flex", gap: 4, alignItems: "center", flexWrap: "wrap" }}>
                         {Object.entries(msg.reactions || {}).map(([emoji, uids]) => (
                           <button key={emoji} onClick={() => doReact(msg.id, emoji)}
                             style={{ background: (uids || []).includes(myUid) ? "rgba(255,92,0,0.2)" : "#1E1D1A", border: "none", borderRadius: 10, padding: "1px 6px", fontSize: 11, cursor: "pointer", color: "#ddd" }}>{emoji} {(uids || []).length}</button>
                         ))}
-                        <ReactPicker onPick={(e) => doReact(msg.id, e)} />
+                        {reactingId === msg.id ? (
+                          <motion.div initial={{ scale: 0.7, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={springMorph}
+                            style={{ display: "flex", alignItems: "center", gap: 1, background: "#2c2c2c", borderRadius: 999, padding: "3px 5px", boxShadow: "0 6px 18px rgba(0,0,0,0.5)" }}>
+                            {REACTIONS.map((e) => (
+                              <motion.button key={e} whileTap={{ scale: 0.8 }} whileHover={{ scale: 1.25 }} onClick={() => { doReact(msg.id, e); setReactingId(null); }}
+                                style={{ background: "none", border: "none", borderRadius: "50%", padding: "2px 3px", fontSize: 18, cursor: "pointer", lineHeight: 1 }}>{e}</motion.button>
+                            ))}
+                            <button onClick={() => setReactingId(null)} aria-label="close" style={{ background: "none", border: "none", color: "#9C9893", fontSize: 12, cursor: "pointer", padding: "0 3px" }}>✕</button>
+                          </motion.div>
+                        ) : (
+                          <button onClick={() => setReactingId(msg.id)} aria-label="React" style={{ background: "#1E1D1A", border: "none", borderRadius: "50%", width: 22, height: 22, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, cursor: "pointer", opacity: 0.8 }}>🙂</button>
+                        )}
                       </div>
                     </div>
                   );
@@ -726,6 +716,42 @@ export default function Friends({ session, onClose, initialJoinCode, initialGrou
               </AnimatePresence>
             </div>
             <AnimatePresence>{showFeeInfo && <FeeInfo onClose={() => setShowFeeInfo(false)} members={members.length} myTotal={myTotal} myFee={myFee} />}</AnimatePresence>
+            <AnimatePresence>
+              {editing && isAdmin && !isPlaced && (
+                <motion.div key="settings" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.18 }}
+                  onClick={() => setEditing(false)} style={{ position: "fixed", inset: 0, zIndex: 410, background: "rgba(0,0,0,0.6)", display: "flex", alignItems: "flex-end", justifyContent: "center" }}>
+                  <motion.div initial={{ y: "100%" }} animate={{ y: 0 }} exit={{ y: "100%" }} transition={springMorph}
+                    onClick={(e) => e.stopPropagation()} style={{ width: "100%", maxWidth: 430, boxSizing: "border-box", background: "#161513", borderRadius: "20px 20px 0 0", padding: "18px 18px 28px", color: "#fff", maxHeight: "86vh", overflowY: "auto" }}>
+                    <div style={{ display: "flex", alignItems: "center", marginBottom: 14 }}>
+                      <div style={{ flex: 1, fontSize: 16, fontWeight: 800 }}>Group settings</div>
+                      <button onClick={() => setEditing(false)} style={{ background: "#1E1D1A", border: "none", color: "#9C9893", width: 30, height: 30, borderRadius: "50%", fontSize: 14, cursor: "pointer" }}>✕</button>
+                    </div>
+                    <label style={label}>Group name</label>
+                    <input style={input} value={editName} onChange={(e) => setEditName(e.target.value)} maxLength={40} />
+                    <label style={{ ...label, marginTop: 14 }}>Max friends (min {lobby.members.length})</label>
+                    <div style={{ display: "flex", gap: 6 }}>
+                      {[2, 3, 4, 5, 6, 7].map((n) => (
+                        <button key={n} disabled={n < lobby.members.length} onClick={() => setEditMax(n)}
+                          style={{ flex: 1, background: editMax === n ? "#FF5C00" : "#26211c", color: n < lobby.members.length ? "#555" : editMax === n ? "#fff" : "#9C9893", border: "none", borderRadius: 8, padding: "10px 0", fontSize: 13, fontWeight: 700, cursor: n < lobby.members.length ? "default" : "pointer" }}>{n}</button>
+                      ))}
+                    </div>
+                    <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "16px 0", borderTop: "1px solid #2c2b29", marginTop: 16 }}>
+                      <div style={{ flex: 1 }}>
+                        <div style={{ fontSize: 13.5, fontWeight: 600, color: "#fff" }}>Private group</div>
+                        <div style={{ fontSize: 11.5, color: "#9C9893" }}>{g.is_private ? "Locked — no one new can join" : "Anyone with the link can join"}</div>
+                      </div>
+                      <div onClick={async () => { const r = await ffSetPrivate(g.id, !g.is_private); if (r && !r.ok) setErr(r.error); refreshLobby(); }}
+                        role="switch" aria-checked={!!g.is_private}
+                        style={{ width: 46, height: 27, borderRadius: 999, background: g.is_private ? "#FF5C00" : "#3a3a37", position: "relative", cursor: "pointer", flexShrink: 0, transition: "background .2s" }}>
+                        <div style={{ position: "absolute", top: 3, left: g.is_private ? 22 : 3, width: 21, height: 21, borderRadius: "50%", background: "#fff", transition: "left .2s" }} />
+                      </div>
+                    </div>
+                    <button style={{ ...primaryBtn }} disabled={busy} onClick={async () => { await doSaveSettings(); }}>Save changes</button>
+                    <div style={{ fontSize: 11, color: "#6b6862", marginTop: 12, lineHeight: 1.5 }}>Hand over <b style={{ color: "#9C9893" }}>admin</b> or <b style={{ color: "#9C9893" }}>host</b> by tapping a member in the lobby. Make someone else admin and these settings move to them.</div>
+                  </motion.div>
+                </motion.div>
+              )}
+            </AnimatePresence>
           </div>
         )}
       </>

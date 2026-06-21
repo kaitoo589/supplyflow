@@ -1061,6 +1061,23 @@ export default function SupplyFlow({ session }) {
     try { return JSON.parse(localStorage.getItem("flowva_active_group") || "null"); } catch { return null; }
   });
   const [groupToast, setGroupToast] = useState(null);   // {kind,name} als de actieve groep van status wisselt
+  // Favorieten (per apparaat) + filter in de feed.
+  const [favorites, setFavorites] = useState(() => { try { return JSON.parse(localStorage.getItem("flowva_favorites") || "[]"); } catch { return []; } });
+  const [showFavoritesOnly, setShowFavoritesOnly] = useState(false);
+  useEffect(() => { try { localStorage.setItem("flowva_favorites", JSON.stringify(favorites)); } catch { /* ignore */ } }, [favorites]);
+  const favKey = (p) => (p && (p.source_url || p.id)) || "";
+  const isFavorite = (p) => favorites.includes(favKey(p));
+  const toggleFavorite = (p) => { const k = favKey(p); if (!k) return; setFavorites((f) => f.includes(k) ? f.filter((x) => x !== k) : [...f, k]); };
+  // Open de productpagina vanuit een groeps-item/share-kaart (sluit de Friends-sheet).
+  const openProductByUrl = async (item) => {
+    const url = item?.source_url;
+    if (!url) return;
+    let prod = products.find((p) => p.source_url === url);
+    if (!prod) { const { data } = await supabase.from("products").select("*").eq("source_url", url).limit(1); prod = data?.[0] || null; }
+    if (!prod) return;
+    setShowFriends(false); setFriendsGroupId(null);
+    setSelectedProduct(prod);
+  };
   const [myGroups, setMyGroups] = useState([]);         // groepen waar ik in zit (voor de profiel-switch)
   const [selectedGroupId, setSelectedGroupId] = useState(() => activeGroup?.id || null);  // gekozen (pending) groep
   const [shakeGroups, setShakeGroups] = useState(false);                                   // rode shake bij geen selectie
@@ -1306,7 +1323,8 @@ export default function SupplyFlow({ session }) {
       (p.category === activeCategory && (!activeSub || p.subcategory === activeSub));
     const q = search.trim().toLowerCase();
     const matchSearch = !q || (p.title || "").toLowerCase().includes(q);
-    return matchCat && matchSearch;
+    const matchFav = !showFavoritesOnly || isFavorite(p);
+    return matchCat && matchSearch && matchFav;
   });
 
   return (
@@ -1388,8 +1406,14 @@ export default function SupplyFlow({ session }) {
       {/* FEED TAB */}
       {tab === "feed" && (
         <motion.div key="feed" {...pageTransition} style={{ padding: "10px 20px 80px" }}>
-          <div style={{ fontSize: 30, fontWeight: 800, letterSpacing: -0.6, color: "#111111", marginBottom: 2 }}>Discover</div>
-          <div style={{ fontSize: 13.5, color: "#8A8780", marginBottom: 16 }}>From factory floor to your door.</div>
+          <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 10 }}>
+            <div style={{ fontSize: 30, fontWeight: 800, letterSpacing: -0.6, color: "#111111", marginBottom: 2 }}>{showFavoritesOnly ? "Favorites" : "Discover"}</div>
+            <motion.button whileTap={{ scale: 0.85 }} transition={springSnappy} onClick={() => setShowFavoritesOnly((v) => !v)} aria-label="favorites"
+              style={{ width: 42, height: 42, borderRadius: "50%", background: showFavoritesOnly ? "#FF5C00" : "#fff", border: "1px solid #ECEAE5", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", flexShrink: 0 }}>
+              <Star size={19} color={showFavoritesOnly ? "#fff" : "#111111"} fill={showFavoritesOnly ? "#fff" : "none"} strokeWidth={2} />
+            </motion.button>
+          </div>
+          <div style={{ fontSize: 13.5, color: "#8A8780", marginBottom: 16 }}>{showFavoritesOnly ? "Your starred products." : "From factory floor to your door."}</div>
           <div style={{ background: "#F0EEE8", borderRadius: 15, padding: "12px 14px", display: "flex", alignItems: "center", gap: 9, marginBottom: 14 }}>
             <Search size={17} color="#8A8780" strokeWidth={2} />
             <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search products by name..."
@@ -1850,6 +1874,7 @@ export default function SupplyFlow({ session }) {
             onSuccess={() => { setSuccessProduct(selectedProduct); setSelectedProduct(null); fetchOrders(); }}
             listCount={requestList.length}
             onAddToList={(item) => { setRequestList(list => [...list, item]); setSelectedProduct(null); }}
+            isFavorite={isFavorite(selectedProduct)} onToggleFavorite={() => toggleFavorite(selectedProduct)}
             activeGroup={activeGroup} onActiveGroupGone={() => setActiveGroup(null)} />
         )}
       </AnimatePresence>
@@ -1860,7 +1885,7 @@ export default function SupplyFlow({ session }) {
         {showFriends && (
           <Friends session={session} initialJoinCode={friendsJoinCode} initialGroupId={friendsGroupId}
             activeGroupId={activeGroup?.id}
-            onShopForGroup={(g) => setActiveGroup(g)}
+            onShopForGroup={(g) => setActiveGroup(g)} onOpenProduct={openProductByUrl}
             onClose={() => { setShowFriends(false); setFriendsJoinCode(null); setFriendsGroupId(null); }} />
         )}
         {groupToast && (
@@ -1876,7 +1901,7 @@ export default function SupplyFlow({ session }) {
           </div>
         )}
         {activeGroup && tab === "feed" && !selectedProduct && !showFriends && !showRequestList && (
-          <motion.div initial={{ y: 24, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={springMorph}
+          <motion.div initial={{ y: 24, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 30, opacity: 0, scale: 0.96 }} whileTap={{ scale: 0.97 }} transition={springMorph}
             onClick={() => { setFriendsGroupId(activeGroup.id); setShowFriends(true); }}
             style={{ position: "fixed", bottom: 78, left: 0, right: 0, margin: "0 auto", width: "calc(100% - 40px)", maxWidth: 390, background: "#111111", borderRadius: 16, overflow: "hidden", cursor: "pointer", zIndex: 301, boxShadow: "0 12px 40px rgba(255,92,0,0.28)", border: "1px solid rgba(255,92,0,0.4)" }}>
             <div style={{ padding: "12px 16px", display: "flex", alignItems: "center", gap: 12 }}>

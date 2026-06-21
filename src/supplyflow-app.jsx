@@ -1850,7 +1850,7 @@ export default function SupplyFlow({ session }) {
             <button onClick={(e) => { e.stopPropagation(); setGroupToast(null); }} aria-label="dismiss" style={{ background: "transparent", border: "none", color: "#9C9893", fontSize: 14, cursor: "pointer" }}>✕</button>
           </div>
         )}
-        {activeGroup && !selectedProduct && !showFriends && !showRequestList && (
+        {activeGroup && tab === "feed" && !selectedProduct && !showFriends && !showRequestList && (
           <motion.div initial={{ y: 24, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={springMorph}
             onClick={() => setShowFriends(true)}
             style={{ position: "fixed", bottom: 78, left: 0, right: 0, margin: "0 auto", width: "calc(100% - 40px)", maxWidth: 390, background: "#111111", borderRadius: 16, overflow: "hidden", cursor: "pointer", zIndex: 301, boxShadow: "0 12px 40px rgba(255,92,0,0.28)", border: "1px solid rgba(255,92,0,0.4)" }}>
@@ -1869,10 +1869,10 @@ export default function SupplyFlow({ session }) {
             </div>
           </motion.div>
         )}
-        {requestList.length > 0 && !showRequestList && !selectedProduct && !showFriends && (
+        {requestList.length > 0 && tab === "feed" && !showRequestList && !selectedProduct && !showFriends && !activeGroup && (
           <motion.div layoutId="request-list-morph" transition={springMorph}
             onClick={() => { setListError(null); setShowRequestList(true); }}
-            style={{ position: "fixed", bottom: activeGroup ? 142 : 78, left: 0, right: 0, margin: "0 auto", width: "calc(100% - 40px)", maxWidth: 390, background: "#111111", borderRadius: 16, overflow: "hidden", cursor: "pointer", zIndex: 301, boxShadow: "0 12px 40px rgba(17,17,17,0.35)", opacity: activeGroup ? 0.94 : 1 }}>
+            style={{ position: "fixed", bottom: 78, left: 0, right: 0, margin: "0 auto", width: "calc(100% - 40px)", maxWidth: 390, background: "#111111", borderRadius: 16, overflow: "hidden", cursor: "pointer", zIndex: 301, boxShadow: "0 12px 40px rgba(17,17,17,0.35)" }}>
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1, transition: { delay: 0.1, duration: 0.16 } }} exit={{ opacity: 0, transition: { duration: 0.08 } }}
               style={{ padding: "12px 16px", display: "flex", alignItems: "center", gap: 12 }}>
               <span style={{ fontSize: 18 }}>📋</span>

@@ -133,6 +133,7 @@ export default function Friends({ session, onClose, initialJoinCode, onShopForGr
   // redesign
   const [showFeeInfo, setShowFeeInfo] = useState(false);
   const [chatOpen, setChatOpen] = useState(false);
+  const [showInvite, setShowInvite] = useState(false);
   const [shareCopied, setShareCopied] = useState(false);
   const doShare = async (code, name) => {
     const shared = await nativeShare(code, name);
@@ -427,7 +428,7 @@ export default function Friends({ session, onClose, initialJoinCode, onShopForGr
           g && (
             <>
               {iconBtn("fee", () => setShowFeeInfo(true), "Fee breakdown", <span style={{ fontWeight: 800, fontSize: 13 }}>%</span>)}
-              {iconBtn("share", () => doShare(g.invite_code, g.name), "Share invite", <ShareGlyph />)}
+              {iconBtn("share", () => setShowInvite((v) => !v), "Share invite", <ShareGlyph />)}
               {isAdmin && !isPlaced && iconBtn("settings", () => setEditing((v) => !v), "Group settings", <span style={{ fontSize: 14 }}>⚙️</span>)}
             </>
           ))}
@@ -436,14 +437,23 @@ export default function Friends({ session, onClose, initialJoinCode, onShopForGr
           <div style={{ textAlign: "center", color: "#777", padding: "30px 0", fontSize: 13 }}>Loading group…</div>
         ) : (
           <div style={{ padding: "0 18px 28px" }}>
-            {/* invite */}
-            <div style={{ background: "#1A1917", borderRadius: 14, padding: "12px 14px", marginBottom: 14 }}>
-              <div style={{ fontSize: 11.5, color: "#9C9893", marginBottom: 8 }}>Invite link · code <b style={{ color: "#fff", letterSpacing: 1 }}>{g.invite_code}</b></div>
-              <div style={{ display: "flex", gap: 8 }}>
-                <a href={whatsappShare(g.invite_code, g.name)} target="_blank" rel="noreferrer" style={{ flex: 1, textAlign: "center", background: "#FF5C00", color: "#fff", borderRadius: 10, padding: "10px", fontSize: 12.5, fontWeight: 700, textDecoration: "none" }}>Share on WhatsApp</a>
-                <button onClick={() => copyLink(g.invite_code)} style={{ background: "#1E1D1A", border: "1px solid #2c2b29", color: "#C9C6C1", borderRadius: 10, padding: "10px 14px", fontSize: 12.5, fontWeight: 600, cursor: "pointer" }}>Copy link</button>
-              </div>
-            </div>
+            {/* invite — in/uitklapbaar via het deelknopje in de header */}
+            <AnimatePresence initial={false}>
+              {showInvite && (
+                <motion.div initial={{ height: 0, opacity: 0, marginBottom: 0 }} animate={{ height: "auto", opacity: 1, marginBottom: 14 }} exit={{ height: 0, opacity: 0, marginBottom: 0 }} transition={springMorph} style={{ overflow: "hidden" }}>
+                  <div style={{ background: "#1A1917", borderRadius: 14, padding: "12px 14px" }}>
+                    <div style={{ display: "flex", alignItems: "center", marginBottom: 8 }}>
+                      <div style={{ flex: 1, fontSize: 11.5, color: "#9C9893" }}>Invite link · code <b style={{ color: "#fff", letterSpacing: 1 }}>{g.invite_code}</b></div>
+                      <button onClick={() => setShowInvite(false)} aria-label="hide invite" style={{ background: "none", border: "none", color: "#6b6862", fontSize: 16, cursor: "pointer", lineHeight: 1, padding: "0 2px" }}>▴</button>
+                    </div>
+                    <div style={{ display: "flex", gap: 8 }}>
+                      <a href={whatsappShare(g.invite_code, g.name)} target="_blank" rel="noreferrer" style={{ flex: 1, textAlign: "center", background: "#FF5C00", color: "#fff", borderRadius: 10, padding: "10px", fontSize: 12.5, fontWeight: 700, textDecoration: "none" }}>Share on WhatsApp</a>
+                      <button onClick={() => { copyLink(g.invite_code); setShareCopied(true); setTimeout(() => setShareCopied(false), 1800); }} style={{ background: "#1E1D1A", border: "1px solid #2c2b29", color: "#C9C6C1", borderRadius: 10, padding: "10px 14px", fontSize: 12.5, fontWeight: 600, cursor: "pointer" }}>Copy link</button>
+                    </div>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
 
             {/* members */}
             <div style={{ fontSize: 12, color: "#9C9893", margin: "0 2px 8px" }}>
@@ -579,11 +589,7 @@ export default function Friends({ session, onClose, initialJoinCode, onShopForGr
                 {/* confirm & pay */}
                 <div style={{ marginTop: 18, background: "#1A1917", borderRadius: 16, padding: "14px" }}>
                   <div style={{ fontSize: 12, color: "#9C9893", marginBottom: 10 }}>{readyCount} of {members.length} ready</div>
-                  {myItems.length === 0 ? (
-                    <div style={{ fontSize: 12.5, color: "#C9C6C1", lineHeight: 1.55 }}>
-                      Add at least one item to the shared cart before you confirm — tap <b style={{ color: "#fff" }}>Shop for this group</b> below.
-                    </div>
-                  ) : iAmReady ? (
+                  {myItems.length === 0 ? null : iAmReady ? (
                     <>
                       <div style={{ display: "flex", alignItems: "center", gap: 8, color: "#34D17B", fontWeight: 700, fontSize: 14 }}>✓ You're ready — waiting for your friends</div>
                       <div style={{ fontSize: 11.5, color: "#9C9893", marginTop: 6, lineHeight: 1.55 }}>
@@ -610,33 +616,28 @@ export default function Friends({ session, onClose, initialJoinCode, onShopForGr
                 </div>
 
                 <button style={{ ...ghostBtn, marginTop: 12, color: activeGroupId === g.id ? "#34D17B" : "#FF5C00", borderColor: activeGroupId === g.id ? "rgba(52,209,123,0.3)" : "rgba(255,92,0,0.3)" }}
-                  onClick={() => { if (activeGroupId === g.id) { onShopForGroup?.(null); } else { onShopForGroup?.({ id: g.id, name: g.name }); onClose?.(); } }}>
-                  {activeGroupId === g.id ? "✓ Shopping here — tap to stop" : "+ Shop for this group"}
+                  onClick={() => { if (activeGroupId !== g.id) onShopForGroup?.({ id: g.id, name: g.name }); onClose?.(); }}>
+                  {activeGroupId === g.id ? "✓ Shopping for this group" : "+ Shop for this group"}
                 </button>
                 <button style={{ ...ghostBtn, marginTop: 8, color: "#E24B4A", borderColor: "rgba(226,75,74,0.3)" }} disabled={busy} onClick={doLeave}>Leave group</button>
               </>
             )}
 
-            {/* squad chat — morphing icoon ↔ paneel */}
-            <div style={{ marginTop: 22 }}>
+            {/* squad chat — accordion (vloeiende height-expand) */}
+            <div style={{ marginTop: 22, background: "#161513", borderRadius: 14, overflow: "hidden" }}>
+              <button onClick={() => setChatOpen((v) => !v)}
+                style={{ width: "100%", display: "flex", alignItems: "center", gap: 10, background: "none", border: "none", padding: "12px 14px", cursor: "pointer", color: "#fff" }}>
+                <span style={{ fontSize: 18 }}>💬</span>
+                <div style={{ flex: 1, textAlign: "left", minWidth: 0 }}>
+                  <div style={{ fontSize: 13, fontWeight: 700 }}>Squad chat</div>
+                  <div style={{ fontSize: 11, color: "#9C9893" }}>{messages.length ? `${messages.length} message${messages.length === 1 ? "" : "s"}` : "Say hi to your squad 👋"}</div>
+                </div>
+                <motion.span animate={{ rotate: chatOpen ? 180 : 0 }} transition={springMorph} style={{ color: "#6b6862", fontSize: 15, display: "inline-block" }}>▾</motion.span>
+              </button>
               <AnimatePresence initial={false}>
-                {!chatOpen ? (
-                  <motion.button key="chatpill" layoutId="ff-chat" transition={springMorph} onClick={() => setChatOpen(true)}
-                    style={{ width: "100%", display: "flex", alignItems: "center", gap: 10, background: "#161513", border: "1px solid #2c2b29", borderRadius: 14, padding: "12px 14px", cursor: "pointer", color: "#fff" }}>
-                    <span style={{ fontSize: 18 }}>💬</span>
-                    <div style={{ flex: 1, textAlign: "left", minWidth: 0 }}>
-                      <div style={{ fontSize: 13, fontWeight: 700 }}>Squad chat</div>
-                      <div style={{ fontSize: 11, color: "#9C9893" }}>{messages.length ? `${messages.length} message${messages.length === 1 ? "" : "s"} — tap to open` : "Say hi to your squad 👋"}</div>
-                    </div>
-                    <span style={{ color: "#6b6862", fontSize: 15 }}>▾</span>
-                  </motion.button>
-                ) : (
-                  <motion.div key="chatpanel" layoutId="ff-chat" transition={springMorph}
-                    style={{ background: "#161513", borderRadius: 14, padding: "10px 12px", overflow: "hidden" }}>
-                    <div style={{ display: "flex", alignItems: "center", marginBottom: 8 }}>
-                      <div style={{ flex: 1, fontSize: 13, fontWeight: 700, color: "#fff" }}>💬 Squad chat</div>
-                      <button onClick={() => setChatOpen(false)} style={{ background: "none", border: "none", color: "#9C9893", fontSize: 16, cursor: "pointer" }}>▴</button>
-                    </div>
+                {chatOpen && (
+                  <motion.div key="chatbody" initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }} transition={springMorph} style={{ overflow: "hidden" }}>
+                    <div style={{ padding: "0 12px 12px" }}>
                     <div style={{ maxHeight: 240, overflowY: "auto", display: "flex", flexDirection: "column", gap: 9, marginBottom: 9 }}>
                 {messages.length === 0 ? (
                   <div style={{ textAlign: "center", color: "#6b6862", fontSize: 12, padding: "12px 0" }}>No messages yet — say hi 👋</div>
@@ -647,7 +648,10 @@ export default function Friends({ session, onClose, initialJoinCode, onShopForGr
                   const sharedItem = msg.kind === "share" ? ((msg.item_id && (lobby.items || []).find((it) => it.id === msg.item_id)) || msg.product || null) : null;
                   return (
                     <div key={msg.id} style={{ display: "flex", flexDirection: "column", alignItems: mine ? "flex-end" : "flex-start", gap: 3 }}>
-                      <div style={{ fontSize: 10, color: "#6b6862", padding: "0 4px" }}>{name}</div>
+                      <div style={{ display: "flex", alignItems: "center", gap: 5, padding: "0 4px", flexDirection: mine ? "row-reverse" : "row" }}>
+                        {author && <Avatar name={author.display_name} url={author.avatar_url} seed={msg.user_id} size={17} />}
+                        <span style={{ fontSize: 10, color: "#6b6862" }}>{name}</span>
+                      </div>
                       {msg.kind === "share" && sharedItem ? (
                         <div style={{ background: "#221d18", border: "1px solid #2c2b29", borderRadius: 12, padding: 8, maxWidth: "88%", display: "flex", gap: 9, alignItems: "center" }}>
                           <div style={{ width: 40, height: 40, borderRadius: 8, background: "#26211c", overflow: "hidden", flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
@@ -676,6 +680,7 @@ export default function Friends({ session, onClose, initialJoinCode, onShopForGr
                     <div style={{ display: "flex", gap: 6 }}>
                       <input style={{ ...input, padding: "10px 12px" }} value={chatInput} onChange={(e) => setChatInput(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") doPostMessage(); }} placeholder="Message your squad…" maxLength={500} />
                       <button onClick={doPostMessage} style={{ background: "#FF5C00", border: "none", color: "#fff", borderRadius: 12, padding: "0 16px", fontSize: 13, fontWeight: 700, cursor: "pointer" }}>Send</button>
+                    </div>
                     </div>
                   </motion.div>
                 )}

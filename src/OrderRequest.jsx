@@ -376,19 +376,18 @@ export default function OrderRequest({ product, session, onClose, onSuccess, onA
                 </motion.button>
                 <motion.button variants={fadeUp} whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.96 }}
                   onClick={handleShareToGroup} disabled={loading}
-                  style={{ width: "100%", marginBottom: 12, background: sharedToGroup ? "rgba(52,209,123,0.15)" : "rgba(255,92,0,0.08)", color: sharedToGroup ? "#16A34A" : "#FF5C00", border: `1.5px solid ${sharedToGroup ? "rgba(52,209,123,0.4)" : "rgba(255,92,0,0.35)"}`, borderRadius: 14, padding: "13px", fontSize: 14, fontWeight: 700, cursor: "pointer" }}>
+                  style={{ width: "100%", background: sharedToGroup ? "rgba(52,209,123,0.15)" : "rgba(255,92,0,0.08)", color: sharedToGroup ? "#16A34A" : "#FF5C00", border: `1.5px solid ${sharedToGroup ? "rgba(52,209,123,0.4)" : "rgba(255,92,0,0.35)"}`, borderRadius: 14, padding: "13px", fontSize: 14, fontWeight: 700, cursor: "pointer" }}>
                   {sharedToGroup ? "✓ Shared to the group" : "↗ Share to group"}
                 </motion.button>
-                <div style={{ textAlign: "center", fontSize: 11, color: "#A8A5A0", marginBottom: 10 }}>— or add to your own cart —</div>
               </>
             )}
-            {onAddToList && (
+            {onAddToList && !activeGroup && (
               <motion.button
                 variants={fadeUp}
                 whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.96 }}
                 onClick={handleAddToList}
                 disabled={loading}
-                style={{ width: "100%", background: activeGroup ? "#fff" : "#FF5C00", color: activeGroup ? "#111111" : "#fff", border: activeGroup ? "1.5px solid #111111" : "none", borderRadius: 14, padding: activeGroup ? "14px" : "16px", fontSize: activeGroup ? 14 : 15, fontWeight: 700, cursor: "pointer" }}
+                style={{ width: "100%", background: "#FF5C00", color: "#fff", border: "none", borderRadius: 14, padding: "16px", fontSize: 15, fontWeight: 700, cursor: "pointer" }}
               >
                 + Add to cart{listCount > 0 ? ` (${listCount})` : ""}
               </motion.button>

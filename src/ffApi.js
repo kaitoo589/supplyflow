@@ -21,6 +21,7 @@ export const ffUpdateSettings = (id, { name, maxSize }) =>
   rpc("ff_update_settings", { p_group_id: id, p_name: name ?? null, p_max_size: maxSize ?? null, p_join_mode: null });
 export const ffAddItem        = (id, item) => rpc("ff_add_item", { p_group_id: id, p_item: item });
 export const ffRemoveItem     = (itemId) => rpc("ff_remove_item", { p_item_id: itemId });
+export const ffSyncProfile    = () => rpc("ff_sync_profile");
 export const ffSetAdmin       = (id, uid) => rpc("ff_set_admin", { p_group_id: id, p_user_id: uid });
 export const ffSetPrivate     = (id, priv) => rpc("ff_set_private", { p_group_id: id, p_private: priv });
 export const ffShareProduct   = (id, product) => rpc("ff_share_product", { p_group_id: id, p_product: product });

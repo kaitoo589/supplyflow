@@ -1056,6 +1056,7 @@ export default function SupplyFlow({ session }) {
   // Flowva Friends: groep-sheet + actieve groep om "voor te shoppen".
   const [showFriends, setShowFriends] = useState(false);
   const [friendsJoinCode, setFriendsJoinCode] = useState(null);
+  const [friendsGroupId, setFriendsGroupId] = useState(null);   // direct een lobby openen (vanaf de groeps-cart)
   const [activeGroup, setActiveGroup] = useState(() => {
     try { return JSON.parse(localStorage.getItem("flowva_active_group") || "null"); } catch { return null; }
   });
@@ -1857,10 +1858,10 @@ export default function SupplyFlow({ session }) {
           (zelfde layoutId — het balkje IS de dichtgevouwen lijst) */}
       <AnimatePresence>
         {showFriends && (
-          <Friends session={session} initialJoinCode={friendsJoinCode}
+          <Friends session={session} initialJoinCode={friendsJoinCode} initialGroupId={friendsGroupId}
             activeGroupId={activeGroup?.id}
             onShopForGroup={(g) => setActiveGroup(g)}
-            onClose={() => { setShowFriends(false); setFriendsJoinCode(null); }} />
+            onClose={() => { setShowFriends(false); setFriendsJoinCode(null); setFriendsGroupId(null); }} />
         )}
         {groupToast && (
           <div onClick={() => { setGroupToast(null); setShowFriends(true); }}
@@ -1876,7 +1877,7 @@ export default function SupplyFlow({ session }) {
         )}
         {activeGroup && tab === "feed" && !selectedProduct && !showFriends && !showRequestList && (
           <motion.div initial={{ y: 24, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={springMorph}
-            onClick={() => setShowFriends(true)}
+            onClick={() => { setFriendsGroupId(activeGroup.id); setShowFriends(true); }}
             style={{ position: "fixed", bottom: 78, left: 0, right: 0, margin: "0 auto", width: "calc(100% - 40px)", maxWidth: 390, background: "#111111", borderRadius: 16, overflow: "hidden", cursor: "pointer", zIndex: 301, boxShadow: "0 12px 40px rgba(255,92,0,0.28)", border: "1px solid rgba(255,92,0,0.4)" }}>
             <div style={{ padding: "12px 16px", display: "flex", alignItems: "center", gap: 12 }}>
               <span style={{ fontSize: 18 }}>🦊</span>

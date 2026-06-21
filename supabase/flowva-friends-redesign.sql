@@ -94,6 +94,23 @@ begin
     'max_size', v_g.max_size, 'is_full', v_count >= v_g.max_size, 'status', v_g.status, 'is_private', v_g.is_private);
 end; $$;
 
+-- ── Eigen naam + profielfoto bijwerken op al m'n member-rijen ────────────────
+-- (de avatar/naam wordt bij joinen gedenormaliseerd; dit fris 't op zodat anderen
+--  je actuele foto zien als je 'm later upload). Werkt alleen op je eigen rijen.
+create or replace function public.ff_sync_profile()
+returns json language plpgsql security definer set search_path = public as $$
+declare v_uid uuid := auth.uid(); v_meta jsonb; v_name text;
+begin
+  if v_uid is null then return json_build_object('ok', false, 'error', 'Not logged in'); end if;
+  select raw_user_meta_data into v_meta from auth.users where id = v_uid;
+  v_name := nullif(trim(coalesce(v_meta->>'voornaam', '') || ' ' || coalesce(v_meta->>'achternaam', '')), '');
+  update public.flowva_group_members
+    set display_name = v_name, avatar_url = v_meta->>'avatar_url'
+    where user_id = v_uid;
+  return json_build_object('ok', true);
+end; $$;
+
+grant execute on function public.ff_sync_profile()             to authenticated;
 grant execute on function public.ff_set_admin(uuid, uuid)      to authenticated;
 grant execute on function public.ff_set_private(uuid, boolean)  to authenticated;
 grant execute on function public.ff_share_product(uuid, jsonb)  to authenticated;

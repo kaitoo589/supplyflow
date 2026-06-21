@@ -4,7 +4,7 @@ import { springMorph } from "./motion";
 import {
   ffMyGroups, ffPreview, ffCreateGroup, ffJoinGroup, ffLeaveGroup,
   ffKickMember, ffSetHost, ffSetAdmin, ffSetPrivate, ffUpdateSettings, ffAddItem, ffRemoveItem, ffFetchGroup,
-  ffSetReady, ffUnready, checkGroupPrices, estimateMemberFee,
+  ffSetReady, ffUnready, checkGroupPrices, estimateMemberFee, ffSyncProfile,
   ffPostMessage, ffShareItem, ffReact, ffNudge, ffFetchMessages, subscribeGroup,
   inviteLink, whatsappShare,
 } from "./ffApi";
@@ -25,7 +25,7 @@ function ShareGlyph({ size = 16, color = "#9C9893" }) {
     : <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="M8.6 13.5l6.8 4M15.4 6.5l-6.8 4"/></svg>;
 }
 
-const REACTIONS = ["❤️", "🔥", "😂", "👍"];
+const REACTIONS = ["👍", "❤️", "😂", "😮", "😢", "🙏"];
 
 const AV_COLORS = ["#FF5C00", "#378ADD", "#16A34A", "#D4537E", "#7F77DD", "#E0A500", "#1D9E75"];
 
@@ -51,10 +51,23 @@ function memberLabel(m, self) {
   return m.display_name || `Friend ${String(m.user_id || "").slice(0, 4).toUpperCase()}`;
 }
 // Klein "+"-knopje dat de emoji-keuzes uitklapt om op een bericht te reageren.
+// Reactie-kiezer in WhatsApp-stijl: een klein react-knopje dat een afgeronde
+// emoji-balk openklapt (geen los "+").
 function ReactPicker({ onPick }) {
   const [open, setOpen] = useState(false);
-  if (!open) return <button onClick={() => setOpen(true)} style={{ background: "#1E1D1A", border: "none", borderRadius: 10, padding: "1px 7px", fontSize: 11, cursor: "pointer", color: "#9C9893" }}>＋</button>;
-  return <span style={{ display: "flex", gap: 2 }}>{REACTIONS.map((e) => <button key={e} onClick={() => { onPick(e); setOpen(false); }} style={{ background: "#1E1D1A", border: "none", borderRadius: 10, padding: "1px 5px", fontSize: 12, cursor: "pointer" }}>{e}</button>)}</span>;
+  if (!open) return (
+    <button onClick={() => setOpen(true)} aria-label="React" style={{ background: "#1E1D1A", border: "none", borderRadius: "50%", width: 22, height: 22, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, cursor: "pointer", opacity: 0.8 }}>🙂</button>
+  );
+  return (
+    <motion.div initial={{ scale: 0.7, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={springMorph}
+      style={{ display: "flex", alignItems: "center", gap: 1, background: "#2c2c2c", borderRadius: 999, padding: "3px 5px", boxShadow: "0 4px 16px rgba(0,0,0,0.45)" }}>
+      {REACTIONS.map((e) => (
+        <motion.button key={e} whileTap={{ scale: 0.8 }} whileHover={{ scale: 1.25 }} onClick={() => { onPick(e); setOpen(false); }}
+          style={{ background: "none", border: "none", borderRadius: "50%", padding: "2px 3px", fontSize: 17, cursor: "pointer", lineHeight: 1 }}>{e}</motion.button>
+      ))}
+      <button onClick={() => setOpen(false)} aria-label="close" style={{ background: "none", border: "none", color: "#9C9893", fontSize: 12, cursor: "pointer", padding: "0 3px" }}>✕</button>
+    </motion.div>
+  );
 }
 
 const sheet = { position: "fixed", bottom: 0, left: 0, right: 0, margin: "0 auto", width: "100%", maxWidth: 430, boxSizing: "border-box", background: "#111111", borderRadius: "24px 24px 0 0", zIndex: 401, maxHeight: "90vh", overflowY: "auto", color: "#fff" };
@@ -64,7 +77,8 @@ const ghostBtn = { width: "100%", background: "transparent", color: "#C9C6C1", b
 const input = { width: "100%", boxSizing: "border-box", background: "#1A1917", border: "1px solid #2c2b29", borderRadius: 12, padding: "12px 14px", fontSize: 14, color: "#fff", outline: "none" };
 const label = { fontSize: 12, color: "#9C9893", margin: "0 2px 6px", display: "block" };
 
-// Fee-overzicht (popover via het %-icoon): de tier-tabel + jouw huidige fee.
+// "Why ordering together is cheaper"-popover (via het info-icoon). Twee kopjes:
+// 1) verzending (de grootste besparing), 2) de groeps-fee + tier-tabel.
 function FeeInfo({ onClose, members, myTotal, myFee }) {
   const tiers = [
     { n: "Solo", pct: "8%", min: "€5" }, { n: "2", pct: "5%", min: "€4" }, { n: "3", pct: "4%", min: "€3.50" },
@@ -72,13 +86,25 @@ function FeeInfo({ onClose, members, myTotal, myFee }) {
   ];
   return (
     <div onClick={onClose} style={{ position: "fixed", inset: 0, zIndex: 410, background: "rgba(0,0,0,0.6)", display: "flex", alignItems: "flex-end", justifyContent: "center" }}>
-      <div onClick={(e) => e.stopPropagation()} style={{ width: "100%", maxWidth: 430, boxSizing: "border-box", background: "#161513", borderRadius: "20px 20px 0 0", padding: "18px 18px 28px", color: "#fff" }}>
-        <div style={{ display: "flex", alignItems: "center", marginBottom: 6 }}>
-          <div style={{ flex: 1, fontSize: 16, fontWeight: 800 }}>How the group fee works</div>
+      <motion.div initial={{ y: "100%" }} animate={{ y: 0 }} exit={{ y: "100%" }} transition={springMorph}
+        onClick={(e) => e.stopPropagation()} style={{ width: "100%", maxWidth: 430, boxSizing: "border-box", background: "#161513", borderRadius: "20px 20px 0 0", padding: "18px 18px 28px", color: "#fff", maxHeight: "86vh", overflowY: "auto" }}>
+        <div style={{ display: "flex", alignItems: "center", marginBottom: 12 }}>
+          <div style={{ flex: 1, fontSize: 16, fontWeight: 800 }}>Why ordering together is cheaper</div>
           <button onClick={onClose} style={{ background: "#1E1D1A", border: "none", color: "#9C9893", width: 30, height: 30, borderRadius: "50%", fontSize: 14, cursor: "pointer" }}>✕</button>
         </div>
-        <div style={{ fontSize: 12.5, color: "#C9C6C1", lineHeight: 1.55, marginBottom: 14 }}>
-          Everyone pays a small service fee on their <b>own</b> items — but the more friends in the group, the lower the % and the lower the minimum. So per person it's cheaper than ordering solo.
+
+        {/* 1 — verzending: de grootste besparing */}
+        <div style={{ background: "linear-gradient(180deg,#2a2118,#1A1917)", border: "1px solid rgba(255,92,0,0.28)", borderRadius: 14, padding: "14px", marginBottom: 16 }}>
+          <div style={{ fontSize: 14.5, fontWeight: 800, color: "#FF8A3D", lineHeight: 1.35 }}>📦 The heavier the parcel, the cheaper shipping gets per item</div>
+          <div style={{ fontSize: 12.5, color: "#C9C6C1", lineHeight: 1.6, marginTop: 9 }}>
+            International shipping is priced <b>per parcel</b>, not per item — a fixed first-weight block plus a rate for every extra kilo. Order solo and you pay that whole first block by yourself. Order together and your squad ships in <b>one combined parcel</b>, so that single first block is split across everyone by weight. The more friends join and the more you all add, the less each kilo costs <b style={{ color: "#fff" }}>you</b>. This is where a group saves the most.
+          </div>
+        </div>
+
+        {/* 2 — de fee */}
+        <div style={{ fontSize: 14, fontWeight: 800, marginBottom: 6 }}>How the group fee works</div>
+        <div style={{ fontSize: 12.5, color: "#C9C6C1", lineHeight: 1.55, marginBottom: 12 }}>
+          Everyone pays a small service fee on their <b>own</b> items — but the more friends in the group, the lower the % and the lower the minimum. So per person it's cheaper than solo.
         </div>
         <div style={{ background: "#1A1917", borderRadius: 12, overflow: "hidden", marginBottom: 14 }}>
           {tiers.map((t, i) => {
@@ -97,14 +123,15 @@ function FeeInfo({ onClose, members, myTotal, myFee }) {
             Your items: <b style={{ color: "#fff" }}>€{myTotal.toFixed(2)}</b> · your fee now: <b style={{ color: "#FF8A3D" }}>€{myFee.toFixed(2)}</b>
           </div>
         )}
-        <div style={{ fontSize: 10.5, color: "#6b6862", marginTop: 12, lineHeight: 1.5 }}>Shipping is separate and split by weight when the parcel ships — that's where a group saves the most.</div>
-      </div>
+      </motion.div>
     </div>
   );
 }
 
-export default function Friends({ session, onClose, initialJoinCode, onShopForGroup, activeGroupId }) {
+export default function Friends({ session, onClose, initialJoinCode, initialGroupId, onShopForGroup, activeGroupId }) {
   const myUid = session?.user?.id;
+  const myAvatar = session?.user?.user_metadata?.avatar_url || null;   // mijn live foto (member-rij kan verouderd zijn)
+  const avatarOf = (m) => (m && m.user_id === myUid ? (myAvatar || m.avatar_url) : (m && m.avatar_url));
   const [view, setView] = useState(initialJoinCode ? "join" : "list");
   const [groups, setGroups] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -135,6 +162,7 @@ export default function Friends({ session, onClose, initialJoinCode, onShopForGr
   const [chatOpen, setChatOpen] = useState(false);
   const [showInvite, setShowInvite] = useState(false);
   const [shareCopied, setShareCopied] = useState(false);
+  const [showLeaveConfirm, setShowLeaveConfirm] = useState(false);
   const doShare = async (code, name) => {
     const shared = await nativeShare(code, name);
     if (!shared) { setShareCopied(true); setTimeout(() => setShareCopied(false), 1800); }   // desktop → naar klembord
@@ -171,7 +199,9 @@ export default function Friends({ session, onClose, initialJoinCode, onShopForGr
   }, [openId]);
 
   useEffect(() => {
-    if (initialJoinCode) { setCode(initialJoinCode); doPreview(initialJoinCode); }
+    ffSyncProfile();   // mijn naam/foto bijwerken op m'n member-rijen (fire-and-forget)
+    if (initialGroupId) openLobby(initialGroupId);                                   // direct naar de lobby (vanaf de groeps-cart)
+    else if (initialJoinCode) { setCode(initialJoinCode); doPreview(initialJoinCode); }
     else loadGroups();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -424,12 +454,13 @@ export default function Friends({ session, onClose, initialJoinCode, onShopForGr
     const myFeeSavings = myTotal > 0 ? Math.round((estimateMemberFee(1, myTotal) - myFee) * 100) / 100 : 0;
     body = (
       <>
-        {header(g ? g.name : "Group", () => { setErr(""); openIdRef.current = null; setView("list"); loadGroups(); },
+        {header(g ? g.name : "Group", initialGroupId ? onClose : () => { setErr(""); openIdRef.current = null; setView("list"); loadGroups(); },
           g && (
             <>
-              {iconBtn("fee", () => setShowFeeInfo(true), "Fee breakdown", <span style={{ fontWeight: 800, fontSize: 13 }}>%</span>)}
+              {iconBtn("fee", () => setShowFeeInfo(true), "Why it's cheaper", <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#9C9893" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="9" /><path d="M12 11.5v4.5" /><path d="M12 8h.01" /></svg>)}
               {iconBtn("share", () => setShowInvite((v) => !v), "Share invite", <ShareGlyph />)}
               {isAdmin && !isPlaced && iconBtn("settings", () => setEditing((v) => !v), "Group settings", <span style={{ fontSize: 14 }}>⚙️</span>)}
+              {!isPlaced && iconBtn("leave", () => setShowLeaveConfirm(true), "Leave group", <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#E24B4A" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" /><path d="M16 17l5-5-5-5" /><path d="M21 12H9" /></svg>)}
             </>
           ))}
         {errLine}
@@ -466,7 +497,7 @@ export default function Friends({ session, onClose, initialJoinCode, onShopForGr
               const nudgeCooled = Date.now() - (nudgedAt[m.user_id] || 0) < 60000;
               return (
                 <div key={m.id} style={{ display: "flex", alignItems: "center", gap: 11, padding: "8px 0" }}>
-                  <Avatar name={m.display_name} url={m.avatar_url} seed={m.user_id} />
+                  <Avatar name={m.display_name} url={avatarOf(m)} seed={m.user_id} />
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ fontSize: 13.5, fontWeight: 600 }}>
                       {memberLabel(m, self)}
@@ -521,7 +552,7 @@ export default function Friends({ session, onClose, initialJoinCode, onShopForGr
                 return (
                   <div key={"items-" + m.id} style={{ background: "#1A1917", borderRadius: 14, padding: "10px 12px", marginBottom: 8 }}>
                     <div style={{ fontSize: 11.5, color: "#9C9893", marginBottom: 6, display: "flex", alignItems: "center", gap: 7 }}>
-                      <Avatar name={m.display_name} url={m.avatar_url} size={20} seed={m.user_id} />{memberLabel(m, self)}
+                      <Avatar name={m.display_name} url={avatarOf(m)} size={20} seed={m.user_id} />{memberLabel(m, self)}
                     </div>
                     {its.map((it) => (
                       <div key={it.id} style={{ display: "flex", alignItems: "center", gap: 9, padding: "5px 0" }}>
@@ -615,11 +646,6 @@ export default function Friends({ session, onClose, initialJoinCode, onShopForGr
                   )}
                 </div>
 
-                <button style={{ ...ghostBtn, marginTop: 12, color: activeGroupId === g.id ? "#34D17B" : "#FF5C00", borderColor: activeGroupId === g.id ? "rgba(52,209,123,0.3)" : "rgba(255,92,0,0.3)" }}
-                  onClick={() => { if (activeGroupId !== g.id) onShopForGroup?.({ id: g.id, name: g.name }); onClose?.(); }}>
-                  {activeGroupId === g.id ? "✓ Shopping for this group" : "+ Shop for this group"}
-                </button>
-                <button style={{ ...ghostBtn, marginTop: 8, color: "#E24B4A", borderColor: "rgba(226,75,74,0.3)" }} disabled={busy} onClick={doLeave}>Leave group</button>
               </>
             )}
 
@@ -649,7 +675,7 @@ export default function Friends({ session, onClose, initialJoinCode, onShopForGr
                   return (
                     <div key={msg.id} style={{ display: "flex", flexDirection: "column", alignItems: mine ? "flex-end" : "flex-start", gap: 3 }}>
                       <div style={{ display: "flex", alignItems: "center", gap: 5, padding: "0 4px", flexDirection: mine ? "row-reverse" : "row" }}>
-                        {author && <Avatar name={author.display_name} url={author.avatar_url} seed={msg.user_id} size={17} />}
+                        {author && <Avatar name={author.display_name} url={avatarOf(author)} seed={msg.user_id} size={17} />}
                         <span style={{ fontSize: 10, color: "#6b6862" }}>{name}</span>
                       </div>
                       {msg.kind === "share" && sharedItem ? (
@@ -686,7 +712,7 @@ export default function Friends({ session, onClose, initialJoinCode, onShopForGr
                 )}
               </AnimatePresence>
             </div>
-            {showFeeInfo && <FeeInfo onClose={() => setShowFeeInfo(false)} members={members.length} myTotal={myTotal} myFee={myFee} />}
+            <AnimatePresence>{showFeeInfo && <FeeInfo onClose={() => setShowFeeInfo(false)} members={members.length} myTotal={myTotal} myFee={myFee} />}</AnimatePresence>
           </div>
         )}
       </>
@@ -695,16 +721,35 @@ export default function Friends({ session, onClose, initialJoinCode, onShopForGr
 
   return (
     <>
-      <div style={backdrop} onClick={onClose} />
-      <div style={sheet}>
+      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.2 }} style={backdrop} onClick={onClose} />
+      <motion.div initial={{ y: "100%" }} animate={{ y: 0 }} exit={{ y: "100%" }} transition={springMorph} style={sheet}>
         <div style={{ padding: "8px 0 0", display: "flex", justifyContent: "center" }}>
           <div style={{ width: 36, height: 4, background: "rgba(255,255,255,0.2)", borderRadius: 2 }} />
         </div>
         {body}
-      </div>
+      </motion.div>
       {shareCopied && (
         <div style={{ position: "fixed", bottom: 24, left: "50%", transform: "translateX(-50%)", zIndex: 420, background: "#0F0E0C", color: "#fff", borderRadius: 999, padding: "10px 18px", fontSize: 13, fontWeight: 600, boxShadow: "0 8px 30px rgba(0,0,0,0.5)" }}>🔗 Invite link copied!</div>
       )}
+      <AnimatePresence>
+        {showLeaveConfirm && (
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.18 }}
+            onClick={() => setShowLeaveConfirm(false)}
+            style={{ position: "fixed", inset: 0, zIndex: 430, background: "rgba(0,0,0,0.6)", display: "flex", alignItems: "center", justifyContent: "center", padding: 24 }}>
+            <motion.div initial={{ scale: 0.82, opacity: 0, y: 12 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.82, opacity: 0, y: 12 }} transition={springMorph}
+              onClick={(e) => e.stopPropagation()}
+              style={{ background: "#1A1917", borderRadius: 20, padding: "22px 20px", width: "100%", maxWidth: 320, boxSizing: "border-box", textAlign: "center", color: "#fff" }}>
+              <div style={{ fontSize: 30 }}>👋</div>
+              <div style={{ fontSize: 16, fontWeight: 800, marginTop: 6 }}>Leave {lobby?.group?.name || "this group"}?</div>
+              <div style={{ fontSize: 12.5, color: "#9C9893", marginTop: 8, lineHeight: 1.5 }}>You'll lose your spot and your items in this group order. Any held money comes straight back to your balance.</div>
+              <div style={{ display: "flex", gap: 8, marginTop: 18 }}>
+                <button onClick={() => setShowLeaveConfirm(false)} style={{ ...ghostBtn, padding: "12px" }}>Stay</button>
+                <button disabled={busy} onClick={async () => { setShowLeaveConfirm(false); await doLeave(); }} style={{ flex: 1, background: "#E24B4A", color: "#fff", border: "none", borderRadius: 14, padding: "12px", fontSize: 14, fontWeight: 700, cursor: "pointer" }}>Leave</button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </>
   );
 }

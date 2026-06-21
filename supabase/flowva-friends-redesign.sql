@@ -103,9 +103,13 @@ declare v_uid uuid := auth.uid(); v_meta jsonb; v_name text;
 begin
   if v_uid is null then return json_build_object('ok', false, 'error', 'Not logged in'); end if;
   select raw_user_meta_data into v_meta from auth.users where id = v_uid;
-  v_name := nullif(trim(coalesce(v_meta->>'voornaam', '') || ' ' || coalesce(v_meta->>'achternaam', '')), '');
+  -- Cap op 60 tekens (geen mega-namen die de lobby-layout breken).
+  v_name := nullif(left(trim(coalesce(v_meta->>'voornaam', '') || ' ' || coalesce(v_meta->>'achternaam', '')), 60), '');
+  -- COALESCE: een lege metadata (OAuth/naamloos) mag een bestaande goede naam/foto
+  -- NIET overschrijven met NULL.
   update public.flowva_group_members
-    set display_name = v_name, avatar_url = v_meta->>'avatar_url'
+    set display_name = coalesce(v_name, display_name),
+        avatar_url   = coalesce(nullif(v_meta->>'avatar_url', ''), avatar_url)
     where user_id = v_uid;
   return json_build_object('ok', true);
 end; $$;

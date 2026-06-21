@@ -34,11 +34,14 @@ function hashSeed(s) {
   for (let i = 0; i < str.length; i++) h = (h * 31 + str.charCodeAt(i)) >>> 0;
   return h;
 }
+// Alleen avatars vanaf onze eigen Supabase-storage renderen — anders kan een lid een
+// avatar_url naar een eigen host zetten en zo de IP's van squadgenoten harvesten.
+const isStorageUrl = (url) => typeof url === "string" && /^https:\/\/[a-z0-9-]+\.supabase\.co\/storage\//i.test(url);
 function Avatar({ name, url, size = 38, seed }) {
   const initial = (name || "?").trim().charAt(0).toUpperCase() || "?";
   // Kleur op een stabiele seed (user_id) zodat twee naamloze leden verschillen.
   const color = AV_COLORS[hashSeed(seed || name || "?") % AV_COLORS.length];
-  if (url && url.startsWith("http")) {
+  if (isStorageUrl(url)) {
     return <img src={url} alt="" referrerPolicy="no-referrer" style={{ width: size, height: size, borderRadius: "50%", objectFit: "cover", flexShrink: 0 }} />;
   }
   return (
@@ -46,9 +49,11 @@ function Avatar({ name, url, size = 38, seed }) {
   );
 }
 // Naam-label: naamloze leden krijgen een kort, stabiel onderscheid i.p.v. allemaal "Friend".
+// Cap op 40 tekens zodat een mega-naam de lobby/chat niet breekt.
 function memberLabel(m, self) {
   if (self) return "You";
-  return m.display_name || `Friend ${String(m.user_id || "").slice(0, 4).toUpperCase()}`;
+  const n = m.display_name ? String(m.display_name).slice(0, 40) : "";
+  return n || `Friend ${String(m.user_id || "").slice(0, 4).toUpperCase()}`;
 }
 // Klein "+"-knopje dat de emoji-keuzes uitklapt om op een bericht te reageren.
 // Reactie-kiezer in WhatsApp-stijl: een klein react-knopje dat een afgeronde
@@ -186,11 +191,18 @@ export default function Friends({ session, onClose, initialJoinCode, initialGrou
     setOpenId(id); setView("lobby"); setLobby(null); setErr(""); setFlaggedUrls([]); setMessages([]);
     const r = await ffFetchGroup(id);
     if (openIdRef.current !== id) return;            // navigatie veranderde tijdens fetch
-    if (r.error) { setErr(r.error); return; }
+    if (r.error || !r.group) {
+      // Niet meer beschikbaar (geen lid meer / weg) → niet vastlopen: terug naar de lijst.
+      setErr("That group is no longer available.");
+      if (initialGroupId) onShopForGroup?.(null);    // verouderde actieve groep opruimen
+      openIdRef.current = null; setOpenId(null); setView("list"); loadGroups();
+      return;
+    }
     setLobby(r);
     setEditName(r.group?.name || ""); setEditMax(r.group?.max_size || 5);
     loadMessages(id);
-  }, [loadMessages]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [loadMessages, initialGroupId]);
   const refreshLobby = useCallback(async () => {
     const id = openId;
     if (!id) return;
@@ -261,6 +273,7 @@ export default function Friends({ session, onClose, initialJoinCode, initialGrou
     setBusy(false);
     if (!r.ok) { setErr(r.error || "Could not leave"); return; }
     if (activeGroupId === lobby.group.id) onShopForGroup?.(null);
+    if (initialGroupId) { onClose?.(); return; }   // direct vanaf de groeps-cart → sheet sluiten i.p.v. lijst tonen
     setView("list"); setOpenId(null); setLobby(null); loadGroups();
   }
   async function doSaveSettings() {
@@ -744,7 +757,7 @@ export default function Friends({ session, onClose, initialJoinCode, initialGrou
               <div style={{ fontSize: 12.5, color: "#9C9893", marginTop: 8, lineHeight: 1.5 }}>You'll lose your spot and your items in this group order. Any held money comes straight back to your balance.</div>
               <div style={{ display: "flex", gap: 8, marginTop: 18 }}>
                 <button onClick={() => setShowLeaveConfirm(false)} style={{ ...ghostBtn, padding: "12px" }}>Stay</button>
-                <button disabled={busy} onClick={async () => { setShowLeaveConfirm(false); await doLeave(); }} style={{ flex: 1, background: "#E24B4A", color: "#fff", border: "none", borderRadius: 14, padding: "12px", fontSize: 14, fontWeight: 700, cursor: "pointer" }}>Leave</button>
+                <button onClick={async () => { setShowLeaveConfirm(false); await doLeave(); }} style={{ flex: 1, background: "#E24B4A", color: "#fff", border: "none", borderRadius: 14, padding: "12px", fontSize: 14, fontWeight: 700, cursor: "pointer" }}>Leave</button>
               </div>
             </motion.div>
           </motion.div>

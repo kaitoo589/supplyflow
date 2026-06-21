@@ -1312,7 +1312,7 @@ export default function SupplyFlow({ session }) {
   return (
     <div style={{ fontFamily: "'Inter', 'Helvetica Neue', sans-serif", background: "#F8F7F4", minHeight: "100vh", maxWidth: 430, margin: "0 auto", width: "100%", position: "relative" }}>
 
-      <GroupModeGlow key={activeGroup?.id || "none"} active={!!activeGroup} dimmed={!!(selectedProduct || showRequestList || showFriends)} />
+      <GroupModeGlow key={activeGroup?.id || "none"} active={!!activeGroup} dimmed={!!(selectedProduct || showRequestList || showFriends || showNotifs)} />
       {/* Header */}
       <div style={{ padding: "16px 20px 10px", display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 9, minWidth: 0 }}>

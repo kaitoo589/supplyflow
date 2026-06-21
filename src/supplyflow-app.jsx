@@ -1061,6 +1061,8 @@ export default function SupplyFlow({ session }) {
   });
   const [groupToast, setGroupToast] = useState(null);   // {kind,name} als de actieve groep van status wisselt
   const [myGroups, setMyGroups] = useState([]);         // groepen waar ik in zit (voor de profiel-switch)
+  const [selectedGroupId, setSelectedGroupId] = useState(() => activeGroup?.id || null);  // gekozen (pending) groep
+  const [shakeGroups, setShakeGroups] = useState(false);                                   // rode shake bij geen selectie
   const loadMyGroups = async () => {
     const r = await ffMyGroups();
     if (!r.ok) return;
@@ -1744,44 +1746,66 @@ export default function SupplyFlow({ session }) {
             </div>
             <div style={{ color: "#C9C6C1", fontSize: 18 }}>→</div>
           </motion.div>
-          {/* Flowva Friends — groep-modus switch */}
-          <div style={{ background: "#fff", border: `1px solid ${activeGroup ? "rgba(255,92,0,0.5)" : "#E8E6E0"}`, borderRadius: 16, padding: "15px 18px", marginBottom: 12, boxShadow: activeGroup ? "0 0 0 3px rgba(255,92,0,0.08)" : "none" }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-              <div style={{ width: 38, height: 38, borderRadius: 11, background: "#FFF0E7", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18, flexShrink: 0 }}>🦊</div>
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontSize: 14, fontWeight: 700, color: "#0F0E0C" }}>Flowva Friends</div>
-                <div style={{ fontSize: 12, color: "#A8A5A0", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{activeGroup ? `Shopping for ${activeGroup.name}` : "Order together — pick a group to shop in"}</div>
-              </div>
-              <div onClick={() => { if (activeGroup) setActiveGroup(null); }} role="switch" aria-checked={!!activeGroup}
-                style={{ width: 46, height: 27, borderRadius: 999, background: activeGroup ? "#FF5C00" : "#E3E1DC", position: "relative", cursor: activeGroup ? "pointer" : "default", flexShrink: 0, transition: "background .2s" }}>
-                <motion.div layout transition={springSnappy} style={{ position: "absolute", top: 3, left: activeGroup ? 22 : 3, width: 21, height: 21, borderRadius: "50%", background: "#fff", boxShadow: "0 1px 3px rgba(0,0,0,0.2)" }} />
-              </div>
-            </div>
-            {!activeGroup && (
-              <div style={{ marginTop: 12 }}>
-                {myGroups.filter((g) => g.status === "gathering").length > 0 ? (
-                  <div style={{ display: "flex", flexDirection: "column", gap: 7 }}>
-                    {myGroups.filter((g) => g.status === "gathering").map((g) => (
-                      <button key={g.group_id} onClick={() => setActiveGroup({ id: g.group_id, name: g.name })}
-                        style={{ display: "flex", alignItems: "center", gap: 10, background: "#F8F7F4", border: "1px solid #ECEAE5", borderRadius: 12, padding: "10px 12px", cursor: "pointer", textAlign: "left", width: "100%" }}>
-                        <div style={{ width: 30, height: 30, borderRadius: 9, background: "#FF5C00", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14, flexShrink: 0 }}>🦊</div>
-                        <div style={{ flex: 1, minWidth: 0 }}>
-                          <div style={{ fontSize: 13, fontWeight: 600, color: "#111111" }}>{g.name}{g.role === "admin" ? " · admin" : ""}</div>
-                          <div style={{ fontSize: 11, color: "#A8A5A0" }}>{g.member_count}/{g.max_size} friends</div>
-                        </div>
-                        <span style={{ fontSize: 12, fontWeight: 700, color: "#FF5C00", flexShrink: 0 }}>Shop →</span>
-                      </button>
-                    ))}
-                    <button onClick={() => { setFriendsJoinCode(null); setShowFriends(true); }}
-                      style={{ background: "transparent", border: "none", color: "#A8A5A0", fontSize: 12, fontWeight: 600, cursor: "pointer", padding: "6px 0 0", textAlign: "left" }}>+ Create, join or manage groups</button>
+          {/* Flowva Friends — activatie-switch: selecteer een groep → de switch zet 'm live */}
+          {(() => {
+            const gathering = myGroups.filter((g) => g.status === "gathering");
+            const shake = () => { setShakeGroups(true); setTimeout(() => setShakeGroups(false), 650); };
+            const onToggle = () => {
+              if (activeGroup) { setActiveGroup(null); return; }                       // uit
+              const g = gathering.find((x) => x.group_id === selectedGroupId);
+              if (!g) { shake(); return; }                                              // niets geselecteerd → rode shake
+              setActiveGroup({ id: g.group_id, name: g.name });                         // aan
+            };
+            return (
+              <div style={{ background: "#fff", border: `1px solid ${activeGroup ? "rgba(255,92,0,0.5)" : "#E8E6E0"}`, borderRadius: 16, padding: "15px 18px", marginBottom: 12, boxShadow: activeGroup ? "0 0 0 3px rgba(255,92,0,0.08)" : "none", transition: "border-color .25s, box-shadow .25s" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                  <div style={{ width: 38, height: 38, borderRadius: 11, background: "#FFF0E7", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18, flexShrink: 0 }}>🦊</div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: 14, fontWeight: 700, color: "#0F0E0C" }}>Flowva Friends</div>
+                    <div style={{ fontSize: 12, color: "#A8A5A0", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{activeGroup ? `Shopping for ${activeGroup.name}` : "Order together — select a group to activate"}</div>
                   </div>
+                  <div onClick={onToggle} role="switch" aria-checked={!!activeGroup}
+                    style={{ width: 48, height: 28, borderRadius: 999, background: activeGroup ? "#FF5C00" : "#E3E1DC", position: "relative", cursor: "pointer", flexShrink: 0, transition: "background .25s" }}>
+                    <motion.div animate={{ x: activeGroup ? 20 : shakeGroups ? 9 : 0 }} transition={springBouncy}
+                      style={{ position: "absolute", top: 3, left: 3, width: 22, height: 22, borderRadius: "50%", background: "#fff", boxShadow: "0 1px 3px rgba(0,0,0,0.25)" }} />
+                  </div>
+                </div>
+                {gathering.length > 0 ? (
+                  <>
+                    <div style={{ fontSize: 11, color: "#A8A5A0", fontWeight: 600, letterSpacing: 0.4, margin: "14px 2px 8px" }}>YOUR GROUPS</div>
+                    <motion.div animate={shakeGroups ? { x: [0, -7, 7, -5, 5, 0] } : { x: 0 }} transition={{ duration: 0.45 }}
+                      style={{ display: "flex", flexDirection: "column", gap: 7 }}>
+                      {gathering.map((g) => {
+                        const live = activeGroup && activeGroup.id === g.group_id;
+                        const sel = !activeGroup && selectedGroupId === g.group_id;
+                        return (
+                          <div key={g.group_id}
+                            onClick={() => { if (activeGroup) setActiveGroup({ id: g.group_id, name: g.name }); else setSelectedGroupId(g.group_id); }}
+                            style={{ display: "flex", alignItems: "center", gap: 10, boxSizing: "border-box", width: "100%", cursor: "pointer", borderRadius: 12, padding: "10px 12px", transition: "border-color .2s, background .2s",
+                              background: shakeGroups ? "#FDF1F1" : live ? "#F1FBF4" : sel ? "#FFF7F2" : "#F8F7F4",
+                              border: `1.5px solid ${shakeGroups ? "#E24B4A" : live ? "rgba(22,163,74,0.5)" : sel ? "rgba(255,92,0,0.6)" : "#ECEAE5"}` }}>
+                            <div style={{ width: 30, height: 30, borderRadius: 9, background: "#FF5C00", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14, flexShrink: 0 }}>🦊</div>
+                            <div style={{ flex: 1, minWidth: 0 }}>
+                              <div style={{ fontSize: 13, fontWeight: 600, color: "#111111", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{g.name}{g.role === "admin" ? " · admin" : ""}</div>
+                              <div style={{ fontSize: 11, color: "#A8A5A0" }}>{g.member_count}/{g.max_size} friends{live ? " · live" : ""}</div>
+                            </div>
+                            <div style={{ width: 18, height: 18, borderRadius: "50%", border: `2px solid ${live ? "#16A34A" : sel ? "#FF5C00" : "#D4D2CC"}`, flexShrink: 0, position: "relative", transition: "border-color .2s" }}>
+                              {(live || sel) && <div style={{ position: "absolute", inset: 3, borderRadius: "50%", background: live ? "#16A34A" : "#FF5C00" }} />}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </motion.div>
+                    <button onClick={() => { setFriendsJoinCode(null); setShowFriends(true); }}
+                      style={{ background: "transparent", border: "none", color: "#A8A5A0", fontSize: 12, fontWeight: 600, cursor: "pointer", padding: "8px 0 0", textAlign: "left" }}>+ Create, join or manage groups</button>
+                  </>
                 ) : (
                   <button onClick={() => { setFriendsJoinCode(null); setShowFriends(true); }}
-                    style={{ width: "100%", background: "#FFF0E7", border: "1px dashed rgba(255,92,0,0.4)", color: "#FF5C00", borderRadius: 12, padding: "12px", fontSize: 13, fontWeight: 700, cursor: "pointer" }}>{myGroups.length > 0 ? "View or manage your groups →" : "Join or create a group first →"}</button>
+                    style={{ width: "100%", marginTop: 12, background: "#FFF0E7", border: "1px dashed rgba(255,92,0,0.4)", color: "#FF5C00", borderRadius: 12, padding: "12px", fontSize: 13, fontWeight: 700, cursor: "pointer" }}>{myGroups.length > 0 ? "View or manage your groups →" : "Join or create a group first →"}</button>
                 )}
               </div>
-            )}
-          </div>
+            );
+          })()}
           <a href="/returns" style={{ textDecoration: "none", background: "#fff", border: "1px solid #E8E6E0", borderRadius: 16, padding: "15px 18px", marginBottom: 12, display: "flex", alignItems: "center", gap: 12 }}>
             <div style={{ width: 38, height: 38, borderRadius: 11, background: "#F3F1ED", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18, flexShrink: 0 }}>↩️</div>
             <div style={{ flex: 1 }}>

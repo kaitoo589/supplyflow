@@ -1036,21 +1036,26 @@ export default function SupplyFlow({ session }) {
   const [successProduct, setSuccessProduct] = useState(null);
   const [loadingBalance, setLoadingBalance] = useState(false);
   const [topupAmount, setTopupAmount] = useState("");
+  // Apparaat-lokale state PER GEBRUIKER opslaan, zodat een ander account op hetzelfde
+  // toestel nooit de mand/favorieten/haul van de vorige ziet — ook zonder uitloggen.
+  const uid = session?.user?.id || "anon";
+  const lsKey = (base) => `${base}_${uid}`;
+
   const [haulItems, setHaulItems] = useState(() => {
     try {
-      const saved = localStorage.getItem("supplyflow_haul");
+      const saved = localStorage.getItem(lsKey("supplyflow_haul"));
       return saved ? JSON.parse(saved) : [];
     } catch { return []; }
   });
 
   useEffect(() => {
-    localStorage.setItem("supplyflow_haul", JSON.stringify(haulItems));
+    localStorage.setItem(lsKey("supplyflow_haul"), JSON.stringify(haulItems));
   }, [haulItems]);
 
   // Aanvraaglijst: items verzamelen en in één keer aanvragen (= één service fee).
   const [requestList, setRequestList] = useState(() => {
     try {
-      const saved = localStorage.getItem("supplyflow_request_list");
+      const saved = localStorage.getItem(lsKey("supplyflow_request_list"));
       return saved ? JSON.parse(saved) : [];
     } catch { return []; }
   });
@@ -1064,13 +1069,13 @@ export default function SupplyFlow({ session }) {
   const [friendsJoinCode, setFriendsJoinCode] = useState(null);
   const [friendsGroupId, setFriendsGroupId] = useState(null);   // direct een lobby openen (vanaf de groeps-cart)
   const [activeGroup, setActiveGroup] = useState(() => {
-    try { return JSON.parse(localStorage.getItem("flowva_active_group") || "null"); } catch { return null; }
+    try { return JSON.parse(localStorage.getItem(lsKey("flowva_active_group")) || "null"); } catch { return null; }
   });
   const [groupToast, setGroupToast] = useState(null);   // {kind,name} als de actieve groep van status wisselt
   // Favorieten (per apparaat) + filter in de feed.
-  const [favorites, setFavorites] = useState(() => { try { return JSON.parse(localStorage.getItem("flowva_favorites") || "[]"); } catch { return []; } });
+  const [favorites, setFavorites] = useState(() => { try { return JSON.parse(localStorage.getItem(lsKey("flowva_favorites")) || "[]"); } catch { return []; } });
   const [showFavoritesOnly, setShowFavoritesOnly] = useState(false);
-  useEffect(() => { try { localStorage.setItem("flowva_favorites", JSON.stringify(favorites)); } catch { /* ignore */ } }, [favorites]);
+  useEffect(() => { try { localStorage.setItem(lsKey("flowva_favorites"), JSON.stringify(favorites)); } catch { /* ignore */ } }, [favorites]);
   const favKey = (p) => (p && (p.source_url || p.id)) || "";
   const isFavorite = (p) => favorites.includes(favKey(p));
   const toggleFavorite = (p) => { const k = favKey(p); if (!k) return; setFavorites((f) => f.includes(k) ? f.filter((x) => x !== k) : [...f, k]); };
@@ -1106,12 +1111,12 @@ export default function SupplyFlow({ session }) {
   }, [tab, showFriends, session]);
 
   useEffect(() => {
-    localStorage.setItem("supplyflow_request_list", JSON.stringify(requestList));
+    localStorage.setItem(lsKey("supplyflow_request_list"), JSON.stringify(requestList));
   }, [requestList]);
 
   // Flowva Friends: actieve groep onthouden + een ?join=CODE-link openen.
   useEffect(() => {
-    try { localStorage.setItem("flowva_active_group", JSON.stringify(activeGroup)); } catch { /* ignore */ }
+    try { localStorage.setItem(lsKey("flowva_active_group"), JSON.stringify(activeGroup)); } catch { /* ignore */ }
   }, [activeGroup]);
 
   // App-niveau: volg de actieve groep ook met de Friends-sheet dicht, zodat je merkt
@@ -1160,14 +1165,14 @@ export default function SupplyFlow({ session }) {
   // Toon "How Flowva works" één keer automatisch bij de allereerste keer.
   useEffect(() => {
     try {
-      if (!localStorage.getItem("flowva_seen_howitworks")) {
+      if (!localStorage.getItem(lsKey("flowva_seen_howitworks"))) {
         const t = setTimeout(() => setShowHowItWorks(true), 900);
         return () => clearTimeout(t);
       }
     } catch { /* localStorage kan geblokkeerd zijn */ }
   }, []);
   const closeHowItWorks = () => {
-    try { localStorage.setItem("flowva_seen_howitworks", "1"); } catch { /* ignore */ }
+    try { localStorage.setItem(lsKey("flowva_seen_howitworks"), "1"); } catch { /* ignore */ }
     setShowHowItWorks(false);
   };
 
@@ -1869,7 +1874,15 @@ export default function SupplyFlow({ session }) {
               </div>
             ))}
           </div>
-          <button onClick={() => supabase.auth.signOut()} style={{ width: "100%", background: "#FEE2E2", color: "#DC2626", border: "none", borderRadius: 12, padding: "14px", fontSize: 14, fontWeight: 700, cursor: "pointer" }}>Log out</button>
+          <button onClick={() => {
+            // Wis de APPARAAT-lokale winkelstate bij uitloggen, zodat een volgend account
+            // op dit toestel NIET de mand/favorieten/haul van de vorige gebruiker ziet.
+            try {
+              ["supplyflow_request_list", "supplyflow_haul", "flowva_favorites", "flowva_active_group", "flowva_seen_howitworks"]
+                .forEach((k) => { localStorage.removeItem(lsKey(k)); localStorage.removeItem(k); });
+            } catch { /* ignore */ }
+            supabase.auth.signOut();
+          }} style={{ width: "100%", background: "#FEE2E2", color: "#DC2626", border: "none", borderRadius: 12, padding: "14px", fontSize: 14, fontWeight: 700, cursor: "pointer" }}>Log out</button>
         </motion.div>
       )}
 

@@ -144,8 +144,8 @@ function ProgressWheelModal({ items, onClose }) {
   const bars = items.slice(0, 8);
   const overall = Math.round(items.reduce((s, o) => s + productProgress(o.status), 0) / items.length);
   const milestones = [
-    { pct: 25, label: "Placed" }, { pct: 50, label: "Bought" },
-    { pct: 75, label: "Shipped domestically" }, { pct: 100, label: "QC ✓" },
+    { pct: 25, label: "Order placed" }, { pct: 50, label: "Item bought successfully" },
+    { pct: 75, label: "Shipped domestically" }, { pct: 100, label: "QC pictures are ready" },
   ];
   return createPortal(
     <>
@@ -159,13 +159,7 @@ function ProgressWheelModal({ items, onClose }) {
             <div style={{ fontSize: 15, fontWeight: 800, color: "#111" }}>Order progress</div>
             <motion.button whileTap={{ scale: 0.9 }} onClick={onClose} style={{ background: "#F3F1ED", border: "none", borderRadius: 999, width: 30, height: 30, fontSize: 15, color: "#777", cursor: "pointer", lineHeight: 1 }}>✕</motion.button>
           </div>
-          <div style={{ fontSize: 11.5, color: "#9A968F", marginTop: 2, marginBottom: 6 }}>100% = quality-control photos ready</div>
-          {/* Checkpoint-as: 4 mijlpalen op 25/50/75/100% */}
-          <div style={{ position: "relative", height: 22, marginBottom: 7 }}>
-            {milestones.map((m) => (
-              <span key={m.pct} style={{ position: "absolute", left: `${m.pct}%`, transform: m.pct === 100 ? "translateX(-100%)" : "translateX(-50%)", width: 52, textAlign: m.pct === 100 ? "right" : "center", fontSize: 8.5, fontWeight: 700, color: "#A8A5A0", lineHeight: 1.12 }}>{m.label}</span>
-            ))}
-          </div>
+          <div style={{ height: 14 }} />
           {/* Eén staaf per item — eigen kleur, met foto + titel */}
           <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
             {bars.map((o, i) => {
@@ -192,7 +186,15 @@ function ProgressWheelModal({ items, onClose }) {
             })}
             {items.length > bars.length && <div style={{ fontSize: 11, color: "#A8A5A0", textAlign: "center", marginTop: 2 }}>+{items.length - bars.length} more</div>}
           </div>
-          <div style={{ marginTop: 14, textAlign: "center", fontSize: 11.5, color: "#9A968F" }}>Overall <b style={{ color: "#111" }}>{overall}%</b> to QC</div>
+          <div style={{ marginTop: 12, paddingTop: 12, borderTop: "1px solid #F1EFE9", display: "flex", flexDirection: "column", gap: 5 }}>
+            {milestones.map((m) => (
+              <div key={`leg-${m.pct}`} style={{ display: "flex", alignItems: "baseline", gap: 8, fontSize: 11 }}>
+                <span style={{ width: 32, textAlign: "right", fontWeight: 800, color: "#A8A5A0", flexShrink: 0 }}>{m.pct}%</span>
+                <span style={{ color: "#6B6862" }}>{m.label}</span>
+              </div>
+            ))}
+          </div>
+          <div style={{ marginTop: 12, textAlign: "center", fontSize: 11.5, color: "#9A968F" }}>Overall <b style={{ color: "#111" }}>{overall}%</b></div>
         </div>
       </motion.div>
     </>,

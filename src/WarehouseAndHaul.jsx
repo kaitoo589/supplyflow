@@ -234,7 +234,10 @@ function OrderDetailModal({ order, inHaul, onAdd, onRemove, onDispute, onClose }
         transition={{ type: "spring", stiffness: 280, damping: 24 }}
         style={{ position: "fixed", bottom: 0, left: 0, right: 0, background: "#fff", borderRadius: "24px 24px 0 0", zIndex: 101, padding: "24px 20px 48px", maxHeight: "85vh", overflowY: "auto" }}
       >
-        <div style={{ width: 36, height: 4, background: "#E8E6E0", borderRadius: 2, margin: "0 auto 20px" }} />
+        <div style={{ position: "relative", display: "flex", alignItems: "center", minHeight: 22, marginBottom: 16 }}>
+          <button onClick={onClose} style={{ background: "#F3F1ED", border: "none", borderRadius: 999, padding: "6px 13px", fontSize: 12.5, fontWeight: 700, color: "#0F0E0C", cursor: "pointer" }}>← Back</button>
+          <div style={{ position: "absolute", left: "50%", transform: "translateX(-50%)", width: 36, height: 4, background: "#E8E6E0", borderRadius: 2 }} />
+        </div>
         <div style={{ width: "100%", aspectRatio: "16/9", borderRadius: 16, overflow: "hidden", background: "#fff", border: "1px solid #F0EEE8", marginBottom: 16 }}>
           {order.variant_image ? <img src={order.variant_image} alt="" style={{ width: "100%", height: "100%", objectFit: "contain" }} />
             : order.qc_images?.[0] ? <img src={order.qc_images[0]} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
@@ -659,6 +662,9 @@ export function WarehouseTab({ session, haulItems = [], setHaulItems }) {
       <div style={{ fontSize: 13, color: "#aaa", marginBottom: 12 }}>Products ready for international shipping</div>
       <div style={{ background: "#FFF7ED", border: "1px solid #FCD9B6", borderRadius: 12, padding: "10px 13px", marginBottom: 16, fontSize: 12, color: "#92400E", lineHeight: 1.5 }}>
         💡 Shipping is charged <b>per parcel</b>, not per item. Send everything together in one box — the more you bundle, the less you pay per item.
+        <div style={{ marginTop: 8, paddingTop: 8, borderTop: "1px solid #FCD9B6" }}>
+          👯 <b>Shopping with friends?</b> With <b>Flowva Friends</b> you can team up, combine everyone's items into one parcel, and split the shipping — the cheapest way to ship together.
+        </div>
       </div>
 
       {/* Drop zone */}

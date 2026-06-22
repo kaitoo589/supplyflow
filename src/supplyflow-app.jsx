@@ -493,14 +493,17 @@ function QuoteAcceptance({ order, session, balance, allOrders = [], onAccepted }
 
 // Aanvraaglijst: alles in één keer versturen = één service fee over de bundel.
 // De sheet deelt z'n layoutId met het zwevende balkje en morpht ervandaan open.
-function RequestListSheet({ items, onRemove, onSetQty, onClose, onSend, sending, error, session, onEditAddress, onTopUp, onFinish, flagged }) {
+function RequestListSheet({ items, onRemove, onSetQty, onClose, onSend, sending, error, session, onEditAddress, onTopUp, onFinish, flagged, reasons }) {
   const [view, setView] = useState("cart");
   const isHeld = (item) => !!flagged && flagged.has(item.source_url);
+  const heldReason = (item) => reasons?.[item.source_url] || "On hold — changed at the factory";
   const heldCount = items.filter(isHeld).length;
-  const total = items.reduce((s, it) => s + Number(it.price || 0) * (it.qty || 1), 0);
-  const fee = serviceFee(total);
+  // Held-items doen NIET mee met betalen → totaal/fee/per-item alleen over de betaalbare items.
+  const payable = items.filter((it) => !isHeld(it));
+  const total = payable.reduce((s, it) => s + Number(it.price || 0) * (it.qty || 1), 0);
+  const fee = payable.length ? serviceFee(total) : 0;
   const charge = total + fee;
-  const perItem = items.length ? fee / items.length : fee;
+  const perItem = payable.length ? fee / payable.length : fee;
   const perItemColor = perItem >= 4 ? "#C9C6C1" : perItem >= 2 ? "#FF5C00" : "#16A34A";
   const m = session?.user?.user_metadata || {};
   const addrName = `${m.voornaam || ""} ${m.achternaam || ""}`.trim();
@@ -564,7 +567,7 @@ function RequestListSheet({ items, onRemove, onSetQty, onClose, onSend, sending,
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ fontSize: 13, fontWeight: 600, color: "#fff", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", textDecoration: held ? "line-through" : "none" }}>{item.product_title}</div>
                     {held ? (
-                      <div style={{ fontSize: 11, color: "#F59E0B", fontWeight: 600 }}>⏸ On hold — supplier price changed</div>
+                      <div style={{ fontSize: 11, color: "#F59E0B", fontWeight: 600 }}>⏸ {heldReason(item)}</div>
                     ) : (
                       <div style={{ fontSize: 11.5, color: "#9C9893" }}>{item.kleur ? `${item.kleur} · ` : ""}€{Number(item.price).toFixed(2)}</div>
                     )}
@@ -585,7 +588,7 @@ function RequestListSheet({ items, onRemove, onSetQty, onClose, onSend, sending,
                 );
               })}
 
-              {items.length > 0 && (
+              {payable.length > 0 && (
                 <motion.div layout style={{ background: "#1E1D1A", borderRadius: 14, padding: "12px 14px", marginTop: 12 }}>
                   <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
                     <span style={{ fontSize: 12.5, color: "#9C9893" }}>Items</span>
@@ -608,12 +611,12 @@ function RequestListSheet({ items, onRemove, onSetQty, onClose, onSend, sending,
 
               {heldCount > 0 && (
                 <div style={{ background: "rgba(245,158,11,0.12)", color: "#F59E0B", borderRadius: 10, padding: "10px 13px", fontSize: 12, marginTop: 10, lineHeight: 1.5 }}>
-                  ⏸ {heldCount === 1 ? "An item is" : `${heldCount} items are`} temporarily on hold because the supplier's price changed. Remove {heldCount === 1 ? "it" : "them"} to continue, or keep {heldCount === 1 ? "it" : "them"} and check back soon — you haven't been charged.
+                  ⏸ {heldCount === 1 ? "1 item is" : `${heldCount} items are`} on hold and won't be charged{payable.length ? " — you can still check out the rest" : ""}. Keep {heldCount === 1 ? "it" : "them"} and check back soon, or remove {heldCount === 1 ? "it" : "them"}. You haven't been charged.
                 </div>
               )}
-              <motion.button whileTap={items.length && !heldCount ? { scale: 0.97 } : undefined} onClick={() => items.length && !heldCount && setView("checkout")} disabled={items.length === 0 || heldCount > 0}
-                style={{ width: "100%", marginTop: 12, background: items.length && !heldCount ? "#FF5C00" : "#333", color: "#fff", border: "none", borderRadius: 14, padding: "16px", fontSize: 15, fontWeight: 700, cursor: items.length && !heldCount ? "pointer" : "default", WebkitTapHighlightColor: "transparent" }}>
-                {heldCount > 0 ? "Remove on-hold items to continue" : "Go to checkout →"}
+              <motion.button whileTap={payable.length ? { scale: 0.97 } : undefined} onClick={() => payable.length && setView("checkout")} disabled={payable.length === 0}
+                style={{ width: "100%", marginTop: 12, background: payable.length ? "#FF5C00" : "#333", color: "#fff", border: "none", borderRadius: 14, padding: "16px", fontSize: 15, fontWeight: 700, cursor: payable.length ? "pointer" : "default", WebkitTapHighlightColor: "transparent" }}>
+                {payable.length === 0 ? "All items are on hold" : heldCount > 0 ? `Check out the ${payable.length} available item${payable.length > 1 ? "s" : ""} →` : "Go to checkout →"}
               </motion.button>
 
               <motion.button whileTap={{ scale: 0.97 }} onClick={onClose}
@@ -655,7 +658,7 @@ function RequestListSheet({ items, onRemove, onSetQty, onClose, onSend, sending,
                   {itemThumb(item)}
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ fontSize: 12.5, fontWeight: 600, color: "#fff", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", textDecoration: held ? "line-through" : "none" }}>{item.product_title}</div>
-                    <div style={{ fontSize: 11, color: held ? "#F59E0B" : "#9C9893" }}>{held ? "⏸ On hold — price changed" : `${item.qty || 1} pcs${item.kleur ? ` · ${item.kleur}` : ""}`}</div>
+                    <div style={{ fontSize: 11, color: held ? "#F59E0B" : "#9C9893" }}>{held ? `⏸ ${heldReason(item)}` : `${item.qty || 1} pcs${item.kleur ? ` · ${item.kleur}` : ""}`}</div>
                   </div>
                   <div style={{ fontSize: 12.5, fontWeight: 700, color: held ? "#F59E0B" : "#fff", flexShrink: 0 }}>{held ? "—" : `€${(Number(item.price) * (item.qty || 1)).toFixed(2)}`}</div>
                 </motion.div>
@@ -685,12 +688,12 @@ function RequestListSheet({ items, onRemove, onSetQty, onClose, onSend, sending,
 
               {heldCount > 0 && (
                 <div style={{ background: "rgba(245,158,11,0.12)", color: "#F59E0B", borderRadius: 10, padding: "10px 13px", fontSize: 12, marginTop: 10, lineHeight: 1.5 }}>
-                  ⏸ {heldCount === 1 ? "An item is" : `${heldCount} items are`} on hold (supplier price changed). Go back to your cart to remove {heldCount === 1 ? "it" : "them"}, or keep {heldCount === 1 ? "it" : "them"} and check back soon. You haven't been charged.
+                  ⏸ {heldCount === 1 ? "1 item is" : `${heldCount} items are`} on hold and won't be charged — we'll only check out your {payable.length} available item{payable.length > 1 ? "s" : ""}. The held {heldCount === 1 ? "one stays" : "ones stay"} in your cart for when {heldCount === 1 ? "it's" : "they're"} back.
                 </div>
               )}
-              <motion.button whileTap={sending || !hasAddress || heldCount ? undefined : { scale: 0.97 }} onClick={confirmAndPay} disabled={sending || !hasAddress || items.length === 0 || heldCount > 0}
-                style={{ width: "100%", marginTop: 4, background: sending ? "#333" : (!hasAddress || heldCount) ? "#444" : "#FF5C00", color: "#fff", border: "none", borderRadius: 14, padding: "16px", fontSize: 15, fontWeight: 700, cursor: sending || !hasAddress || heldCount ? "default" : "pointer", WebkitTapHighlightColor: "transparent" }}>
-                {sending ? "Processing payment…" : heldCount > 0 ? "Resolve on-hold items first" : !hasAddress ? "Add an address to continue" : `Confirm & pay €${charge.toFixed(2)} →`}
+              <motion.button whileTap={sending || !hasAddress || !payable.length ? undefined : { scale: 0.97 }} onClick={confirmAndPay} disabled={sending || !hasAddress || payable.length === 0}
+                style={{ width: "100%", marginTop: 4, background: sending ? "#333" : (!hasAddress || !payable.length) ? "#444" : "#FF5C00", color: "#fff", border: "none", borderRadius: 14, padding: "16px", fontSize: 15, fontWeight: 700, cursor: sending || !hasAddress || !payable.length ? "default" : "pointer", WebkitTapHighlightColor: "transparent" }}>
+                {sending ? "Processing payment…" : !hasAddress ? "Add an address to continue" : payable.length === 0 ? "All items are on hold" : heldCount > 0 ? `Pay €${charge.toFixed(2)} for the rest →` : `Confirm & pay €${charge.toFixed(2)} →`}
               </motion.button>
 
               <motion.button whileTap={{ scale: 0.97 }} onClick={() => setView("cart")}
@@ -705,6 +708,11 @@ function RequestListSheet({ items, onRemove, onSetQty, onClose, onSend, sending,
                 <div style={{ fontSize: 22, fontWeight: 700, color: "#FF5C00", marginBottom: 6 }}>Order placed! 🎉</div>
                 <div style={{ fontSize: 13, color: "#888" }}>We're getting it from the factory:</div>
               </div>
+              {heldCount > 0 && (
+                <div style={{ background: "rgba(245,158,11,0.12)", color: "#F59E0B", borderRadius: 10, padding: "10px 13px", fontSize: 12, marginBottom: 16, lineHeight: 1.5, textAlign: "center" }}>
+                  ⏸ {heldCount === 1 ? "1 item is" : `${heldCount} items are`} still on hold — saved in your cart for when {heldCount === 1 ? "it's" : "they're"} available again.
+                </div>
+              )}
               <div style={{ display: "flex", flexDirection: "column", gap: 10, marginBottom: 22 }}>
                 {[
                   { icon: "🛒", text: "Buying your item from the supplier", lid: "ck-ship" },
@@ -1062,8 +1070,10 @@ export default function SupplyFlow({ session }) {
   const [showRequestList, setShowRequestList] = useState(false);
   const [sendingList, setSendingList] = useState(false);
   const [listError, setListError] = useState(null);
-  // Source_urls van cart-items die "on hold" staan wegens een prijswijziging.
+  // Source_urls van cart-items die "on hold" staan wegens een leverancier-wijziging,
+  // plus per-url de reden (uitverkocht / variant weg / prijs omhoog) voor de badges.
   const [flaggedUrls, setFlaggedUrls] = useState([]);
+  const [flaggedReasons, setFlaggedReasons] = useState({});
   // Flowva Friends: groep-sheet + actieve groep om "voor te shoppen".
   const [showFriends, setShowFriends] = useState(false);
   const [friendsJoinCode, setFriendsJoinCode] = useState(null);
@@ -1156,9 +1166,16 @@ export default function SupplyFlow({ session }) {
     if (!showRequestList) return;
     const urls = [...new Set(requestList.map((it) => it.source_url).filter(Boolean))];
     if (!urls.length) return;
-    supabase.from("products").select("source_url").in("source_url", urls).eq("price_alert", true)
+    supabase.from("products").select("source_url, alert_reason").in("source_url", urls).eq("price_alert", true)
       .then(({ data }) => {
-        if (data?.length) setFlaggedUrls((prev) => [...new Set([...prev, ...data.map((d) => d.source_url)])]);
+        if (data?.length) {
+          setFlaggedUrls((prev) => [...new Set([...prev, ...data.map((d) => d.source_url)])]);
+          setFlaggedReasons((prev) => {
+            const next = { ...prev };
+            data.forEach((d) => { if (d.alert_reason) next[d.source_url] = d.alert_reason; });
+            return next;
+          });
+        }
       });
   }, [showRequestList]);
 
@@ -1182,21 +1199,40 @@ export default function SupplyFlow({ session }) {
     if (!requestList.length || sendingList) return false;
     setSendingList(true);
     setListError(null);
-    // Live prijscheck vóór afschrijven: items met een leverancier-prijswijziging worden
-    // geblokkeerd (en in de DB gevlagd), zodat de klant nooit te veel betaalt.
+
+    // Live BuckyDrop-check vóór afschrijven. Bekende holds (de klant zag ze al) slaan we
+    // over en we rekenen de rest af; NIEUW ontdekte holds tonen we eerst (review) en pas
+    // bij de volgende tik betalen we de beschikbare items.
+    const previouslyHeld = new Set(flaggedUrls);
+    let heldSet = new Set(flaggedUrls);
     try {
       const { data: chk } = await supabase.functions.invoke("check-cart-prices", {
         body: { items: requestList.map((it) => ({ source_url: it.source_url, kleur: it.kleur })) },
       });
       if (chk?.anyChanged) {
-        const urls = (chk.items || []).filter((x) => x.changed).map((x) => x.source_url);
-        setFlaggedUrls((prev) => [...new Set([...prev, ...urls])]);
-        setListError("Some items had a supplier price change and are on hold. Remove them to continue — you haven't been charged.");
-        setSendingList(false);
-        return false;
+        const changed = (chk.items || []).filter((x) => x.changed);
+        const urls = changed.map((x) => x.source_url);
+        heldSet = new Set([...flaggedUrls, ...urls]);
+        setFlaggedUrls([...heldSet]);
+        setFlaggedReasons((prev) => {
+          const next = { ...prev };
+          changed.forEach((x) => { if (x.reason) next[x.source_url] = x.reason; });
+          return next;
+        });
+        // Nieuw ontdekte holds → eerst tonen, nog niet betalen.
+        if (urls.some((u) => !previouslyHeld.has(u))) { setSendingList(false); return false; }
       }
     } catch { /* check onbereikbaar → fail-open; pay_cart + post-pay refund vangen het af */ }
-    const { data, error } = await supabase.rpc("pay_cart", { p_items: requestList });
+
+    // Reken alleen de NIET-held items af; held items blijven in de cart voor later.
+    const payable = requestList.filter((it) => !it.source_url || !heldSet.has(it.source_url));
+    if (!payable.length) {
+      setListError("All items are on hold right now — check back soon. You haven't been charged.");
+      setSendingList(false);
+      return false;
+    }
+
+    const { data, error } = await supabase.rpc("pay_cart", { p_items: payable });
     setSendingList(false);
     if (error) { setListError(error.message); return false; }
     if (!data?.ok) {
@@ -1207,6 +1243,8 @@ export default function SupplyFlow({ session }) {
       );
       return false;
     }
+    // Betaalde items verlaten de cart; held items blijven bewaard.
+    setRequestList((list) => list.filter((it) => it.source_url && heldSet.has(it.source_url)));
     fetchOrders();
     fetchBalance();
     return true;
@@ -1315,7 +1353,7 @@ export default function SupplyFlow({ session }) {
   ).values()];
   // Meldingen afgeleid uit je orders: probleem, offerte klaar, agent reageerde, pakket bezorgd.
   const notifications = [
-    ...flaggedInCart.map((it) => ({ icon: "⏸️", text: `On hold: ${it.product_title} — the supplier's price changed`, cart: true })),
+    ...flaggedInCart.map((it) => ({ icon: "⏸️", text: `On hold: ${it.product_title} — ${flaggedReasons[it.source_url] || "changed at the factory"}`, cart: true })),
     ...orders.filter(o => o.problem_type).map(o => ({ icon: "⚠️", text: `Action needed: issue with ${o.product_title || o.product}`, order: o })),
     ...orders.filter(o => o.status === "quote_sent").map(o => ({ icon: "📋", text: `Quote received for ${o.product_title || o.product}`, order: o })),
     ...orders.filter(o => o.last_message_sender === "agent" && o.last_message_read === false).map(o => ({ icon: "💬", text: `Your agent replied (${o.product_title || o.product})`, order: o })),
@@ -1978,8 +2016,9 @@ export default function SupplyFlow({ session }) {
             session={session}
             onEditAddress={() => { setShowRequestList(false); setTab("profile"); setShowEditProfile(true); }}
             onTopUp={() => { setShowRequestList(false); setTab("profile"); }}
-            onFinish={(goOrders) => { setRequestList([]); setFlaggedUrls([]); setShowRequestList(false); if (goOrders) { setTab("orders"); setSelectedOrder(null); } }}
+            onFinish={(goOrders) => { setShowRequestList(false); if (goOrders) { setTab("orders"); setSelectedOrder(null); } }}
             flagged={new Set(flaggedUrls)}
+            reasons={flaggedReasons}
           />
         )}
       </AnimatePresence>

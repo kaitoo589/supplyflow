@@ -25,9 +25,9 @@ const corsHeaders = {
 const json = (obj: unknown, status = 200) =>
   new Response(JSON.stringify(obj), { status, headers: { ...corsHeaders, "Content-Type": "application/json" } });
 
-// Alleen vlaggen bij >5% stijging; een prijsdaling deert de klant niet en ¥-rounding
-// veroorzaakt anders valse alarmen.
-const THRESHOLD = 0.05;
+// Vlaggen bij >1% stijging; een prijsdaling deert de klant niet en een kleine marge
+// vangt ¥-rounding op (anders valse alarmen).
+const THRESHOLD = 0.01;
 
 const md5Hex = (s: string) => createHash("md5").update(s, "utf8").digest("hex");
 
@@ -61,8 +61,10 @@ function pickSku(bdSkus: any[], kleur: string) {
     Array.isArray(s.props) && s.props.length > 0 && s.props.every((p: any) => want[p.name] === p.value)) ?? null;
 }
 
-// Actuele ¥-prijs van de gekochte variant uit de product/detail-respons.
-function liveYuanFor(detail: any, storedSku: any): number | null {
+// Zoek precies de gekochte variant terug in de live product/detail-respons.
+// hasList = of er überhaupt een SKU-lijst is (zo scheiden we "deze variant weg" van
+// "het hele product weg").
+function findLiveSku(detail: any, storedSku: any): { live: any; hasList: boolean } {
   const list = Array.isArray(detail?.skuList) ? detail.skuList : [];
   // 1) match op skuCode (meest betrouwbaar)
   let live = list.find((s: any) => s.skuCode && storedSku?.skuCode && s.skuCode === storedSku.skuCode);
@@ -74,25 +76,27 @@ function liveYuanFor(detail: any, storedSku: any): number | null {
       Array.isArray(s.props) && s.props.length > 0 &&
       s.props.every((p: any) => want[p.propName ?? p.name] === (p.valueName ?? p.value)));
   }
-  // Lees de prijs nested (proPrice.price / price.price) — de bewezen vorm uit de
-  // admin-mapper — met een platte-getal/priceCent-fallback voor de zekerheid.
-  const pick = (o: any) =>
-    o == null ? null
-      : (o.proPrice?.price ?? o.price?.price
-        ?? (typeof o.price === "number" ? o.price : null)
-        ?? (o.priceCent != null ? Number(o.priceCent) / 100 : null));
-  const v = (live ? pick(live) : null) ?? pick(detail);
+  return { live: live ?? null, hasList: list.length > 0 };
+}
+
+// Lees de ¥-prijs nested (proPrice.price / price.price) — de bewezen vorm uit de
+// admin-mapper — met een platte-getal/priceCent-fallback voor de zekerheid.
+function skuYuan(o: any): number | null {
+  if (o == null) return null;
+  const v = o.proPrice?.price ?? o.price?.price
+    ?? (typeof o.price === "number" ? o.price : null)
+    ?? (o.priceCent != null ? Number(o.priceCent) / 100 : null);
   return v == null ? null : Number(v);
 }
 
 async function checkItem(item: { source_url?: string; kleur?: string }) {
   const source_url = (item?.source_url || "").trim();
-  const out = { source_url, changed: false, available: true };
+  const out = { source_url, changed: false, available: true, reason: null as string | null, code: null as string | null };
   if (!source_url) return out; // onbekend item → pay_cart vangt "no longer available" af
 
   const { data: rows, error: selErr } = await admin
     .from("products")
-    .select("id, spu_code, bd_skus, price_alert")
+    .select("id, spu_code, bd_skus, price_alert, alert_reason")
     .eq("source_url", source_url)
     .limit(5);
   if (selErr) console.error("check-cart-prices select error (price-guard.sql gedraaid?):", selErr.message);
@@ -100,8 +104,15 @@ async function checkItem(item: { source_url?: string; kleur?: string }) {
     (rows ?? []).find((p) => p.spu_code && Array.isArray(p.bd_skus) && p.bd_skus.length > 0) ?? (rows ?? [])[0];
   if (!product) return out; // niet gekoppeld → laat pay_cart beslissen
 
-  // Al gevlagd (door een eerdere klant of de admin)? Dan sowieso "changed".
-  if (product.price_alert) { out.changed = true; return out; }
+  // Al gevlagd (door een eerdere klant of de admin)? Dan sowieso "changed" — geen
+  // BuckyDrop-call nodig (gratis vangst voor alle klanten ná de eerste).
+  if (product.price_alert) {
+    out.changed = true;
+    out.available = false;
+    out.reason = product.alert_reason || "Currently on hold";
+    out.code = "flagged";
+    return out;
+  }
 
   // Geen BuckyDrop-koppeling → niet te checken; laat door (fail-open).
   if (!product.spu_code || !Array.isArray(product.bd_skus) || product.bd_skus.length === 0) return out;
@@ -118,18 +129,45 @@ async function checkItem(item: { source_url?: string; kleur?: string }) {
   }
   if (detail?.success === false || !detail?.data) return out; // geen bruikbare data → fail-open
 
-  const liveYuan = liveYuanFor(detail.data, sku);
+  // Bepaal de live status van precies de gekochte variant.
+  const { live, hasList } = findLiveSku(detail.data, sku);
   let reason: string | null = null;
-  if (liveYuan == null) {
-    reason = "Currently unavailable at the supplier";
+  let code: string | null = null;
+
+  if (!live) {
+    // Variant niet meer in de live SKU-lijst → deze variant weg (lijst bestaat nog) of
+    // het hele product is verdwenen/uit de handel (geen lijst).
+    reason = hasList ? "This option is no longer available at the factory"
+                     : "No longer available at the factory";
+    code = hasList ? "variant_gone" : "unavailable";
     out.available = false;
-  } else if ((liveYuan - Number(storedYuan)) / Number(storedYuan) > THRESHOLD) {
-    const pct = Math.round(((liveYuan - Number(storedYuan)) / Number(storedYuan)) * 100);
-    reason = `Supplier price increased (+${pct}%)`;
+  } else if (
+    detail.data?.soldOutTag === true ||
+    live.soldOutTag === true || live.quantity === 0 || live.quantity === "0" || live.stock === 0
+  ) {
+    // Variant bestaat nog maar voorraad = 0.
+    reason = "Sold out at the factory";
+    code = "sold_out";
+    out.available = false;
+  } else {
+    // Variant beschikbaar → alleen nog de prijs vergelijken.
+    const liveYuan = skuYuan(live) ?? skuYuan(detail.data);
+    if (liveYuan == null) {
+      reason = "No longer available at the factory";
+      code = "unavailable";
+      out.available = false;
+    } else if ((liveYuan - Number(storedYuan)) / Number(storedYuan) > THRESHOLD) {
+      const pct = Math.round(((liveYuan - Number(storedYuan)) / Number(storedYuan)) * 100);
+      reason = `Factory price increased (+${pct}%)`;
+      code = "price_up";
+    }
   }
 
   if (reason) {
     out.changed = true;
+    out.reason = reason;
+    out.code = code;
+    // Vlag precies dit product (alert_reason = de klant-reden, prima ook voor de admin).
     const { error: updErr } = await admin
       .from("products")
       .update({ price_alert: true, alert_reason: reason, hidden: true, price_alert_at: new Date().toISOString() })

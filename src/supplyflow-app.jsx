@@ -1342,6 +1342,9 @@ export default function SupplyFlow({ session }) {
   ];
   // Filter voor de reiskaart: een checkpoint kan meerdere statussen bundelen.
   const matchesFilter = (o) => orderFilter === "all" || (journeyStops.find(j => j.key === orderFilter)?.statuses || [orderFilter]).includes(o.status);
+  // Modus-scheiding: solo-modus = alleen solo-orders (ff_group_id null); groep-modus = alleen die groep.
+  // Zo zijn Orders/Warehouse/Transit twee duidelijk gescheiden modussen.
+  const visibleOrders = orders.filter((o) => activeGroup ? o.ff_group_id === activeGroup.id : !o.ff_group_id);
 
   // Alleen categorie-chips tonen waar echt producten in zitten — lege
   // categorieën blijven verborgen tot de admin er iets aan toevoegt.
@@ -1535,11 +1538,11 @@ export default function SupplyFlow({ session }) {
       {/* ORDERS TAB */}
       {tab === "orders" && !selectedOrder && (
         <motion.div key="orders-list" {...pageTransition} style={{ paddingBottom: 80, width: "100%" }}>
-          <TreasureMap activeFilter={orderFilter} onSelect={setOrderFilter} orders={orders} />
+          <TreasureMap activeFilter={orderFilter} onSelect={setOrderFilter} orders={visibleOrders} />
           <div style={{ padding: "16px 20px" }}>
             {(() => {
               // Groepeer orders per aankoop (request_group_id); losse orders = eigen groep.
-              const grouped = orders.reduce((acc, o) => {
+              const grouped = visibleOrders.reduce((acc, o) => {
                 const k = o.request_group_id || o.id;
                 (acc[k] = acc[k] || []).push(o);
                 return acc;
@@ -1552,7 +1555,7 @@ export default function SupplyFlow({ session }) {
                     onOpenItem={(o) => { setSelectedOrder(o); setConfirmCancel(false); }} />
                 ));
             })()}
-            {orders.filter(matchesFilter).length === 0 && (
+            {visibleOrders.filter(matchesFilter).length === 0 && (
               <div style={{ textAlign: "center", padding: "60px 0", color: "#aaa" }}>
                 <div style={{ position: "relative", display: "inline-block", fontSize: 48, marginBottom: 12, lineHeight: 1 }}>
                   🦊
@@ -1729,14 +1732,14 @@ export default function SupplyFlow({ session }) {
       {/* WAREHOUSE TAB */}
       {tab === "warehouse" && (
         <motion.div key="warehouse" {...pageTransition}>
-          <WarehouseTab session={session} haulItems={haulItems} setHaulItems={setHaulItems} />
+          <WarehouseTab session={session} haulItems={haulItems} setHaulItems={setHaulItems} activeGroupId={activeGroup?.id || null} />
         </motion.div>
       )}
 
       {/* TRANSIT TAB */}
       {tab === "transit" && (
         <motion.div key="transit" {...pageTransition}>
-          <TransitTab session={session} orders={orders} />
+          <TransitTab session={session} orders={visibleOrders} />
         </motion.div>
       )}
 

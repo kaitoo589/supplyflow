@@ -586,7 +586,12 @@ function DisputeForm({ order, session, onBack, onSuccess }) {
   );
 }
 
-export function WarehouseTab({ session, haulItems = [], setHaulItems }) {
+export function WarehouseTab({ session, haulItems: allHaulItems = [], setHaulItems, activeGroupId = null }) {
+  // Modus-scheiding van de doos: alleen items van de ACTIEVE modus tellen mee (solo = ff_group_id
+  // null, groep = die groep). De volledige lijst blijft in localStorage, dus je solo-doos en
+  // groeps-doos blijven los bewaard — je voegt nooit per ongeluk iets toe aan de verkeerde doos.
+  const inMode = (it) => activeGroupId ? it.ff_group_id === activeGroupId : !it.ff_group_id;
+  const haulItems = (allHaulItems || []).filter(inMode);
   const [warehouseOrders, setWarehouseOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [balance, setBalance] = useState(0);
@@ -599,7 +604,7 @@ export function WarehouseTab({ session, haulItems = [], setHaulItems }) {
   const [isDropTarget, setIsDropTarget] = useState(false);
   const [lockedIds, setLockedIds] = useState([]);
 
-  useEffect(() => { fetchWarehouseOrders(); fetchBalance(); }, []);
+  useEffect(() => { fetchWarehouseOrders(); fetchBalance(); }, [activeGroupId]);
 
   // Haal items die al in een betaald pakket zitten uit de doos
   // (bijv. achtergebleven via localStorage).
@@ -620,7 +625,9 @@ export function WarehouseTab({ session, haulItems = [], setHaulItems }) {
     const { data: hauls } = await supabase.from("hauls").select("items, status")
       .eq("user_id", session.user.id).in("status", ["confirmed", "shipped"]);
     setLockedIds((hauls || []).flatMap(h => h.items || []));
-    setWarehouseOrders(data || []);
+    // Modus-scheiding: solo-modus toont alleen solo-orders (ff_group_id null),
+    // groep-modus alleen die groep — twee duidelijk gescheiden modussen.
+    setWarehouseOrders((data || []).filter((o) => activeGroupId ? o.ff_group_id === activeGroupId : !o.ff_group_id));
     setLoading(false);
   };
 
@@ -654,7 +661,7 @@ export function WarehouseTab({ session, haulItems = [], setHaulItems }) {
 
   if (disputeOrder) return <DisputeForm order={disputeOrder} session={session} onBack={() => setDisputeOrder(null)} onSuccess={() => { setDisputeOrder(null); fetchWarehouseOrders(); }} />;
   if (screen === "confirm") return <ConfirmHaul session={session} haulItems={haulItems} balance={balance} onBack={() => setScreen("warehouse")} onSuccess={() => setScreen("success")} />;
-  if (screen === "success") return <HaulSuccess haulItems={haulItems} onDone={() => { setScreen("warehouse"); setHaulItems([]); fetchWarehouseOrders(); fetchBalance(); }} />;
+  if (screen === "success") return <HaulSuccess haulItems={haulItems} onDone={() => { setScreen("warehouse"); setHaulItems((prev) => (prev || []).filter((it) => !inMode(it))); fetchWarehouseOrders(); fetchBalance(); }} />;
 
   return (
     <div style={{ padding: "16px 20px", paddingBottom: 100 }}>

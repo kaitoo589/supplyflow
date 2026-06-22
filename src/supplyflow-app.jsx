@@ -141,17 +141,11 @@ const PRODUCT_COLORS = ["#FF5C00", "#6366F1", "#16A34A", "#EAB308", "#EC4899"];
 // Tik op de ring → groot voortgangswiel: elk product een concentrische boog die
 // zich vult richting QC (= vol). Mijlpaal-streepjes tonen waar het % op slaat.
 function ProgressWheelModal({ items, onClose }) {
-  const cx = 140, cy = 140, outerR = 100, gap = 15, stroke = 8;
-  const rings = items.slice(0, 5);
-  const innerR = outerR - (rings.length - 1) * gap;
+  const bars = items.slice(0, 8);
   const overall = Math.round(items.reduce((s, o) => s + productProgress(o.status), 0) / items.length);
-  const pt = (r, pct) => {
-    const a = (-90 + 3.6 * pct) * Math.PI / 180;
-    return [cx + r * Math.cos(a), cy + r * Math.sin(a)];
-  };
   const milestones = [
     { pct: 25, label: "Placed" }, { pct: 50, label: "Bought" },
-    { pct: 75, label: "Warehouse" }, { pct: 100, label: "QC ✓" },
+    { pct: 75, label: "Shipped domestically" }, { pct: 100, label: "QC ✓" },
   ];
   return createPortal(
     <>
@@ -166,54 +160,39 @@ function ProgressWheelModal({ items, onClose }) {
             <motion.button whileTap={{ scale: 0.9 }} onClick={onClose} style={{ background: "#F3F1ED", border: "none", borderRadius: 999, width: 30, height: 30, fontSize: 15, color: "#777", cursor: "pointer", lineHeight: 1 }}>✕</motion.button>
           </div>
           <div style={{ fontSize: 11.5, color: "#9A968F", marginTop: 2, marginBottom: 6 }}>100% = quality-control photos ready</div>
-          <div style={{ position: "relative", width: "100%", maxWidth: 280, aspectRatio: "1", margin: "0 auto" }}>
-            <svg width="100%" height="100%" viewBox="0 0 280 280">
-              {milestones.map(m => {
-                const [x1, y1] = pt(innerR - stroke, m.pct);
-                const [x2, y2] = pt(outerR + 4, m.pct);
-                const [lx, ly] = pt(outerR + 17, m.pct);
-                return (
-                  <g key={m.pct}>
-                    <line x1={x1} y1={y1} x2={x2} y2={y2} stroke="#DAD7D0" strokeWidth="1.5" strokeDasharray="2 2.5" />
-                    <text x={lx} y={ly} fontSize="8.5" fontWeight="700" fill="#A8A5A0" textAnchor="middle" dominantBaseline="middle">{m.label}</text>
-                  </g>
-                );
-              })}
-              {rings.map((o, i) => {
-                const r = outerR - i * gap;
-                const circ = 2 * Math.PI * r;
-                const pct = productProgress(o.status);
-                const color = PRODUCT_COLORS[i % PRODUCT_COLORS.length];
-                return (
-                  <g key={o.id}>
-                    <circle cx={cx} cy={cy} r={r} fill="none" stroke="#F1EFE9" strokeWidth={stroke} />
-                    <motion.circle cx={cx} cy={cy} r={r} fill="none" stroke={color} strokeWidth={stroke} strokeLinecap="round"
-                      strokeDasharray={circ} initial={{ strokeDashoffset: circ }} animate={{ strokeDashoffset: circ * (1 - pct / 100) }}
-                      transition={{ duration: 0.8, delay: 0.07 * i, ease: "easeOut" }} transform={`rotate(-90 ${cx} ${cy})`} />
-                  </g>
-                );
-              })}
-            </svg>
-            <div style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", pointerEvents: "none" }}>
-              <div style={{ fontSize: 32, fontWeight: 800, color: "#111", lineHeight: 1 }}>{overall}%</div>
-              <div style={{ fontSize: 10, color: "#9A968F", fontWeight: 600, marginTop: 2 }}>to QC</div>
-            </div>
+          {/* Checkpoint-as: 4 mijlpalen op 25/50/75/100% */}
+          <div style={{ position: "relative", height: 22, marginBottom: 7 }}>
+            {milestones.map((m) => (
+              <span key={m.pct} style={{ position: "absolute", left: `${m.pct}%`, transform: m.pct === 100 ? "translateX(-100%)" : "translateX(-50%)", width: 52, textAlign: m.pct === 100 ? "right" : "center", fontSize: 8.5, fontWeight: 700, color: "#A8A5A0", lineHeight: 1.12 }}>{m.label}</span>
+            ))}
           </div>
-          <div style={{ marginTop: 10, display: "flex", flexDirection: "column", gap: 7 }}>
-            {rings.map((o, i) => {
-              const s = statusConfig[o.status] || statusConfig.purchased;
+          {/* Eén staaf per item — eigen kleur, met foto + titel */}
+          <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+            {bars.map((o, i) => {
+              const pct = productProgress(o.status);
               const color = PRODUCT_COLORS[i % PRODUCT_COLORS.length];
               return (
-                <div key={o.id} style={{ display: "flex", alignItems: "center", gap: 9 }}>
-                  <span style={{ width: 11, height: 11, borderRadius: 4, background: color, flexShrink: 0 }} />
-                  <span style={{ flex: 1, minWidth: 0, fontSize: 12, fontWeight: 600, color: "#222", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{o.product_title || o.product}</span>
-                  <span style={{ fontSize: 10, fontWeight: 700, color: s.color, background: s.bg, padding: "1px 7px", borderRadius: 20, flexShrink: 0 }}>{s.label}</span>
-                  <span style={{ fontSize: 12.5, fontWeight: 800, color, width: 36, textAlign: "right", flexShrink: 0 }}>{productProgress(o.status)}%</span>
+                <div key={o.id}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 5 }}>
+                    <div style={{ width: 26, height: 26, borderRadius: 7, background: "#fff", border: "1px solid #F0EEE8", overflow: "hidden", flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                      {o.variant_image ? <img src={o.variant_image} referrerPolicy="no-referrer" alt="" style={{ width: "100%", height: "100%", objectFit: "contain" }} /> : <span style={{ fontSize: 14 }}>📦</span>}
+                    </div>
+                    <span style={{ flex: 1, minWidth: 0, fontSize: 12, fontWeight: 600, color: "#222", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{o.product_title || o.product}</span>
+                    <span style={{ fontSize: 12.5, fontWeight: 800, color, flexShrink: 0 }}>{pct}%</span>
+                  </div>
+                  <div style={{ position: "relative", height: 12, background: "#F1EFE9", borderRadius: 6, overflow: "hidden" }}>
+                    {[25, 50, 75].map((g) => (
+                      <div key={g} style={{ position: "absolute", left: `${g}%`, top: 0, bottom: 0, width: 1, background: "#fff" }} />
+                    ))}
+                    <motion.div initial={{ width: 0 }} animate={{ width: `${pct}%` }} transition={{ duration: 0.7, delay: 0.06 * i, ease: "easeOut" }}
+                      style={{ position: "absolute", left: 0, top: 0, bottom: 0, background: color, borderRadius: 6 }} />
+                  </div>
                 </div>
               );
             })}
-            {items.length > rings.length && <div style={{ fontSize: 11, color: "#A8A5A0", textAlign: "center", marginTop: 2 }}>+{items.length - rings.length} more</div>}
+            {items.length > bars.length && <div style={{ fontSize: 11, color: "#A8A5A0", textAlign: "center", marginTop: 2 }}>+{items.length - bars.length} more</div>}
           </div>
+          <div style={{ marginTop: 14, textAlign: "center", fontSize: 11.5, color: "#9A968F" }}>Overall <b style={{ color: "#111" }}>{overall}%</b> to QC</div>
         </div>
       </motion.div>
     </>,

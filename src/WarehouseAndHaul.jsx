@@ -272,17 +272,13 @@ function OrderDetailModal({ order, inHaul, onAdd, onRemove, onDispute, onClose }
               + Add to box
             </button>
           )}
-          <button onClick={() => { onDispute(order); onClose(); }}
-            style={{ background: "#FEE2E2", color: "#DC2626", border: "none", borderRadius: 12, padding: "12px 14px", fontSize: 13, fontWeight: 600, cursor: "pointer" }}>
-            ⚠️
-          </button>
         </div>
       </motion.div>
     </>
   );
 }
 
-function OrderCard({ order, onDragStart, onDragEnd, inHaul, onOpenDetail }) {
+function OrderCard({ order, onDragStart, onDragEnd, inHaul, onOpenDetail, onReport }) {
   return (
     <motion.div
       drag
@@ -314,13 +310,13 @@ function OrderCard({ order, onDragStart, onDragEnd, inHaul, onOpenDetail }) {
           {inHaul && <div style={{ background: "#10B981", color: "#fff", fontSize: 10, fontWeight: 700, padding: "2px 8px", borderRadius: 20 }}>✓ In box</div>}
           <button onClick={(e) => { e.stopPropagation(); onOpenDetail(order); }}
             style={{ background: "#F8F7F4", border: "1px solid #E8E6E0", borderRadius: 8, padding: "4px 10px", fontSize: 11, fontWeight: 600, color: "#555", cursor: "pointer" }}>
-            Details
+            📸 QC pictures
           </button>
         </div>
       </div>
       <div style={{ marginTop: 8, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
         <div style={{ fontSize: 11, color: "#bbb" }}>{inHaul ? "✓ Added" : "↕ Drag to the box"}</div>
-        <button onClick={(e) => { e.stopPropagation(); onOpenDetail(order); }}
+        <button onClick={(e) => { e.stopPropagation(); onReport(order); }}
           style={{ background: "#FEE2E2", color: "#DC2626", border: "none", borderRadius: 6, padding: "3px 8px", fontSize: 11, fontWeight: 600, cursor: "pointer" }}>
           Report a problem
         </button>
@@ -771,7 +767,7 @@ export function WarehouseTab({ session, haulItems = [], setHaulItems }) {
             </div>
           );
         }
-        return <OrderCard key={order.id} order={order} onDragStart={onDragStart} onDragEnd={onDragEnd} inHaul={inHaul} onOpenDetail={setDetailOrder} />;
+        return <OrderCard key={order.id} order={order} onDragStart={onDragStart} onDragEnd={onDragEnd} inHaul={inHaul} onOpenDetail={setDetailOrder} onReport={setDisputeOrder} />;
       })}
 
       <AnimatePresence>

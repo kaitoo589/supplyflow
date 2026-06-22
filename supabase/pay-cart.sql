@@ -21,6 +21,13 @@ alter table public.orders add column if not exists date text;
 alter table public.orders add column if not exists request_group_id text;
 alter table public.orders add column if not exists quoted_total numeric;
 alter table public.orders add column if not exists quote_accepted_at timestamptz;
+-- Bevroren bezorgadres-snapshot (anti-fraude: bewijs van wat de klant opgaf bij checkout).
+alter table public.orders add column if not exists ship_name text;
+alter table public.orders add column if not exists ship_phone text;
+alter table public.orders add column if not exists ship_address text;
+alter table public.orders add column if not exists ship_postcode text;
+alter table public.orders add column if not exists ship_city text;
+alter table public.orders add column if not exists ship_country text;
 
 -- Service fee = 8% van het totaal, minimaal €5. Hier meegeleverd zodat
 -- pay-cart.sql op zichzelf werkt (ook als service-fee.sql nog niet is gedraaid).
@@ -50,6 +57,13 @@ declare
   v_id text;
   v_first_id text;
   v_i int := 0;
+  v_meta jsonb;
+  v_ship_name text;
+  v_ship_phone text;
+  v_ship_addr text;
+  v_ship_post text;
+  v_ship_city text;
+  v_ship_country text;
 begin
   if v_uid is null then
     return json_build_object('ok', false, 'error', 'Not logged in');
@@ -57,6 +71,19 @@ begin
   if p_items is null or jsonb_typeof(p_items) <> 'array' or jsonb_array_length(p_items) = 0 then
     return json_build_object('ok', false, 'error', 'Cart is empty');
   end if;
+
+  -- Bezorgadres uit het profiel lezen + straks BEVRIEZEN op elke order (anti-fraude:
+  -- bewijs van wat de klant opgaf). Harde server-side gate: geen adres → geen checkout.
+  select raw_user_meta_data into v_meta from auth.users where id = v_uid;
+  v_ship_addr := nullif(trim(coalesce(v_meta->>'adres', '')), '');
+  v_ship_city := nullif(trim(coalesce(v_meta->>'stad', '')), '');
+  if v_ship_addr is null or v_ship_city is null then
+    return json_build_object('ok', false, 'error', 'Please add your shipping address first');
+  end if;
+  v_ship_name    := nullif(trim(coalesce(v_meta->>'voornaam', '') || ' ' || coalesce(v_meta->>'achternaam', '')), '');
+  v_ship_phone   := v_meta->>'telefoon';
+  v_ship_post    := v_meta->>'postcode';
+  v_ship_country := coalesce(nullif(trim(coalesce(v_meta->>'land', '')), ''), 'Netherlands');
 
   -- BEVEILIGING: de prijs komt SERVER-SIDE uit public.products (match op source_url),
   -- NOOIT uit de client-JSON — anders kan een klant pay_cart aanroepen met price=0.01
@@ -103,7 +130,8 @@ begin
     insert into orders (
       id, user_id, product, product_title, source_url, platform,
       price, qty, kleur, variant_image, opmerking,
-      status, request_group_id, quoted_total, quote_accepted_at, date
+      status, request_group_id, quoted_total, quote_accepted_at, date,
+      ship_name, ship_phone, ship_address, ship_postcode, ship_city, ship_country
     ) values (
       v_id, v_uid,
       coalesce(v_item->>'product', v_item->>'product_title'),
@@ -115,7 +143,8 @@ begin
       v_item->>'variant_image',
       v_item->>'opmerking',
       'quote_accepted', v_group, v_line, now(),
-      to_char(now(), 'DD Mon')
+      to_char(now(), 'DD Mon'),
+      v_ship_name, v_ship_phone, v_ship_addr, v_ship_post, v_ship_city, v_ship_country
     );
 
     insert into transactions (user_id, amount, type, order_id)

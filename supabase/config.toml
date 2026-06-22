@@ -42,6 +42,11 @@ enabled = true
 verify_jwt = false
 entrypoint = "./functions/buckydrop-webhook/index.ts"
 
+[functions.request-return]
+enabled = true
+verify_jwt = false
+entrypoint = "./functions/request-return/index.ts"
+
 [functions.haul-shipping]
 enabled = true
 verify_jwt = false

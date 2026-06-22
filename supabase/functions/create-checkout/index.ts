@@ -26,7 +26,9 @@ Deno.serve(async (req) => {
     }
 
     const session = await stripe.checkout.sessions.create({
-      payment_method_types: ["ideal"],
+      // Alle EU-klanten moeten kunnen betalen: card = universeel (EU-breed, incl.
+      // Apple Pay / Google Pay, ~1,4% + €0,25) + iDEAL (NL, goedkoop) + Bancontact (BE).
+      payment_method_types: ["card", "ideal", "bancontact"],
       mode: "payment",
       customer_email: email,
       line_items: [

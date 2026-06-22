@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { supabase } from "./supabase";
+import { EU_COUNTRIES } from "./countries";
 import OrderRequest from "./OrderRequest";
 import Friends from "./Friends";
 import GroupModeGlow from "./GroupModeGlow";
@@ -896,7 +897,7 @@ function EditProfileSheet({ session, onClose }) {
     adres: meta.adres || "",
     postcode: meta.postcode || "",
     stad: meta.stad || "",
-    land: meta.land || "Nederland",
+    land: meta.land || "Netherlands",
   });
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState(null);
@@ -932,7 +933,12 @@ function EditProfileSheet({ session, onClose }) {
           <div><label style={labelStyle}>Postal code</label><input style={inputStyle} value={form.postcode} onChange={e => set("postcode", e.target.value)} /></div>
           <div><label style={labelStyle}>City</label><input style={inputStyle} value={form.stad} onChange={e => set("stad", e.target.value)} /></div>
         </div>
-        <div style={{ marginBottom: 18 }}><label style={labelStyle}>Country</label><input style={inputStyle} value={form.land} onChange={e => set("land", e.target.value)} /></div>
+        <div style={{ marginBottom: 18 }}><label style={labelStyle}>Country</label>
+          <select style={inputStyle} value={form.land} onChange={e => set("land", e.target.value)}>
+            {form.land && !EU_COUNTRIES.includes(form.land) && <option value={form.land}>{form.land}</option>}
+            {EU_COUNTRIES.map(c => <option key={c} value={c}>{c}</option>)}
+          </select>
+        </div>
         <motion.button whileTap={saving ? undefined : { scale: 0.97 }} onClick={save} disabled={saving}
           style={{ width: "100%", background: saving ? "#E8E6E0" : "#FF5C00", color: "#fff", border: "none", borderRadius: 12, padding: "14px", fontSize: 15, fontWeight: 700, cursor: saving ? "default" : "pointer", WebkitTapHighlightColor: "transparent" }}>
           {saving ? "Saving..." : "Save"}

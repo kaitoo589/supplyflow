@@ -15,18 +15,47 @@ const admin = createClient(SUPABASE_URL, SERVICE_KEY);
 
 // Landnaam → 2-letter IATA-code die BuckyDrop verwacht (default NL).
 const COUNTRY_CODES: Record<string, string> = {
-  netherlands: "NL", nederland: "NL", holland: "NL",
-  belgium: "BE", "belgië": "BE", belgie: "BE",
-  germany: "DE", duitsland: "DE", deutschland: "DE",
-  france: "FR", frankrijk: "FR",
-  "united kingdom": "GB", uk: "GB", "great britain": "GB", engeland: "GB",
-  spain: "ES", spanje: "ES", italy: "IT", "italië": "IT", italie: "IT",
-  austria: "AT", oostenrijk: "AT", luxembourg: "LU", luxemburg: "LU",
-  ireland: "IE", ierland: "IE", portugal: "PT",
-  denmark: "DK", denemarken: "DK", sweden: "SE", zweden: "SE",
+  netherlands: "NL", nederland: "NL", holland: "NL", nl: "NL",
+  belgium: "BE", "belgië": "BE", belgie: "BE", be: "BE",
+  germany: "DE", duitsland: "DE", deutschland: "DE", de: "DE",
+  france: "FR", frankrijk: "FR", fr: "FR",
+  luxembourg: "LU", luxemburg: "LU", lu: "LU",
+  ireland: "IE", ierland: "IE", ie: "IE",
+  "united kingdom": "GB", uk: "GB", "great britain": "GB", engeland: "GB", gb: "GB",
+  spain: "ES", spanje: "ES", es: "ES",
+  portugal: "PT", pt: "PT",
+  italy: "IT", "italië": "IT", italie: "IT", it: "IT",
+  austria: "AT", oostenrijk: "AT", at: "AT",
+  denmark: "DK", denemarken: "DK", dk: "DK",
+  sweden: "SE", zweden: "SE", se: "SE",
+  finland: "FI", fi: "FI",
+  poland: "PL", polen: "PL", pl: "PL",
+  "czech republic": "CZ", czechia: "CZ", "tsjechië": "CZ", tsjechie: "CZ", cz: "CZ",
+  slovakia: "SK", slowakije: "SK", sk: "SK",
+  slovenia: "SI", "slovenië": "SI", slovenie: "SI", si: "SI",
+  hungary: "HU", hongarije: "HU", hu: "HU",
+  romania: "RO", "roemenië": "RO", roemenie: "RO", ro: "RO",
+  bulgaria: "BG", bulgarije: "BG", bg: "BG",
+  greece: "GR", griekenland: "GR", gr: "GR",
+  croatia: "HR", "kroatië": "HR", kroatie: "HR", hr: "HR",
+  estonia: "EE", estland: "EE", ee: "EE",
+  latvia: "LV", letland: "LV", lv: "LV",
+  lithuania: "LT", litouwen: "LT", lt: "LT",
+  cyprus: "CY", cy: "CY", malta: "MT", mt: "MT",
 };
 const countryCodeFor = (name: string) =>
   COUNTRY_CODES[(name || "").trim().toLowerCase()] ?? "NL";
+
+// BuckyDrop-foutcodes die een DEFINITIEVE "item niet beschikbaar"-afwijzing betekenen
+// (uitverkocht / geen sku). 70010106 = "No product sku or stock is 0".
+// Breid uit zodra je in productie andere voorraad-codes tegenkomt (zie bucky_notifications).
+const OUT_OF_STOCK_CODES = new Set<number>([70010106]);
+
+// Trefwoorden (EN + ZH) in res.info die op een onbeschikbaar/uitverkocht product wijzen.
+// Een wallet-tekort (bv. 余额不足 / insufficient balance) matcht hier bewust NIET,
+// zodat dat NIET als out-of-stock wordt afgehandeld en de klant niet onterecht refund krijgt.
+const UNAVAILABLE_RE =
+  /stock|sold\s*out|no product sku|not available|unavailable|out[\s-]?of[\s-]?stock|discontinued|delisted|无货|缺货|售罄|下架|库存/i;
 
 const md5Hex = (s: string) => createHash("md5").update(s, "utf8").digest("hex");
 
@@ -114,23 +143,27 @@ Deno.serve(async (req) => {
   const price = sku.priceYuan;
   if (price == null) return await fail(order.id, "Geen ¥-prijs bekend voor deze variant.");
 
-  // Klantadres uit user_metadata (auth.users). Bij een Flowva Friends-groeps-order
-  // gaat het pakket naar de HOST (host_user_id), niet naar het individuele lid.
+  // Bezorgadres: gebruik bij voorkeur de op de order BEVROREN snapshot (gezet door
+  // pay_cart bij checkout) — anti-fraude/bewijs van wat de klant opgaf, en verandert
+  // niet meer als de klant later z'n profiel aanpast. Ontbreekt de snapshot (bv. een
+  // Flowva Friends-groeps-order die naar de HOST gaat, of een oude order), val dan
+  // terug op de live user_metadata van de ontvanger.
   const addressUserId = order.host_user_id || order.user_id;
   const { data: userRes } = await admin.auth.admin.getUserById(addressUserId);
   const m = (userRes?.user?.user_metadata ?? {}) as Record<string, string>;
-  const land = m.land || "Netherlands";
+  const frozen = !!order.ship_address;
+  const land = frozen ? (order.ship_country || "Netherlands") : (m.land || "Netherlands");
 
   const orderBody = {
     partnerOrderNo: order.id,
     country: land,
     countryCode: countryCodeFor(land),
-    province: m.stad || "-",
-    city: m.stad || "-",
-    detailAddress: m.adres || "-",
-    postCode: m.postcode || "",
-    contactName: `${m.voornaam || ""} ${m.achternaam || ""}`.trim() || "Customer",
-    contactPhone: m.telefoon || "",
+    province: (frozen ? order.ship_city : m.stad) || "-",
+    city: (frozen ? order.ship_city : m.stad) || "-",
+    detailAddress: (frozen ? order.ship_address : m.adres) || "-",
+    postCode: (frozen ? order.ship_postcode : m.postcode) || "",
+    contactName: (frozen ? order.ship_name : `${m.voornaam || ""} ${m.achternaam || ""}`.trim()) || "Customer",
+    contactPhone: (frozen ? order.ship_phone : m.telefoon) || "",
     email: userRes?.user?.email || "",
     orderRemark: order.opmerking || "",
     productList: [
@@ -149,20 +182,36 @@ Deno.serve(async (req) => {
 
   const res = await buckyPost("/api/rest/v2/adapt/adaptation/order/shop-order/create", orderBody);
   if (res?.success !== true || !res?.data?.shopOrderNo) {
-    // BuckyDrop bereikt + gestructureerd afgewezen (numerieke code, bijv. uitverkocht)
-    // → klant automatisch terugbetalen en order annuleren.
-    if (typeof res?.code === "number") {
+    const code = typeof res?.code === "number" ? res.code : null;
+    const info = (res?.info ?? "").toString();
+
+    // Is dit een DEFINITIEVE "item niet beschikbaar"-afwijzing (uitverkocht / geen sku /
+    // uit de handel)? Alleen dán de klant terugbetalen. Omdat elke mand-regel een EIGEN
+    // order + eigen BuckyDrop-shop-order is, raakt dit ALLEEN dit item — de rest van de
+    // bestelling (andere order-rijen) loopt gewoon door.
+    const isUnavailable =
+      (code !== null && OUT_OF_STOCK_CODES.has(code)) || UNAVAILABLE_RE.test(info);
+
+    if (isUnavailable) {
       await admin.rpc("refund_order", {
         p_order_id: order.id,
-        p_reason: `BuckyDrop rejected: ${res?.info || "order could not be placed"}`,
+        p_reason: `Out of stock / unavailable: ${info || "item no longer available"}`,
       });
-      return new Response(JSON.stringify({ ok: false, refunded: true, reason: res?.info }), {
-        status: 200,
-        headers: { "Content-Type": "application/json" },
-      });
+      return new Response(
+        JSON.stringify({ ok: false, refunded: true, outOfStock: true, reason: info }),
+        { status: 200, headers: { "Content-Type": "application/json" } },
+      );
     }
-    // Geen code = tijdelijke/netwerkfout → flaggen voor herproberen, NIET terugbetalen.
-    return await fail(order.id, `Temporary error placing order: ${res?.info || "unknown"}`);
+
+    // Andere fout (bijv. wallet-tekort, systeemfout, of onbekende code): NIET auto-refunden
+    // — dat kan een probleem aan ONZE kant zijn, niet de schuld van de klant. Flaggen voor
+    // admin (handmatig herproberen of terugbetalen). Status blijft 'quote_accepted'.
+    return await fail(
+      order.id,
+      code !== null
+        ? `Order rejected (code ${code}): ${info || "unknown"} — needs admin review`
+        : `Temporary error placing order: ${info || "unknown"}`,
+    );
   }
 
   // Gelukt: ordernummer opslaan en status → purchased (triggert ook de "Gekocht"-push).

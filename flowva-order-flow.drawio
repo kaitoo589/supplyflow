@@ -1,0 +1,128 @@
+<mxfile host="app.diagrams.net" type="device">
+  <diagram name="Flowva order-flow" id="flowva-orderflow-1">
+    <mxGraphModel dx="1400" dy="900" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="3500" pageHeight="850" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+
+        <mxCell id="note" value="BASIS-flowchart — Flowva order-lifecycle. Pas aan en breid uit met de blueprint als checklist.  |  Rood = refund (LET OP: naar originele betaalmethode/Stripe, niet saldo)  |  Geel ruit = beslissing" style="text;html=1;align=left;verticalAlign=middle;fontSize=13;fontStyle=2;" vertex="1" parent="1">
+          <mxGeometry x="40" y="-70" width="1400" height="40" as="geometry" />
+        </mxCell>
+
+        <!-- ===== SWIMLANES (actoren) ===== -->
+        <mxCell id="lane_klant" value="KLANT" style="swimlane;horizontal=0;startSize=32;html=1;fillColor=none;strokeColor=#6c8ebf;fontStyle=1;fontSize=15;swimlaneFillColor=#f3f7ff;" vertex="1" parent="1">
+          <mxGeometry x="0" y="0" width="3460" height="150" as="geometry" />
+        </mxCell>
+        <mxCell id="lane_flowva" value="FLOWVA" style="swimlane;horizontal=0;startSize=32;html=1;fillColor=none;strokeColor=#82b366;fontStyle=1;fontSize=15;swimlaneFillColor=#f4faf2;" vertex="1" parent="1">
+          <mxGeometry x="0" y="150" width="3460" height="180" as="geometry" />
+        </mxCell>
+        <mxCell id="lane_bucky" value="BUCKYDROP" style="swimlane;horizontal=0;startSize=32;html=1;fillColor=none;strokeColor=#d79b00;fontStyle=1;fontSize=15;swimlaneFillColor=#fff7ee;" vertex="1" parent="1">
+          <mxGeometry x="0" y="330" width="3460" height="150" as="geometry" />
+        </mxCell>
+        <mxCell id="lane_fab" value="FABRIEK / SELLER" style="swimlane;horizontal=0;startSize=32;html=1;fillColor=none;strokeColor=#d6b656;fontStyle=1;fontSize=15;swimlaneFillColor=#fffdf2;" vertex="1" parent="1">
+          <mxGeometry x="0" y="480" width="3460" height="150" as="geometry" />
+        </mxCell>
+        <mxCell id="lane_carrier" value="CARRIER" style="swimlane;horizontal=0;startSize=32;html=1;fillColor=none;strokeColor=#9673a6;fontStyle=1;fontSize=15;swimlaneFillColor=#faf6fd;" vertex="1" parent="1">
+          <mxGeometry x="0" y="630" width="3460" height="150" as="geometry" />
+        </mxCell>
+
+        <!-- ===== KLANT ===== -->
+        <mxCell id="K1" value="1. Plaatst order + betaalt&#10;(Stripe iDEAL)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="40" y="48" width="170" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="K2" value="QC goedgekeurd&#10;door klant?" style="rhombus;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="1">
+          <mxGeometry x="1860" y="32" width="170" height="92" as="geometry" />
+        </mxCell>
+        <mxCell id="K3" value="Ontvangt pakket" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="2870" y="48" width="150" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="KD" value="Retour binnen&#10;14 dagen?" style="rhombus;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="1">
+          <mxGeometry x="3070" y="32" width="160" height="92" as="geometry" />
+        </mxCell>
+        <mxCell id="DONE" value="Klaar ✓" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="3290" y="48" width="130" height="60" as="geometry" />
+        </mxCell>
+
+        <!-- ===== FLOWVA ===== -->
+        <mxCell id="F1" value="2. pay_cart: server-side herprijs&#10;+ 8% fee (min €5) · saldo −€" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="1">
+          <mxGeometry x="240" y="205" width="190" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="F2" value="3. place-bucky-order&#10;(idempotent)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="1">
+          <mxGeometry x="460" y="205" width="170" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="F3" value="Toon QC (foto's + maten)&#10;aan klant" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="1">
+          <mxGeometry x="1660" y="205" width="180" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="F4" value="Betaal verzending + BTW&#10;(pay_shipping)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="1">
+          <mxGeometry x="2070" y="205" width="180" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="FR_oos" value="Refund: uitverkocht&#10;→ originele methode" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;" vertex="1" parent="1">
+          <mxGeometry x="850" y="278" width="180" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="FR_qc" value="Retour/refund:&#10;klant wijst af → Stripe" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;" vertex="1" parent="1">
+          <mxGeometry x="1860" y="278" width="180" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="FR_lost" value="Refund: kwijt/beschadigd&#10;→ Stripe" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;" vertex="1" parent="1">
+          <mxGeometry x="2660" y="278" width="190" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="FR_herr" value="Refund: herroeping&#10;→ Stripe" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;" vertex="1" parent="1">
+          <mxGeometry x="3070" y="278" width="180" height="50" as="geometry" />
+        </mxCell>
+
+        <!-- ===== BUCKYDROP ===== -->
+        <mxCell id="B1" value="4. Create Shop Order&#10;→ Supplier PO" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;" vertex="1" parent="1">
+          <mxGeometry x="660" y="380" width="180" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="B2" value="Inbound + verplichte QC ¥6&#10;(foto's + meting)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;" vertex="1" parent="1">
+          <mxGeometry x="1250" y="380" width="190" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="BD" value="Defect bij QC?" style="rhombus;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="1">
+          <mxGeometry x="1470" y="368" width="150" height="84" as="geometry" />
+        </mxCell>
+        <mxCell id="B3" value="Internationale verzending" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;" vertex="1" parent="1">
+          <mxGeometry x="2270" y="380" width="180" height="60" as="geometry" />
+        </mxCell>
+
+        <!-- ===== FABRIEK ===== -->
+        <mxCell id="FD" value="Op voorraad?" style="rhombus;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="1">
+          <mxGeometry x="850" y="515" width="150" height="84" as="geometry" />
+        </mxCell>
+        <mxCell id="FA" value="Seller koopt in +&#10;levert aan BD-magazijn" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="1">
+          <mxGeometry x="1060" y="528" width="190" height="58" as="geometry" />
+        </mxCell>
+
+        <!-- ===== CARRIER ===== -->
+        <mxCell id="CA" value="Transit (tracking)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;" vertex="1" parent="1">
+          <mxGeometry x="2470" y="678" width="160" height="56" as="geometry" />
+        </mxCell>
+        <mxCell id="CD" value="Aangekomen?" style="rhombus;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="1">
+          <mxGeometry x="2660" y="664" width="150" height="84" as="geometry" />
+        </mxCell>
+
+        <!-- ===== EDGES ===== -->
+        <mxCell id="e1" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=block;" edge="1" parent="1" source="K1" target="F1"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e2" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=block;" edge="1" parent="1" source="F1" target="F2"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e3" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=block;" edge="1" parent="1" source="F2" target="B1"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e4" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=block;" edge="1" parent="1" source="B1" target="FD"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e5" value="Ja" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=block;fontStyle=1;" edge="1" parent="1" source="FD" target="FA"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e6" value="Nee (uitverkocht)" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=block;strokeColor=#b85450;fontColor=#b85450;" edge="1" parent="1" source="FD" target="FR_oos"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e7" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=block;" edge="1" parent="1" source="FA" target="B2"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e8" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=block;" edge="1" parent="1" source="B2" target="BD"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e9" value="Nee" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=block;fontStyle=1;" edge="1" parent="1" source="BD" target="F3"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e10" value="Ja (defect-bewijs)" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=block;strokeColor=#b85450;fontColor=#b85450;" edge="1" parent="1" source="BD" target="F3"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e11" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=block;" edge="1" parent="1" source="F3" target="K2"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e12" value="Ja" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=block;fontStyle=1;" edge="1" parent="1" source="K2" target="F4"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e13" value="Nee" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=block;strokeColor=#b85450;fontColor=#b85450;" edge="1" parent="1" source="K2" target="FR_qc"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e14" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=block;" edge="1" parent="1" source="F4" target="B3"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e15" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=block;" edge="1" parent="1" source="B3" target="CA"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e16" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=block;" edge="1" parent="1" source="CA" target="CD"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e17" value="Ja" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=block;fontStyle=1;" edge="1" parent="1" source="CD" target="K3"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e18" value="Nee (kwijt/beschadigd)" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=block;strokeColor=#b85450;fontColor=#b85450;" edge="1" parent="1" source="CD" target="FR_lost"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e19" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=block;" edge="1" parent="1" source="K3" target="KD"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e20" value="Nee" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=block;fontStyle=1;" edge="1" parent="1" source="KD" target="DONE"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e21" value="Ja" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=block;strokeColor=#b85450;fontColor=#b85450;" edge="1" parent="1" source="KD" target="FR_herr"><mxGeometry relative="1" as="geometry" /></mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

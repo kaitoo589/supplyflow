@@ -39,14 +39,50 @@ async function buckyPost(path: string, bodyObj: unknown) {
   try { return JSON.parse(text); } catch { return { success: false, info: text }; }
 }
 
-// Bezorgadres uit user_metadata → channel-carriage-list-velden.
-// TODO cutover: provincie verzamelen bij signup (nu val ik terug op de stad).
+// Landnaam (EN/NL) of 2-letter code → IATA 2-letter code. Dekt de EU/EEA + GB.
+const COUNTRY_CODES: Record<string, string> = {
+  netherlands: "NL", nederland: "NL", holland: "NL", nl: "NL",
+  belgium: "BE", "belgië": "BE", belgie: "BE", be: "BE",
+  germany: "DE", duitsland: "DE", deutschland: "DE", de: "DE",
+  france: "FR", frankrijk: "FR", fr: "FR",
+  luxembourg: "LU", luxemburg: "LU", lu: "LU",
+  ireland: "IE", ierland: "IE", ie: "IE",
+  "united kingdom": "GB", uk: "GB", "great britain": "GB", engeland: "GB", gb: "GB",
+  spain: "ES", spanje: "ES", es: "ES",
+  portugal: "PT", pt: "PT",
+  italy: "IT", "italië": "IT", italie: "IT", it: "IT",
+  austria: "AT", oostenrijk: "AT", at: "AT",
+  denmark: "DK", denemarken: "DK", dk: "DK",
+  sweden: "SE", zweden: "SE", se: "SE",
+  finland: "FI", fi: "FI",
+  poland: "PL", polen: "PL", pl: "PL",
+  "czech republic": "CZ", czechia: "CZ", "tsjechië": "CZ", tsjechie: "CZ", cz: "CZ",
+  slovakia: "SK", slowakije: "SK", sk: "SK",
+  slovenia: "SI", "slovenië": "SI", slovenie: "SI", si: "SI",
+  hungary: "HU", hongarije: "HU", hu: "HU",
+  romania: "RO", "roemenië": "RO", roemenie: "RO", ro: "RO",
+  bulgaria: "BG", bulgarije: "BG", bg: "BG",
+  greece: "GR", griekenland: "GR", gr: "GR",
+  croatia: "HR", "kroatië": "HR", kroatie: "HR", hr: "HR",
+  estonia: "EE", estland: "EE", ee: "EE",
+  latvia: "LV", letland: "LV", lv: "LV",
+  lithuania: "LT", litouwen: "LT", lt: "LT",
+  cyprus: "CY", cy: "CY", malta: "MT", mt: "MT",
+};
+const countryCodeFor = (name: string) =>
+  COUNTRY_CODES[(name || "").trim().toLowerCase()] ?? null;
+
+// Bezorgadres uit user_metadata → channel-carriage-list-velden. Leest nu het
+// ECHTE land (geen NL-hardcode meer). Onbekend land → null → quote weigeren.
+// TODO cutover: provincie/provinceCode netjes verzamelen bij signup (nu val ik terug op de stad/land).
 function addressOf(meta: Record<string, any>) {
+  const land = meta?.land || "Netherlands";
+  const cc = countryCodeFor(land);
   return {
-    country: "Netherlands",
-    countryCode: "NL",
-    province: meta?.provincie || meta?.stad || "Netherlands",
-    provinceCode: meta?.provincieCode || "NL",
+    country: land,
+    countryCode: cc,
+    province: meta?.provincie || meta?.stad || land,
+    provinceCode: meta?.provincieCode || cc || "NL",
     detailAddress: meta?.adres || "NA",
     postCode: (meta?.postcode || "0000AA").toString().replace(/\s/g, ""),
   };
@@ -114,6 +150,9 @@ Deno.serve(async (req) => {
   if (orders.some((o) => !Number(o.weight_grams))) return json({ ok: false, error: "Some items have no weight yet", needWeight: true }, 200);
 
   const addr = addressOf(user.user_metadata || {});
+  if (!addr.countryCode) {
+    return json({ ok: false, error: "We don't ship to your country yet — please contact support." }, 400);
+  }
   const res = await buckyPost("/api/rest/v2/adapt/adaptation/logistics/channel-carriage-list", quoteBody(orders, addr));
   const channels = res?.success ? parseChannels(res) : [];
   const totalWeightG = orders.reduce((s, o) => s + (Number(o.weight_grams) || 0), 0);

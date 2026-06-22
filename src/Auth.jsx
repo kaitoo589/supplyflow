@@ -77,12 +77,6 @@ export default function Auth() {
     password: "",
     voornaam: "",
     achternaam: "",
-    telefoon: "",
-    straat: "",
-    huisnummer: "",
-    postcode: "",
-    stad: "",
-    land: "Netherlands",
   });
 
   const set = (key, val) => setForm((f) => ({ ...f, [key]: val }));
@@ -121,11 +115,6 @@ export default function Auth() {
         data: {
           voornaam: form.voornaam,
           achternaam: form.achternaam,
-          telefoon: form.telefoon,
-          adres: `${form.straat} ${form.huisnummer}`,
-          postcode: form.postcode,
-          stad: form.stad,
-          land: form.land,
         },
       },
     });
@@ -282,44 +271,8 @@ export default function Auth() {
               </div>
             </div>
 
-            <div style={{ marginBottom: 12 }}>
-              <label style={labelStyle}>Phone number</label>
-              <input style={inputStyle} placeholder="+31 6 12345678" value={form.telefoon} onChange={(e) => set("telefoon", e.target.value)} />
-            </div>
-
-            <div style={{ fontSize: 12, fontWeight: 700, color: "#0F0E0C", textTransform: "uppercase", letterSpacing: 1, margin: "16px 0 10px" }}>
-              📦 Shipping address
-            </div>
-
-            <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr", gap: 12, marginBottom: 12 }}>
-              <div>
-                <label style={labelStyle}>Street</label>
-                <input style={inputStyle} placeholder="Main Street" value={form.straat} onChange={(e) => set("straat", e.target.value)} />
-              </div>
-              <div>
-                <label style={labelStyle}>No.</label>
-                <input style={inputStyle} placeholder="12" value={form.huisnummer} onChange={(e) => set("huisnummer", e.target.value)} />
-              </div>
-            </div>
-
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 2fr", gap: 12, marginBottom: 12 }}>
-              <div>
-                <label style={labelStyle}>Postal code</label>
-                <input style={inputStyle} placeholder="1234 AB" value={form.postcode} onChange={(e) => set("postcode", e.target.value)} />
-              </div>
-              <div>
-                <label style={labelStyle}>City</label>
-                <input style={inputStyle} placeholder="Amsterdam" value={form.stad} onChange={(e) => set("stad", e.target.value)} />
-              </div>
-            </div>
-
-            <div style={{ marginBottom: 12 }}>
-              <label style={labelStyle}>Country</label>
-              <input style={inputStyle} value={form.land} onChange={(e) => set("land", e.target.value)} />
-            </div>
-
-            <div style={{ fontSize: 12, fontWeight: 700, color: "#0F0E0C", textTransform: "uppercase", letterSpacing: 1, margin: "16px 0 10px" }}>
-              🔐 Login details
+            <div style={{ fontSize: 12, color: "#8A8780", margin: "4px 0 14px", lineHeight: 1.5 }}>
+              You can add your shipping address now in your profile, or later at checkout.
             </div>
           </motion.div>
         )}

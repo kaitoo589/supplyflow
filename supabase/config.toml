@@ -47,6 +47,11 @@ enabled = true
 verify_jwt = false
 entrypoint = "./functions/request-return/index.ts"
 
+[functions.fetch-weight]
+enabled = true
+verify_jwt = false
+entrypoint = "./functions/fetch-weight/index.ts"
+
 [functions.haul-shipping]
 enabled = true
 verify_jwt = false

@@ -269,6 +269,10 @@ function OrderDetailModal({ order, inHaul, onAdd, onRemove, onDispute, onClose }
               style={{ flex: 1, background: "#FEE2E2", color: "#DC2626", border: "none", borderRadius: 12, padding: "12px", fontSize: 14, fontWeight: 700, cursor: "pointer" }}>
               Remove from box
             </button>
+          ) : order.dispute_status === "pending" ? (
+            <div style={{ flex: 1, textAlign: "center", color: "#B45309", fontSize: 13, fontWeight: 600, padding: "12px", background: "#FFF7ED", borderRadius: 12 }}>
+              ⏳ Under review — can't ship until resolved
+            </div>
           ) : (
             <button onClick={() => { onAdd(order); onClose(); }}
               style={{ flex: 1, background: "#FF5C00", color: "#fff", border: "none", borderRadius: 12, padding: "12px", fontSize: 14, fontWeight: 700, cursor: "pointer" }}>
@@ -318,7 +322,7 @@ function OrderCard({ order, onDragStart, onDragEnd, inHaul, onOpenDetail, onRepo
         </div>
       </div>
       <div style={{ marginTop: 8, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-        <div style={{ fontSize: 11, color: "#bbb" }}>{inHaul ? "✓ Added" : "↕ Drag to the box"}</div>
+        <div style={{ fontSize: 11, color: "#bbb" }}>{order.dispute_status === "pending" ? "⏳ On hold for review" : inHaul ? "✓ Added" : "↕ Drag to the box"}</div>
         {order.dispute_status === "pending" ? (
           <span style={{ fontSize: 11, fontWeight: 600, color: "#B45309" }}>⏳ Report under review</span>
         ) : order.dispute_status === "rejected" ? (
@@ -609,6 +613,7 @@ export function WarehouseTab({ session, haulItems: allHaulItems = [], setHaulIte
   const [draggingOrder, setDraggingOrder] = useState(null);
   const [isDropTarget, setIsDropTarget] = useState(false);
   const [lockedIds, setLockedIds] = useState([]);
+  const [incomingCount, setIncomingCount] = useState(0);
 
   useEffect(() => { fetchWarehouseOrders(); fetchBalance(); }, [activeGroupId]);
 
@@ -634,6 +639,12 @@ export function WarehouseTab({ session, haulItems: allHaulItems = [], setHaulIte
     // Modus-scheiding: solo-modus toont alleen solo-orders (ff_group_id null),
     // groep-modus alleen die groep — twee duidelijk gescheiden modussen.
     setWarehouseOrders((data || []).filter((o) => activeGroupId ? o.ff_group_id === activeGroupId : !o.ff_group_id));
+    // Items die nog ONDERWEG zijn (besteld, nog niet in het magazijn) — voor de bundel-waarschuwing.
+    let incQ = supabase.from("orders").select("id", { count: "exact", head: true })
+      .eq("user_id", session.user.id).in("status", ["purchased", "bought", "shipped_local"]);
+    incQ = activeGroupId ? incQ.eq("ff_group_id", activeGroupId) : incQ.is("ff_group_id", null);
+    const { count: inc } = await incQ;
+    setIncomingCount(inc || 0);
     setLoading(false);
   };
 
@@ -641,6 +652,7 @@ export function WarehouseTab({ session, haulItems: allHaulItems = [], setHaulIte
 
   const addToHaul = (order) => {
     if (typeof setHaulItems !== "function") return;
+    if (order.dispute_status === "pending") return; // in behandeling → nog niet verzendbaar
     if (lockedIds.includes(order.id)) return;
     if (!haulItems.some(h => h.id === order.id)) setHaulItems(prev => [...prev, order]);
   };
@@ -679,6 +691,12 @@ export function WarehouseTab({ session, haulItems: allHaulItems = [], setHaulIte
           👯 <b>Shopping with friends?</b> With <b>Flowva Friends</b> you can team up, combine everyone's items into one parcel, and split the shipping — the cheapest way to ship together.
         </div>
       </div>
+
+      {incomingCount > 0 && (
+        <div style={{ background: "#EEF2FF", border: "1px solid #C7D2FE", borderRadius: 12, padding: "10px 13px", marginBottom: 16, fontSize: 12, color: "#3730A3", lineHeight: 1.5 }}>
+          🚚 You have <b>{incomingCount} more item{incomingCount > 1 ? "s" : ""}</b> still on the way. Shipping separately costs more — your items wait safely in the warehouse, so it's cheaper to <b>wait and send everything in one parcel</b>.
+        </div>
+      )}
 
       {/* Drop zone */}
       <div

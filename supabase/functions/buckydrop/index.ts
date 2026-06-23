@@ -56,6 +56,8 @@ const ACTIONS: Record<string, (p: Record<string, unknown>) => Promise<unknown>> 
     buckyPost("/api/rest/v2/adapt/openapi/product/detail", { productLink: p.productLink }),
   "order-detail": (p) =>
     buckyPost("/api/rest/v2/adapt/adaptation/order/detail", { shopOrderNo: p.shopOrderNo }),
+  "return-get": (p) =>
+    buckyPost("/api/rest/v2/adapt/adaptation/order/return/get", { returnFlowCode: p.returnFlowCode }),
 };
 
 Deno.serve(async (req) => {

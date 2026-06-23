@@ -839,6 +839,7 @@ function TransactionHistory({ session }) {
     order: { label: "Order", color: "#EF4444" },
     shipping: { label: "Shipping", color: "#EF4444" },
     refund: { label: "Refund", color: "#10B981" },
+    return_refund: { label: "Return refund", color: "#10B981" },
     buffer_return: { label: "Buffer refund", color: "#10B981" },
     service_fee: { label: "Service fee", color: "#EF4444" },
     extra_service: { label: "Extra service", color: "#EF4444" },
@@ -1663,6 +1664,19 @@ export default function SupplyFlow({ session }) {
             </motion.div>
           )}
 
+          {/* Eigen klant-melding: in behandeling, of afgewezen met standaardbericht */}
+          {selectedOrder.dispute_status === "pending" && (
+            <div style={{ background: "#FFF7ED", border: "1.5px solid #F59E0B", borderRadius: 14, padding: 16, marginBottom: 16 }}>
+              <div style={{ fontSize: 14, fontWeight: 700, color: "#B45309", marginBottom: 4 }}>⏳ Your report is under review</div>
+              <div style={{ fontSize: 13, color: "#92400E", lineHeight: 1.5 }}>We're checking your report and proof — you'll hear from us soon.</div>
+            </div>
+          )}
+          {selectedOrder.dispute_status === "rejected" && selectedOrder.dispute_response && (
+            <div style={{ background: "#F8F7F4", border: "1px solid #E8E6E0", borderRadius: 14, padding: 16, marginBottom: 16 }}>
+              <div style={{ fontSize: 14, fontWeight: 700, color: "#0F0E0C", marginBottom: 6 }}>Return request declined</div>
+              <div style={{ fontSize: 13, color: "#555", lineHeight: 1.55 }}>{selectedOrder.dispute_response}</div>
+            </div>
+          )}
           {(() => {
             const fm = foxMessages[selectedOrder.status];
             return fm ? (

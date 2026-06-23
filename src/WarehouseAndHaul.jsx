@@ -319,10 +319,16 @@ function OrderCard({ order, onDragStart, onDragEnd, inHaul, onOpenDetail, onRepo
       </div>
       <div style={{ marginTop: 8, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
         <div style={{ fontSize: 11, color: "#bbb" }}>{inHaul ? "✓ Added" : "↕ Drag to the box"}</div>
-        <button onClick={(e) => { e.stopPropagation(); onReport(order); }}
-          style={{ background: "#FEE2E2", color: "#DC2626", border: "none", borderRadius: 6, padding: "3px 8px", fontSize: 11, fontWeight: 600, cursor: "pointer" }}>
-          Report a problem
-        </button>
+        {order.dispute_status === "pending" ? (
+          <span style={{ fontSize: 11, fontWeight: 600, color: "#B45309" }}>⏳ Report under review</span>
+        ) : order.dispute_status === "rejected" ? (
+          <span style={{ fontSize: 11, fontWeight: 600, color: "#9C9893" }}>Return declined</span>
+        ) : (
+          <button onClick={(e) => { e.stopPropagation(); onReport(order); }}
+            style={{ background: "#FEE2E2", color: "#DC2626", border: "none", borderRadius: 6, padding: "3px 8px", fontSize: 11, fontWeight: 600, cursor: "pointer" }}>
+            Report a problem
+          </button>
+        )}
       </div>
     </motion.div>
   );
@@ -548,7 +554,7 @@ function DisputeForm({ order, session, onBack, onSuccess }) {
   const submitDispute = async () => {
     if (!description.trim()) { alert("Describe the problem"); return; }
     setSaving(true);
-    await supabase.from("orders").update({ dispute_status: "pending", dispute_description: description, dispute_images: images }).eq("id", order.id);
+    await supabase.from("orders").update({ dispute_status: "pending", dispute_description: description, dispute_images: images, dispute_requested_at: new Date().toISOString() }).eq("id", order.id);
     setSaving(false);
     onSuccess();
   };

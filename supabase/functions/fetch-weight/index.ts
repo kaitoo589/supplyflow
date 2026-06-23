@@ -1,5 +1,6 @@
-// Flowva — haalt het ECHTE gewicht (skuWeight) uit BuckyDrop order-detail zodra een item
-// in het magazijn aankomt (status -> qc_pending), en schrijft het naar orders.weight_grams.
+// Flowva — haalt het ECHTE gewicht (skuWeight) + afmetingen (skuLong/Wide/Height) uit BuckyDrop
+// order-detail zodra een item in het magazijn aankomt (status -> qc_pending), en schrijft ze naar
+// orders.weight_grams + length_cm/width_cm/height_cm — voor een nauwkeurige verzendquote.
 // Zo hoeft de admin het gewicht niet meer met de hand in te typen en kan de klant meteen
 // verzending afrekenen. Getriggerd door een pg_net-trigger; beschermd met x-webhook-secret.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
@@ -25,12 +26,20 @@ async function buckyPost(path: string, bodyObj: unknown) {
   try { return JSON.parse(text); } catch { return { success: false, info: text || `HTTP ${res.status}` }; }
 }
 
-// Zoek het eerste bruikbare skuWeight (gram) ergens in de order-detail-respons.
-function findWeight(node: any): number | null {
+// Zoek het eerste item met een echt skuWeight + pak meteen de afmetingen van datzelfde item
+// (skuLong/skuWide/skuHeight, cm) — die staan in dezelfde order-detail-respons.
+function findPhysical(node: any): { weight: number; long: number | null; wide: number | null; height: number | null } | null {
   if (!node || typeof node !== "object") return null;
-  if (Array.isArray(node)) { for (const n of node) { const r = findWeight(n); if (r) return r; } return null; }
-  if (node.skuWeight != null && Number(node.skuWeight) > 0) return Number(node.skuWeight);
-  for (const k of Object.keys(node)) { const r = findWeight(node[k]); if (r) return r; }
+  if (Array.isArray(node)) { for (const n of node) { const r = findPhysical(n); if (r) return r; } return null; }
+  if (node.skuWeight != null && Number(node.skuWeight) > 0) {
+    return {
+      weight: Number(node.skuWeight),
+      long: Number(node.skuLong) > 0 ? Number(node.skuLong) : null,
+      wide: Number(node.skuWide) > 0 ? Number(node.skuWide) : null,
+      height: Number(node.skuHeight) > 0 ? Number(node.skuHeight) : null,
+    };
+  }
+  for (const k of Object.keys(node)) { const r = findPhysical(node[k]); if (r) return r; }
   return null;
 }
 
@@ -44,11 +53,13 @@ Deno.serve(async (req) => {
   if (!order.shop_order_no) return new Response("not placed", { status: 200 });
 
   const detail = await buckyPost("/api/rest/v2/adapt/adaptation/order/detail", { shopOrderNo: order.shop_order_no });
-  const grams = findWeight(detail?.data ?? detail);
-  if (!grams) return new Response("no weight in detail yet", { status: 200 });
+  const phys = findPhysical(detail?.data ?? detail);
+  if (!phys) return new Response("no weight in detail yet", { status: 200 });
 
-  await admin.from("orders").update({ weight_grams: Math.round(grams) }).eq("id", order.id);
-  return new Response(JSON.stringify({ ok: true, weight_grams: Math.round(grams) }), {
-    headers: { "Content-Type": "application/json" },
-  });
+  const update: Record<string, unknown> = { weight_grams: Math.round(phys.weight) };
+  if (phys.long) update.length_cm = phys.long;
+  if (phys.wide) update.width_cm = phys.wide;
+  if (phys.height) update.height_cm = phys.height;
+  await admin.from("orders").update(update).eq("id", order.id);
+  return new Response(JSON.stringify({ ok: true, ...update }), { headers: { "Content-Type": "application/json" } });
 });

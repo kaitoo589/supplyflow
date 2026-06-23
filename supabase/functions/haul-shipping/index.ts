@@ -90,8 +90,11 @@ function addressOf(meta: Record<string, any>) {
 
 function quoteBody(orders: any[], addr: ReturnType<typeof addressOf>) {
   const productList = orders.map((o) => ({
-    // We slaan productafmetingen nog niet op → standaarddoos. TODO cutover: dims bij curatie opslaan.
-    length: 20, width: 20, height: 10,
+    // Echte afmetingen uit BuckyDrop (gevuld door fetch-weight); val terug op een standaarddoos
+    // als BuckyDrop ze (nog) niet teruggaf.
+    length: Number(o.length_cm) > 0 ? Number(o.length_cm) : 20,
+    width: Number(o.width_cm) > 0 ? Number(o.width_cm) : 20,
+    height: Number(o.height_cm) > 0 ? Number(o.height_cm) : 10,
     weight: Math.max((Number(o.weight_grams) || 0) / 1000, 0.01), // kg
     count: Number(o.qty) || 1,
     categoryCode: o.bd_category_code || "1", // TODO cutover: echte Cat-Level-III-code opslaan
@@ -123,7 +126,7 @@ function parseChannels(res: any) {
 
 // Haal de pakket-orders op (alleen die van de gebruiker + klaar voor verzending).
 async function loadOrders(uid: string, orderIds: string[]) {
-  const { data } = await admin.from("orders").select("id,qty,weight_grams,bd_category_code,status,user_id")
+  const { data } = await admin.from("orders").select("id,qty,weight_grams,length_cm,width_cm,height_cm,bd_category_code,status,user_id")
     .in("id", orderIds).eq("user_id", uid);
   return data || [];
 }

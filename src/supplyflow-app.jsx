@@ -1003,6 +1003,8 @@ function HowItWorksSheet({ onClose }) {
 export default function SupplyFlow({ session }) {
   const [tab, setTab] = useState("feed");
   const [products, setProducts] = useState([]);
+  const [factories, setFactories] = useState([]);
+  const [selectedFactory, setSelectedFactory] = useState(null);
   const [loadingProducts, setLoadingProducts] = useState(true);
   const [productsError, setProductsError] = useState(null);
   const [search, setSearch] = useState("");
@@ -1243,6 +1245,14 @@ export default function SupplyFlow({ session }) {
   }, []);
 
   useEffect(() => {
+    async function fetchFactories() {
+      const { data } = await supabase.from("factories").select("*");
+      setFactories(data ?? []);
+    }
+    fetchFactories();
+  }, []);
+
+  useEffect(() => {
     if (!session) return;
     fetchBalance(); fetchOrders();
     const channel = supabase.channel("balance-updates")
@@ -1364,6 +1374,113 @@ export default function SupplyFlow({ session }) {
     return matchCat && matchSearch && matchFav;
   });
 
+  // ── Fabriek-first feed ──────────────────────────────────────────────────
+  // Hoort een product bij deze fabriek? Echte koppeling (factory_id), met
+  // fallback op de leverancier-naam voor nog-niet-gekoppelde producten.
+  const belongsToFactory = (p, f) => p.factory_id === f.id || (p.factory_id == null && (p.supplier || "") === f.name);
+  // Fabriek-kaarten: alleen fabrieken met zichtbare producten, gesorteerd op
+  // diamanten (4 = hoogste). De zoekbalk filtert hier op fabrieksnaam.
+  const factoryCards = factories
+    .map(f => {
+      const fp = products.filter(p => belongsToFactory(p, f));
+      // Kaart-plaatje: een geüploade fabrieksfoto wint, anders pakt de kaart
+      // automatisch de foto van het eerste product van die fabriek.
+      const cover = (f.logo && f.logo.startsWith("http"))
+        ? f.logo
+        : (fp.find(p => p.image && p.image.startsWith("http"))?.image || null);
+      return { ...f, count: fp.length, cover };
+    })
+    .filter(f => f.count > 0)
+    .filter(f => { const q = search.trim().toLowerCase(); return !q || (f.name || "").toLowerCase().includes(q); })
+    .sort((a, b) => (Number(b.diamonds) || 1) - (Number(a.diamonds) || 1) || (a.name || "").localeCompare(b.name || ""));
+  // Drill-in: producten van de geopende fabriek, met de gewone filters erop.
+  const factoryProducts = selectedFactory
+    ? visibleProducts.filter(p => belongsToFactory(p, selectedFactory))
+    : [];
+  // Categorie-chips binnen een fabriek = alleen de categorieën die díe fabriek heeft.
+  const chipCategories = selectedFactory
+    ? ["All", ...[...new Set(products.filter(p => belongsToFactory(p, selectedFactory)).map(p => p.category).filter(Boolean))].sort()]
+    : visibleCategories;
+
+  // Herbruikbare productkaart (zelfde stijl als voorheen) — voor drill-in + favorieten.
+  const productCardEl = (p) => (
+    <motion.div key={p.id} layout layoutId={`card-${p.id}`}
+      initial={{ opacity: 0, scale: 0.92, y: 14 }}
+      animate={{ opacity: 1, scale: 1, y: 0 }}
+      exit={{ opacity: 0, scale: 0.92, transition: { duration: 0.16, ease: [0.32, 0.72, 0, 1] } }}
+      onClick={() => { if (!session) { alert("Log in to order!"); return; } setSelectedProduct(p); }}
+      whileHover={{ y: -4 }} whileTap={{ scale: 0.98 }}
+      transition={springMorph}
+      style={{ background: "#fff", borderRadius: 18, overflow: "hidden", boxShadow: "0 1px 2px rgba(17,17,17,0.04), 0 6px 18px rgba(17,17,17,0.05)", cursor: "pointer" }}>
+      <div style={{ position: "relative" }}>
+        <motion.div layoutId={`pimg-${p.id}`} transition={springMorph} style={{ background: "#fff", height: 160, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 48, overflow: "hidden" }}>
+          {p.image?.startsWith("http") ? <img src={p.image} referrerPolicy="no-referrer" alt={p.title} style={{ width: "100%", height: "100%", objectFit: "contain" }} /> : p.image}
+        </motion.div>
+        <motion.div layoutId={`plus-${p.id}`} transition={springMorph}
+          onClick={e => { e.stopPropagation(); setActionProduct(p); }}
+          whileTap={{ scale: 0.82 }}
+          style={{ position: "absolute", right: 10, bottom: 10, width: 36, height: 36, borderRadius: 18, background: "#FF5C00", display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 4px 14px rgba(255,92,0,0.4)", cursor: "pointer", WebkitTapHighlightColor: "transparent" }}>
+          <Plus size={19} color="#fff" strokeWidth={2.6} />
+        </motion.div>
+      </div>
+      <div style={{ padding: "11px 13px 13px" }}>
+        <div style={{ fontSize: 11.5, color: "#A8A5A0", marginBottom: 3 }}>{p.platform} · {p.category}</div>
+        <div style={{ fontSize: 13.5, fontWeight: 600, color: "#111111", marginBottom: 7, lineHeight: 1.35 }}>{p.title}</div>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end" }}>
+          <div>
+            <div style={{ fontSize: 15, fontWeight: 700, color: "#111111" }}>€{Number(p.price).toFixed(2)}</div>
+            <div style={{ fontSize: 9.5, color: "#A8A5A0", marginTop: 1, lineHeight: 1.2 }}>factory price · +fees &amp; shipping</div>
+          </div>
+          {Number(p.rating) > 0
+            ? <div style={{ fontSize: 11.5, fontWeight: 600, color: "#111111" }}>★ {Number(p.rating).toFixed(1)}</div>
+            : <div style={{ fontSize: 11, color: "#A8A5A0" }}>MOQ {p.moq}</div>}
+        </div>
+      </div>
+    </motion.div>
+  );
+
+  // Fabriek-kaart voor de top van de feed (zelfde grid-stijl als producten).
+  const factoryCardEl = (f) => {
+    const dia = Math.max(1, Math.min(4, Number(f.diamonds) || 1));
+    const chips = [
+      f.service && { l: "service", v: f.service },
+      f.ontime && { l: "on-time", v: f.ontime },
+      f.repurchase && { l: "repeat", v: f.repurchase },
+    ].filter(Boolean).slice(0, 3);
+    return (
+      <motion.div key={f.id} layout layoutId={`factory-${f.id}`}
+        initial={{ opacity: 0, scale: 0.92, y: 14 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        exit={{ opacity: 0, scale: 0.92, transition: { duration: 0.16, ease: [0.32, 0.72, 0, 1] } }}
+        onClick={() => { setSelectedFactory(f); setSearch(""); setActiveCategory("All"); setActiveSub(null); }}
+        whileHover={{ y: -4 }} whileTap={{ scale: 0.98 }}
+        transition={springMorph}
+        style={{ background: "#fff", borderRadius: 18, overflow: "hidden", boxShadow: "0 1px 2px rgba(17,17,17,0.04), 0 6px 18px rgba(17,17,17,0.05)", cursor: "pointer" }}>
+        <div style={{ position: "relative", height: 132, background: "#F3F1EC", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 46, overflow: "hidden" }}>
+          {f.cover
+            ? <img src={f.cover} referrerPolicy="no-referrer" alt={f.name} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+            : "🏭"}
+          <div style={{ position: "absolute", top: 10, left: 10, background: "rgba(17,17,17,0.82)", color: "#FF7A2E", borderRadius: 20, padding: "4px 9px", fontSize: 12, fontWeight: 700, letterSpacing: 1.5 }}>
+            {"◆".repeat(dia)}
+          </div>
+        </div>
+        <div style={{ padding: "11px 13px 13px" }}>
+          <div style={{ fontSize: 13.5, fontWeight: 700, color: "#111111", marginBottom: 3, lineHeight: 1.3 }}>{f.name}</div>
+          <div style={{ fontSize: 11, color: "#A8A5A0", marginBottom: chips.length ? 8 : 0 }}>{f.count} product{f.count === 1 ? "" : "s"} ›</div>
+          {chips.length > 0 && (
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 5 }}>
+              {chips.map((s, i) => (
+                <div key={i} style={{ background: "#F6F4EF", borderRadius: 8, padding: "3px 7px", fontSize: 10, color: "#6B6862" }}>
+                  <span style={{ fontWeight: 700, color: "#111" }}>{s.v}</span> {s.l}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </motion.div>
+    );
+  };
+
   return (
     <div style={{ fontFamily: "'Inter', 'Helvetica Neue', sans-serif", background: "#F8F7F4", minHeight: "100vh", maxWidth: 430, margin: "0 auto", width: "100%", position: "relative" }}>
 
@@ -1444,25 +1561,69 @@ export default function SupplyFlow({ session }) {
       {tab === "feed" && (
         <motion.div key="feed" {...pageTransition} style={{ padding: "10px 20px 80px" }}>
           <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 10 }}>
-            <div style={{ fontSize: 30, fontWeight: 800, letterSpacing: -0.6, color: "#111111", marginBottom: 2 }}>{showFavoritesOnly ? "Favorites" : "Discover"}</div>
+            <div style={{ fontSize: 30, fontWeight: 800, letterSpacing: -0.6, color: "#111111", marginBottom: 2 }}>{showFavoritesOnly ? "Favorites" : selectedFactory ? selectedFactory.name : "Discover"}</div>
             <motion.button whileTap={{ scale: 0.85 }} transition={springSnappy} onClick={() => setShowFavoritesOnly((v) => !v)} aria-label="favorites"
               style={{ width: 42, height: 42, borderRadius: "50%", background: showFavoritesOnly ? "#FF5C00" : "#fff", border: "1px solid #ECEAE5", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", flexShrink: 0 }}>
               <Star size={19} color={showFavoritesOnly ? "#fff" : "#111111"} fill={showFavoritesOnly ? "#fff" : "none"} strokeWidth={2} />
             </motion.button>
           </div>
-          <div style={{ fontSize: 13.5, color: "#8A8780", marginBottom: 16 }}>{showFavoritesOnly ? "Your starred products." : "From factory floor to your door."}</div>
+          <div style={{ fontSize: 13.5, color: "#8A8780", marginBottom: 16 }}>{showFavoritesOnly ? "Your starred products." : selectedFactory ? "Curated products from this factory." : "Tap a factory to explore its products."}</div>
+
+          {/* Terug-knop + fabriek-header bij drill-in */}
+          {selectedFactory && !showFavoritesOnly && (
+            <>
+              <motion.div whileTap={{ scale: 0.96 }} onClick={() => { setSelectedFactory(null); setSearch(""); setActiveCategory("All"); setActiveSub(null); }}
+                style={{ display: "inline-flex", alignItems: "center", gap: 5, marginBottom: 12, cursor: "pointer", color: "#8A8780", fontSize: 13, fontWeight: 600, WebkitTapHighlightColor: "transparent" }}>
+                <span style={{ fontSize: 17, lineHeight: 1, marginTop: -1 }}>‹</span> All factories
+              </motion.div>
+              {(() => {
+                const dia = Math.max(1, Math.min(4, Number(selectedFactory.diamonds) || 1));
+                const stats = [
+                  { label: "Repurchase rate", v: selectedFactory.repurchase },
+                  { label: "Service score", v: selectedFactory.service },
+                  { label: "On-time delivery", v: selectedFactory.ontime },
+                  { label: "Positive reviews", v: selectedFactory.reviews },
+                ].filter(s => s.v);
+                return (
+                  <motion.div layoutId={`factory-${selectedFactory.id}`} transition={springMorph}
+                    style={{ background: "#fff", borderRadius: 16, padding: 14, marginBottom: 16, boxShadow: "0 1px 2px rgba(17,17,17,0.04), 0 6px 18px rgba(17,17,17,0.05)" }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: stats.length ? 12 : 0 }}>
+                      <div style={{ width: 52, height: 52, borderRadius: 13, background: "#F3F1EC", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 26, overflow: "hidden", flexShrink: 0 }}>
+                        {(selectedFactory.cover || (selectedFactory.logo && selectedFactory.logo.startsWith("http"))) ? <img src={selectedFactory.cover || selectedFactory.logo} referrerPolicy="no-referrer" alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : "🏭"}
+                      </div>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ fontSize: 11, color: "#A8A5A0", fontWeight: 600, display: "flex", alignItems: "center", gap: 6 }}>Factory <span style={{ color: "#FF5C00", letterSpacing: 1.5 }}>{"◆".repeat(dia)}</span></div>
+                        <div style={{ fontSize: 16, fontWeight: 700, color: "#111" }}>{selectedFactory.name}</div>
+                      </div>
+                    </div>
+                    {stats.length > 0 && (
+                      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+                        {stats.map(s => (
+                          <div key={s.label} style={{ background: "#F8F7F4", borderRadius: 10, padding: "8px 10px", border: "1px solid #EFEDE7" }}>
+                            <div style={{ fontSize: 15, fontWeight: 800, color: "#FF5C00" }}>{s.v}</div>
+                            <div style={{ fontSize: 10.5, color: "#8A8780" }}>{s.label}</div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </motion.div>
+                );
+              })()}
+            </>
+          )}
           <div style={{ background: "#F0EEE8", borderRadius: 15, padding: "12px 14px", display: "flex", alignItems: "center", gap: 9, marginBottom: 14 }}>
             <Search size={17} color="#8A8780" strokeWidth={2} />
-            <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search products by name..."
+            <input value={search} onChange={e => setSearch(e.target.value)} placeholder={selectedFactory || showFavoritesOnly ? "Search products by name..." : "Search factories by name..."}
               style={{ flex: 1, border: "none", outline: "none", background: "transparent", fontSize: 14, color: "#111111", fontFamily: "inherit" }} />
             {search ? (
               <X size={15} color="#8A8780" onClick={() => setSearch("")} style={{ cursor: "pointer" }} />
-            ) : (
+            ) : (selectedFactory || showFavoritesOnly) ? (
               <SlidersHorizontal size={15} color="#8A8780" onClick={() => setShowClothesPicker(true)} style={{ cursor: "pointer" }} />
-            )}
+            ) : null}
           </div>
+          {(selectedFactory || showFavoritesOnly || factories.length === 0) && (
           <div style={{ display: "flex", gap: 8, overflowX: "auto", marginBottom: 18, paddingBottom: 4 }}>
-            {visibleCategories.map((c) => {
+            {chipCategories.map((c) => {
               const active = activeCategory === c;
               const hasSubs = c !== "All" && subsForCategory(c).length > 0;
               const label = c === activeCategory && activeSub ? `${c} · ${activeSub}` : c;
@@ -1486,52 +1647,64 @@ export default function SupplyFlow({ session }) {
               );
             })}
           </div>
-          {loadingProducts && <div style={{ textAlign: "center", padding: 40, color: "#999" }}>Loading products...</div>}
-          {productsError && <div style={{ textAlign: "center", padding: 40, color: "#B45309" }}>Couldn't load products: {productsError}</div>}
-          {!loadingProducts && !productsError && products.length === 0 && <div style={{ textAlign: "center", padding: 40, color: "#999" }}>No products found</div>}
-          {!loadingProducts && !productsError && products.length > 0 && visibleProducts.length === 0 && <div style={{ textAlign: "center", padding: 40, color: "#999", lineHeight: 1.5 }}>{showFavoritesOnly ? "No favorites yet — tap the ☆ on any product to save it here." : "No results found"}</div>}
-          {!loadingProducts && !productsError && visibleProducts.length > 0 && (
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-              {/* popLayout: kaarten faden in/uit bij categoriewissel en de rest
-                  schuift met een spring naar z'n nieuwe plek */}
-              <AnimatePresence mode="popLayout" initial={false}>
-              {visibleProducts.map(p => (
-                <motion.div key={p.id} layout layoutId={`card-${p.id}`}
-                  initial={{ opacity: 0, scale: 0.92, y: 14 }}
-                  animate={{ opacity: 1, scale: 1, y: 0 }}
-                  exit={{ opacity: 0, scale: 0.92, transition: { duration: 0.16, ease: [0.32, 0.72, 0, 1] } }}
-                  onClick={() => { if (!session) { alert("Log in to order!"); return; } setSelectedProduct(p); }}
-                  whileHover={{ y: -4 }} whileTap={{ scale: 0.98 }}
-                  transition={springMorph}
-                  style={{ background: "#fff", borderRadius: 18, overflow: "hidden", boxShadow: "0 1px 2px rgba(17,17,17,0.04), 0 6px 18px rgba(17,17,17,0.05)", cursor: "pointer" }}>
-                  <div style={{ position: "relative" }}>
-                    <motion.div layoutId={`pimg-${p.id}`} transition={springMorph} style={{ background: "#fff", height: 160, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 48, overflow: "hidden" }}>
-                      {p.image?.startsWith("http") ? <img src={p.image} referrerPolicy="no-referrer" alt={p.title} style={{ width: "100%", height: "100%", objectFit: "contain" }} /> : p.image}
-                    </motion.div>
-                    <motion.div layoutId={`plus-${p.id}`} transition={springMorph}
-                      onClick={e => { e.stopPropagation(); setActionProduct(p); }}
-                      whileTap={{ scale: 0.82 }}
-                      style={{ position: "absolute", right: 10, bottom: 10, width: 36, height: 36, borderRadius: 18, background: "#FF5C00", display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 4px 14px rgba(255,92,0,0.4)", cursor: "pointer", WebkitTapHighlightColor: "transparent" }}>
-                      <Plus size={19} color="#fff" strokeWidth={2.6} />
-                    </motion.div>
-                  </div>
-                  <div style={{ padding: "11px 13px 13px" }}>
-                    <div style={{ fontSize: 11.5, color: "#A8A5A0", marginBottom: 3 }}>{p.platform} · {p.category}</div>
-                    <div style={{ fontSize: 13.5, fontWeight: 600, color: "#111111", marginBottom: 7, lineHeight: 1.35 }}>{p.title}</div>
-                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end" }}>
-                      <div>
-                        <div style={{ fontSize: 15, fontWeight: 700, color: "#111111" }}>€{Number(p.price).toFixed(2)}</div>
-                        <div style={{ fontSize: 9.5, color: "#A8A5A0", marginTop: 1, lineHeight: 1.2 }}>factory price · +fees &amp; shipping</div>
-                      </div>
-                      {Number(p.rating) > 0
-                        ? <div style={{ fontSize: 11.5, fontWeight: 600, color: "#111111" }}>★ {Number(p.rating).toFixed(1)}</div>
-                        : <div style={{ fontSize: 11, color: "#A8A5A0" }}>MOQ {p.moq}</div>}
-                    </div>
-                  </div>
-                </motion.div>
-              ))}
-              </AnimatePresence>
-            </div>
+          )}
+          {/* === BODY: favorieten · fabriek-drill-in · fabriek-kaarten === */}
+          {showFavoritesOnly ? (
+            <>
+              {!loadingProducts && !productsError && visibleProducts.length === 0 && (
+                <div style={{ textAlign: "center", padding: 40, color: "#999", lineHeight: 1.5 }}>No favorites yet — tap the ☆ on any product to save it here.</div>
+              )}
+              {visibleProducts.length > 0 && (
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+                  <AnimatePresence mode="popLayout" initial={false}>
+                    {visibleProducts.map(productCardEl)}
+                  </AnimatePresence>
+                </div>
+              )}
+            </>
+          ) : selectedFactory ? (
+            <>
+              {factoryProducts.length === 0 && (
+                <div style={{ textAlign: "center", padding: 40, color: "#999" }}>No products in this view.</div>
+              )}
+              {factoryProducts.length > 0 && (
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+                  <AnimatePresence mode="popLayout" initial={false}>
+                    {factoryProducts.map(productCardEl)}
+                  </AnimatePresence>
+                </div>
+              )}
+            </>
+          ) : factories.length === 0 ? (
+            <>
+              {/* Terugval: nog geen fabrieken (SQL nog niet gedraaid) → klassieke feed */}
+              {loadingProducts && <div style={{ textAlign: "center", padding: 40, color: "#999" }}>Loading products...</div>}
+              {productsError && <div style={{ textAlign: "center", padding: 40, color: "#B45309" }}>Couldn't load products: {productsError}</div>}
+              {!loadingProducts && !productsError && products.length === 0 && <div style={{ textAlign: "center", padding: 40, color: "#999" }}>No products found</div>}
+              {!loadingProducts && !productsError && products.length > 0 && visibleProducts.length === 0 && <div style={{ textAlign: "center", padding: 40, color: "#999" }}>No results found</div>}
+              {!loadingProducts && !productsError && visibleProducts.length > 0 && (
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+                  <AnimatePresence mode="popLayout" initial={false}>
+                    {visibleProducts.map(productCardEl)}
+                  </AnimatePresence>
+                </div>
+              )}
+            </>
+          ) : (
+            <>
+              {loadingProducts && <div style={{ textAlign: "center", padding: 40, color: "#999" }}>Loading factories...</div>}
+              {productsError && <div style={{ textAlign: "center", padding: 40, color: "#B45309" }}>Couldn't load: {productsError}</div>}
+              {!loadingProducts && !productsError && factoryCards.length === 0 && (
+                <div style={{ textAlign: "center", padding: 40, color: "#999", lineHeight: 1.5 }}>{search ? "No factories match your search." : "No factories yet — check back soon."}</div>
+              )}
+              {!loadingProducts && !productsError && factoryCards.length > 0 && (
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+                  <AnimatePresence mode="popLayout" initial={false}>
+                    {factoryCards.map(factoryCardEl)}
+                  </AnimatePresence>
+                </div>
+              )}
+            </>
           )}
         </motion.div>
       )}

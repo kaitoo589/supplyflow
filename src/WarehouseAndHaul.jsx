@@ -826,8 +826,9 @@ export function WarehouseTab({ session, haulItems: allHaulItems = [], setHaulIte
   );
 }
 
-// "In transit": de pakketten van de klant — betaald en (straks) verzonden.
-// Later koppelen we hier live 17TRACK-statusupdates aan (via API key).
+// "In transit": de pakketten van de klant — betaald en verzonden, met live tracking.
+// De cron-functie track-haul vult trace_status/trace_nodes/carrier; wij tonen ze hier.
+const TRACE_LABEL = { 1: "In transit", 2: "Out for delivery", 3: "Delivered", 4: "Delivery issue", 5: "Held at customs", 6: "Returning", 7: "Returned", 8: "Return pending", 9: "Awaiting tracking" };
 export function TransitTab({ session, orders = [] }) {
   const [hauls, setHauls] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -866,7 +867,10 @@ export function TransitTab({ session, orders = [] }) {
         const items = (haul.items || []).map(orderById).filter(Boolean);
         const itemCount = items.length || (haul.items || []).length;
         const totalWeight = items.reduce((s, o) => s + (o.weight_grams || 0), 0);
-        const shipped = haul.status === "shipped";
+        const ts = haul.trace_status;
+        const statusLabel = ts ? (TRACE_LABEL[ts] || "In transit") : (haul.package_code ? "Awaiting tracking" : "Preparing shipment");
+        const delivered = ts === 3;
+        const nodes = Array.isArray(haul.trace_nodes) ? haul.trace_nodes : [];
         return (
           <motion.div key={haul.id} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ ...springSoft, delay: hi * 0.06 }}
             style={{ background: "#fff", borderRadius: 18, padding: "15px 16px", marginBottom: 12, boxShadow: "0 1px 2px rgba(17,17,17,0.04), 0 6px 18px rgba(17,17,17,0.05)" }}>
@@ -875,8 +879,8 @@ export function TransitTab({ session, orders = [] }) {
                 <div style={{ fontSize: 14, fontWeight: 700, color: "#111111" }}>Parcel · {itemCount} item{itemCount !== 1 ? "s" : ""}</div>
                 <div style={{ fontSize: 11.5, color: "#A8A5A0" }}>{haul.created_at ? new Date(haul.created_at).toLocaleDateString("en-GB") : ""}{totalWeight ? ` · ${totalWeight}g` : ""}</div>
               </div>
-              <div style={{ background: shipped ? "#111111" : "#FFF0E7", color: shipped ? "#fff" : "#FF5C00", fontSize: 11, fontWeight: 700, padding: "5px 11px", borderRadius: 16, whiteSpace: "nowrap" }}>
-                {shipped ? "✈ Shipped" : "Preparing shipment"}
+              <div style={{ background: delivered ? "#111111" : ts ? "#FFF0E7" : "#F0EEE8", color: delivered ? "#fff" : ts ? "#FF5C00" : "#8A8780", fontSize: 11, fontWeight: 700, padding: "5px 11px", borderRadius: 16, whiteSpace: "nowrap" }}>
+                {delivered ? "✓ " : ts ? "✈ " : ""}{statusLabel}
               </div>
             </div>
 
@@ -892,22 +896,47 @@ export function TransitTab({ session, orders = [] }) {
               </div>
             )}
 
-            <div style={{ display: "flex", justifyContent: "space-between", marginBottom: haul.tracking_number || !shipped ? 10 : 0 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 10 }}>
               <span style={{ fontSize: 12, color: "#8A8780" }}>Paid (shipping + VAT)</span>
               <span style={{ fontSize: 12, fontWeight: 700, color: "#111111" }}>€{Number(haul.paid_eur || 0).toFixed(2)}</span>
             </div>
 
-            {haul.tracking_number ? (
-              <div style={{ background: "#F8F7F4", borderRadius: 12, padding: "10px 12px" }}>
-                <div style={{ fontSize: 11, color: "#A8A5A0", marginBottom: 2 }}>Tracking number</div>
-                <div style={{ fontSize: 13, fontWeight: 700, color: "#111111", marginBottom: 4 }}>{haul.tracking_number}</div>
-                <a href={`https://www.dhl.com/nl-en/home/tracking.html?tracking-id=${haul.tracking_number}`} target="_blank" rel="noreferrer"
-                  style={{ fontSize: 12, color: "#FF5C00", fontWeight: 600, textDecoration: "none" }}>Track your parcel →</a>
+            {(haul.tracking_no || nodes.length > 0) ? (
+              <div style={{ background: "#F8F7F4", borderRadius: 12, padding: "12px 13px" }}>
+                {haul.tracking_no && (
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: nodes.length ? 12 : 0 }}>
+                    <div style={{ minWidth: 0 }}>
+                      <div style={{ fontSize: 10.5, color: "#A8A5A0", marginBottom: 1 }}>{haul.carrier_name || "Carrier"} · tracking</div>
+                      <div style={{ fontSize: 13, fontWeight: 700, color: "#111111", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{haul.tracking_no}</div>
+                    </div>
+                    {haul.carrier_link && (
+                      <a href={haul.carrier_link} target="_blank" rel="noreferrer" style={{ fontSize: 12, color: "#FF5C00", fontWeight: 600, textDecoration: "none", whiteSpace: "nowrap", marginLeft: 10 }}>Open ↗</a>
+                    )}
+                  </div>
+                )}
+                {nodes.slice(0, 6).map((n, i) => {
+                  const last = i === Math.min(nodes.length, 6) - 1;
+                  return (
+                    <div key={i} style={{ display: "flex", gap: 10, paddingBottom: last ? 0 : 12 }}>
+                      <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
+                        <div style={{ width: 9, height: 9, borderRadius: "50%", background: i === 0 ? "#FF5C00" : "#D6D2CA", marginTop: 3, flexShrink: 0 }} />
+                        {!last && <div style={{ width: 2, flex: 1, background: "#E8E4DC", marginTop: 2 }} />}
+                      </div>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ fontSize: 12, fontWeight: i === 0 ? 700 : 500, color: i === 0 ? "#111111" : "#5F5C56", lineHeight: 1.35 }}>{n.desc || n.place || "Update"}</div>
+                        <div style={{ fontSize: 10.5, color: "#A8A5A0", marginTop: 1 }}>{[n.place, n.time].filter(Boolean).join(" · ")}</div>
+                      </div>
+                    </div>
+                  );
+                })}
+                {haul.tracking_updated_at && (
+                  <div style={{ fontSize: 9.5, color: "#C2BEB6", marginTop: 8, textAlign: "right" }}>Updated {new Date(haul.tracking_updated_at).toLocaleString("en-GB")}</div>
+                )}
               </div>
             ) : (
               <div style={{ display: "flex", alignItems: "center", gap: 8, background: "#F8F7F4", borderRadius: 12, padding: "10px 12px" }}>
                 <MapPin size={14} color="#A8A5A0" />
-                <span style={{ fontSize: 12, color: "#8A8780" }}>Live tracking updates coming soon</span>
+                <span style={{ fontSize: 12, color: "#8A8780" }}>{haul.package_code ? "Tracking will appear here soon" : "Live tracking starts once your parcel ships"}</span>
               </div>
             )}
           </motion.div>

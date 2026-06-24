@@ -1442,11 +1442,12 @@ export default function SupplyFlow({ session }) {
   // Fabriek-kaart voor de top van de feed (zelfde grid-stijl als producten).
   const factoryCardEl = (f) => {
     const dia = Math.max(0, Math.min(4, Number(f.diamonds) || 0));
-    const chips = [
-      f.service && { l: "service", v: f.service },
-      f.ontime && { l: "on-time", v: f.ontime },
-      f.repurchase && { l: "repeat", v: f.repurchase },
-    ].filter(Boolean).slice(0, 3);
+    const stats = [
+      { label: "Repurchase rate", v: f.repurchase },
+      { label: "Service score", v: f.service },
+      { label: "On-time delivery", v: f.ontime },
+      { label: "Positive reviews", v: f.reviews },
+    ].filter(s => s.v);
     return (
       <motion.div key={f.id} layout layoutId={`factory-${f.id}`}
         initial={{ opacity: 0, scale: 0.92, y: 14 }}
@@ -1468,12 +1469,13 @@ export default function SupplyFlow({ session }) {
         </div>
         <div style={{ padding: "11px 13px 13px" }}>
           <div style={{ fontSize: 13.5, fontWeight: 700, color: "#111111", marginBottom: 3, lineHeight: 1.3 }}>{f.name}</div>
-          <div style={{ fontSize: 11, color: "#A8A5A0", marginBottom: chips.length ? 8 : 0 }}>{f.count} product{f.count === 1 ? "" : "s"} ›</div>
-          {chips.length > 0 && (
-            <div style={{ display: "flex", flexWrap: "wrap", gap: 5 }}>
-              {chips.map((s, i) => (
-                <div key={i} style={{ background: "#F6F4EF", borderRadius: 8, padding: "3px 7px", fontSize: 10, color: "#6B6862" }}>
-                  <span style={{ fontWeight: 700, color: "#111" }}>{s.v}</span> {s.l}
+          <div style={{ fontSize: 11, color: "#A8A5A0", marginBottom: stats.length ? 8 : 0 }}>{f.count} product{f.count === 1 ? "" : "s"} ›</div>
+          {stats.length > 0 && (
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 5 }}>
+              {stats.map(s => (
+                <div key={s.label} style={{ background: "#F6F4EF", borderRadius: 8, padding: "5px 7px" }}>
+                  <div style={{ fontSize: 12.5, fontWeight: 800, color: "#FF5C00", lineHeight: 1.1 }}>{s.v}</div>
+                  <div style={{ fontSize: 9, color: "#8A8780", lineHeight: 1.2, marginTop: 1 }}>{s.label}</div>
                 </div>
               ))}
             </div>

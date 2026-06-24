@@ -9,7 +9,7 @@ import { WarehouseTab, TransitTab } from "./WarehouseAndHaul";
 import { motion, AnimatePresence } from "framer-motion";
 import { createPortal } from "react-dom";
 import { springSnappy, springSoft, springBouncy, springMorph } from "./motion";
-import { Search, SlidersHorizontal, Bell, Home, Package, Factory, User, Users, ShoppingBag, Eye, Star, Plus, X, Plane, CreditCard, PackageCheck, Truck, Camera, ChevronUp } from "lucide-react";
+import { Search, SlidersHorizontal, Bell, Home, Package, Factory, User, ShoppingBag, Eye, Star, Plus, X, Plane, CreditCard, PackageCheck, Truck, Camera, ChevronUp } from "lucide-react";
 import { WordReveal, SpeechBubble } from "./MotionBits";
 import ReviewPage from "./ReviewPage";
 import { problemTypes } from "./problemTypes";
@@ -1500,12 +1500,6 @@ export default function SupplyFlow({ session }) {
             <span style={{ fontSize: 11, color: "#8A8780" }}>Balance</span>
             <span style={{ fontSize: 13, fontWeight: 700, color: "#111111" }}>€{parseFloat(balance).toFixed(2)}</span>
           </div>
-          <motion.div whileTap={{ scale: 0.88 }} transition={springSnappy} aria-label="Flowva Friends"
-            onClick={() => { if (activeGroup) setActiveGroup(null); else { setFriendsJoinCode(null); setShowFriends(true); } }}
-            className={activeGroup ? "ff-glow" : ""}
-            style={{ width: 38, height: 38, borderRadius: "50%", background: activeGroup ? "#FF5C00" : "#fff", border: "1px solid #ECEAE5", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", WebkitTapHighlightColor: "transparent" }}>
-            <Users size={17} color={activeGroup ? "#fff" : "#111111"} strokeWidth={2} />
-          </motion.div>
           <div style={{ position: "relative" }}>
             <motion.div whileTap={{ scale: 0.88 }} transition={springSnappy} onClick={() => setShowNotifs(!showNotifs)}
               style={{ width: 38, height: 38, borderRadius: "50%", background: showNotifs ? "#111111" : "#fff", border: "1px solid #ECEAE5", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", WebkitTapHighlightColor: "transparent" }}>
@@ -2000,16 +1994,6 @@ export default function SupplyFlow({ session }) {
               {loadingBalance ? "Loading..." : `+ Add €${topupAmount || "0"} via iDEAL`}
             </button>
           </div>
-          <PushToggle session={session} />
-          <motion.div whileTap={{ scale: 0.98 }} onClick={() => setShowHowItWorks(true)}
-            style={{ background: "#fff", border: "1px solid #E8E6E0", borderRadius: 16, padding: "15px 18px", marginBottom: 12, display: "flex", alignItems: "center", gap: 12, cursor: "pointer" }}>
-            <div style={{ width: 38, height: 38, borderRadius: 11, background: "#FFF0E7", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18, flexShrink: 0 }}>🦊</div>
-            <div style={{ flex: 1 }}>
-              <div style={{ fontSize: 14, fontWeight: 700, color: "#0F0E0C" }}>How Flowva works</div>
-              <div style={{ fontSize: 12, color: "#A8A5A0" }}>Prices, fees, shipping & the haul model</div>
-            </div>
-            <div style={{ color: "#C9C6C1", fontSize: 18 }}>→</div>
-          </motion.div>
           {/* Flowva Friends — activatie-switch: selecteer een groep → de switch zet 'm live */}
           {(() => {
             const gathering = myGroups.filter((g) => g.status === "gathering");
@@ -2070,6 +2054,16 @@ export default function SupplyFlow({ session }) {
               </div>
             );
           })()}
+          <PushToggle session={session} />
+          <motion.div whileTap={{ scale: 0.98 }} onClick={() => setShowHowItWorks(true)}
+            style={{ background: "#fff", border: "1px solid #E8E6E0", borderRadius: 16, padding: "15px 18px", marginBottom: 12, display: "flex", alignItems: "center", gap: 12, cursor: "pointer" }}>
+            <div style={{ width: 38, height: 38, borderRadius: 11, background: "#FFF0E7", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18, flexShrink: 0 }}>🦊</div>
+            <div style={{ flex: 1 }}>
+              <div style={{ fontSize: 14, fontWeight: 700, color: "#0F0E0C" }}>How Flowva works</div>
+              <div style={{ fontSize: 12, color: "#A8A5A0" }}>Prices, fees, shipping & the haul model</div>
+            </div>
+            <div style={{ color: "#C9C6C1", fontSize: 18 }}>→</div>
+          </motion.div>
           <a href="/returns" style={{ textDecoration: "none", background: "#fff", border: "1px solid #E8E6E0", borderRadius: 16, padding: "15px 18px", marginBottom: 12, display: "flex", alignItems: "center", gap: 12 }}>
             <div style={{ width: 38, height: 38, borderRadius: 11, background: "#F3F1ED", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18, flexShrink: 0 }}>↩️</div>
             <div style={{ flex: 1 }}>

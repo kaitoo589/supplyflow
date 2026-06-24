@@ -20,9 +20,12 @@ export default function GroupModeGlow({ active, dimmed }) {
           animation: ffRot 1.2s linear, ffRot 5s linear 1.2s infinite;   /* sweep → dan rustig stromen */
         }
         .ff-edge::after { content:""; position:absolute; inset:0; box-shadow: inset 0 0 26px 2px rgba(255,92,0,.2); }
+        @keyframes ffGlow { 0%,100% { box-shadow:0 0 0 1px rgba(255,92,0,.26); } 50% { box-shadow:0 0 13px 1px rgba(255,92,0,.42), 0 0 0 1px rgba(255,92,0,.55); } }
+        .ff-glow { animation: ffGlow 3.2s ease-in-out infinite; }
         @media (prefers-reduced-motion: reduce) {
           .ff-edge::before { animation: none; background:linear-gradient(#FF5C00,#FF5C00); }
           .ff-cat-on { animation: none !important; box-shadow:0 0 0 1px rgba(255,92,0,.4) !important; }
+          .ff-glow { animation: none !important; box-shadow:0 0 0 1px rgba(255,92,0,.45) !important; }
         }
         .ff-cat-on { animation: ffCat 3.4s ease-in-out infinite; }
       `}</style>

@@ -9,7 +9,7 @@ import { WarehouseTab, TransitTab } from "./WarehouseAndHaul";
 import { motion, AnimatePresence } from "framer-motion";
 import { createPortal } from "react-dom";
 import { springSnappy, springSoft, springBouncy, springMorph } from "./motion";
-import { Search, SlidersHorizontal, Bell, Home, Package, Factory, User, ShoppingBag, Eye, Star, Plus, X, Plane, CreditCard, PackageCheck, Truck, Camera, ChevronUp } from "lucide-react";
+import { Search, SlidersHorizontal, Bell, Home, Package, Factory, User, Users, ShoppingBag, Eye, Star, Plus, X, Plane, CreditCard, PackageCheck, Truck, Camera, ChevronUp } from "lucide-react";
 import { WordReveal, SpeechBubble } from "./MotionBits";
 import ReviewPage from "./ReviewPage";
 import { problemTypes } from "./problemTypes";
@@ -1404,7 +1404,7 @@ export default function SupplyFlow({ session }) {
 
   // Herbruikbare productkaart (zelfde stijl als voorheen) — voor drill-in + favorieten.
   const productCardEl = (p) => (
-    <motion.div key={p.id} layout layoutId={`card-${p.id}`}
+    <motion.div key={p.id} layout layoutId={`card-${p.id}`} className={activeGroup ? "ff-glow" : ""}
       initial={{ opacity: 0, scale: 0.92, y: 14 }}
       animate={{ opacity: 1, scale: 1, y: 0 }}
       exit={{ opacity: 0, scale: 0.92, transition: { duration: 0.16, ease: [0.32, 0.72, 0, 1] } }}
@@ -1449,7 +1449,7 @@ export default function SupplyFlow({ session }) {
       { label: "Positive reviews", v: f.reviews },
     ].filter(s => s.v);
     return (
-      <motion.div key={f.id} layout layoutId={`factory-${f.id}`}
+      <motion.div key={f.id} layout layoutId={`factory-${f.id}`} className={activeGroup ? "ff-glow" : ""}
         initial={{ opacity: 0, scale: 0.92, y: 14 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
         exit={{ opacity: 0, scale: 0.92, transition: { duration: 0.16, ease: [0.32, 0.72, 0, 1] } }}
@@ -1500,6 +1500,12 @@ export default function SupplyFlow({ session }) {
             <span style={{ fontSize: 11, color: "#8A8780" }}>Balance</span>
             <span style={{ fontSize: 13, fontWeight: 700, color: "#111111" }}>€{parseFloat(balance).toFixed(2)}</span>
           </div>
+          <motion.div whileTap={{ scale: 0.88 }} transition={springSnappy} aria-label="Flowva Friends"
+            onClick={() => { if (activeGroup) setActiveGroup(null); else { setFriendsJoinCode(null); setShowFriends(true); } }}
+            className={activeGroup ? "ff-glow" : ""}
+            style={{ width: 38, height: 38, borderRadius: "50%", background: activeGroup ? "#FF5C00" : "#fff", border: "1px solid #ECEAE5", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", WebkitTapHighlightColor: "transparent" }}>
+            <Users size={17} color={activeGroup ? "#fff" : "#111111"} strokeWidth={2} />
+          </motion.div>
           <div style={{ position: "relative" }}>
             <motion.div whileTap={{ scale: 0.88 }} transition={springSnappy} onClick={() => setShowNotifs(!showNotifs)}
               style={{ width: 38, height: 38, borderRadius: "50%", background: showNotifs ? "#111111" : "#fff", border: "1px solid #ECEAE5", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", WebkitTapHighlightColor: "transparent" }}>
@@ -1621,7 +1627,7 @@ export default function SupplyFlow({ session }) {
               })()}
             </>
           )}
-          <div style={{ background: "#F0EEE8", borderRadius: 15, padding: "12px 14px", display: "flex", alignItems: "center", gap: 9, marginBottom: 14 }}>
+          <div className={activeGroup ? "ff-glow" : ""} style={{ background: "#F0EEE8", borderRadius: 15, padding: "12px 14px", display: "flex", alignItems: "center", gap: 9, marginBottom: 14 }}>
             <Search size={17} color="#8A8780" strokeWidth={2} />
             <input value={search} onChange={e => setSearch(e.target.value)} placeholder={selectedFactory || showFavoritesOnly ? "Search products by name..." : "Search factories by name..."}
               style={{ flex: 1, border: "none", outline: "none", background: "transparent", fontSize: 14, color: "#111111", fontFamily: "inherit" }} />

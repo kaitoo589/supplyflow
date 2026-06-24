@@ -14,16 +14,37 @@
     line-height: 1.62;
     -webkit-font-smoothing: antialiased;
   }
+  /* iOS-achtige intro: zachtjes omhoog + fade in */
+  @keyframes riseIn {
+    from { opacity: 0; transform: translateY(18px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  .bar  { animation: riseIn 0.45s cubic-bezier(0.32,0.72,0,1) both; }
+  .wrap { animation: riseIn 0.60s cubic-bezier(0.32,0.72,0,1) 0.07s both; }
+  .foot { animation: riseIn 0.60s cubic-bezier(0.32,0.72,0,1) 0.12s both; }
+  @media (prefers-reduced-motion: reduce) {
+    .bar, .wrap, .foot { animation: none; }
+  }
+
   .bar {
-    display: flex; align-items: center; gap: 9px;
+    display: flex; align-items: center; gap: 10px;
     padding: 16px 22px;
     max-width: 680px; margin: 0 auto;
   }
+  .backbtn {
+    width: 38px; height: 38px; border-radius: 50%;
+    background: #fff; border: 1px solid #ECEAE5;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 19px; color: #111; cursor: pointer; flex-shrink: 0;
+    -webkit-tap-highlight-color: transparent;
+    transition: transform 0.15s cubic-bezier(0.32,0.72,0,1);
+  }
+  .backbtn:active { transform: scale(0.9); }
   .fox { width: 30px; height: 30px; border-radius: 50%; background: #111;
     display: flex; align-items: center; justify-content: center; font-size: 15px; }
   .brand { font-size: 12px; font-weight: 800; letter-spacing: 2.5px; color: #111; }
   .wrap {
-    max-width: 680px; margin: 0 auto 60px; padding: 30px 26px 40px;
+    max-width: 680px; margin: 0 auto 26px; padding: 30px 26px 40px;
     background: #fff; border-radius: 22px;
     box-shadow: 0 1px 2px rgba(17,17,17,0.04), 0 8px 30px rgba(17,17,17,0.06);
   }
@@ -49,11 +70,21 @@
   td { border-top: 1px solid #F0EEE8; color: #2C2A26; }
   td:first-child { font-weight: 600; color: #111; white-space: nowrap; }
   .src { font-size: 13px; color: #8A8780; }
-  .close-hint { max-width: 680px; margin: 0 auto; padding: 0 22px 18px; font-size: 12.5px; color: #A8A5A0; }
+  .foot { max-width: 680px; margin: 0 auto; padding: 0 22px 40px; text-align: center; }
+  .backlink {
+    display: inline-flex; align-items: center; gap: 7px;
+    padding: 12px 20px; background: #111; color: #fff;
+    border: none; border-radius: 24px; font-size: 14px; font-weight: 600;
+    font-family: inherit; cursor: pointer;
+    transition: transform 0.15s cubic-bezier(0.32,0.72,0,1);
+    -webkit-tap-highlight-color: transparent;
+  }
+  .backlink:active { transform: scale(0.96); }
 </style>
 </head>
 <body>
   <div class="bar">
+    <button class="backbtn" data-back aria-label="Back to Flowva">‹</button>
     <div class="fox">🦊</div>
     <div class="brand">FLOWVA</div>
   </div>
@@ -137,6 +168,20 @@
     <p class="src">This explanation is based on the official 1688 supplier performance definitions (“指标定义”) displayed within supplier profiles on the 1688 platform, including metrics such as On-Time Delivery Rate, Service Response Rate, Repurchase Rate, Custom Manufacturing Transactions, and Interested Customer Count.</p>
   </div>
 
-  <div class="close-hint">Close this tab to return to Flowva.</div>
+  <div class="foot">
+    <button class="backlink" data-back>‹ Back to Flowva</button>
+  </div>
+
+  <script>
+    function goBack() {
+      // Sluit dit tabblad als de browser het toestaat (geopend via de app);
+      // anders val terug op terugnavigeren naar de Flowva-app.
+      try { window.close(); } catch (e) {}
+      setTimeout(function () { window.location.replace('/'); }, 150);
+    }
+    document.querySelectorAll('[data-back]').forEach(function (el) {
+      el.addEventListener('click', function (e) { e.preventDefault(); goBack(); });
+    });
+  </script>
 </body>
 </html>

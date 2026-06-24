@@ -1070,6 +1070,16 @@ export default function SupplyFlow({ session }) {
   const [favorites, setFavorites] = useState(() => { try { return JSON.parse(localStorage.getItem(lsKey("flowva_favorites")) || "[]"); } catch { return []; } });
   const [showFavoritesOnly, setShowFavoritesOnly] = useState(false);
   const [supportHidden, setSupportHidden] = useState(() => { try { return localStorage.getItem("flowva_support_hidden") === "1"; } catch { return false; } });
+  // VABLE — eigen merk (borduurdesigns). Knop in de feed-header opent dit blad.
+  // Vervang img:null door je echte foto-URL's (en VABLE_URL door je winkel-link).
+  const [showVable, setShowVable] = useState(false);
+  const VABLE_URL = "https://vable.store";
+  const VABLE_ITEMS = [
+    { name: "Phoenix Cargo", price: "€69", bg: "#26303A", img: null },
+    { name: "Ember Wide-leg", price: "€74", bg: "#1A1A1A", img: null },
+    { name: "Rise Straight", price: "€69", bg: "#5A5142", img: null },
+    { name: "Olive Flight", price: "€72", bg: "#3A4A3A", img: null },
+  ];
   useEffect(() => { try { localStorage.setItem(lsKey("flowva_favorites"), JSON.stringify(favorites)); } catch { /* ignore */ } }, [favorites]);
   const favKey = (p) => (p && (p.source_url || p.id)) || "";
   const isFavorite = (p) => favorites.includes(favKey(p));
@@ -1489,7 +1499,7 @@ export default function SupplyFlow({ session }) {
   return (
     <div style={{ fontFamily: "'Inter', 'Helvetica Neue', sans-serif", background: "#F8F7F4", minHeight: "100vh", maxWidth: 430, margin: "0 auto", width: "100%", position: "relative" }}>
 
-      <GroupModeGlow key={activeGroup?.id || "none"} active={!!activeGroup} dimmed={!!(selectedProduct || showRequestList || showFriends || showNotifs)} />
+      <GroupModeGlow key={activeGroup?.id || "none"} active={!!activeGroup} dimmed={!!(selectedProduct || showRequestList || showFriends || showNotifs || showVable)} />
       {/* Header */}
       <div style={{ padding: "16px 20px 10px", display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 9, minWidth: 0 }}>
@@ -1575,6 +1585,10 @@ export default function SupplyFlow({ session }) {
               <motion.button whileTap={{ scale: 0.85 }} transition={springSnappy} onClick={() => setShowFavoritesOnly((v) => !v)} aria-label="favorites"
                 style={{ width: 42, height: 42, borderRadius: "50%", background: showFavoritesOnly ? "#FF5C00" : "#fff", border: "1px solid #ECEAE5", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}>
                 <Star size={19} color={showFavoritesOnly ? "#fff" : "#111111"} fill={showFavoritesOnly ? "#fff" : "none"} strokeWidth={2} />
+              </motion.button>
+              <motion.button whileTap={{ scale: 0.85 }} transition={springSnappy} onClick={() => setShowVable(true)} aria-label="VABLE — our label"
+                style={{ width: 42, height: 42, borderRadius: "50%", background: "#111111", border: "1px solid #111111", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", WebkitTapHighlightColor: "transparent" }}>
+                <img src="/vable-phoenix.svg" alt="VABLE" style={{ width: 26, height: 26, filter: "brightness(0) invert(1)" }} />
               </motion.button>
             </div>
           </div>
@@ -2142,6 +2156,41 @@ export default function SupplyFlow({ session }) {
             activeGroupId={activeGroup?.id}
             onShopForGroup={(g) => setActiveGroup(g)} onOpenProduct={openProductByUrl}
             onClose={() => { setShowFriends(false); setFriendsJoinCode(null); setFriendsGroupId(null); }} />
+        )}
+        {showVable && (
+          <>
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setShowVable(false)}
+              style={{ position: "fixed", inset: 0, zIndex: 300, background: "rgba(0,0,0,0.55)", backdropFilter: "blur(6px)" }} />
+            <motion.div initial={{ y: "100%" }} animate={{ y: 0 }} exit={{ y: "100%" }} transition={{ type: "spring", stiffness: 320, damping: 34 }}
+              style={{ position: "fixed", bottom: 0, left: 0, right: 0, margin: "0 auto", width: "100%", maxWidth: 430, boxSizing: "border-box", background: "#fff", borderRadius: "24px 24px 0 0", zIndex: 301, maxHeight: "88vh", overflowY: "auto", padding: "16px 20px 40px" }}>
+              <div style={{ width: 36, height: 4, background: "#E8E6E0", borderRadius: 2, margin: "0 auto 16px" }} />
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 3 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 9 }}>
+                  <img src="/vable-phoenix.svg" alt="" style={{ width: 26, height: 26 }} />
+                  <div style={{ fontSize: 22, fontWeight: 800, letterSpacing: 4, color: "#111" }}>VABLE</div>
+                </div>
+                <button onClick={() => setShowVable(false)} style={{ background: "#F3F1ED", border: "none", borderRadius: 999, width: 30, height: 30, fontSize: 15, color: "#777", cursor: "pointer" }}>✕</button>
+              </div>
+              <div style={{ fontSize: 12.5, color: "#8A8780", marginBottom: 16 }}>Embroidered pants — our own label.</div>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 11 }}>
+                {VABLE_ITEMS.map((it, i) => (
+                  <div key={i} style={{ borderRadius: 14, overflow: "hidden", background: "#fff", border: "1px solid #F0EEE8" }}>
+                    <div style={{ height: 150, background: it.bg, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                      {it.img ? <img src={it.img} alt={it.name} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                        : <img src="/vable-phoenix.svg" alt="" style={{ width: 42, height: 42, opacity: 0.2, filter: "brightness(0) invert(1)" }} />}
+                    </div>
+                    <div style={{ padding: "8px 10px 10px" }}>
+                      <div style={{ fontSize: 12, fontWeight: 700, color: "#111" }}>{it.name}</div>
+                      <div style={{ fontSize: 11, color: "#A8A5A0" }}>{it.price}</div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <a href={VABLE_URL} target="_blank" rel="noreferrer"
+                style={{ display: "block", marginTop: 16, background: "#111", color: "#fff", borderRadius: 24, padding: "13px", textAlign: "center", fontSize: 13.5, fontWeight: 700, textDecoration: "none" }}>Shop the collection ↗</a>
+              <div style={{ textAlign: "center", fontSize: 10.5, color: "#B6B2AB", marginTop: 7 }}>opens vable.store</div>
+            </motion.div>
+          </>
         )}
         {groupToast && (
           <div onClick={() => { setGroupToast(null); setShowFriends(true); }}

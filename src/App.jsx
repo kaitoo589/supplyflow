@@ -100,6 +100,9 @@ export default function App() {
   const [session, setSession] = useState(null);
   const [role, setRole] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [supportHidden, setSupportHidden] = useState(() => {
+    try { return localStorage.getItem("flowva_support_hidden") === "1"; } catch { return false; }
+  });
 
   useEffect(() => {
     let mounted = true;
@@ -137,6 +140,14 @@ export default function App() {
     return () => { mounted = false; clearTimeout(safety); subscription.unsubscribe(); };
   }, []);
 
+  // Support-chat verbergen/tonen — gesynct met de Profile-switch via localStorage + event.
+  useEffect(() => {
+    const sync = () => { try { setSupportHidden(localStorage.getItem("flowva_support_hidden") === "1"); } catch { /* ignore */ } };
+    window.addEventListener("flowva-support-toggle", sync);
+    window.addEventListener("storage", sync);
+    return () => { window.removeEventListener("flowva-support-toggle", sync); window.removeEventListener("storage", sync); };
+  }, []);
+
   // Publieke pagina's — geen login/auth nodig (EU-herroepingsknop + retourbeleid).
   if (window.location.pathname === "/withdraw") return <WithdrawalPage />;
   if (window.location.pathname === "/returns") return <ReturnsPage />;
@@ -169,7 +180,7 @@ export default function App() {
   return (
     <>
       <SupplyFlowApp session={session} />
-      <SupportWidget session={session} />
+      {!supportHidden && <SupportWidget session={session} />}
       <InstallPrompt />
     </>
   );

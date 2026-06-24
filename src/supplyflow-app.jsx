@@ -1069,6 +1069,7 @@ export default function SupplyFlow({ session }) {
   // Favorieten (per apparaat) + filter in de feed.
   const [favorites, setFavorites] = useState(() => { try { return JSON.parse(localStorage.getItem(lsKey("flowva_favorites")) || "[]"); } catch { return []; } });
   const [showFavoritesOnly, setShowFavoritesOnly] = useState(false);
+  const [supportHidden, setSupportHidden] = useState(() => { try { return localStorage.getItem("flowva_support_hidden") === "1"; } catch { return false; } });
   useEffect(() => { try { localStorage.setItem(lsKey("flowva_favorites"), JSON.stringify(favorites)); } catch { /* ignore */ } }, [favorites]);
   const favKey = (p) => (p && (p.source_url || p.id)) || "";
   const isFavorite = (p) => favorites.includes(favKey(p));
@@ -2064,6 +2065,19 @@ export default function SupplyFlow({ session }) {
             </div>
             <div style={{ color: "#C9C6C1", fontSize: 18 }}>→</div>
           </motion.div>
+          <div style={{ background: "#fff", border: "1px solid #E8E6E0", borderRadius: 16, padding: "15px 18px", marginBottom: 12, display: "flex", alignItems: "center", gap: 12 }}>
+            <div style={{ width: 38, height: 38, borderRadius: 11, background: "#FFF0E7", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18, flexShrink: 0 }}>💬</div>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ fontSize: 14, fontWeight: 700, color: "#0F0E0C" }}>Flowva support</div>
+              <div style={{ fontSize: 12, color: "#A8A5A0" }}>{supportHidden ? "Hidden — tap to unhide the chat" : "Hide the support chat button"}</div>
+            </div>
+            <div role="switch" aria-checked={!supportHidden}
+              onClick={() => { setSupportHidden((v) => { const next = !v; try { localStorage.setItem("flowva_support_hidden", next ? "1" : "0"); } catch { /* ignore */ } window.dispatchEvent(new Event("flowva-support-toggle")); return next; }); }}
+              style={{ width: 48, height: 28, borderRadius: 999, background: !supportHidden ? "#FF5C00" : "#E3E1DC", position: "relative", cursor: "pointer", flexShrink: 0, transition: "background .25s" }}>
+              <motion.div animate={{ x: !supportHidden ? 20 : 0 }} transition={springBouncy}
+                style={{ position: "absolute", top: 3, left: 3, width: 22, height: 22, borderRadius: "50%", background: "#fff", boxShadow: "0 1px 3px rgba(0,0,0,0.25)" }} />
+            </div>
+          </div>
           <a href="/returns" style={{ textDecoration: "none", background: "#fff", border: "1px solid #E8E6E0", borderRadius: 16, padding: "15px 18px", marginBottom: 12, display: "flex", alignItems: "center", gap: 12 }}>
             <div style={{ width: 38, height: 38, borderRadius: 11, background: "#F3F1ED", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18, flexShrink: 0 }}>↩️</div>
             <div style={{ flex: 1 }}>

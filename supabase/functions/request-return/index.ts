@@ -129,11 +129,18 @@ Deno.serve(async (req) => {
     });
   }
 
-  // Return-aanvraag mislukt → klant tóch terugbetalen (bevestigd defect), en flaggen
-  // zodat een admin de return handmatig bij de fabriek regelt.
-  await admin.rpc("refund_order", {
-    p_order_id: order.id,
-    p_reason: `Defect — refunded; apply-return failed (${res?.info || "unknown"}) → handle return manually.`,
+  // Return-aanvraag mislukt → GEEN automatische refund. Anders zou de klant geld
+  // krijgen terwijl de fabriek de retour nooit accepteerde en het product bij de klant
+  // blijft (audit #7). In plaats daarvan: naar admin-review (verschijnt in de Problemen-
+  // tab via dispute_status='pending'), zodat een mens beslist — approve → refund, of reject.
+  await admin.from("orders").update({
+    return_status: "failed",
+    dispute_status: "pending",
+    dispute_description: `Auto-return bij de fabriek faalde (${res?.info || "unknown"}). Beoordeel handmatig of er terugbetaald moet worden.`,
+    dispute_requested_at: new Date().toISOString(),
+    bd_error: `apply-return faalde: ${res?.info || "unknown"} — naar admin-review, geen automatische refund.`,
+  }).eq("id", order.id);
+  return new Response(JSON.stringify({ ok: false, return_status: "failed", review: true }), {
+    status: 200, headers: { "Content-Type": "application/json" },
   });
-  return await flag(order.id, "failed", `apply-return faalde: ${res?.info || "unknown"} — klant terugbetaald, return handmatig afhandelen.`);
 });

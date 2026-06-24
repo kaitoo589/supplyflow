@@ -407,7 +407,7 @@ function ConfirmHaul({ session, haulItems, balance, onBack, onSuccess }) {
       user_id: session.user.id, status: "confirmed", estimate_eur: estimate, paid_eur: toPayEst, items: orderIds,
     }).select().single();
     if (haul) for (const id of orderIds) await supabase.from("haul_items").insert({ haul_id: haul.id, order_id: id });
-    await supabase.from("orders").update({ status: "shipped_international" }).in("id", orderIds);
+    // De orders zijn server-side al op 'shipped_international' gezet door pay_shipping.
     setConfirming(false);
     onSuccess();
   };
@@ -558,8 +558,10 @@ function DisputeForm({ order, session, onBack, onSuccess }) {
   const submitDispute = async () => {
     if (!description.trim()) { alert("Describe the problem"); return; }
     setSaving(true);
-    await supabase.from("orders").update({ dispute_status: "pending", dispute_description: description, dispute_images: images, dispute_requested_at: new Date().toISOString() }).eq("id", order.id);
+    // Server-side via RPC: dispute_status is afgeschermd, alleen submit_dispute mag het zetten.
+    const { data, error } = await supabase.rpc("submit_dispute", { p_order_id: order.id, p_description: description, p_images: images });
     setSaving(false);
+    if (error || (data && data.ok === false)) { alert("Could not submit: " + (error?.message || data?.error || "unknown error")); return; }
     onSuccess();
   };
 

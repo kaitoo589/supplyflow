@@ -1314,8 +1314,13 @@ export default function SupplyFlow({ session }) {
   };
 
   const cancelRequest = async () => {
+    // Server-side via RPC: de orderstatus is afgeschermd, alleen cancel_unpaid_request mag annuleren.
+    const { data, error } = await supabase.rpc("cancel_unpaid_request", { p_order_id: selectedOrder.id });
+    if (error || (data && data.ok === false)) {
+      alert("Cancelling failed: " + (error?.message || data?.error || "unknown error"));
+      return;
+    }
     await supabase.from("order_messages").insert({ order_id: selectedOrder.id, sender: "customer", message: "✕ I've cancelled my request." });
-    await supabase.from("orders").update({ status: "cancelled", problem_type: null }).eq("id", selectedOrder.id);
     setConfirmCancel(false);
     setSelectedOrder(null);
     fetchOrders();

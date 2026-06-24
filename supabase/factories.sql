@@ -16,7 +16,7 @@
 create table if not exists public.factories (
   id          bigint generated always as identity primary key,
   name        text not null,
-  diamonds    int  not null default 1 check (diamonds between 1 and 4),  -- 1688-stijl rang, 4 = hoogste
+  diamonds    int  not null default 0 check (diamonds between 0 and 4),  -- 1688-stijl rang, 0 = geen rang, 4 = hoogste
   logo        text,            -- publieke storage-URL van het fabriekslogo/-foto (mag leeg)
   repurchase  text,            -- vrije tekst, zoals de bestaande factory_stats ('32%')
   service     text,            -- '4.8'

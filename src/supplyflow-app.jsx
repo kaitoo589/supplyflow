@@ -1392,7 +1392,7 @@ export default function SupplyFlow({ session }) {
     })
     .filter(f => f.count > 0)
     .filter(f => { const q = search.trim().toLowerCase(); return !q || (f.name || "").toLowerCase().includes(q); })
-    .sort((a, b) => (Number(b.diamonds) || 1) - (Number(a.diamonds) || 1) || (a.name || "").localeCompare(b.name || ""));
+    .sort((a, b) => (Number(b.diamonds) || 0) - (Number(a.diamonds) || 0) || (a.name || "").localeCompare(b.name || ""));
   // Drill-in: producten van de geopende fabriek, met de gewone filters erop.
   const factoryProducts = selectedFactory
     ? visibleProducts.filter(p => belongsToFactory(p, selectedFactory))
@@ -1441,7 +1441,7 @@ export default function SupplyFlow({ session }) {
 
   // Fabriek-kaart voor de top van de feed (zelfde grid-stijl als producten).
   const factoryCardEl = (f) => {
-    const dia = Math.max(1, Math.min(4, Number(f.diamonds) || 1));
+    const dia = Math.max(0, Math.min(4, Number(f.diamonds) || 0));
     const chips = [
       f.service && { l: "service", v: f.service },
       f.ontime && { l: "on-time", v: f.ontime },
@@ -1460,9 +1460,11 @@ export default function SupplyFlow({ session }) {
           {f.cover
             ? <img src={f.cover} referrerPolicy="no-referrer" alt={f.name} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
             : "🏭"}
-          <div style={{ position: "absolute", top: 10, left: 10, background: "rgba(17,17,17,0.82)", color: "#FF7A2E", borderRadius: 20, padding: "4px 9px", fontSize: 12, fontWeight: 700, letterSpacing: 1.5 }}>
-            {"◆".repeat(dia)}
-          </div>
+          {dia >= 1 && (
+            <div style={{ position: "absolute", top: 10, left: 10, background: "rgba(17,17,17,0.82)", borderRadius: 20, padding: "3px 8px", fontSize: 12, fontWeight: 700, letterSpacing: 1 }}>
+              {"💎".repeat(dia)}
+            </div>
+          )}
         </div>
         <div style={{ padding: "11px 13px 13px" }}>
           <div style={{ fontSize: 13.5, fontWeight: 700, color: "#111111", marginBottom: 3, lineHeight: 1.3 }}>{f.name}</div>
@@ -1577,7 +1579,7 @@ export default function SupplyFlow({ session }) {
                 <span style={{ fontSize: 17, lineHeight: 1, marginTop: -1 }}>‹</span> All factories
               </motion.div>
               {(() => {
-                const dia = Math.max(1, Math.min(4, Number(selectedFactory.diamonds) || 1));
+                const dia = Math.max(0, Math.min(4, Number(selectedFactory.diamonds) || 0));
                 const stats = [
                   { label: "Repurchase rate", v: selectedFactory.repurchase },
                   { label: "Service score", v: selectedFactory.service },
@@ -1592,7 +1594,7 @@ export default function SupplyFlow({ session }) {
                         {(selectedFactory.cover || (selectedFactory.logo && selectedFactory.logo.startsWith("http"))) ? <img src={selectedFactory.cover || selectedFactory.logo} referrerPolicy="no-referrer" alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : "🏭"}
                       </div>
                       <div style={{ flex: 1, minWidth: 0 }}>
-                        <div style={{ fontSize: 11, color: "#A8A5A0", fontWeight: 600, display: "flex", alignItems: "center", gap: 6 }}>Factory <span style={{ color: "#FF5C00", letterSpacing: 1.5 }}>{"◆".repeat(dia)}</span></div>
+                        <div style={{ fontSize: 11, color: "#A8A5A0", fontWeight: 600, display: "flex", alignItems: "center", gap: 6 }}>Factory{dia >= 1 && <span style={{ letterSpacing: 1 }}>{"💎".repeat(dia)}</span>}</div>
                         <div style={{ fontSize: 16, fontWeight: 700, color: "#111" }}>{selectedFactory.name}</div>
                       </div>
                     </div>

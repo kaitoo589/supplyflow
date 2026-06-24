@@ -505,18 +505,19 @@ function HaulDetail({ haul, orders, onBack, onUpdate }) {
     if (!boxPhoto) { alert("Upload a photo of the box first! 请先上传箱子照片"); return; }
     setSaving(true);
     const exactEur = parseFloat(exactShipping);
-    const refundAmount = haul.paid_eur - exactEur;
 
-    await supabase.from("hauls").update({ status: "shipped", exact_shipping_eur: exactEur, tracking_number: trackingNumber }).eq("id", haul.id);
-
-    if (refundAmount > 0) {
-      const { data: profile } = await supabase.from("profiles").select("balance").eq("id", haul.user_id).single();
-      await supabase.from("profiles").update({ balance: (profile?.balance || 0) + refundAmount }).eq("id", haul.user_id);
-      await supabase.from("transactions").insert({ user_id: haul.user_id, amount: refundAmount, type: "buffer_return" });
-    }
-
-    for (const orderId of (haul.items || [])) {
-      await supabase.from("orders").update({ status: "shipped_international", tracking_number: trackingNumber }).eq("id", orderId);
+    // Afwikkeling (haul + buffer-refund + orders op verzonden) gebeurt nu
+    // server-side, atomair en idempotent in agent_settle_haul. De tabellen
+    // profiles/transactions zijn afgeschermd; alleen deze RPC mag erbij.
+    const { data, error } = await supabase.rpc("agent_settle_haul", {
+      p_haul_id: String(haul.id),
+      p_exact_eur: exactEur,
+      p_tracking: trackingNumber,
+    });
+    if (error || (data && data.ok === false)) {
+      alert("Settle failed: " + (error?.message || data?.error || "unknown error"));
+      setSaving(false);
+      return;
     }
 
     onUpdate({ ...haul, status: "shipped", exact_shipping_eur: exactEur, tracking_number: trackingNumber });

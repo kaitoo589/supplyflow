@@ -2164,14 +2164,11 @@ export default function SupplyFlow({ session }) {
             <motion.div initial={{ y: "100%" }} animate={{ y: 0 }} exit={{ y: "100%" }} transition={{ type: "spring", stiffness: 320, damping: 34 }}
               style={{ position: "fixed", bottom: 0, left: 0, right: 0, margin: "0 auto", width: "100%", maxWidth: 430, boxSizing: "border-box", background: "#fff", borderRadius: "24px 24px 0 0", zIndex: 301, maxHeight: "88vh", overflowY: "auto", padding: "16px 20px 40px" }}>
               <div style={{ width: 36, height: 4, background: "#E8E6E0", borderRadius: 2, margin: "0 auto 16px" }} />
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 3 }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 9 }}>
-                  <img src="/vable-phoenix.svg" alt="" style={{ width: 26, height: 26 }} />
-                  <div style={{ fontSize: 22, fontWeight: 800, letterSpacing: 4, color: "#111" }}>VABLE</div>
-                </div>
-                <button onClick={() => setShowVable(false)} style={{ background: "#F3F1ED", border: "none", borderRadius: 999, width: 30, height: 30, fontSize: 15, color: "#777", cursor: "pointer" }}>✕</button>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 4 }}>
+                <img src="/vable-logo.svg" alt="VABLE" style={{ width: 168, height: "auto", display: "block", marginTop: 2 }} />
+                <button onClick={() => setShowVable(false)} style={{ background: "#F3F1ED", border: "none", borderRadius: 999, width: 30, height: 30, fontSize: 15, color: "#777", cursor: "pointer", flexShrink: 0 }}>✕</button>
               </div>
-              <div style={{ fontSize: 12.5, color: "#8A8780", marginBottom: 16 }}>Embroidered pants — our own label.</div>
+              <div style={{ fontSize: 12.5, color: "#8A8780", marginBottom: 16 }}>Japanese-embroidered denim — our own label.</div>
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 11 }}>
                 {VABLE_ITEMS.map((it, i) => (
                   <div key={i} style={{ borderRadius: 14, overflow: "hidden", background: "#fff", border: "1px solid #F0EEE8" }}>

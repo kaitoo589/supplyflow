@@ -336,7 +336,7 @@ export default function OrderRequest({ product, session, onClose, onSuccess, onA
 
             
 
-            {product.size_chart?.measures?.length > 0 && (
+            {(product.size_chart?.measures?.length > 0 || product.size_chart?.image) && (
               <motion.button variants={fadeUp} type="button" onClick={() => setShowSizeGuide(true)}
                 style={{ width: "100%", marginBottom: 16, background: "#F8F7F4", color: "#111", border: "1px solid #E8E6E0", borderRadius: 12, padding: "12px", fontSize: 13.5, fontWeight: 700, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
                 📐 Size guide
@@ -416,25 +416,32 @@ export default function OrderRequest({ product, session, onClose, onSuccess, onA
               <div style={{ fontSize: 18, fontWeight: 700, color: "#0F0E0C" }}>Size guide</div>
               <button onClick={() => setShowSizeGuide(false)} style={{ background: "#F3F1ED", border: "none", borderRadius: 999, width: 30, height: 30, fontSize: 15, color: "#777", cursor: "pointer" }}>✕</button>
             </div>
-            <div style={{ fontSize: 12, color: "#8A8780", marginBottom: 12 }}>Measurements in cm — the colors match the sketch below.</div>
-            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
-              <thead><tr>
-                <th style={{ textAlign: "left", padding: "7px 4px", color: "#888", fontWeight: 600, borderBottom: "1px solid #ECEAE5" }}>Size</th>
-                {sc.measures.map((m, i) => <th key={m} style={{ textAlign: "right", padding: "7px 4px", color: C[i % C.length], fontWeight: 700, borderBottom: "1px solid #ECEAE5", whiteSpace: "nowrap" }}>{m}</th>)}
-              </tr></thead>
-              <tbody>
-                {sc.sizes.map((sz) => (
-                  <tr key={sz}>
-                    <td style={{ padding: "8px 4px", fontWeight: 700, color: "#111", borderBottom: "1px solid #F4F2EE" }}>{sz}</td>
-                    {sc.measures.map((m, i) => <td key={m} style={{ textAlign: "right", padding: "8px 4px", fontWeight: 700, color: C[i % C.length], borderBottom: "1px solid #F4F2EE" }}>{(sc.rows?.[sz] || [])[i] ?? "–"}</td>)}
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-            {sc.sketch && (
-              <div style={{ marginTop: 16, background: "#fff", border: "1px solid #F0EEE8", borderRadius: 16, padding: 12, maxWidth: 300, margin: "16px auto 0", aspectRatio: "1" }}>
-                <img src={sc.sketch} referrerPolicy="no-referrer" alt="size sketch" style={{ width: "100%", height: "100%", objectFit: "contain" }} />
-              </div>
+            {sc.image && (
+              <img src={sc.image} referrerPolicy="no-referrer" alt="size chart" style={{ width: "100%", borderRadius: 12, display: "block", marginBottom: sc.measures?.length > 0 ? 16 : 0 }} />
+            )}
+            {sc.measures?.length > 0 && (
+              <>
+                <div style={{ fontSize: 12, color: "#8A8780", marginBottom: 12 }}>Measurements in cm — the colors match the sketch below.</div>
+                <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
+                  <thead><tr>
+                    <th style={{ textAlign: "left", padding: "7px 4px", color: "#888", fontWeight: 600, borderBottom: "1px solid #ECEAE5" }}>Size</th>
+                    {sc.measures.map((m, i) => <th key={m} style={{ textAlign: "right", padding: "7px 4px", color: C[i % C.length], fontWeight: 700, borderBottom: "1px solid #ECEAE5", whiteSpace: "nowrap" }}>{m}</th>)}
+                  </tr></thead>
+                  <tbody>
+                    {sc.sizes.map((sz) => (
+                      <tr key={sz}>
+                        <td style={{ padding: "8px 4px", fontWeight: 700, color: "#111", borderBottom: "1px solid #F4F2EE" }}>{sz}</td>
+                        {sc.measures.map((m, i) => <td key={m} style={{ textAlign: "right", padding: "8px 4px", fontWeight: 700, color: C[i % C.length], borderBottom: "1px solid #F4F2EE" }}>{(sc.rows?.[sz] || [])[i] ?? "–"}</td>)}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+                {sc.sketch && (
+                  <div style={{ marginTop: 16, background: "#fff", border: "1px solid #F0EEE8", borderRadius: 16, padding: 12, maxWidth: 300, margin: "16px auto 0", aspectRatio: "1" }}>
+                    <img src={sc.sketch} referrerPolicy="no-referrer" alt="size sketch" style={{ width: "100%", height: "100%", objectFit: "contain" }} />
+                  </div>
+                )}
+              </>
             )}
           </motion.div>
         </>

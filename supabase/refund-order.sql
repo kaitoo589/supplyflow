@@ -24,7 +24,7 @@ begin
     return json_build_object('ok', false, 'error', 'Niet ingelogd');
   end if;
 
-  select * into v_order from orders where id = p_order_id and user_id = v_uid;
+  select * into v_order from orders where id = p_order_id and user_id = v_uid for update;
   if not found then
     return json_build_object('ok', false, 'error', 'Order niet gevonden');
   end if;
@@ -35,6 +35,11 @@ begin
 
   if v_order.problem_type is null then
     return json_build_object('ok', false, 'error', 'Annuleren kan alleen als je agent een probleem heeft gemeld');
+  end if;
+
+  -- Anti-dubbele-refund (idempotentie): is er al een refund voor deze order geboekt?
+  if exists (select 1 from transactions where order_id = p_order_id and type in ('refund', 'return_refund')) then
+    return json_build_object('ok', false, 'error', 'Deze order is al terugbetaald');
   end if;
 
   v_refund := coalesce(v_order.price, v_order.quoted_total, 0);

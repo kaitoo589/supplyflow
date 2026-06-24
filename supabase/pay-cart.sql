@@ -90,7 +90,7 @@ begin
   -- en elk product bijna gratis kopen. Onbekend product / ontbrekende source_url = weigeren.
   select
     coalesce(sum(
-      (select pr.price from public.products pr where pr.source_url = (e->>'source_url') limit 1)
+      (select pr.price from public.products pr where pr.source_url = (e->>'source_url') and pr.price is not null order by pr.id limit 1)
       * greatest(coalesce((e->>'qty')::int, 1), 1)
     ), 0),
     count(*) filter (
@@ -122,7 +122,7 @@ begin
     v_i := v_i + 1;
     v_qty := greatest(coalesce((v_item->>'qty')::int, 1), 1);
     -- Prijs server-side uit products (NOOIT de client-prijs vertrouwen).
-    select pr.price into v_price from public.products pr where pr.source_url = (v_item->>'source_url') and pr.price is not null limit 1;
+    select pr.price into v_price from public.products pr where pr.source_url = (v_item->>'source_url') and pr.price is not null order by pr.id limit 1;
     v_line := v_price * v_qty;
     v_id := 'SF-' || floor(extract(epoch from clock_timestamp()) * 1000)::bigint || '-' || v_i;
     if v_i = 1 then v_first_id := v_id; end if;

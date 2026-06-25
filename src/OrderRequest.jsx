@@ -1,4 +1,9 @@
 import { useState } from "react";
+
+// #12 — idempotentie-token voor de instant-buy pay_cart (module-scope). Zie supplyflow-app.jsx.
+let _buyPayToken = null;
+const buyPayToken = () => (_buyPayToken ||= (globalThis.crypto?.randomUUID?.() || `bp-${Date.now()}-${Math.random().toString(36).slice(2)}`));
+const rotateBuyPayToken = () => { _buyPayToken = null; };
 import { supabase } from "./supabase";
 import { motion, AnimatePresence } from "framer-motion";
 import { springMorph } from "./motion";
@@ -68,7 +73,8 @@ export default function OrderRequest({ product, session, onClose, onSuccess, onA
       }
     } catch { /* check onbereikbaar → fail-open */ }
     // Instant checkout: koop dit item direct af (server-side pay_cart).
-    const { data, error } = await supabase.rpc("pay_cart", { p_items: [item] });
+    const { data, error } = await supabase.rpc("pay_cart", { p_items: [item], p_idem: buyPayToken() });
+    if (!error) rotateBuyPayToken();   // server antwoordde → volgende poging vers token
     setLoading(false);
     if (error) { setError(error.message); return; }
     if (!data?.ok) {

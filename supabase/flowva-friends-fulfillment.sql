@@ -149,6 +149,13 @@ begin
   v_total := v_my_ship_buffered + v_vat;
 
   select balance into v_balance from public.profiles where id = v_uid for update;
+  -- #16 — TOCTOU dichten: de v_unpaid-check bovenaan gebeurde VÓÓR deze lock, dus twee snelle
+  -- klikken konden er allebei langs (dubbele verzendafschrijving). Nu de profiel-lock dezelfde
+  -- user serialiseert, opnieuw checken of de verzending intussen al betaald is.
+  select count(*) filter (where not coalesce(group_shipping_paid, false)) into v_unpaid
+    from public.orders where ff_group_id = p_group_id and user_id = v_uid and status <> 'cancelled';
+  if v_unpaid = 0 then
+    return json_build_object('ok', false, 'error', 'Shipping already paid'); end if;
   if coalesce(v_balance, 0) < v_total then
     return json_build_object('ok', false, 'error', 'Insufficient balance', 'needed', v_total); end if;
   update public.profiles set balance = balance - v_total where id = v_uid;
@@ -182,3 +189,45 @@ end; $$;
 
 grant execute on function public.ff_pay_group_shipping(uuid) to authenticated;
 grant execute on function public.ff_cancel_group_order(text) to authenticated;
+
+-- ── #15 — opruim: verlopen 'gathering'-groepen sluiten + holds vrijgeven ────────
+-- Een groep die nooit voltallig-ready wordt blijft anders eeuwig in 'gathering' staan met
+-- geld vastgehouden bij de leden. (Geen geldlek — leden kunnen zelf un-ready/leaven om hun
+-- geld vrij te maken — maar wel netter.) Deze functie un-ready'd eerst alle leden met een
+-- hold (triggert ff_refund_hold_on_unready → saldo terug, werkt alleen zolang 'gathering'),
+-- en sluit daarna pas de groep. Alleen service_role/cron mag dit draaien, nooit de klant.
+alter table public.flowva_groups add column if not exists updated_at timestamptz default now();
+
+create or replace function public.ff_expire_stale_groups(p_max_age_hours int default 168)  -- default 7 dagen
+returns json language plpgsql security definer set search_path = public as $$
+declare v_g record; v_count int := 0;
+begin
+  for v_g in
+    select g.id from public.flowva_groups g
+    where g.status = 'gathering'
+      and coalesce(g.updated_at, now()) < now() - make_interval(hours => p_max_age_hours)
+      -- KRITIEK: nooit een groep sluiten waar al ECHT geld vastgehouden wordt (een lid is
+      -- ready & heeft betaald en wacht op de rest). updated_at bumpt NIET bij ready/add-item,
+      -- dus zonder deze guard zou een actieve, betalende groep na 7 dagen weggegooid worden.
+      -- Alleen écht dode groepen (niemand heeft een hold) worden opgeruimd.
+      and not exists (
+        select 1 from public.flowva_group_members m
+        where m.group_id = g.id and coalesce(m.held_amount, 0) > 0
+      )
+    for update skip locked
+  loop
+    -- Eerst holds vrijgeven (trigger refundt zolang status nog 'gathering' is) ...
+    update public.flowva_group_members set ready = false
+      where group_id = v_g.id and ready = true;
+    -- ... dan pas de groep sluiten.
+    update public.flowva_groups set status = 'cancelled', updated_at = now() where id = v_g.id;
+    v_count := v_count + 1;
+  end loop;
+  return json_build_object('ok', true, 'expired', v_count);
+end; $$;
+
+-- NIET voor de klant: geen auth.uid()-check, raakt alle groepen → alleen service_role/cron.
+revoke all on function public.ff_expire_stale_groups(int) from public, anon, authenticated;
+
+-- Optioneel automatisch draaien (vereist de pg_cron-extensie; anders vanuit admin/cron-edge):
+--   select cron.schedule('ff-expire-stale', '0 3 * * *', $$ select public.ff_expire_stale_groups(168) $$);

@@ -103,7 +103,8 @@ function pickSku(bdSkus: any[], kleur: string) {
 }
 
 async function fail(orderId: string, msg: string) {
-  await admin.from("orders").update({ bd_error: msg }).eq("id", orderId);
+  // bd_claimed_at terugzetten op null zodat een herpoging deze order opnieuw mag claimen (#10).
+  await admin.from("orders").update({ bd_error: msg, bd_claimed_at: null }).eq("id", orderId);
   return new Response(JSON.stringify({ ok: false, error: msg }), {
     status: 200,
     headers: { "Content-Type": "application/json" },
@@ -180,6 +181,25 @@ Deno.serve(async (req) => {
     ],
   };
 
+  // #10 — ATOMAIRE CLAIM vóór de echte BuckyDrop-call. Deze UPDATE slaagt voor precies ÉÉN
+  // invocatie (bd_claimed_at was null); een gelijktijdige pg_net-retry in het venster vóór
+  // shop_order_no is opgeslagen krijgt 0 rijen terug en plaatst NIETS → geen dubbele
+  // fabrieksbestelling. Bij een tijdelijke fout zet fail() bd_claimed_at weer op null.
+  const { data: claimRows, error: claimErr } = await admin
+    .from("orders")
+    .update({ bd_claimed_at: new Date().toISOString() })
+    .eq("id", order.id)
+    .is("bd_claimed_at", null)
+    .is("shop_order_no", null)
+    .select("id");
+  if (claimErr) return await fail(order.id, `Kon order niet claimen: ${claimErr.message}`);
+  if (!claimRows || claimRows.length === 0) {
+    return new Response(
+      JSON.stringify({ ok: false, error: "already being placed (claimed by another run)" }),
+      { status: 200, headers: { "Content-Type": "application/json" } },
+    );
+  }
+
   const res = await buckyPost("/api/rest/v2/adapt/adaptation/order/shop-order/create", orderBody);
   if (res?.success !== true || !res?.data?.shopOrderNo) {
     const code = typeof res?.code === "number" ? res.code : null;
@@ -215,10 +235,25 @@ Deno.serve(async (req) => {
   }
 
   // Gelukt: ordernummer opslaan en status → purchased (triggert ook de "Gekocht"-push).
-  await admin
+  // NIET fire-and-forget: de fabrieksbestelling bestaat nu echt (shopOrderNo), dus als deze
+  // schrijf faalt moeten we shop_order_no tóch vastleggen (anti dubbele plaatsing) + flaggen.
+  const { error: finalErr } = await admin
     .from("orders")
     .update({ shop_order_no: res.data.shopOrderNo, bd_error: null, status: "purchased" })
     .eq("id", order.id);
+  if (finalErr) {
+    // bd_claimed_at NIET resetten (de order is al ingekocht — nooit opnieuw plaatsen). Wel
+    // shop_order_no vastleggen zodat een toekomstige run bij 'already placed' afbreekt, plus
+    // bd_error voor handmatige afstemming door een admin.
+    await admin
+      .from("orders")
+      .update({
+        shop_order_no: res.data.shopOrderNo,
+        bd_error: `Geplaatst (${res.data.shopOrderNo}) maar status-update faalde: ${finalErr.message} — admin nakijken`,
+      })
+      .eq("id", order.id);
+    console.error(`place-bucky-order: status-update faalde voor ${order.id} (al geplaatst ${res.data.shopOrderNo}): ${finalErr.message}`);
+  }
 
   return new Response(JSON.stringify({ ok: true, shopOrderNo: res.data.shopOrderNo }), {
     headers: { "Content-Type": "application/json" },

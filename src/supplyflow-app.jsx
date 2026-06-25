@@ -1,4 +1,11 @@
 import { useState, useEffect, useRef } from "react";
+
+// #12 — idempotentie-token voor pay_cart (module-scope: één cart per tab). Stabiel per
+// poging; pas roteren NA een ontvangen server-antwoord, zodat een reclick na netwerk-
+// verlies hetzelfde resultaat terugkrijgt i.p.v. dubbel af te rekenen.
+let _cartPayToken = null;
+const cartPayToken = () => (_cartPayToken ||= (globalThis.crypto?.randomUUID?.() || `cp-${Date.now()}-${Math.random().toString(36).slice(2)}`));
+const rotateCartPayToken = () => { _cartPayToken = null; };
 import { supabase } from "./supabase";
 import { EU_COUNTRIES } from "./countries";
 import OrderRequest from "./OrderRequest";
@@ -1243,7 +1250,8 @@ export default function SupplyFlow({ session }) {
       return false;
     }
 
-    const { data, error } = await supabase.rpc("pay_cart", { p_items: payable });
+    const { data, error } = await supabase.rpc("pay_cart", { p_items: payable, p_idem: cartPayToken() });
+    if (!error) rotateCartPayToken();   // server antwoordde → volgende poging vers token
     setSendingList(false);
     if (error) { setListError(error.message); return false; }
     if (!data?.ok) {

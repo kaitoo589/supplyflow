@@ -10,27 +10,49 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+const json = (body: unknown, status = 200) =>
+  new Response(JSON.stringify(body), {
+    status,
+    headers: { ...corsHeaders, "Content-Type": "application/json" },
+  });
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
   }
 
   try {
-    const { amount, userId, email } = await req.json();
+    // #11 — BIND de top-up aan de INGELOGDE gebruiker (nooit een userId uit de body
+    // vertrouwen). supabase.functions.invoke() stuurt de sessie-JWT automatisch mee in
+    // de Authorization-header; we lezen daaruit de echte user. Anders kan iemand met een
+    // eigen sessie een ANDER account opladen (witwas/misbruik-vector).
+    const authHeader = req.headers.get("Authorization") ?? "";
+    const supabase = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_ANON_KEY")!,
+      { global: { headers: { Authorization: authHeader } } },
+    );
+    const {
+      data: { user },
+      error: userErr,
+    } = await supabase.auth.getUser();
+    if (userErr || !user) {
+      return json({ error: "Not authenticated" }, 401);
+    }
 
-    if (!amount || amount < 500) {
-      return new Response(
-        JSON.stringify({ error: "Minimum storting is €5" }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+    const { amount } = await req.json();
+    if (!amount || typeof amount !== "number" || amount < 500) {
+      return json({ error: "Minimum storting is €5" }, 400);
     }
 
     const session = await stripe.checkout.sessions.create({
-      // Alle EU-klanten moeten kunnen betalen: card = universeel (EU-breed, incl.
-      // Apple Pay / Google Pay, ~1,4% + €0,25) + iDEAL (NL, goedkoop) + Bancontact (BE).
-      payment_method_types: ["card", "ideal", "bancontact"],
+      // Automatische methode-selectie: Stripe toont per land de juiste betaalmethodes,
+      // te beheren (aan/uit) in het Stripe-dashboard. Zet daar de lokale PUSH-methodes
+      // aan — iDEAL/Wero (NL), Bancontact (BE), EPS (AT), Przelewy24 (PL) — die GEEN
+      // chargebacks kennen, plus kaart als universeel vangnet (met 3D-Secure).
+      automatic_payment_methods: { enabled: true },
       mode: "payment",
-      customer_email: email,
+      customer_email: user.email,
       line_items: [
         {
           price_data: {
@@ -46,21 +68,16 @@ Deno.serve(async (req) => {
       ],
       success_url: `${Deno.env.get("APP_URL")}/payment-success?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${Deno.env.get("APP_URL")}/`,
+      // userId komt SERVER-SIDE uit de geverifieerde sessie, niet uit de body.
       metadata: {
-        userId,
+        userId: user.id,
         amount: amount.toString(),
       },
     });
 
-    return new Response(
-      JSON.stringify({ url: session.url }),
-      { headers: { ...corsHeaders, "Content-Type": "application/json" } }
-    );
+    return json({ url: session.url });
   } catch (err) {
     console.error("Stripe error:", err);
-    return new Response(
-      JSON.stringify({ error: err.message }),
-      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-    );
+    return json({ error: (err as Error).message }, 500);
   }
 });

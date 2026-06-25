@@ -29,6 +29,23 @@ alter table public.orders add column if not exists ship_postcode text;
 alter table public.orders add column if not exists ship_city text;
 alter table public.orders add column if not exists ship_country text;
 
+-- #12 — IDEMPOTENTIE: elke checkout-poging draagt een uniek token (p_idem). Een retry of
+-- dubbele submit met hetzelfde token wordt een no-op die het eerdere SUCCES teruggeeft,
+-- zodat er nooit dubbele orders + dubbele afschrijving ontstaan.
+create table if not exists public.cart_idempotency (
+  idem_key   text primary key,
+  user_id    uuid not null,
+  result     jsonb,
+  created_at timestamptz not null default now()
+);
+alter table public.cart_idempotency enable row level security;
+-- Geen client-toegang: alleen de security-definer pay_cart (service-context) raakt deze tabel.
+revoke all on public.cart_idempotency from anon, authenticated;
+
+-- Oude 1-arg variant droppen, anders wordt pay_cart(jsonb) vs pay_cart(jsonb,text) ambigu
+-- voor PostgREST en faalt de aanroep met "could not choose best candidate function".
+drop function if exists public.pay_cart(jsonb);
+
 -- Service fee = 8% van het totaal, minimaal €5. Hier meegeleverd zodat
 -- pay-cart.sql op zichzelf werkt (ook als service-fee.sql nog niet is gedraaid).
 create or replace function public.service_fee_for(p_total numeric)
@@ -36,7 +53,7 @@ returns numeric language sql immutable as $$
   select greatest(round(p_total * 0.08, 2), 5.00);
 $$;
 
-create or replace function public.pay_cart(p_items jsonb)
+create or replace function public.pay_cart(p_items jsonb, p_idem text default null)
 returns json
 language plpgsql
 security definer
@@ -44,6 +61,8 @@ set search_path = public
 as $$
 declare
   v_uid uuid := auth.uid();
+  v_prior jsonb;
+  v_result json;
   v_total numeric := 0;
   v_fee numeric;
   v_charge numeric;
@@ -70,6 +89,24 @@ begin
   end if;
   if p_items is null or jsonb_typeof(p_items) <> 'array' or jsonb_array_length(p_items) = 0 then
     return json_build_object('ok', false, 'error', 'Cart is empty');
+  end if;
+
+  -- #12 — idempotentie-claim. Zelfde token al gezien:
+  --  • resultaat ingevuld  → eerdere SUCCESVOLLE afronding, geef die exact terug (geen dubbele order);
+  --  • resultaat nog leeg   → vorige poging liep nog/faalde, vraag de klant het opnieuw te proberen
+  --    (de client roteert het token na elk ontvangen antwoord, dus dit blokkeert niet).
+  -- De unieke index serialiseert gelijktijdige calls: de 2e wacht tot de 1e commit en valt
+  -- dan in de unique_violation-tak. p_idem null (oude client) = idempotentie uit, gedrag ongewijzigd.
+  if p_idem is not null then
+    begin
+      insert into public.cart_idempotency (idem_key, user_id) values (p_idem, v_uid);
+    exception when unique_violation then
+      select result into v_prior from public.cart_idempotency where idem_key = p_idem;
+      if v_prior is not null then
+        return v_prior::json;
+      end if;
+      return json_build_object('ok', false, 'error', 'This order is already being processed — please try again.', 'retry', true);
+    end;
   end if;
 
   -- Bezorgadres uit het profiel lezen + straks BEVRIEZEN op elke order (anti-fraude:
@@ -155,8 +192,14 @@ begin
   insert into transactions (user_id, amount, type, order_id)
   values (v_uid, -v_fee, 'service_fee', v_first_id);
 
-  return json_build_object('ok', true, 'fee', v_fee, 'total', v_total, 'charged', v_charge, 'group', v_group);
+  v_result := json_build_object('ok', true, 'fee', v_fee, 'total', v_total, 'charged', v_charge, 'group', v_group);
+  -- Resultaat vastleggen onder het token: een latere retry met hetzelfde token krijgt
+  -- exact dit succes terug i.p.v. een tweede afschrijving.
+  if p_idem is not null then
+    update public.cart_idempotency set result = v_result::jsonb where idem_key = p_idem;
+  end if;
+  return v_result;
 end;
 $$;
 
-grant execute on function public.pay_cart(jsonb) to authenticated;
+grant execute on function public.pay_cart(jsonb, text) to authenticated;

@@ -43,7 +43,18 @@ Deno.serve(async (req) => {
     );
   }
 
-  if (event.type === "checkout.session.completed") {
+  // #8 — top-up bijschrijven bij een AFGERONDE betaling. We luisteren naar twee events:
+  //  • checkout.session.completed              → synchrone methodes (kaart, meestal iDEAL)
+  //  • checkout.session.async_payment_succeeded → iDEAL/Bancontact die pas LÁTER async slaagt
+  // De payment_status-guard dekt beide: bij 'completed' met een nog-openstaande async-betaling
+  // is payment_status !== 'paid' → we crediteren NIET (geen voortijdige bijschrijving); het
+  // latere async_payment_succeeded-event heeft payment_status 'paid' en schrijft dan bij.
+  // apply_top_up is idempotent op event.id, dus nooit dubbel.
+  // LET OP: abonneer de webhook in het Stripe-dashboard óók op async_payment_succeeded.
+  if (
+    event.type === "checkout.session.completed" ||
+    event.type === "checkout.session.async_payment_succeeded"
+  ) {
     const session = event.data.object as Stripe.Checkout.Session;
 
     if (session.payment_status !== "paid") {
@@ -87,6 +98,12 @@ Deno.serve(async (req) => {
     } else {
       console.log(`Balance verhoogd voor ${userId}: +€${euroAmount}`);
     }
+  }
+
+  // Async-betaling (iDEAL/Bancontact) definitief mislukt → niets crediteren, alleen loggen.
+  if (event.type === "checkout.session.async_payment_failed") {
+    const s = event.data.object as Stripe.Checkout.Session;
+    console.log(`Async-betaling mislukt voor sessie ${s.id} (user ${s.metadata?.userId ?? "?"}) — niet gecrediteerd.`);
   }
 
   return new Response(

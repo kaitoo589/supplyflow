@@ -100,9 +100,9 @@ export default function App() {
   const [session, setSession] = useState(null);
   const [role, setRole] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [supportHidden, setSupportHidden] = useState(() => {
-    try { return localStorage.getItem("flowva_support_hidden") === "1"; } catch { return false; }
-  });
+  // Zichtbaarheid van de support-chat is een GLOBALE instelling (app_settings),
+  // bestuurd vanuit de admin (OPS-tab). Standaard verborgen tot de admin 'm aanzet.
+  const [supportBotVisible, setSupportBotVisible] = useState(false);
 
   useEffect(() => {
     let mounted = true;
@@ -120,8 +120,15 @@ export default function App() {
           4000
         ).catch(() => null);
         if (mounted) setRole(res?.data?.role || "customer");
+        // Globale support-chat zichtbaarheid (admin bestuurt dit via app_settings).
+        const cfg = await withTimeout(
+          supabase.from("app_settings").select("support_bot_visible").eq("id", 1).single(),
+          4000
+        ).catch(() => null);
+        if (mounted) setSupportBotVisible(cfg?.data?.support_bot_visible === true);
       } else if (mounted) {
         setRole(null);
+        setSupportBotVisible(false);
       }
       if (mounted) setLoading(false);
     };
@@ -138,14 +145,6 @@ export default function App() {
     });
 
     return () => { mounted = false; clearTimeout(safety); subscription.unsubscribe(); };
-  }, []);
-
-  // Support-chat verbergen/tonen — gesynct met de Profile-switch via localStorage + event.
-  useEffect(() => {
-    const sync = () => { try { setSupportHidden(localStorage.getItem("flowva_support_hidden") === "1"); } catch { /* ignore */ } };
-    window.addEventListener("flowva-support-toggle", sync);
-    window.addEventListener("storage", sync);
-    return () => { window.removeEventListener("flowva-support-toggle", sync); window.removeEventListener("storage", sync); };
   }, []);
 
   // Publieke pagina's — geen login/auth nodig (EU-herroepingsknop + retourbeleid).
@@ -180,7 +179,7 @@ export default function App() {
   return (
     <>
       <SupplyFlowApp session={session} />
-      {!supportHidden && <SupportWidget session={session} />}
+      {supportBotVisible && <SupportWidget session={session} />}
       <InstallPrompt />
     </>
   );

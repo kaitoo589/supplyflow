@@ -1012,6 +1012,136 @@ function HowItWorksSheet({ onClose }) {
   );
 }
 
+// Transparant fee-paneel achter de 💸-knop (feed-header + profiel). Engels,
+// zelfde bottom-sheet als HowItWorksSheet. Solo + Flowva Friends + per-regel
+// een labeltje wie het geld krijgt.
+function PricingSheet({ onClose }) {
+  const chip = (orange) => ({ display: "inline-block", background: orange ? "#FFF0E7" : "#F1EFED", color: orange ? "#B8430A" : "#6E6B66", fontSize: 10, fontWeight: 700, padding: "2px 7px", borderRadius: 999, marginRight: 6 });
+  const Row = ({ icon, name, who, amount, desc, whoOrange, extra }) => (
+    <div style={{ padding: "9px 0", borderTop: "1px solid #F1EFEA" }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10 }}>
+        <div style={{ display: "flex", gap: 9, alignItems: "center" }}>
+          <span style={{ fontSize: 16 }}>{icon}</span>
+          <span style={{ fontSize: 13.5, fontWeight: 700, color: "#111" }}>{name}</span>
+        </div>
+        <span style={{ fontSize: 12.5, fontWeight: 700, color: whoOrange ? "#111" : "#FF5C00", whiteSpace: "nowrap" }}>{amount}</span>
+      </div>
+      <div style={{ margin: "6px 0 0 25px" }}>
+        <span style={chip(whoOrange)}>{who}</span>
+        <span style={{ fontSize: 11.5, lineHeight: 1.5, color: "#8A8780" }}>{desc}</span>
+      </div>
+      {extra}
+    </div>
+  );
+  const friendTiers = [
+    ["Solo · 1 person", "8% · min €5", true],
+    ["2 people", "7% · min €4.50", false],
+    ["3 people", "6% · min €4.50", false],
+    ["4 people", "5.5% · min €4", false],
+    ["5 people", "5% · min €4", false],
+    ["6 people", "4.5% · min €4", false],
+    ["7+ people", "4% · min €3.50", false],
+  ];
+  const card = { background: "#fff", border: "1px solid #ECEAE5", borderRadius: 16, padding: "14px 16px", marginBottom: 12 };
+  const sectionLabel = { fontSize: 11, fontWeight: 700, letterSpacing: 0.5, color: "#A8A5A0", marginBottom: 2 };
+  return (
+    <>
+      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={onClose}
+        style={{ position: "fixed", inset: 0, zIndex: 300, background: "rgba(0,0,0,0.5)", backdropFilter: "blur(6px)" }} />
+      <motion.div initial={{ y: "100%" }} animate={{ y: 0 }} exit={{ y: "100%" }}
+        transition={{ type: "spring", stiffness: 320, damping: 34 }}
+        style={{ position: "fixed", bottom: 0, left: 0, right: 0, margin: "0 auto", width: "100%", maxWidth: 430, boxSizing: "border-box", background: "#F8F7F4", borderRadius: "24px 24px 0 0", zIndex: 301, maxHeight: "92vh", overflowY: "auto", padding: "18px 16px 36px" }}>
+        <div style={{ width: 36, height: 4, background: "#D8D5CF", borderRadius: 2, margin: "0 auto 16px" }} />
+        <div style={{ display: "flex", alignItems: "center", gap: 11, padding: "0 4px" }}>
+          <div style={{ width: 42, height: 42, borderRadius: "50%", background: "#FFF0E7", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20, flexShrink: 0 }}>💸</div>
+          <div>
+            <div style={{ fontSize: 19, fontWeight: 800, color: "#111", letterSpacing: -0.3 }}>How pricing works</div>
+            <div style={{ fontSize: 12.5, color: "#8A8780" }}>Fully transparent — no hidden markup</div>
+          </div>
+        </div>
+        <div style={{ fontSize: 13, lineHeight: 1.6, color: "#46443F", margin: "12px 4px 14px" }}>
+          Each line below shows exactly who gets paid. The original factory link is visible on every product, for full transparency.
+        </div>
+
+        <div style={card}>
+          <div style={sectionLabel}>PER PRODUCT</div>
+          <Row icon="🏭" name="Factory price" who="to the factory" amount="shown + link" desc="The real price the factory charges — visible with its original link." />
+          <Row icon="📸" name="Quality-control" who="to our shipping agent" amount="¥2 · ≈€0.26" desc="Our shipping agent photographs every item before it ships — and takes extra photos if anything looks off." />
+          <Row icon="📐" name="Measurement Service" who="to our shipping agent" amount="¥4 · ≈€0.51" desc="Our shipping agent measures the key dimensions of your item to confirm the size matches the listing. Small tolerances apply (about ±3 cm on garments)." />
+          <Row icon="🚚" name="China domestic shipping fee" who="to the domestic carrier" amount="¥5 · ≈€0.64" desc="Transport from the factory to the consolidation warehouse in China." />
+        </div>
+
+        <div style={card}>
+          <div style={sectionLabel}>PER ORDER — shared, so bigger baskets are cheaper</div>
+          <Row icon="📦" name="Fulfillment" who="to our shipping agent" amount="¥9.9 · ≈€1.27"
+            desc="Our shipping agent receives, packs and prepares your whole order, plus 30 days of free storage. Charged once per order."
+            extra={
+              <div style={{ background: "#FFF7F2", border: "1px solid #FBE2D2", borderRadius: 10, padding: "9px 11px", margin: "8px 0 0 25px" }}>
+                <div style={{ fontSize: 11, fontWeight: 700, color: "#B8430A", marginBottom: 3 }}>Two surcharges may apply:</div>
+                <div style={{ fontSize: 11, lineHeight: 1.55, color: "#7A5340" }}>• Packages with more than 5 items → +¥2 (≈€0.26) per additional item.<br />• Packages over 2 kg → +¥1.5 (≈€0.19) per kg above 2 kg, with the billable weight rounded up to the next whole kilogram.</div>
+              </div>
+            } />
+          <Row icon="✈️" name="International shipping" who="to the carrier & customs" amount="by weight"
+            desc={<>China → your door, priced by weight. <b style={{ color: "#46443F" }}>Tax-inclusive.</b> A <b style={{ color: "#46443F" }}>€3 customs cost per product category</b> is also settled inside this shipping price.</>} />
+          <Row icon="🧾" name="Flowva fee" who="Flowva's fee" whoOrange amount="4–8% · min €3.50–€5"
+            desc={<>Our only earning, calculated <b style={{ color: "#46443F" }}>only on the factory price</b> — never on the agent or shipping costs.</>} />
+        </div>
+
+        <div style={card}>
+          <div style={{ display: "flex", alignItems: "center", gap: 9, marginBottom: 8 }}>
+            <span style={{ fontSize: 19 }}>👤</span>
+            <div style={{ fontSize: 15.5, fontWeight: 800, color: "#111" }}>Solo shopping</div>
+          </div>
+          <div style={{ fontSize: 13, lineHeight: 1.6, color: "#46443F" }}>
+            You shop on your own. The smart move: put <b>everything in one order</b>. Fulfillment, shipping and the Flowva fee are charged once per order — so the more you add, the less each item costs. Your Flowva fee here is <b>8% of the factory price, with a €5 minimum</b> per order.
+          </div>
+          <div style={{ background: "#FFF7F2", border: "1px solid #FBE2D2", borderRadius: 12, padding: "11px 13px", marginTop: 11 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12.5, padding: "3px 0", color: "#46443F" }}><span>1 item · factory price €3</span><span style={{ fontWeight: 700, color: "#111" }}>≈ €15 total</span></div>
+            <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12.5, padding: "3px 0", color: "#46443F" }}><span>5 items in one order</span><span style={{ fontWeight: 700, color: "#FF5C00" }}>≈ €7 each</span></div>
+          </div>
+          <div style={{ display: "flex", gap: 8, marginTop: 10, alignItems: "flex-start" }}>
+            <span style={{ fontSize: 14, marginTop: 1 }}>ℹ️</span>
+            <div style={{ fontSize: 11.5, lineHeight: 1.5, color: "#8A8780" }}><b style={{ color: "#46443F" }}>Note:</b> this €3 per product category is a customs charge, introduced by a new EU rule from 1 July 2026. It's included in the shipping price. Want to lower it? Shopping with friends is recommended.</div>
+          </div>
+          <div style={{ display: "flex", gap: 8, marginTop: 8, alignItems: "flex-start" }}>
+            <span style={{ fontSize: 14, marginTop: 1 }}>⚠️</span>
+            <div style={{ fontSize: 11.5, lineHeight: 1.5, color: "#8A8780" }}>Paying twice means two separate orders — those fixed costs apply again. Add to one basket instead.</div>
+          </div>
+        </div>
+
+        <div style={{ ...card, border: "2px solid #FF5C00" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 9, marginBottom: 8 }}>
+            <span style={{ fontSize: 19 }}>👥</span>
+            <div style={{ fontSize: 15.5, fontWeight: 800, color: "#111" }}>Flowva Friends</div>
+            <div style={{ marginLeft: "auto", background: "#FF5C00", color: "#fff", fontSize: 10, fontWeight: 700, padding: "3px 9px", borderRadius: 999, letterSpacing: 0.3 }}>CHEAPEST</div>
+          </div>
+          <div style={{ fontSize: 13, lineHeight: 1.6, color: "#46443F" }}>
+            Shop together in one shared basket. Everything ships as <b>one parcel for the whole group</b>, so you split the international shipping and the €3-per-category customs across all friends. And international shipping is <b>cheaper per product the heavier the parcel</b> — so a bigger group helps there too.
+          </div>
+          <div style={{ background: "#FFF7F2", border: "1px solid #FBE2D2", borderRadius: 12, padding: "12px 13px", marginTop: 12 }}>
+            <div style={{ fontSize: 12, fontWeight: 800, color: "#B8430A", marginBottom: 8 }}>Your Flowva fee drops with every friend</div>
+            {friendTiers.map(([label, fee, gray], i) => (
+              <div key={label} style={{ display: "flex", justifyContent: "space-between", fontSize: 12, padding: "4px 0", color: "#46443F", borderBottom: i < friendTiers.length - 1 ? "1px solid #FBE2D2" : "none" }}>
+                <span>{label}</span><span style={{ fontWeight: 700, color: gray ? "#8A8780" : (i === friendTiers.length - 1 ? "#FF5C00" : "#111") }}>{fee}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div style={{ display: "flex", gap: 9, alignItems: "flex-start", padding: "0 4px 4px" }}>
+          <span style={{ fontSize: 15, marginTop: 1 }}>🔗</span>
+          <div style={{ fontSize: 11.5, lineHeight: 1.55, color: "#8A8780" }}>On every product you'll find the original factory link — check the factory price yourself, anytime. That's our promise of transparency.</div>
+        </div>
+
+        <motion.button whileTap={{ scale: 0.97 }} onClick={onClose}
+          style={{ width: "100%", marginTop: 14, background: "#FF5C00", color: "#fff", border: "none", borderRadius: 12, padding: "14px", fontSize: 15, fontWeight: 700, cursor: "pointer", WebkitTapHighlightColor: "transparent" }}>
+          Got it 🦊
+        </motion.button>
+      </motion.div>
+    </>
+  );
+}
+
 export default function SupplyFlow({ session }) {
   const [tab, setTab] = useState("feed");
   const [products, setProducts] = useState([]);
@@ -1031,6 +1161,7 @@ export default function SupplyFlow({ session }) {
   const [actionProduct, setActionProduct] = useState(null);
   const [showEditProfile, setShowEditProfile] = useState(false);
   const [showHowItWorks, setShowHowItWorks] = useState(false);
+  const [showPricing, setShowPricing] = useState(false);
   const [avatarUploading, setAvatarUploading] = useState(false);
   const [showNotifs, setShowNotifs] = useState(false);
   const [confirmCancel, setConfirmCancel] = useState(false);
@@ -1081,7 +1212,6 @@ export default function SupplyFlow({ session }) {
   // Favorieten (per apparaat) + filter in de feed.
   const [favorites, setFavorites] = useState(() => { try { return JSON.parse(localStorage.getItem(lsKey("flowva_favorites")) || "[]"); } catch { return []; } });
   const [showFavoritesOnly, setShowFavoritesOnly] = useState(false);
-  const [supportHidden, setSupportHidden] = useState(() => { try { return localStorage.getItem("flowva_support_hidden") === "1"; } catch { return false; } });
   // VABLE — eigen merk (borduurdesigns). Knop in de feed-header opent dit blad.
   // Vervang img:null door je echte foto-URL's (en VABLE_URL door je winkel-link).
   const [showVable, setShowVable] = useState(false);
@@ -1604,6 +1734,10 @@ export default function SupplyFlow({ session }) {
           <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 10 }}>
             <div style={{ fontSize: 30, fontWeight: 800, letterSpacing: -0.6, color: "#111111", marginBottom: 2 }}>{showFavoritesOnly ? "Favorites" : selectedFactory ? selectedFactory.name : <>Factory <span style={{ color: "#FF5C00" }}>Feed</span></>}</div>
             <div style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
+              <motion.button whileTap={{ scale: 0.85 }} transition={springSnappy} onClick={() => setShowPricing(true)} aria-label="How pricing works"
+                style={{ width: 42, height: 42, borderRadius: "50%", background: "#fff", border: "1px solid #ECEAE5", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", fontSize: 18, lineHeight: 1, WebkitTapHighlightColor: "transparent" }}>
+                💸
+              </motion.button>
               <motion.button whileTap={{ scale: 0.85 }} transition={springSnappy} onClick={() => window.open("/diamond-rankings.html", "_blank")} aria-label="How diamond rankings work"
                 style={{ width: 42, height: 42, borderRadius: "50%", background: "#fff", border: "1px solid #ECEAE5", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", fontSize: 18, lineHeight: 1, WebkitTapHighlightColor: "transparent" }}>
                 💎
@@ -2105,19 +2239,15 @@ export default function SupplyFlow({ session }) {
             </div>
             <div style={{ color: "#C9C6C1", fontSize: 18 }}>→</div>
           </motion.div>
-          <div style={{ background: "#fff", border: "1px solid #E8E6E0", borderRadius: 16, padding: "15px 18px", marginBottom: 12, display: "flex", alignItems: "center", gap: 12 }}>
-            <div style={{ width: 38, height: 38, borderRadius: 11, background: "#FFF0E7", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18, flexShrink: 0 }}>💬</div>
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ fontSize: 14, fontWeight: 700, color: "#0F0E0C" }}>Flowva support</div>
-              <div style={{ fontSize: 12, color: "#A8A5A0" }}>{supportHidden ? "Hidden — tap to unhide the chat" : "Hide the support chat button"}</div>
+          <motion.div whileTap={{ scale: 0.98 }} onClick={() => setShowPricing(true)}
+            style={{ background: "#fff", border: "1px solid #E8E6E0", borderRadius: 16, padding: "15px 18px", marginBottom: 12, display: "flex", alignItems: "center", gap: 12, cursor: "pointer" }}>
+            <div style={{ width: 38, height: 38, borderRadius: 11, background: "#FFF0E7", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18, flexShrink: 0 }}>💸</div>
+            <div style={{ flex: 1 }}>
+              <div style={{ fontSize: 14, fontWeight: 700, color: "#0F0E0C" }}>How pricing works</div>
+              <div style={{ fontSize: 12, color: "#A8A5A0" }}>Every fee, and exactly who gets paid</div>
             </div>
-            <div role="switch" aria-checked={!supportHidden}
-              onClick={() => { setSupportHidden((v) => { const next = !v; try { localStorage.setItem("flowva_support_hidden", next ? "1" : "0"); } catch { /* ignore */ } window.dispatchEvent(new Event("flowva-support-toggle")); return next; }); }}
-              style={{ width: 48, height: 28, borderRadius: 999, background: !supportHidden ? "#FF5C00" : "#E3E1DC", position: "relative", cursor: "pointer", flexShrink: 0, transition: "background .25s" }}>
-              <motion.div animate={{ x: !supportHidden ? 20 : 0 }} transition={springBouncy}
-                style={{ position: "absolute", top: 3, left: 3, width: 22, height: 22, borderRadius: "50%", background: "#fff", boxShadow: "0 1px 3px rgba(0,0,0,0.25)" }} />
-            </div>
-          </div>
+            <div style={{ color: "#C9C6C1", fontSize: 18 }}>→</div>
+          </motion.div>
           <a href="/returns" style={{ textDecoration: "none", background: "#fff", border: "1px solid #E8E6E0", borderRadius: 16, padding: "15px 18px", marginBottom: 12, display: "flex", alignItems: "center", gap: 12 }}>
             <div style={{ width: 38, height: 38, borderRadius: 11, background: "#F3F1ED", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18, flexShrink: 0 }}>↩️</div>
             <div style={{ flex: 1 }}>
@@ -2424,6 +2554,7 @@ export default function SupplyFlow({ session }) {
       {/* Uitleg: hoe Flowva werkt */}
       <AnimatePresence>
         {showHowItWorks && <HowItWorksSheet onClose={closeHowItWorks} />}
+        {showPricing && <PricingSheet onClose={() => setShowPricing(false)} />}
       </AnimatePresence>
 
       {/* Review-pagina */}

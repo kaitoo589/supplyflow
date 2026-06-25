@@ -28,16 +28,16 @@ alter table public.flowva_groups      add column if not exists placed_at    time
 alter table public.products           add column if not exists price_alert  boolean default false;
 
 -- ── Fee per persoon: lagere %-fee + lager minimum naarmate de groep groeit ────
--- Getallen VOORLOPIG — pas ze hier op één plek aan. Solo blijft 8% / €5 (service_fee_for).
+-- Staffel VASTGEZET 2026-06-25 (zachtere daling = gezondere marge). Solo = 8% / €5.
 create or replace function public.ff_member_fee(p_size int, p_total numeric)
 returns numeric language sql immutable as $$
   select case
-    when p_size >= 7 then greatest(round(coalesce(p_total, 0) * 0.025, 2), 2.50)
-    when p_size  = 6 then greatest(round(coalesce(p_total, 0) * 0.030, 2), 2.50)
-    when p_size  = 5 then greatest(round(coalesce(p_total, 0) * 0.030, 2), 3.00)
-    when p_size  = 4 then greatest(round(coalesce(p_total, 0) * 0.035, 2), 3.00)
-    when p_size  = 3 then greatest(round(coalesce(p_total, 0) * 0.040, 2), 3.50)
-    when p_size  = 2 then greatest(round(coalesce(p_total, 0) * 0.050, 2), 4.00)
+    when p_size >= 7 then greatest(round(coalesce(p_total, 0) * 0.040, 2), 3.50)
+    when p_size  = 6 then greatest(round(coalesce(p_total, 0) * 0.045, 2), 4.00)
+    when p_size  = 5 then greatest(round(coalesce(p_total, 0) * 0.050, 2), 4.00)
+    when p_size  = 4 then greatest(round(coalesce(p_total, 0) * 0.055, 2), 4.00)
+    when p_size  = 3 then greatest(round(coalesce(p_total, 0) * 0.060, 2), 4.50)
+    when p_size  = 2 then greatest(round(coalesce(p_total, 0) * 0.070, 2), 4.50)
     else                  greatest(round(coalesce(p_total, 0) * 0.080, 2), 5.00)  -- 1 = solo-tarief
   end;
 $$;

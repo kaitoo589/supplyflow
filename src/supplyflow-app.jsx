@@ -1293,6 +1293,10 @@ export default function SupplyFlow({ session }) {
     const channel = supabase.channel("balance-updates")
       .on("postgres_changes", { event: "UPDATE", schema: "public", table: "profiles", filter: `id=eq.${session.user.id}` },
         (payload) => { setBalance(payload.new.balance || 0); })
+      // Live order-updates: zo valt o.a. de warehouse-telling (qc_pending) meteen weg
+      // zodra een order internationaal verzonden wordt — geen verouderde melding meer.
+      .on("postgres_changes", { event: "*", schema: "public", table: "orders", filter: `user_id=eq.${session.user.id}` },
+        () => { fetchOrders(); })
       .subscribe();
     return () => supabase.removeChannel(channel);
   }, [session]);
@@ -1389,7 +1393,8 @@ export default function SupplyFlow({ session }) {
     ...orders.filter(o => o.problem_type).map(o => ({ icon: "⚠️", text: `Action needed: issue with ${o.product_title || o.product}`, order: o })),
     ...orders.filter(o => o.status === "quote_sent").map(o => ({ icon: "📋", text: `Quote received for ${o.product_title || o.product}`, order: o })),
     ...orders.filter(o => o.last_message_sender === "agent" && o.last_message_read === false).map(o => ({ icon: "💬", text: `Your agent replied (${o.product_title || o.product})`, order: o })),
-    ...orders.filter(o => o.status === "delivered").map(o => ({ icon: "🎉", text: `${o.product_title || o.product} was delivered!`, order: o })),
+    // "Delivered" zit bewust NIET meer in het belletje (bleef anders eeuwig staan) —
+    // geleverde pakketten zie je in de Transit-tab.
   ];
   // Filter voor de reiskaart: een checkpoint kan meerdere statussen bundelen.
   const matchesFilter = (o) => orderFilter === "all" || (journeyStops.find(j => j.key === orderFilter)?.statuses || [orderFilter]).includes(o.status);
@@ -1583,20 +1588,7 @@ export default function SupplyFlow({ session }) {
         </div>
       </div>
 
-      {/* Warehouse banner */}
-      {warehouseCount > 0 && tab === "feed" && (
-        <motion.div whileTap={{ scale: 0.98 }} onClick={() => setTab("warehouse")}
-          style={{ background: "#111111", margin: "6px 20px 0", borderRadius: 18, padding: "13px 16px", display: "flex", alignItems: "center", gap: 12, cursor: "pointer" }}>
-          <div style={{ width: 38, height: 38, borderRadius: 12, background: "rgba(255,255,255,0.08)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-            <Factory size={18} color="#FF5C00" strokeWidth={2} />
-          </div>
-          <div style={{ flex: 1 }}>
-            <div style={{ fontSize: 12, fontWeight: 700, color: "#fff", marginBottom: 1 }}>Products in warehouse</div>
-            <div style={{ fontSize: 12, color: "#9C9893" }}>{warehouseCount} product{warehouseCount > 1 ? "s" : ""} waiting for shipment</div>
-          </div>
-          <div style={{ color: "#FF5C00", fontSize: 16 }}>→</div>
-        </motion.div>
-      )}
+      {/* Warehouse-banner verwijderd — de warehouse-melding leeft nu in het belletje + het Warehouse-nav-badge. */}
 
       {/* Tab-inhoud met vloeiende overgangen */}
       <AnimatePresence mode="wait" initial={false}>

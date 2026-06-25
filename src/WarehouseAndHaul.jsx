@@ -834,6 +834,7 @@ const TRACE_LABEL = { 1: "In transit", 2: "Out for delivery", 3: "Delivered", 4:
 export function TransitTab({ session, orders = [] }) {
   const [hauls, setHauls] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [hideDelivered, setHideDelivered] = useState(() => { try { return localStorage.getItem("flowva_hide_delivered") === "1"; } catch { return false; } });
 
   useEffect(() => {
     (async () => {
@@ -848,10 +849,26 @@ export function TransitTab({ session, orders = [] }) {
 
   const orderById = (id) => orders.find(o => o.id === id);
 
+  // Geleverde pakketten (trace_status 3) blijven standaard staan; de knop verbergt ze.
+  const deliveredCount = hauls.filter(h => h.trace_status === 3).length;
+  const shownHauls = hideDelivered ? hauls.filter(h => h.trace_status !== 3) : hauls;
+  const toggleHideDelivered = () => setHideDelivered((v) => {
+    const nv = !v;
+    try { localStorage.setItem("flowva_hide_delivered", nv ? "1" : "0"); } catch {}
+    return nv;
+  });
+
   return (
     <div style={{ padding: "10px 20px 100px" }}>
       <div style={{ fontSize: 30, fontWeight: 800, letterSpacing: -0.6, color: "#111111", marginBottom: 2 }}>In transit</div>
       <div style={{ fontSize: 13.5, color: "#8A8780", marginBottom: 16 }}>Your parcels on their way to you</div>
+
+      {deliveredCount > 0 && (
+        <button onClick={toggleHideDelivered}
+          style={{ background: "none", border: "1px solid #ECEAE5", borderRadius: 14, padding: "6px 12px", fontSize: 12, fontWeight: 600, color: "#8A8780", cursor: "pointer", marginBottom: 14, WebkitTapHighlightColor: "transparent" }}>
+          {hideDelivered ? `Show delivered parcels (${deliveredCount})` : "Hide delivered parcels"}
+        </button>
+      )}
 
       {loading && <div style={{ textAlign: "center", padding: 40, color: "#999" }}>Loading...</div>}
 
@@ -865,7 +882,7 @@ export function TransitTab({ session, orders = [] }) {
         </div>
       )}
 
-      {hauls.map((haul, hi) => {
+      {shownHauls.map((haul, hi) => {
         const items = (haul.items || []).map(orderById).filter(Boolean);
         const itemCount = items.length || (haul.items || []).length;
         const totalWeight = items.reduce((s, o) => s + (o.weight_grams || 0), 0);

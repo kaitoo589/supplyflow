@@ -309,11 +309,7 @@ function OrderDetailModal({ order, inHaul, onAdd, onRemove, onDispute, onClose }
             <div style={{ flex: 1, textAlign: "center", color: "#B45309", fontSize: 13, fontWeight: 600, padding: "12px", background: "#FFF7ED", borderRadius: 12 }}>
               ⏳ Under review — can't ship until resolved
             </div>
-          ) : !(order.qc_images?.length > 0) ? (
-            <div style={{ flex: 1, textAlign: "center", color: "#9C9893", fontSize: 13, fontWeight: 600, padding: "12px", background: "#F8F7F4", borderRadius: 12 }}>
-              ⏳ Awaiting quality-control pictures
-            </div>
-          ) : (
+          ) : !(order.qc_images?.length > 0) ? null : (
             <button onClick={() => { onAdd(order); onClose(); }}
               style={{ flex: 1, background: "#FF5C00", color: "#fff", border: "none", borderRadius: 12, padding: "12px", fontSize: 14, fontWeight: 700, cursor: "pointer" }}>
               + Add to box

@@ -781,13 +781,14 @@ export function WarehouseTab({ session, haulItems: allHaulItems = [], setHaulIte
         {haulItems.length > 0 && (() => {
           const ship = r2(shippingEstimate(totalWeight / 1000) * BUFFER_MULTIPLIER);
           const perItem = r2(ship / haulItems.length);
+          const weighed = totalWeight > 0;
           return (
             <motion.div initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} style={{ textAlign: "center", marginTop: 10 }}>
               <div style={{ fontSize: 12, color: "#8B6914", fontWeight: 600 }}>
-                {haulItems.length} item{haulItems.length !== 1 ? "s" : ""} · {totalWeight}g · ~€{ship.toFixed(2)} ship + VAT at checkout
+                {haulItems.length} item{haulItems.length !== 1 ? "s" : ""}{weighed ? ` · ${totalWeight}g · ~€${ship.toFixed(2)} ship + VAT at checkout` : " · shipping calculated once weighed"}
               </div>
               <div style={{ fontSize: 11.5, color: "#5C3D0A", fontWeight: 700, marginTop: 3 }}>
-                ≈ €{perItem.toFixed(2)} per item — add more to lower this 📦
+                {weighed ? `≈ €${perItem.toFixed(2)} per item — add more to lower this 📦` : "Shipping is per parcel — add more to lower the cost per item 📦"}
               </div>
             </motion.div>
           );

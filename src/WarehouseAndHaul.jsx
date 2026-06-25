@@ -222,6 +222,7 @@ function BoxContentsModal({ items, onRemove, onClose }) {
 }
 
 function OrderDetailModal({ order, inHaul, onAdd, onRemove, onDispute, onClose }) {
+  const [lightbox, setLightbox] = useState(null);
   return (
     <>
       <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
@@ -251,9 +252,9 @@ function OrderDetailModal({ order, inHaul, onAdd, onRemove, onDispute, onClose }
           {order.qc_images?.length > 0 ? (
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
               {order.qc_images.map((url, i) => (
-                <div key={i} style={{ borderRadius: 10, overflow: "hidden", aspectRatio: "1" }}>
+                <motion.div key={i} whileTap={{ scale: 0.97 }} onClick={() => setLightbox(url)} style={{ borderRadius: 10, overflow: "hidden", aspectRatio: "1", cursor: "pointer" }}>
                   <img src={url} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-                </div>
+                </motion.div>
               ))}
             </div>
           ) : (
@@ -274,11 +275,11 @@ function OrderDetailModal({ order, inHaul, onAdd, onRemove, onDispute, onClose }
         <div style={{ marginBottom: 16 }}>
           <div style={{ fontSize: 12, fontWeight: 700, color: "#888", marginBottom: 8, letterSpacing: 1 }}>MEASUREMENT CHECK</div>
           {order.measurement_images?.length > 0 ? (
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8 }}>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
               {order.measurement_images.map((url, i) => (
-                <div key={i} style={{ borderRadius: 10, overflow: "hidden", aspectRatio: "1" }}>
+                <motion.div key={i} whileTap={{ scale: 0.97 }} onClick={() => setLightbox(url)} style={{ borderRadius: 10, overflow: "hidden", aspectRatio: "1", cursor: "pointer" }}>
                   <img src={url} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-                </div>
+                </motion.div>
               ))}
             </div>
           ) : (
@@ -317,6 +318,18 @@ function OrderDetailModal({ order, inHaul, onAdd, onRemove, onDispute, onClose }
           )}
         </div>
       </motion.div>
+      <AnimatePresence>
+        {lightbox && (
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            onClick={() => setLightbox(null)}
+            style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.92)", zIndex: 200, display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
+            <motion.img initial={{ scale: 0.92 }} animate={{ scale: 1 }} exit={{ scale: 0.92 }} transition={springSoft}
+              src={lightbox} referrerPolicy="no-referrer" alt="" style={{ maxWidth: "100%", maxHeight: "100%", objectFit: "contain", borderRadius: 12 }} />
+            <button onClick={(e) => { e.stopPropagation(); setLightbox(null); }} aria-label="Close"
+              style={{ position: "fixed", top: 16, right: 16, width: 40, height: 40, borderRadius: "50%", background: "rgba(255,255,255,0.15)", border: "none", color: "#fff", fontSize: 18, cursor: "pointer" }}>✕</button>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </>
   );
 }

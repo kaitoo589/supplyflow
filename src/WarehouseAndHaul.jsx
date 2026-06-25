@@ -221,8 +221,24 @@ function BoxContentsModal({ items, onRemove, onClose }) {
   );
 }
 
-function OrderDetailModal({ order, inHaul, onAdd, onRemove, onDispute, onClose }) {
+function OrderDetailModal({ order, inHaul, onAdd, onRemove, onDispute, onClose, onResolved }) {
   const [lightbox, setLightbox] = useState(null);
+  const [busy, setBusy] = useState(false);
+  const [confirmReturn, setConfirmReturn] = useState(false);
+  const acceptDefect = async () => {
+    setBusy(true);
+    const { data, error } = await supabase.rpc("accept_qc_result", { p_order_id: order.id });
+    setBusy(false);
+    if (error || data?.ok === false) { alert("Could not accept: " + (error?.message || data?.error || "error")); return; }
+    onResolved?.();
+  };
+  const returnDefect = async () => {
+    setBusy(true);
+    const { data, error } = await supabase.rpc("request_item_return", { p_order_id: order.id, p_reason: "Returned after quality-control flagged a defect" });
+    setBusy(false);
+    if (error || data?.ok === false) { alert("Could not request return: " + (error?.message || data?.error || "error")); return; }
+    onResolved?.();
+  };
   return (
     <>
       <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
@@ -246,6 +262,12 @@ function OrderDetailModal({ order, inHaul, onAdd, onRemove, onDispute, onClose }
         </div>
         <div style={{ fontSize: 18, fontWeight: 700, color: "#0F0E0C", marginBottom: 4 }}>{order.product_title || order.product}</div>
         <div style={{ fontSize: 13, color: "#aaa", marginBottom: 16 }}>{order.qty} pcs · {order.weight_grams ? `${order.weight_grams}g` : "weight unknown"}</div>
+        {order.dispute_status === "bucky_flagged" && (
+          <div style={{ background: "#FFF7ED", border: "1.5px solid #F59E0B", borderRadius: 14, padding: 16, marginBottom: 16 }}>
+            <div style={{ fontSize: 14, fontWeight: 700, color: "#B45309", marginBottom: 4 }}>⚠️ Quality-control flagged a possible defect</div>
+            <div style={{ fontSize: 13, color: "#92400E", lineHeight: 1.5 }}>Our warehouse spotted something off with your item. Check the photos below, then choose to <b>return it for a full refund</b> or <b>accept it as-is</b> and continue.</div>
+          </div>
+        )}
         {/* Quality-control foto's — of "awaiting" zolang ze er nog niet zijn */}
         <div style={{ marginBottom: 16 }}>
           <div style={{ fontSize: 12, fontWeight: 700, color: "#888", marginBottom: 8, letterSpacing: 1 }}>QUALITY-CONTROL PICTURES</div>
@@ -271,7 +293,9 @@ function OrderDetailModal({ order, inHaul, onAdd, onRemove, onDispute, onClose }
           )}
         </div>
 
-        {/* Measurement check */}
+        {/* Measurement-sectie uit: BuckyDrop geeft geen aparte maatfoto's via de API (één picList);
+            alle inspectiefoto's staan hierboven bij Quality-control. */}
+        {false && (
         <div style={{ marginBottom: 16 }}>
           <div style={{ fontSize: 12, fontWeight: 700, color: "#888", marginBottom: 8, letterSpacing: 1 }}>MEASUREMENT CHECK</div>
           {order.measurement_images?.length > 0 ? (
@@ -295,17 +319,33 @@ function OrderDetailModal({ order, inHaul, onAdd, onRemove, onDispute, onClose }
             </div>
           )}
         </div>
+        )}
         {order.weight_grams && (
           <div style={{ background: "#F0FDF4", border: "1px solid #10B981", borderRadius: 12, padding: "10px 14px", marginBottom: 16, fontSize: 13, color: "#065F46", fontWeight: 600 }}>
             Adds {order.weight_grams}g to your parcel — shipping is charged per parcel, so bundling items keeps it cheap.
           </div>
         )}
         <div style={{ display: "flex", gap: 10 }}>
-          {inHaul ? (
+          {order.return_status ? (
+            <div style={{ flex: 1, textAlign: "center", color: "#B45309", fontSize: 13, fontWeight: 600, padding: "12px", background: "#FFF7ED", borderRadius: 12 }}>
+              ↩ Return in progress
+            </div>
+          ) : inHaul ? (
             <button onClick={() => { onRemove(order.id); onClose(); }}
               style={{ flex: 1, background: "#FEE2E2", color: "#DC2626", border: "none", borderRadius: 12, padding: "12px", fontSize: 14, fontWeight: 700, cursor: "pointer" }}>
               Remove from box
             </button>
+          ) : order.dispute_status === "bucky_flagged" ? (
+            <>
+              <button onClick={acceptDefect} disabled={busy}
+                style={{ flex: 1, background: "#FF5C00", color: "#fff", border: "none", borderRadius: 12, padding: "12px", fontSize: 14, fontWeight: 700, cursor: busy ? "default" : "pointer", opacity: busy ? 0.6 : 1 }}>
+                ✓ Accept as-is
+              </button>
+              <button onClick={() => confirmReturn ? returnDefect() : setConfirmReturn(true)} disabled={busy}
+                style={{ flex: 1, background: confirmReturn ? "#DC2626" : "#FEE2E2", color: confirmReturn ? "#fff" : "#DC2626", border: "none", borderRadius: 12, padding: "12px", fontSize: 14, fontWeight: 700, cursor: busy ? "default" : "pointer", opacity: busy ? 0.6 : 1 }}>
+                {confirmReturn ? "Sure? Return & refund" : "↩ Return for refund"}
+              </button>
+            </>
           ) : order.dispute_status === "pending" ? (
             <div style={{ flex: 1, textAlign: "center", color: "#B45309", fontSize: 13, fontWeight: 600, padding: "12px", background: "#FFF7ED", borderRadius: 12 }}>
               ⏳ Under review — can't ship until resolved
@@ -337,19 +377,23 @@ function OrderDetailModal({ order, inHaul, onAdd, onRemove, onDispute, onClose }
 function OrderCard({ order, onDragStart, onDragEnd, inHaul, onOpenDetail, onReport }) {
   // Pas sleepbaar zodra de quality-control foto's er zijn (= klaar om te verzenden).
   const hasQc = order.qc_images?.length > 0;
+  // Een door BuckyDrop gemeld defect of een lopende retour blokkeert verzenden tot de klant kiest.
+  const flagged = order.dispute_status === "bucky_flagged";
+  const returning = !!order.return_status;
+  const canDrag = hasQc && !flagged && !returning;
   return (
     <motion.div
-      drag={hasQc}
+      drag={canDrag}
       dragSnapToOrigin
-      onDragStart={() => hasQc && onDragStart(order)}
-      onDragEnd={(e, info) => hasQc && onDragEnd(order, info)}
-      whileDrag={hasQc ? { scale: 1.06, zIndex: 50, boxShadow: "0 20px 60px rgba(0,0,0,0.2)", cursor: "grabbing" } : {}}
+      onDragStart={() => canDrag && onDragStart(order)}
+      onDragEnd={(e, info) => canDrag && onDragEnd(order, info)}
+      whileDrag={canDrag ? { scale: 1.06, zIndex: 50, boxShadow: "0 20px 60px rgba(0,0,0,0.2)", cursor: "grabbing" } : {}}
       whileHover={{ y: -2 }}
       style={{
         background: inHaul ? "#F0FDF4" : "#fff",
         border: `1.5px solid ${inHaul ? "#10B981" : "#E8E6E0"}`,
         borderRadius: 14, padding: "10px 12px", marginBottom: 10,
-        cursor: hasQc ? "grab" : "default", userSelect: "none", position: "relative",
+        cursor: canDrag ? "grab" : "default", userSelect: "none", position: "relative",
       }}
     >
       <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
@@ -373,8 +417,15 @@ function OrderCard({ order, onDragStart, onDragEnd, inHaul, onOpenDetail, onRepo
         </div>
       </div>
       <div style={{ marginTop: 8, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-        <div style={{ fontSize: 11, color: "#bbb" }}>{order.dispute_status === "pending" ? "⏳ On hold for review" : !hasQc ? "⏳ Awaiting quality-control pictures" : inHaul ? "✓ Added" : "↕ Drag to the box"}</div>
-        {order.dispute_status === "pending" ? (
+        <div style={{ fontSize: 11, color: flagged ? "#B45309" : "#bbb", fontWeight: flagged ? 700 : 400 }}>{returning ? "↩ Return in progress" : flagged ? "⚠️ Defect found — your choice" : order.dispute_status === "pending" ? "⏳ On hold for review" : !hasQc ? "⏳ Awaiting quality-control pictures" : inHaul ? "✓ Added" : "↕ Drag to the box"}</div>
+        {returning ? (
+          <span style={{ fontSize: 11, fontWeight: 600, color: "#B45309" }}>↩ Returning</span>
+        ) : flagged ? (
+          <button onClick={(e) => { e.stopPropagation(); onOpenDetail(order); }}
+            style={{ background: "#FEF3C7", color: "#B45309", border: "none", borderRadius: 6, padding: "3px 8px", fontSize: 11, fontWeight: 700, cursor: "pointer" }}>
+            Return or accept →
+          </button>
+        ) : order.dispute_status === "pending" ? (
           <span style={{ fontSize: 11, fontWeight: 600, color: "#B45309" }}>⏳ Report under review</span>
         ) : order.dispute_status === "rejected" ? (
           <span style={{ fontSize: 11, fontWeight: 600, color: "#9C9893" }}>Return declined</span>
@@ -621,6 +672,16 @@ function DisputeForm({ order, session, onBack, onSuccess }) {
       <button onClick={onBack} style={{ background: "none", border: "none", fontSize: 14, color: "#666", cursor: "pointer", padding: 0, marginBottom: 16 }}>← Back</button>
       <div style={{ fontSize: 16, fontWeight: 700, color: "#0F0E0C", marginBottom: 4 }}>Report a problem</div>
       <div style={{ fontSize: 13, color: "#aaa", marginBottom: 20 }}>Describe what is wrong with your product</div>
+      {order.qc_images?.length > 0 && (
+        <div style={{ background: "#fff", border: "1px solid #E8E6E0", borderRadius: 14, padding: 16, marginBottom: 16 }}>
+          <div style={{ fontSize: 13, fontWeight: 600, color: "#0F0E0C", marginBottom: 8 }}>Quality-control photos from the warehouse</div>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8 }}>
+            {order.qc_images.map((url, i) => (
+              <img key={i} src={url} referrerPolicy="no-referrer" alt="" style={{ width: "100%", aspectRatio: "1", borderRadius: 8, objectFit: "cover" }} />
+            ))}
+          </div>
+        </div>
+      )}
       <div style={{ background: "#fff", border: "1px solid #E8E6E0", borderRadius: 14, padding: 16, marginBottom: 16 }}>
         <div style={{ fontSize: 13, fontWeight: 600, color: "#0F0E0C", marginBottom: 8 }}>{order.product_title || order.product}</div>
         <textarea placeholder="Describe the problem..." value={description} onChange={e => setDescription(e.target.value)}
@@ -705,7 +766,7 @@ export function WarehouseTab({ session, haulItems: allHaulItems = [], setHaulIte
 
   const addToHaul = (order) => {
     if (typeof setHaulItems !== "function") return;
-    if (order.dispute_status === "pending") return; // in behandeling → nog niet verzendbaar
+    if (order.dispute_status === "pending" || order.dispute_status === "bucky_flagged" || order.return_status) return; // in behandeling / defect / retour → nog niet verzendbaar
     if (lockedIds.includes(order.id)) return;
     if (!haulItems.some(h => h.id === order.id)) setHaulItems(prev => [...prev, order]);
   };
@@ -873,6 +934,7 @@ export function WarehouseTab({ session, haulItems: allHaulItems = [], setHaulIte
             onRemove={removeFromHaul}
             onDispute={(o) => setDisputeOrder(o)}
             onClose={() => setDetailOrder(null)}
+            onResolved={() => { setDetailOrder(null); fetchWarehouseOrders(); }}
           />
         )}
       </AnimatePresence>

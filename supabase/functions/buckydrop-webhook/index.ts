@@ -108,7 +108,7 @@ Deno.serve(async (req) => {
         if (pics) {
           await admin.from("orders").update({
             qc_images: pics,
-            ...(body.confirmType || po?.confirmType ? { dispute_status: "pending", problem_type: String(body.confirmType ?? po?.confirmType ?? "defect") } : {}),
+            ...(body.confirmType || po?.confirmType ? { dispute_status: "bucky_flagged", problem_type: String(body.confirmType ?? po?.confirmType ?? "defect") } : {}),
           }).eq("id", partnerOrderNo);
           action = `photos (${pics.length})`;
         }

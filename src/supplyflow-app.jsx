@@ -2022,6 +2022,16 @@ export default function SupplyFlow({ session }) {
             </motion.div>
           )}
 
+          {/* Door BuckyDrop gemeld defect: stuur de klant naar de warehouse om te kiezen (retour/accept). */}
+          {selectedOrder.dispute_status === "bucky_flagged" && (
+            <div style={{ background: "#FFF7ED", border: "1.5px solid #F59E0B", borderRadius: 14, padding: 16, marginBottom: 16 }}>
+              <div style={{ fontSize: 14, fontWeight: 700, color: "#B45309", marginBottom: 4 }}>⚠️ Quality-control flagged a possible defect</div>
+              <div style={{ fontSize: 13, color: "#92400E", lineHeight: 1.5, marginBottom: 12 }}>Our warehouse spotted something off with your item. Review the photos and choose to return it for a full refund or accept it as-is.</div>
+              <button onClick={() => { setSelectedOrder(null); setTab("warehouse"); }} style={{ width: "100%", background: "#FF5C00", color: "#fff", border: "none", borderRadius: 12, padding: "12px", fontSize: 14, fontWeight: 700, cursor: "pointer" }}>
+                Review in your warehouse →
+              </button>
+            </div>
+          )}
           {/* Eigen klant-melding: in behandeling, of afgewezen met standaardbericht */}
           {selectedOrder.dispute_status === "pending" && (
             <div style={{ background: "#FFF7ED", border: "1.5px solid #F59E0B", borderRadius: 14, padding: 16, marginBottom: 16 }}>

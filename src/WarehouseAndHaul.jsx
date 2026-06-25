@@ -257,8 +257,15 @@ function OrderDetailModal({ order, inHaul, onAdd, onRemove, onDispute, onClose }
               ))}
             </div>
           ) : (
-            <div style={{ background: "#F8F7F4", borderRadius: 12, padding: "18px 14px", textAlign: "center", fontSize: 13, color: "#9C9893" }}>
-              ⏳ Awaiting quality-control pictures — your item just arrived at the warehouse.
+            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+              {[0, 1, 2].map((i) => (
+                <motion.div key={i}
+                  animate={i === 0 ? undefined : { opacity: [0.55, 1, 0.55] }}
+                  transition={i === 0 ? undefined : { duration: 1.6, repeat: Infinity, ease: "easeInOut", delay: i * 0.2 }}
+                  style={{ background: "#F8F7F4", borderRadius: 12, padding: "16px 14px", textAlign: "center", fontSize: 13, color: "#9C9893" }}>
+                  {i === 0 ? "⏳ Awaiting quality-control pictures" : " "}
+                </motion.div>
+              ))}
             </div>
           )}
         </div>
@@ -275,8 +282,15 @@ function OrderDetailModal({ order, inHaul, onAdd, onRemove, onDispute, onClose }
               ))}
             </div>
           ) : (
-            <div style={{ background: "#F8F7F4", borderRadius: 12, padding: "18px 14px", textAlign: "center", fontSize: 13, color: "#9C9893" }}>
-              ⏳ Awaiting measurement photos.
+            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+              {[0, 1, 2].map((i) => (
+                <motion.div key={i}
+                  animate={i === 0 ? undefined : { opacity: [0.55, 1, 0.55] }}
+                  transition={i === 0 ? undefined : { duration: 1.6, repeat: Infinity, ease: "easeInOut", delay: i * 0.2 }}
+                  style={{ background: "#F8F7F4", borderRadius: 12, padding: "16px 14px", textAlign: "center", fontSize: 13, color: "#9C9893" }}>
+                  {i === 0 ? "⏳ Awaiting measurement photos" : " "}
+                </motion.div>
+              ))}
             </div>
           )}
         </div>

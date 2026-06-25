@@ -245,19 +245,41 @@ function OrderDetailModal({ order, inHaul, onAdd, onRemove, onDispute, onClose }
         </div>
         <div style={{ fontSize: 18, fontWeight: 700, color: "#0F0E0C", marginBottom: 4 }}>{order.product_title || order.product}</div>
         <div style={{ fontSize: 13, color: "#aaa", marginBottom: 16 }}>{order.qty} pcs · {order.weight_grams ? `${order.weight_grams}g` : "weight unknown"}</div>
-        {order.qc_images?.length > 0 && (
-          <div style={{ marginBottom: 16 }}>
-            <div style={{ fontSize: 12, fontWeight: 700, color: "#888", marginBottom: 8, letterSpacing: 1 }}>QC PHOTOS</div>
+        {/* Quality-control foto's — of "awaiting" zolang ze er nog niet zijn */}
+        <div style={{ marginBottom: 16 }}>
+          <div style={{ fontSize: 12, fontWeight: 700, color: "#888", marginBottom: 8, letterSpacing: 1 }}>QUALITY-CONTROL PICTURES</div>
+          {order.qc_images?.length > 0 ? (
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
               {order.qc_images.map((url, i) => (
-                <div key={i} style={{ borderRadius: 10, overflow: "hidden", aspectRatio: "1", position: "relative" }}>
+                <div key={i} style={{ borderRadius: 10, overflow: "hidden", aspectRatio: "1" }}>
                   <img src={url} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-                  {i === 3 && <div style={{ position: "absolute", bottom: 6, left: 6, background: "rgba(0,0,0,0.7)", color: "#fff", fontSize: 10, padding: "2px 6px", borderRadius: 6 }}>⚖️ Weight</div>}
                 </div>
               ))}
             </div>
-          </div>
-        )}
+          ) : (
+            <div style={{ background: "#F8F7F4", borderRadius: 12, padding: "18px 14px", textAlign: "center", fontSize: 13, color: "#9C9893" }}>
+              ⏳ Awaiting quality-control pictures — your item just arrived at the warehouse.
+            </div>
+          )}
+        </div>
+
+        {/* Measurement check */}
+        <div style={{ marginBottom: 16 }}>
+          <div style={{ fontSize: 12, fontWeight: 700, color: "#888", marginBottom: 8, letterSpacing: 1 }}>MEASUREMENT CHECK</div>
+          {order.measurement_images?.length > 0 ? (
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8 }}>
+              {order.measurement_images.map((url, i) => (
+                <div key={i} style={{ borderRadius: 10, overflow: "hidden", aspectRatio: "1" }}>
+                  <img src={url} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div style={{ background: "#F8F7F4", borderRadius: 12, padding: "18px 14px", textAlign: "center", fontSize: 13, color: "#9C9893" }}>
+              ⏳ Awaiting measurement photos.
+            </div>
+          )}
+        </div>
         {order.weight_grams && (
           <div style={{ background: "#F0FDF4", border: "1px solid #10B981", borderRadius: 12, padding: "10px 14px", marginBottom: 16, fontSize: 13, color: "#065F46", fontWeight: 600 }}>
             Adds {order.weight_grams}g to your parcel — shipping is charged per parcel, so bundling items keeps it cheap.
@@ -273,6 +295,10 @@ function OrderDetailModal({ order, inHaul, onAdd, onRemove, onDispute, onClose }
             <div style={{ flex: 1, textAlign: "center", color: "#B45309", fontSize: 13, fontWeight: 600, padding: "12px", background: "#FFF7ED", borderRadius: 12 }}>
               ⏳ Under review — can't ship until resolved
             </div>
+          ) : !(order.qc_images?.length > 0) ? (
+            <div style={{ flex: 1, textAlign: "center", color: "#9C9893", fontSize: 13, fontWeight: 600, padding: "12px", background: "#F8F7F4", borderRadius: 12 }}>
+              ⏳ Awaiting quality-control pictures
+            </div>
           ) : (
             <button onClick={() => { onAdd(order); onClose(); }}
               style={{ flex: 1, background: "#FF5C00", color: "#fff", border: "none", borderRadius: 12, padding: "12px", fontSize: 14, fontWeight: 700, cursor: "pointer" }}>
@@ -286,19 +312,21 @@ function OrderDetailModal({ order, inHaul, onAdd, onRemove, onDispute, onClose }
 }
 
 function OrderCard({ order, onDragStart, onDragEnd, inHaul, onOpenDetail, onReport }) {
+  // Pas sleepbaar zodra de quality-control foto's er zijn (= klaar om te verzenden).
+  const hasQc = order.qc_images?.length > 0;
   return (
     <motion.div
-      drag
+      drag={hasQc}
       dragSnapToOrigin
-      onDragStart={() => onDragStart(order)}
-      onDragEnd={(e, info) => onDragEnd(order, info)}
-      whileDrag={{ scale: 1.06, zIndex: 50, boxShadow: "0 20px 60px rgba(0,0,0,0.2)", cursor: "grabbing" }}
+      onDragStart={() => hasQc && onDragStart(order)}
+      onDragEnd={(e, info) => hasQc && onDragEnd(order, info)}
+      whileDrag={hasQc ? { scale: 1.06, zIndex: 50, boxShadow: "0 20px 60px rgba(0,0,0,0.2)", cursor: "grabbing" } : {}}
       whileHover={{ y: -2 }}
       style={{
         background: inHaul ? "#F0FDF4" : "#fff",
         border: `1.5px solid ${inHaul ? "#10B981" : "#E8E6E0"}`,
         borderRadius: 14, padding: "10px 12px", marginBottom: 10,
-        cursor: "grab", userSelect: "none", position: "relative",
+        cursor: hasQc ? "grab" : "default", userSelect: "none", position: "relative",
       }}
     >
       <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
@@ -317,12 +345,12 @@ function OrderCard({ order, onDragStart, onDragEnd, inHaul, onOpenDetail, onRepo
           {inHaul && <div style={{ background: "#10B981", color: "#fff", fontSize: 10, fontWeight: 700, padding: "2px 8px", borderRadius: 20 }}>✓ In box</div>}
           <button onClick={(e) => { e.stopPropagation(); onOpenDetail(order); }}
             style={{ background: "#F8F7F4", border: "1px solid #E8E6E0", borderRadius: 8, padding: "4px 10px", fontSize: 11, fontWeight: 600, color: "#555", cursor: "pointer" }}>
-            📸 QC pictures
+            📸 Quality-control
           </button>
         </div>
       </div>
       <div style={{ marginTop: 8, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-        <div style={{ fontSize: 11, color: "#bbb" }}>{order.dispute_status === "pending" ? "⏳ On hold for review" : inHaul ? "✓ Added" : "↕ Drag to the box"}</div>
+        <div style={{ fontSize: 11, color: "#bbb" }}>{order.dispute_status === "pending" ? "⏳ On hold for review" : !hasQc ? "⏳ Awaiting quality-control pictures" : inHaul ? "✓ Added" : "↕ Drag to the box"}</div>
         {order.dispute_status === "pending" ? (
           <span style={{ fontSize: 11, fontWeight: 600, color: "#B45309" }}>⏳ Report under review</span>
         ) : order.dispute_status === "rejected" ? (

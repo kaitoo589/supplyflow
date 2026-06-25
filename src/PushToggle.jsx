@@ -36,7 +36,7 @@ export default function PushToggle({ session }) {
           <div style={{ fontSize: 13, fontWeight: 700, color: "#0F0E0C" }}>Notifications about your orders</div>
           <div style={{ fontSize: 12, color: "#8A8780", lineHeight: 1.4 }}>
             {status === "on" && "On — you'll get notified the moment something changes."}
-            {status === "off" && "Get a ping for QC photos, shipping and delivery."}
+            {status === "off" && "Get a ping for quality-control photos, shipping and delivery."}
             {status === "needs-install" && "Add Flowva to your home screen first (in Safari: Share → Add to Home Screen), then you can turn on notifications."}
             {status === "denied" && "Notifications are blocked. Enable them in your browser settings for flowva.app."}
           </div>

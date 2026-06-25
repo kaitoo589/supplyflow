@@ -43,7 +43,7 @@ const statusConfig = {
   purchased:            { label: "Order placed",                color: "#0369A1", bg: "#E0F2FE", step: 0 },
   bought:               { label: "Item bought successfully",    color: "#065F46", bg: "#D1FAE5", step: 1 },
   shipped_local:        { label: "On its way to our warehouse", color: "#0369A1", bg: "#E0F2FE", step: 2 },
-  qc_pending:           { label: "QC photos ready",             color: "#065F46", bg: "#D1FAE5", step: 3 },
+  qc_pending:           { label: "Quality-control pictures ready", color: "#065F46", bg: "#D1FAE5", step: 3 },
   shipped_international: { label: "Shipped to you",             color: "#0369A1", bg: "#E0F2FE", step: 4 },
   delivered:            { label: "Delivered",                   color: "#166534", bg: "#DCFCE7", step: 5 },
 };
@@ -53,7 +53,7 @@ const trackingSteps = [
   "Order placed",
   "Bought",
   "To warehouse",
-  "QC photos",
+  "Quality control",
   "Shipped to you",
   "Delivered",
 ];
@@ -112,7 +112,7 @@ const journeyStops = [
   { key: "purchased", label: "Order placed", Icon: ShoppingBag, statuses: ["requested", "quote_sent", "quote_accepted", "purchased"], x: 11, y: 18 },
   { key: "bought", label: "Bought", Icon: PackageCheck, statuses: ["bought"], x: 36, y: 10 },
   { key: "shipped_local", label: "To warehouse", Icon: Truck, statuses: ["shipped_local"], x: 86, y: 26 },
-  { key: "qc_pending", label: "QC photos", Icon: Camera, statuses: ["qc_pending"], x: 72, y: 50 },
+  { key: "qc_pending", label: "Quality control", Icon: Camera, statuses: ["qc_pending"], x: 72, y: 50 },
   { key: "shipped_international", label: "Shipped to you", Icon: Plane, statuses: ["shipped_international"], x: 46, y: 56 },
   { key: "delivered", label: "Delivered", Icon: Home, statuses: ["delivered"], x: 13, y: 84, home: true },
 ];
@@ -136,12 +136,16 @@ function ProgressRing({ percent }) {
   );
 }
 
-// Voortgang per product: 100% = QC-foto's klaar (qc_pending). Elke stap richting
-// QC telt voor 25% (Order placed = 25%). Verder dan QC blijft 100%.
+// Voortgang per product — 5 stappen van 20%:
+// 20 Order placed · 40 Item bought · 60 Shipped domestically · 80 Arrived in warehouse · 100 Quality-control klaar.
+// 80↔100: bij 'qc_pending' is het 80% zolang de quality-control foto's er nog niet zijn, en 100% zodra ze er zijn.
 const QC_FULL_STEP = statusConfig.qc_pending.step;
-function productProgress(status) {
+function productProgress(o) {
+  const status = typeof o === "string" ? o : o?.status;
   const step = statusConfig[status]?.step ?? 0;
-  return Math.min(100, Math.round(((step + 1) / (QC_FULL_STEP + 1)) * 100));
+  if (status === "qc_pending") return (typeof o === "object" && o?.qc_images?.length > 0) ? 100 : 80;
+  if (step > QC_FULL_STEP) return 100;   // shipped_international / delivered
+  return [20, 40, 60][step] ?? 20;        // order placed / bought / shipped_local
 }
 const PRODUCT_COLORS = ["#FF5C00", "#6366F1", "#16A34A", "#EAB308", "#EC4899"];
 
@@ -149,10 +153,11 @@ const PRODUCT_COLORS = ["#FF5C00", "#6366F1", "#16A34A", "#EAB308", "#EC4899"];
 // zich vult richting QC (= vol). Mijlpaal-streepjes tonen waar het % op slaat.
 function ProgressWheelModal({ items, onClose }) {
   const bars = items.slice(0, 8);
-  const overall = Math.round(items.reduce((s, o) => s + productProgress(o.status), 0) / items.length);
+  const overall = Math.round(items.reduce((s, o) => s + productProgress(o), 0) / items.length);
   const milestones = [
-    { pct: 25, label: "Order placed" }, { pct: 50, label: "Item bought successfully" },
-    { pct: 75, label: "Shipped domestically" }, { pct: 100, label: "QC pictures are ready" },
+    { pct: 20, label: "Order placed" }, { pct: 40, label: "Item bought successfully" },
+    { pct: 60, label: "Shipped domestically" }, { pct: 80, label: "Arrived in warehouse" },
+    { pct: 100, label: "Quality-control pictures ready" },
   ];
   return createPortal(
     <>
@@ -170,7 +175,7 @@ function ProgressWheelModal({ items, onClose }) {
           {/* Eén staaf per item — eigen kleur, met foto + titel */}
           <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
             {bars.map((o, i) => {
-              const pct = productProgress(o.status);
+              const pct = productProgress(o);
               const color = PRODUCT_COLORS[i % PRODUCT_COLORS.length];
               return (
                 <div key={o.id}>
@@ -182,7 +187,7 @@ function ProgressWheelModal({ items, onClose }) {
                     <span style={{ fontSize: 12.5, fontWeight: 800, color, flexShrink: 0 }}>{pct}%</span>
                   </div>
                   <div style={{ position: "relative", height: 12, background: "#F1EFE9", borderRadius: 6, overflow: "hidden" }}>
-                    {[25, 50, 75].map((g) => (
+                    {[20, 40, 60, 80].map((g) => (
                       <div key={g} style={{ position: "absolute", left: `${g}%`, top: 0, bottom: 0, width: 1, background: "#fff" }} />
                     ))}
                     <motion.div initial={{ width: 0 }} animate={{ width: `${pct}%` }} transition={{ duration: 0.7, delay: 0.06 * i, ease: "easeOut" }}
@@ -215,7 +220,7 @@ function OrderGroupCard({ items, onOpenItem }) {
   const [open, setOpen] = useState(false);
   const [wheel, setWheel] = useState(false);
   const date = items[0]?.date || "";
-  const percent = Math.round(items.reduce((s, o) => s + productProgress(o.status), 0) / items.length);
+  const percent = Math.round(items.reduce((s, o) => s + productProgress(o), 0) / items.length);
   const whStep = statusConfig.qc_pending.step;
   const atWarehouse = items.filter(o => (statusConfig[o.status]?.step ?? 0) >= whStep).length;
   const anyProblem = items.some(o => o.problem_type);
@@ -952,7 +957,7 @@ function HowItWorksSheet({ onClose }) {
     { icon: "🏭", title: "Shop straight from the factory", body: "You see the real 1688 & Taobao factory prices — no inflated retail markup. What it costs in China is what you pay." },
     { icon: "🛒", title: "A small service fee", body: "We buy it, check it and handle everything for you. The fee is 8% (min €5) per order — so ordering a few items at once keeps the fee tiny per item." },
     { icon: "🏬", title: "Your items wait in your China warehouse", body: "Bought items gather safely in your personal warehouse. No rush — keep adding to your haul." },
-    { icon: "📸", title: "QC photos before it ships", body: "We photograph your actual item so you see exactly what you're getting — no surprises on the doorstep." },
+    { icon: "📸", title: "Quality-control photos before it ships", body: "We photograph your actual item so you see exactly what you're getting — no surprises on the doorstep." },
     { icon: "📦", title: "Ship it all in one parcel", body: "International shipping is charged per parcel, not per item. So the more you bundle, the cheaper it gets per item:" },
   ];
   const ship = [
@@ -1916,7 +1921,7 @@ export default function SupplyFlow({ session }) {
 
           {selectedOrder.status === "qc_pending" && selectedOrder.qc_images?.length > 0 && (
             <div style={{ marginBottom: 20 }}>
-              <div style={{ fontSize: 14, fontWeight: 600, color: "#0F0E0C", marginBottom: 12 }}>QC photos</div>
+              <div style={{ fontSize: 14, fontWeight: 600, color: "#0F0E0C", marginBottom: 12 }}>Quality-control pictures</div>
               {(() => {
                 // Foto van de gekochte variant; oudere orders hebben die niet
                 // opgeslagen — val dan terug op de productfoto uit de feed.

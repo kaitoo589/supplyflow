@@ -851,8 +851,27 @@ export function WarehouseTab({ session, haulItems: allHaulItems = [], setHaulIte
   const [isDropTarget, setIsDropTarget] = useState(false);
   const [lockedIds, setLockedIds] = useState([]);
   const [incomingCount, setIncomingCount] = useState(0);
+  const [squadOrders, setSquadOrders] = useState([]);
 
-  useEffect(() => { fetchWarehouseOrders(); fetchBalance(); }, [activeGroupId]);
+  // Gedeelde groep-status: ff_group_orders geeft per groep-item box_staged_at + return_status terug.
+  const fetchSquadOrders = async () => {
+    if (!activeGroupId) { setSquadOrders([]); return; }
+    const { data } = await supabase.rpc("ff_group_orders", { p_group_id: activeGroupId });
+    setSquadOrders(data?.orders || []);
+  };
+  // Markeer je EIGEN groep-item als in/uit de gedeelde doos zodat je vrienden + de gate het zien.
+  const stageGroup = async (orderId, staged) => {
+    if (!activeGroupId) return;
+    await supabase.rpc("ff_stage_box", { p_order_ids: [orderId], p_staged: staged });
+    fetchSquadOrders();
+  };
+
+  useEffect(() => {
+    fetchWarehouseOrders(); fetchBalance(); fetchSquadOrders();
+    if (!activeGroupId) return;
+    const t = setInterval(fetchSquadOrders, 8000); // lichte poll → vrienden-staging verschijnt live
+    return () => clearInterval(t);
+  }, [activeGroupId]);
 
   // Haal items die al in een betaald pakket zitten uit de doos
   // (bijv. achtergebleven via localStorage).
@@ -886,17 +905,22 @@ export function WarehouseTab({ session, haulItems: allHaulItems = [], setHaulIte
   };
 
   const totalWeight = haulItems.reduce((s, o) => s + (o.weight_grams || 0), 0);
+  // Groep-gate: élk groep-item moet in de doos zitten vóór verzending. Een geaccepteerde return telt NIET mee (groep hoeft niet te wachten).
+  const groupPending = (squadOrders || []).filter(o => o.status === "qc_pending" && !o.return_status);
+  const waitingCount = groupPending.filter(o => !o.box_staged_at).length;
+  const groupReady = !activeGroupId || waitingCount === 0;
 
   const addToHaul = (order) => {
     if (typeof setHaulItems !== "function") return;
     if (order.dispute_status === "pending" || order.dispute_status === "bucky_flagged" || order.return_status) return; // in behandeling / defect / retour → nog niet verzendbaar
     if (lockedIds.includes(order.id)) return;
-    if (!haulItems.some(h => h.id === order.id)) setHaulItems(prev => [...prev, order]);
+    if (!haulItems.some(h => h.id === order.id)) { setHaulItems(prev => [...prev, order]); stageGroup(order.id, true); }
   };
 
   const removeFromHaul = (orderId) => {
     if (typeof setHaulItems !== "function") return;
     setHaulItems(prev => prev.filter(h => h.id !== orderId));
+    stageGroup(orderId, false);
   };
 
   const onDragStart = (order) => setDraggingOrder(order);
@@ -910,6 +934,7 @@ export function WarehouseTab({ session, haulItems: allHaulItems = [], setHaulIte
       const inZone = point.x >= rect.left && point.x <= rect.right && point.y >= rect.top && point.y <= rect.bottom;
       if (inZone && !lockedIds.includes(order.id) && !haulItems.some(h => h.id === order.id)) {
         setHaulItems(prev => [...prev, order]);
+        stageGroup(order.id, true);
       }
     }
   };
@@ -981,12 +1006,20 @@ export function WarehouseTab({ session, haulItems: allHaulItems = [], setHaulIte
 
       <AnimatePresence>
         {haulItems.length > 0 && (
+          <>
           <motion.button initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 10 }}
             layoutId="confirmHaul" transition={springMorph}
-            onClick={() => setScreen("confirm")}
-            style={{ width: "100%", background: "#0F0E0C", color: "#FF5C00", border: "none", borderRadius: 12, padding: "14px", fontSize: 14, fontWeight: 700, cursor: "pointer", marginBottom: 20 }}>
-            Confirm parcel & ship →
+            onClick={() => groupReady && setScreen("confirm")}
+            disabled={!groupReady}
+            style={{ width: "100%", background: groupReady ? "#0F0E0C" : "#E8E6E0", color: groupReady ? "#FF5C00" : "#A8A5A0", border: "none", borderRadius: 12, padding: "14px", fontSize: 14, fontWeight: 700, cursor: groupReady ? "pointer" : "not-allowed", marginBottom: groupReady ? 20 : 8 }}>
+            {groupReady ? "Confirm parcel & ship →" : `Waiting for your squad · ${waitingCount} item${waitingCount === 1 ? "" : "s"} not in the box`}
           </motion.button>
+          {!groupReady && (
+            <div style={{ fontSize: 11, color: "#A8A5A0", textAlign: "center", marginBottom: 20, lineHeight: 1.4 }}>
+              Everyone adds their items to the shared box before it can ship. Accepted returns don't count.
+            </div>
+          )}
+          </>
         )}
       </AnimatePresence>
 
@@ -1046,11 +1079,11 @@ export function WarehouseTab({ session, haulItems: allHaulItems = [], setHaulIte
       })}
 
       {/* SQUAD — items van groepsgenoten (alleen-lezen, net als op de Orders-pagina) */}
-      {activeGroupId && (groupOrders || []).filter(o => o.user_id !== session.user.id && o.status === "qc_pending").length > 0 && (
+      {activeGroupId && (squadOrders || []).filter(o => o.user_id !== session.user.id && o.status === "qc_pending").length > 0 && (
         <div style={{ marginTop: 18 }}>
           <div style={{ fontSize: 11, color: "#A8A5A0", fontWeight: 600, letterSpacing: 0.4, margin: "0 2px 8px" }}>SQUAD · FRIENDS' ITEMS</div>
           {(() => {
-            const others = (groupOrders || []).filter(o => o.user_id !== session.user.id && o.status === "qc_pending");
+            const others = (squadOrders || []).filter(o => o.user_id !== session.user.id && o.status === "qc_pending");
             const byMember = others.reduce((acc, o) => { (acc[o.user_id] = acc[o.user_id] || []).push(o); return acc; }, {});
             return Object.values(byMember).map((memberOrders) => {
               const m0 = memberOrders[0];
@@ -1072,6 +1105,11 @@ export function WarehouseTab({ session, haulItems: allHaulItems = [], setHaulIte
                           <div style={{ fontSize: 12.5, fontWeight: 600, color: "#111", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{o.product_title}</div>
                           <div style={{ fontSize: 11, color: (o.qc_images?.length > 0) ? "#10B981" : "#9C9893", fontWeight: 600, marginTop: 2 }}>{(o.qc_images?.length > 0) ? "✓ Ready to ship" : "⏳ Awaiting pictures"}</div>
                         </div>
+                        {o.return_status ? (
+                          <div style={{ background: "#FEF3C7", color: "#92400E", fontSize: 10, fontWeight: 700, padding: "2px 8px", borderRadius: 20, whiteSpace: "nowrap" }}>↩ Return</div>
+                        ) : (
+                          <div style={{ background: o.box_staged_at ? "#10B981" : "#F3F1ED", color: o.box_staged_at ? "#fff" : "#9C9893", fontSize: 10, fontWeight: 700, padding: "2px 8px", borderRadius: 20, whiteSpace: "nowrap" }}>{o.box_staged_at ? "✓ In box" : "Not in box"}</div>
+                        )}
                       </div>
                     ))}
                   </div>

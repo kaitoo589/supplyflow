@@ -225,6 +225,11 @@ function OrderDetailModal({ order, inHaul, onAdd, onRemove, onDispute, onClose, 
   const [lightbox, setLightbox] = useState(null);
   const [busy, setBusy] = useState(false);
   const [confirmReturn, setConfirmReturn] = useState(false);
+  // Bij een defect tonen we GEEN losse "Quality-control pictures", maar alle agent-foto's
+  // (qc + measurement samen) onder "Additional pictures provided by the agent" + het bericht.
+  const additionalPhotos = order.dispute_status === "bucky_flagged"
+    ? [...(order.qc_images || []), ...(order.measurement_images || [])]
+    : (order.measurement_images || []);
   const acceptDefect = async () => {
     setBusy(true);
     const { data, error } = await supabase.rpc("accept_qc_result", { p_order_id: order.id });
@@ -268,7 +273,8 @@ function OrderDetailModal({ order, inHaul, onAdd, onRemove, onDispute, onClose, 
             <div style={{ fontSize: 13, color: "#92400E", lineHeight: 1.5 }}>Our warehouse spotted something off with your item. Check the photos below, then choose to <b>return it for a full refund</b> or <b>accept it as-is</b> and continue.</div>
           </div>
         )}
-        {/* Quality-control foto's — of "awaiting" zolang ze er nog niet zijn */}
+        {/* Quality-control pictures — verborgen bij een defect; dan alleen de agent-foto's hieronder */}
+        {order.dispute_status !== "bucky_flagged" && (
         <div style={{ marginBottom: 16 }}>
           <div style={{ fontSize: 12, fontWeight: 700, color: "#888", marginBottom: 8, letterSpacing: 1 }}>QUALITY-CONTROL PICTURES</div>
           {order.qc_images?.length > 0 ? (
@@ -292,6 +298,7 @@ function OrderDetailModal({ order, inHaul, onAdd, onRemove, onDispute, onClose, 
             </div>
           )}
         </div>
+        )}
 
         {/* Measurement-sectie uit: BuckyDrop geeft geen aparte maatfoto's via de API (één picList);
             alle inspectiefoto's staan hierboven bij Quality-control. */}
@@ -320,11 +327,11 @@ function OrderDetailModal({ order, inHaul, onAdd, onRemove, onDispute, onClose, 
           )}
         </div>
         )}
-        {order.measurement_images?.length > 0 && (
+        {additionalPhotos.length > 0 && (
           <div style={{ marginBottom: 16 }}>
             <div style={{ fontSize: 12, fontWeight: 700, color: "#888", marginBottom: 8, letterSpacing: 1 }}>ADDITIONAL PICTURES PROVIDED BY THE AGENT</div>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
-              {order.measurement_images.map((url, i) => (
+              {additionalPhotos.map((url, i) => (
                 <motion.div key={i} whileTap={{ scale: 0.97 }} onClick={() => setLightbox(url)} style={{ borderRadius: 10, overflow: "hidden", aspectRatio: "1", cursor: "pointer" }}>
                   <img src={url} referrerPolicy="no-referrer" alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
                 </motion.div>

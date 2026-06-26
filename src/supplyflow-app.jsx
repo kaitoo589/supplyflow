@@ -1235,6 +1235,7 @@ export default function SupplyFlow({ session }) {
   const [flaggedReasons, setFlaggedReasons] = useState({});
   // Flowva Friends: groep-sheet + actieve groep om "voor te shoppen".
   const [showFriends, setShowFriends] = useState(false);
+  const [groupOrders, setGroupOrders] = useState([]);   // alle orders van de actieve groep (alleen-lezen)
   const [friendsJoinCode, setFriendsJoinCode] = useState(null);
   const [friendsGroupId, setFriendsGroupId] = useState(null);   // direct een lobby openen (vanaf de groeps-cart)
   const [activeGroup, setActiveGroup] = useState(() => {
@@ -1305,6 +1306,17 @@ export default function SupplyFlow({ session }) {
   };
   useEffect(() => { if (session && (tab === "profile" || !showFriends)) loadMyGroups(); // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tab, showFriends, session]);
+
+  // Alleen-lezen: alle orders van de actieve groep (ieders status). Geen meldingen —
+  // die blijven via `orders` (alleen je eigen items).
+  useEffect(() => {
+    if (!activeGroup) { setGroupOrders([]); return; }
+    let on = true;
+    supabase.rpc("ff_group_orders", { p_group_id: activeGroup.id }).then(({ data }) => {
+      if (on && data?.ok) setGroupOrders(data.orders || []);
+    });
+    return () => { on = false; };
+  }, [activeGroup?.id, tab]);
 
   useEffect(() => {
     localStorage.setItem(lsKey("supplyflow_request_list"), JSON.stringify(requestList));
@@ -1946,7 +1958,30 @@ export default function SupplyFlow({ session }) {
                     onOpenItem={(o) => { setSelectedOrder(o); setConfirmCancel(false); }} />
                 ));
             })()}
-            {visibleOrders.filter(matchesFilter).length === 0 && (
+            {activeGroup && groupOrders.filter((o) => o.user_id !== session.user.id).length > 0 && (
+              <div style={{ marginTop: 18 }}>
+                <div style={{ fontSize: 11, color: "#A8A5A0", fontWeight: 600, letterSpacing: 0.4, margin: "0 2px 8px" }}>SQUAD · {activeGroup.name}</div>
+                <div style={{ background: "#fff", borderRadius: 16, padding: "4px 14px", boxShadow: "0 1px 2px rgba(17,17,17,0.04), 0 6px 18px rgba(17,17,17,0.05)" }}>
+                  {groupOrders.filter((o) => o.user_id !== session.user.id).map((o, i, arr) => {
+                    const s = statusConfig[o.status] || {};
+                    return (
+                      <div key={o.id} style={{ display: "flex", alignItems: "center", gap: 10, padding: "11px 0", borderBottom: i < arr.length - 1 ? "1px solid #F0EEE8" : "none" }}>
+                        <div style={{ width: 38, height: 38, borderRadius: 9, background: "#F3F1ED", overflow: "hidden", flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                          {o.variant_image ? <img src={o.variant_image} referrerPolicy="no-referrer" alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : <span style={{ fontSize: 17 }}>📦</span>}
+                        </div>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{ fontSize: 11, color: "#A8A5A0" }}>{o.member}</div>
+                          <div style={{ fontSize: 13, fontWeight: 600, color: "#111111", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{o.product_title}</div>
+                        </div>
+                        <div style={{ flexShrink: 0, fontSize: 10.5, fontWeight: 700, padding: "3px 9px", borderRadius: 20, background: s.bg || "#F3F1ED", color: s.color || "#6B6862" }}>{s.label || o.status}</div>
+                      </div>
+                    );
+                  })}
+                </div>
+                <div style={{ fontSize: 11, color: "#A8A5A0", margin: "7px 2px 0", lineHeight: 1.4 }}>👀 View only — you're following your squad. You only get updates &amp; notifications for your own items.</div>
+              </div>
+            )}
+            {visibleOrders.filter(matchesFilter).length === 0 && !(activeGroup && groupOrders.some((o) => o.user_id !== session.user.id)) && (
               <div style={{ textAlign: "center", padding: "60px 0", color: "#aaa" }}>
                 <div style={{ position: "relative", display: "inline-block", fontSize: 48, marginBottom: 12, lineHeight: 1 }}>
                   🦊

@@ -78,7 +78,7 @@ function addressOf(meta: Record<string, any>) {
     province: meta?.provincie || meta?.stad || land,
     provinceCode: meta?.provincieCode || cc || "NL",
     detailAddress: meta?.adres || "NA",
-    postCode: (meta?.postcode || "0000AA").toString().replace(/\s/g, ""),
+    postCode: (meta?.postcode || "0000AA").toString().replace(/\s/g, "").toUpperCase(),
   };
 }
 
@@ -158,7 +158,13 @@ Deno.serve(async (req) => {
   if (!channels.length) console.error("GROUP_QUOTE_EMPTY", JSON.stringify({ success: res?.success, code: res?.code, msg: res?.message ?? res?.info, postCode: addr.postCode, province: addr.province }));
 
   if (action === "quote") {
-    return json({ ok: true, isSandbox: IS_SANDBOX, channels, totalWeightG, raw: res?.success ? undefined : res });
+    if (!channels.length) {
+      const diag = res?.success === false
+        ? `BuckyDrop: ${res?.code ?? ""} ${res?.message ?? res?.info ?? "request failed"}`.trim()
+        : "BuckyDrop returned no channels for this route";
+      return json({ ok: false, error: `No shipping options — ${diag}`, raw: res });
+    }
+    return json({ ok: true, isSandbox: IS_SANDBOX, channels, totalWeightG });
   }
 
   if (action === "lock") {

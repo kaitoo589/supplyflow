@@ -54,7 +54,10 @@ async function setOrderStatus(orderId: string, newStatus: string): Promise<strin
   if (!o) return "not found";
   if (o.status === "cancelled") return "cancelled";
   if ((RANK[newStatus] ?? 0) <= (RANK[o.status] ?? 0)) return "no forward";
-  await admin.from("orders").update({ status: newStatus }).eq("id", orderId);
+  // arrived_at = "in-warehouse sinds" — basis voor de 30-dagen gratis opslag + verbeuring.
+  const patch: Record<string, unknown> = { status: newStatus };
+  if (newStatus === "qc_pending") patch.arrived_at = new Date().toISOString();
+  await admin.from("orders").update(patch).eq("id", orderId);
   return `→ ${newStatus}`;
 }
 

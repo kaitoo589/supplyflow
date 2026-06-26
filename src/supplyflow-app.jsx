@@ -1442,7 +1442,7 @@ export default function SupplyFlow({ session }) {
   };
 
   const fetchOrders = async () => {
-    const { data } = await supabase.from("orders").select("*").eq("user_id", session.user.id).neq("status", "cancelled").order("created_at", { ascending: false });
+    const { data } = await supabase.from("orders").select("*").eq("user_id", session.user.id).not("status", "in", "(cancelled,forfeited)").order("created_at", { ascending: false });
     setOrders(data || []);
   };
 

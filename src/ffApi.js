@@ -49,7 +49,7 @@ export async function checkGroupPrices(items) {
 // Houd in sync met flowva-friends-money.sql.
 export function estimateMemberFee(size, total) {
   const t = Number(total) || 0;
-  const tiers = { 2: [0.050, 4.0], 3: [0.040, 3.5], 4: [0.035, 3.0], 5: [0.030, 3.0], 6: [0.030, 2.5], 7: [0.025, 2.5] };
+  const tiers = { 2: [0.070, 4.5], 3: [0.060, 4.5], 4: [0.055, 4.0], 5: [0.050, 4.0], 6: [0.045, 4.0], 7: [0.040, 3.5] };
   const [pct, min] = tiers[Math.min(Math.max(Number(size) || 1, 1), 7)] || [0.08, 5.0];
   return Math.max(Math.round(t * pct * 100) / 100, min);
 }

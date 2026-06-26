@@ -11,7 +11,7 @@ import { EU_COUNTRIES } from "./countries";
 import OrderRequest from "./OrderRequest";
 import Friends from "./Friends";
 import GroupModeGlow from "./GroupModeGlow";
-import { ffMyGroups } from "./ffApi";
+import { ffMyGroups, estimateMemberFee } from "./ffApi";
 import { WarehouseTab, TransitTab } from "./WarehouseAndHaul";
 import { motion, AnimatePresence } from "framer-motion";
 import { createPortal } from "react-dom";
@@ -226,7 +226,7 @@ function ProgressWheelModal({ items, onClose }) {
 
 // Eén bestelling (= alle items uit dezelfde aankoop). Klap open → morpht omlaag,
 // toont elk item met z'n eigen status. Statussen mogen per item verschillen.
-function OrderGroupCard({ items, onOpenItem }) {
+function OrderGroupCard({ items, onOpenItem, groupSize }) {
   const [open, setOpen] = useState(false);
   const [wheel, setWheel] = useState(false);
   const date = items[0]?.date || "";
@@ -235,7 +235,9 @@ function OrderGroupCard({ items, onOpenItem }) {
   const atWarehouse = items.filter(o => (statusConfig[o.status]?.step ?? 0) >= whStep).length;
   const anyProblem = items.some(o => o.problem_type);
   const subtotal = items.reduce((s, o) => s + (Number(o.price) || 0), 0);
-  const fee = serviceFee(subtotal);
+  // Groep-order = groepstarief (zelfde staffel als de checkout); anders solo 8%/min €5.
+  const isGroupOrder = !!items[0]?.ff_group_id;
+  const fee = isGroupOrder && groupSize ? estimateMemberFee(groupSize, subtotal) : serviceFee(subtotal);
   const total = subtotal + fee;
   return (
     <motion.div layout style={{ background: "#fff", border: "1px solid #E8E6E0", borderRadius: 16, marginBottom: 10, overflow: "hidden" }}>
@@ -294,7 +296,7 @@ function OrderGroupCard({ items, onOpenItem }) {
                   <span>Items ({items.length})</span><span>€{subtotal.toFixed(2)}</span>
                 </div>
                 <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, color: "#6B6862", marginBottom: 7 }}>
-                  <span>Service fee</span><span>€{fee.toFixed(2)}</span>
+                  <span>{isGroupOrder ? "Group fee" : "Service fee"}</span><span>€{fee.toFixed(2)}</span>
                 </div>
                 <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13.5, fontWeight: 800, color: "#111", borderTop: "1px solid #EAE7E0", paddingTop: 7 }}>
                   <span>Total paid</span><span>€{total.toFixed(2)}</span>
@@ -1236,6 +1238,7 @@ export default function SupplyFlow({ session }) {
   // Flowva Friends: groep-sheet + actieve groep om "voor te shoppen".
   const [showFriends, setShowFriends] = useState(false);
   const [groupOrders, setGroupOrders] = useState([]);   // alle orders van de actieve groep (alleen-lezen)
+  const [squadWheel, setSquadWheel] = useState(null);   // squad-item waarvan de voortgangscirkel openstaat
   const [friendsJoinCode, setFriendsJoinCode] = useState(null);
   const [friendsGroupId, setFriendsGroupId] = useState(null);   // direct een lobby openen (vanaf de groeps-cart)
   const [activeGroup, setActiveGroup] = useState(() => {
@@ -1955,30 +1958,50 @@ export default function SupplyFlow({ session }) {
                 .sort((a, b) => (a[0].id < b[0].id ? 1 : -1))       // nieuwste bovenaan
                 .map(items => (
                   <OrderGroupCard key={items[0].request_group_id || items[0].id} items={items}
+                    groupSize={items[0]?.ff_group_id ? (myGroups.find((g) => g.group_id === items[0].ff_group_id)?.member_count || null) : null}
                     onOpenItem={(o) => { setSelectedOrder(o); setConfirmCancel(false); }} />
                 ));
             })()}
             {activeGroup && groupOrders.filter((o) => o.user_id !== session.user.id).length > 0 && (
               <div style={{ marginTop: 18 }}>
                 <div style={{ fontSize: 11, color: "#A8A5A0", fontWeight: 600, letterSpacing: 0.4, margin: "0 2px 8px" }}>SQUAD · {activeGroup.name}</div>
-                <div style={{ background: "#fff", borderRadius: 16, padding: "4px 14px", boxShadow: "0 1px 2px rgba(17,17,17,0.04), 0 6px 18px rgba(17,17,17,0.05)" }}>
-                  {groupOrders.filter((o) => o.user_id !== session.user.id).map((o, i, arr) => {
-                    const s = statusConfig[o.status] || {};
+                {(() => {
+                  const others = groupOrders.filter((o) => o.user_id !== session.user.id);
+                  const byMember = others.reduce((acc, o) => { (acc[o.user_id] = acc[o.user_id] || []).push(o); return acc; }, {});
+                  return Object.values(byMember).map((memberOrders) => {
+                    const m0 = memberOrders[0];
                     return (
-                      <div key={o.id} style={{ display: "flex", alignItems: "center", gap: 10, padding: "11px 0", borderBottom: i < arr.length - 1 ? "1px solid #F0EEE8" : "none" }}>
-                        <div style={{ width: 38, height: 38, borderRadius: 9, background: "#F3F1ED", overflow: "hidden", flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
-                          {o.variant_image ? <img src={o.variant_image} referrerPolicy="no-referrer" alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : <span style={{ fontSize: 17 }}>📦</span>}
+                      <div key={m0.user_id} style={{ marginBottom: 12 }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: 8, margin: "0 2px 6px" }}>
+                          <div style={{ width: 22, height: 22, borderRadius: "50%", overflow: "hidden", background: "#0F0E0C", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                            {m0.avatar_url ? <img src={m0.avatar_url} referrerPolicy="no-referrer" alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : <span style={{ fontSize: 11, fontWeight: 700, color: "#fff" }}>{(m0.member || "?").charAt(0).toUpperCase()}</span>}
+                          </div>
+                          <div style={{ fontSize: 12.5, fontWeight: 700, color: "#0F0E0C" }}>{m0.member}</div>
                         </div>
-                        <div style={{ flex: 1, minWidth: 0 }}>
-                          <div style={{ fontSize: 11, color: "#A8A5A0" }}>{o.member}</div>
-                          <div style={{ fontSize: 13, fontWeight: 600, color: "#111111", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{o.product_title}</div>
+                        <div style={{ background: "#fff", borderRadius: 16, padding: "4px 14px", boxShadow: "0 1px 2px rgba(17,17,17,0.04), 0 6px 18px rgba(17,17,17,0.05)" }}>
+                          {memberOrders.map((o, i, arr) => {
+                            const s = statusConfig[o.status] || {};
+                            return (
+                              <div key={o.id} style={{ display: "flex", alignItems: "center", gap: 10, padding: "11px 0", borderBottom: i < arr.length - 1 ? "1px solid #F0EEE8" : "none" }}>
+                                <div style={{ width: 38, height: 38, borderRadius: 9, background: "#F3F1ED", overflow: "hidden", flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                                  {o.variant_image ? <img src={o.variant_image} referrerPolicy="no-referrer" alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : <span style={{ fontSize: 17 }}>📦</span>}
+                                </div>
+                                <div style={{ flex: 1, minWidth: 0 }}>
+                                  <div style={{ fontSize: 13, fontWeight: 600, color: "#111111", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{o.product_title}</div>
+                                  <div style={{ display: "inline-block", marginTop: 3, background: s.bg || "#F3F1ED", color: s.color || "#6B6862", fontSize: 10.5, fontWeight: 700, padding: "2px 9px", borderRadius: 20 }}>{s.label || o.status}</div>
+                                </div>
+                                <motion.div whileTap={{ scale: 0.85 }} onClick={() => setSquadWheel(o)} title="Tap for progress" style={{ flexShrink: 0, cursor: "pointer" }}>
+                                  <ProgressRing percent={productProgress(o)} />
+                                </motion.div>
+                              </div>
+                            );
+                          })}
                         </div>
-                        <div style={{ flexShrink: 0, fontSize: 10.5, fontWeight: 700, padding: "3px 9px", borderRadius: 20, background: s.bg || "#F3F1ED", color: s.color || "#6B6862" }}>{s.label || o.status}</div>
                       </div>
                     );
-                  })}
-                </div>
-                <div style={{ fontSize: 11, color: "#A8A5A0", margin: "7px 2px 0", lineHeight: 1.4 }}>👀 View only — you're following your squad. You only get updates &amp; notifications for your own items.</div>
+                  });
+                })()}
+                <div style={{ fontSize: 11, color: "#A8A5A0", margin: "2px 2px 0", lineHeight: 1.4 }}>👀 Your squad's order statuses — view only. You're only notified about your own items.</div>
               </div>
             )}
             {visibleOrders.filter(matchesFilter).length === 0 && !(activeGroup && groupOrders.some((o) => o.user_id !== session.user.id)) && (
@@ -2670,6 +2693,7 @@ export default function SupplyFlow({ session }) {
       <AnimatePresence>
         {showHowItWorks && <HowItWorksSheet onClose={closeHowItWorks} />}
         {showPricing && <PricingSheet onClose={() => setShowPricing(false)} />}
+        {squadWheel && <ProgressWheelModal items={[squadWheel]} onClose={() => setSquadWheel(null)} />}
       </AnimatePresence>
 
       {/* Review-pagina */}

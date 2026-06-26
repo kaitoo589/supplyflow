@@ -1577,7 +1577,9 @@ export default function SupplyFlow({ session }) {
   const matchesFilter = (o) => orderFilter === "all" || (journeyStops.find(j => j.key === orderFilter)?.statuses || [orderFilter]).includes(o.status);
   // Modus-scheiding: solo-modus = alleen solo-orders (ff_group_id null); groep-modus = alleen die groep.
   // Zo zijn Orders/Warehouse/Transit twee duidelijk gescheiden modussen.
-  const visibleOrders = orders.filter((o) => activeGroup ? o.ff_group_id === activeGroup.id : !o.ff_group_id);
+  // Solo/standaard-modus toont ALLE orders (ook groep-orders) zodat een geplaatste
+  // groep-order altijd zichtbaar/volgbaar is; groep-modus blijft op die groep gefocust.
+  const visibleOrders = orders.filter((o) => activeGroup ? o.ff_group_id === activeGroup.id : true);
 
   // Alleen categorie-chips tonen waar echt producten in zitten — lege
   // categorieën blijven verborgen tot de admin er iets aan toevoegt.

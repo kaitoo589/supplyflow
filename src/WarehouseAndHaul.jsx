@@ -874,7 +874,7 @@ function DisputeForm({ order, session, onBack, onSuccess }) {
   );
 }
 
-export function WarehouseTab({ session, haulItems: allHaulItems = [], setHaulItems, activeGroupId = null }) {
+export function WarehouseTab({ session, haulItems: allHaulItems = [], setHaulItems, activeGroupId = null, groupOrders = [] }) {
   // Modus-scheiding van de doos: alleen items van de ACTIEVE modus tellen mee (solo = ff_group_id
   // null, groep = die groep). De volledige lijst blijft in localStorage, dus je solo-doos en
   // groeps-doos blijven los bewaard — je voegt nooit per ongeluk iets toe aan de verkeerde doos.
@@ -1085,6 +1085,44 @@ export function WarehouseTab({ session, haulItems: allHaulItems = [], setHaulIte
         }
         return <OrderCard key={order.id} order={order} onDragStart={onDragStart} onDragEnd={onDragEnd} inHaul={inHaul} onOpenDetail={setDetailOrder} onReport={setDisputeOrder} />;
       })}
+
+      {/* SQUAD — items van groepsgenoten (alleen-lezen, net als op de Orders-pagina) */}
+      {activeGroupId && (groupOrders || []).filter(o => o.user_id !== session.user.id && o.status === "qc_pending").length > 0 && (
+        <div style={{ marginTop: 18 }}>
+          <div style={{ fontSize: 11, color: "#A8A5A0", fontWeight: 600, letterSpacing: 0.4, margin: "0 2px 8px" }}>SQUAD · FRIENDS' ITEMS</div>
+          {(() => {
+            const others = (groupOrders || []).filter(o => o.user_id !== session.user.id && o.status === "qc_pending");
+            const byMember = others.reduce((acc, o) => { (acc[o.user_id] = acc[o.user_id] || []).push(o); return acc; }, {});
+            return Object.values(byMember).map((memberOrders) => {
+              const m0 = memberOrders[0];
+              return (
+                <div key={m0.user_id} style={{ marginBottom: 10 }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 8, margin: "0 2px 6px" }}>
+                    <div style={{ width: 22, height: 22, borderRadius: "50%", overflow: "hidden", background: "#0F0E0C", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                      {m0.avatar_url ? <img src={m0.avatar_url} referrerPolicy="no-referrer" alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : <span style={{ fontSize: 11, fontWeight: 700, color: "#fff" }}>{(m0.member || "?").charAt(0).toUpperCase()}</span>}
+                    </div>
+                    <div style={{ fontSize: 12.5, fontWeight: 700, color: "#0F0E0C" }}>{m0.member}</div>
+                  </div>
+                  <div style={{ background: "#fff", border: "1px solid #E8E6E0", borderRadius: 14, padding: "4px 12px" }}>
+                    {memberOrders.map((o, i, arr) => (
+                      <div key={o.id} style={{ display: "flex", alignItems: "center", gap: 10, padding: "9px 0", borderBottom: i < arr.length - 1 ? "1px solid #F0EEE8" : "none" }}>
+                        <div style={{ width: 36, height: 36, borderRadius: 8, background: "#F3F1ED", overflow: "hidden", flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                          {o.variant_image ? <img src={o.variant_image} referrerPolicy="no-referrer" alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : <span style={{ fontSize: 16 }}>📦</span>}
+                        </div>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{ fontSize: 12.5, fontWeight: 600, color: "#111", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{o.product_title}</div>
+                          <div style={{ fontSize: 11, color: (o.qc_images?.length > 0) ? "#10B981" : "#9C9893", fontWeight: 600, marginTop: 2 }}>{(o.qc_images?.length > 0) ? "✓ Ready to ship" : "⏳ Awaiting pictures"}</div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              );
+            });
+          })()}
+          <div style={{ fontSize: 11, color: "#A8A5A0", margin: "2px 2px 0", lineHeight: 1.4 }}>👀 Your squad's items — view only. Each member adds their own to the shared parcel.</div>
+        </div>
+      )}
 
       <AnimatePresence>
         {showBoxContents && <BoxContentsModal items={haulItems} onRemove={removeFromHaul} onClose={() => setShowBoxContents(false)} />}

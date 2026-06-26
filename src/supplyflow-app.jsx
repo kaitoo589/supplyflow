@@ -1564,7 +1564,11 @@ export default function SupplyFlow({ session }) {
     setAvatarUploading(false);
   };
 
-  const warehouseCount = orders.filter(o => o.status === "qc_pending").length;
+  // Badge/teller volgt de actieve modus: groep → álle qc_pending van de groep (groupOrders),
+  // solo → alleen je eigen solo-items (geen ff_group_id).
+  const warehouseCount = activeGroup
+    ? groupOrders.filter(o => o.status === "qc_pending").length
+    : orders.filter(o => o.status === "qc_pending" && !o.ff_group_id).length;
   const qcOrder = orders.find(o => o.status === "qc_pending");
   const avatarUrl = session?.user?.user_metadata?.avatar_url || null;
 
@@ -1991,7 +1995,7 @@ export default function SupplyFlow({ session }) {
                                 </div>
                                 <div style={{ flex: 1, minWidth: 0 }}>
                                   <div style={{ fontSize: 13, fontWeight: 600, color: "#111111", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{o.product_title}</div>
-                                  <div style={{ display: "inline-block", marginTop: 3, background: s.bg || "#F3F1ED", color: s.color || "#6B6862", fontSize: 10.5, fontWeight: 700, padding: "2px 9px", borderRadius: 20 }}>{s.label || o.status}</div>
+                                  <div style={{ display: "inline-block", marginTop: 3, background: s.bg || "#F3F1ED", color: s.color || "#6B6862", fontSize: 10.5, fontWeight: 700, padding: "2px 9px", borderRadius: 20 }}>{statusLabel(o)}</div>
                                 </div>
                                 <motion.div whileTap={{ scale: 0.85 }} onClick={() => setSquadWheel(o)} title="Tap for progress" style={{ flexShrink: 0, cursor: "pointer" }}>
                                   <ProgressRing percent={productProgress(o)} />
@@ -2210,7 +2214,7 @@ export default function SupplyFlow({ session }) {
       {/* WAREHOUSE TAB */}
       {tab === "warehouse" && (
         <motion.div key="warehouse" {...pageTransition}>
-          <WarehouseTab session={session} haulItems={haulItems} setHaulItems={setHaulItems} activeGroupId={activeGroup?.id || null} />
+          <WarehouseTab session={session} haulItems={haulItems} setHaulItems={setHaulItems} activeGroupId={activeGroup?.id || null} groupOrders={groupOrders} />
         </motion.div>
       )}
 

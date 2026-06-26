@@ -1282,6 +1282,15 @@ export function TransitTab({ session, orders = [] }) {
               </div>
             )}
 
+            {haul.settle_proof_url && (
+              <a href={haul.settle_proof_url} target="_blank" rel="noreferrer" style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10, textDecoration: "none" }}>
+                <div style={{ width: 34, height: 34, borderRadius: 8, overflow: "hidden", border: "1px solid #E8E4DC", flexShrink: 0 }}>
+                  <img src={haul.settle_proof_url} referrerPolicy="no-referrer" alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                </div>
+                <span style={{ fontSize: 11.5, color: "#FF5C00", fontWeight: 600 }}>📄 Carrier's final bill — your real shipping cost ↗</span>
+              </a>
+            )}
+
             {(haul.tracking_no || nodes.length > 0) ? (
               <div style={{ background: "#F8F7F4", borderRadius: 12, padding: "12px 13px" }}>
                 {haul.tracking_no && (

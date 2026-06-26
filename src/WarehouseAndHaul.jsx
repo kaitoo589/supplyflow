@@ -225,6 +225,8 @@ function OrderDetailModal({ order, inHaul, onAdd, onRemove, onDispute, onClose, 
   const [lightbox, setLightbox] = useState(null);
   const [busy, setBusy] = useState(false);
   const [confirmReturn, setConfirmReturn] = useState(false);
+  // Toon álle officiële foto's samen: quality-control + measurement (één blok).
+  const photos = [...(order.qc_images || []), ...(order.measurement_images || [])];
   const acceptDefect = async () => {
     setBusy(true);
     const { data, error } = await supabase.rpc("accept_qc_result", { p_order_id: order.id });
@@ -271,9 +273,9 @@ function OrderDetailModal({ order, inHaul, onAdd, onRemove, onDispute, onClose, 
         {/* Quality-control foto's — of "awaiting" zolang ze er nog niet zijn */}
         <div style={{ marginBottom: 16 }}>
           <div style={{ fontSize: 12, fontWeight: 700, color: "#888", marginBottom: 8, letterSpacing: 1 }}>QUALITY-CONTROL PICTURES</div>
-          {order.qc_images?.length > 0 ? (
+          {photos.length > 0 ? (
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
-              {order.qc_images.map((url, i) => (
+              {photos.map((url, i) => (
                 <motion.div key={i} whileTap={{ scale: 0.97 }} onClick={() => setLightbox(url)} style={{ borderRadius: 10, overflow: "hidden", aspectRatio: "1", cursor: "pointer" }}>
                   <img src={url} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
                 </motion.div>
@@ -637,14 +639,36 @@ function HaulSuccess({ haulItems, onDone }) {
 
 function DisputeForm({ order, session, onBack, onSuccess }) {
   const [description, setDescription] = useState("");
+  const [images, setImages] = useState([]);
+  const [uploading, setUploading] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [lightbox, setLightbox] = useState(null);
+
+  // Officiële foto's = quality-control + measurement samen (één set bewijs).
+  const officialPhotos = [...(order.qc_images || []), ...(order.measurement_images || [])];
+
+  const uploadImages = async (files) => {
+    setUploading(true);
+    const urls = [];
+    for (const file of Array.from(files)) {
+      const ext = file.name.split(".").pop();
+      const fileName = `dispute-${order.id}-${Date.now()}.${ext}`;
+      const { error } = await supabase.storage.from("product-images").upload(fileName, file);
+      if (!error) {
+        const { data } = supabase.storage.from("product-images").getPublicUrl(fileName);
+        urls.push(data.publicUrl);
+      }
+    }
+    setImages(prev => [...prev, ...urls]);
+    setUploading(false);
+  };
 
   const submitDispute = async () => {
     if (!description.trim()) { alert("Describe the problem"); return; }
     setSaving(true);
     // Server-side via RPC: dispute_status is afgeschermd, alleen submit_dispute mag het zetten.
-    // GEEN eigen klant-foto's: we hangen de officiële quality-control foto's aan als bewijs.
-    const { data, error } = await supabase.rpc("submit_dispute", { p_order_id: order.id, p_description: description, p_images: order.qc_images || [] });
+    // Eventuele eigen (geannoteerde) klant-foto's gaan mee als p_images.
+    const { data, error } = await supabase.rpc("submit_dispute", { p_order_id: order.id, p_description: description, p_images: images });
     setSaving(false);
     if (error || (data && data.ok === false)) { alert("Could not submit: " + (error?.message || data?.error || "unknown error")); return; }
     onSuccess();
@@ -657,11 +681,11 @@ function DisputeForm({ order, session, onBack, onSuccess }) {
       <div style={{ fontSize: 13, color: "#aaa", marginBottom: 20 }}>Tell us why — we review it against the warehouse's quality-control photos.</div>
       <div style={{ background: "#fff", border: "1px solid #E8E6E0", borderRadius: 14, padding: 16, marginBottom: 16 }}>
         <div style={{ fontSize: 13, fontWeight: 600, color: "#0F0E0C", marginBottom: 4 }}>Quality-control photos</div>
-        <div style={{ fontSize: 11.5, color: "#aaa", marginBottom: 10, lineHeight: 1.5 }}>The official photos our warehouse took during inspection. We review your request against these — you can't add your own photos.</div>
-        {order.qc_images?.length > 0 ? (
+        <div style={{ fontSize: 11.5, color: "#aaa", marginBottom: 10, lineHeight: 1.5 }}>The official photos our warehouse took during inspection (quality-control + measurement). Tap any photo to enlarge.</div>
+        {officialPhotos.length > 0 ? (
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8 }}>
-            {order.qc_images.map((url, i) => (
-              <motion.img key={i} whileTap={{ scale: 0.97 }} src={url} referrerPolicy="no-referrer" alt="" style={{ width: "100%", aspectRatio: "1", borderRadius: 8, objectFit: "cover" }} />
+            {officialPhotos.map((url, i) => (
+              <motion.img key={i} whileTap={{ scale: 0.95 }} onClick={() => setLightbox(url)} src={url} referrerPolicy="no-referrer" alt="" style={{ width: "100%", aspectRatio: "1", borderRadius: 8, objectFit: "cover", cursor: "pointer" }} />
             ))}
           </div>
         ) : (
@@ -673,8 +697,19 @@ function DisputeForm({ order, session, onBack, onSuccess }) {
         <textarea placeholder="Describe the problem..." value={description} onChange={e => setDescription(e.target.value)}
           style={{ width: "100%", border: "1px solid #E8E6E0", borderRadius: 8, padding: "10px 12px", fontSize: 13, background: "#F8F7F4", minHeight: 100, resize: "vertical", boxSizing: "border-box" }} />
       </div>
-      {/* Geen eigen foto-upload meer: alleen de officiële quality-control foto's hierboven
-          gelden als bewijs (de klant kan niets zelf inbrengen/bewerken). */}
+      <div style={{ background: "#fff", border: "1px solid #E8E6E0", borderRadius: 14, padding: 16, marginBottom: 16 }}>
+        <div style={{ fontSize: 13, fontWeight: 600, color: "#0F0E0C", marginBottom: 6 }}>Add photos (optional)</div>
+        <div style={{ fontSize: 11.5, color: "#aaa", marginBottom: 10, lineHeight: 1.5 }}>Optional: mark or circle on the warehouse's photos what's wrong with the product, then upload them here.</div>
+        {images.length > 0 && (
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 12 }}>
+            {images.map((url, i) => <img key={i} src={url} alt="" style={{ width: 72, height: 72, borderRadius: 8, objectFit: "cover" }} />)}
+          </div>
+        )}
+        <label style={{ display: "block", border: "1.5px dashed #E8E6E0", borderRadius: 10, padding: 14, textAlign: "center", cursor: "pointer", background: "#F8F7F4" }}>
+          <div style={{ fontSize: 12, color: "#aaa" }}>{uploading ? "Uploading..." : "📷 Add photos"}</div>
+          <input type="file" accept="image/*" multiple onChange={e => uploadImages(e.target.files)} style={{ display: "none" }} disabled={uploading} />
+        </label>
+      </div>
       <div style={{ background: "#FEF3C7", borderRadius: 12, padding: "12px 16px", marginBottom: 16, fontSize: 12, color: "#92400E" }}>
         ⚠️ If your dispute is approved, you get the product price + local shipping refunded.
       </div>
@@ -682,6 +717,18 @@ function DisputeForm({ order, session, onBack, onSuccess }) {
         style={{ width: "100%", background: saving || !description.trim() ? "#E8E6E0" : "#0F0E0C", color: saving || !description.trim() ? "#aaa" : "#FF5C00", border: "none", borderRadius: 12, padding: "14px", fontSize: 14, fontWeight: 700, cursor: saving || !description.trim() ? "default" : "pointer" }}>
         {saving ? "Sending..." : "Report a problem →"}
       </button>
+      <AnimatePresence>
+        {lightbox && (
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            onClick={() => setLightbox(null)}
+            style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.92)", zIndex: 200, display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
+            <motion.img initial={{ scale: 0.92 }} animate={{ scale: 1 }} exit={{ scale: 0.92 }} transition={springSoft}
+              src={lightbox} referrerPolicy="no-referrer" alt="" style={{ maxWidth: "100%", maxHeight: "100%", objectFit: "contain", borderRadius: 12 }} />
+            <button onClick={(e) => { e.stopPropagation(); setLightbox(null); }} aria-label="Close"
+              style={{ position: "fixed", top: 16, right: 16, width: 40, height: 40, borderRadius: "50%", background: "rgba(255,255,255,0.15)", border: "none", color: "#fff", fontSize: 18, cursor: "pointer" }}>✕</button>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

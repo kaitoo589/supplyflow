@@ -147,10 +147,15 @@ Deno.serve(async (req) => {
   // Bezorgadres = de host (= de caller).
   const addr = addressOf(user.user_metadata || {});
   if (!addr.countryCode) return json({ ok: false, error: "We don't ship to the host's country yet — contact support." }, 400);
+  // De host is de bezorgontvanger → een volledig adres is vereist (anders kan BuckyDrop niet quoten).
+  const hmeta = user.user_metadata || {};
+  const addrComplete = String(hmeta.postcode || "").trim() && String(hmeta.adres || "").trim() && String(hmeta.stad || hmeta.provincie || "").trim();
+  if (!addrComplete) return json({ ok: false, error: "The host needs a complete delivery address (street, city, postcode) before shipping. Add it in Profile, then try again.", needHostAddress: true }, 200);
 
   const res = await buckyPost("/api/rest/v2/adapt/adaptation/logistics/channel-carriage-list", quoteBody(counting, addr));
   const channels = res?.success ? parseChannels(res) : [];
   const totalWeightG = counting.reduce((s, o) => s + (Number(o.weight_grams) || 0), 0);
+  if (!channels.length) console.error("GROUP_QUOTE_EMPTY", JSON.stringify({ success: res?.success, code: res?.code, msg: res?.message ?? res?.info, postCode: addr.postCode, province: addr.province }));
 
   if (action === "quote") {
     return json({ ok: true, isSandbox: IS_SANDBOX, channels, totalWeightG, raw: res?.success ? undefined : res });

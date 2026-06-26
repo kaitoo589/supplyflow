@@ -852,12 +852,16 @@ export function WarehouseTab({ session, haulItems: allHaulItems = [], setHaulIte
   const [lockedIds, setLockedIds] = useState([]);
   const [incomingCount, setIncomingCount] = useState(0);
   const [squadOrders, setSquadOrders] = useState([]);
+  const [squadAdminId, setSquadAdminId] = useState(null);
+  const [squadHostId, setSquadHostId] = useState(null);
 
   // Gedeelde groep-status: ff_group_orders geeft per groep-item box_staged_at + return_status terug.
   const fetchSquadOrders = async () => {
-    if (!activeGroupId) { setSquadOrders([]); return; }
+    if (!activeGroupId) { setSquadOrders([]); setSquadAdminId(null); setSquadHostId(null); return; }
     const { data } = await supabase.rpc("ff_group_orders", { p_group_id: activeGroupId });
     setSquadOrders(data?.orders || []);
+    setSquadAdminId(data?.admin_id || null);
+    setSquadHostId(data?.host_id || null);
   };
   // Markeer je EIGEN groep-item als in/uit de gedeelde doos zodat je vrienden + de gate het zien.
   const stageGroup = async (orderId, staged) => {
@@ -930,6 +934,9 @@ export function WarehouseTab({ session, haulItems: allHaulItems = [], setHaulIte
   const groupPending = (squadOrders || []).filter(o => o.status === "qc_pending" && !o.return_status);
   const waitingCount = groupPending.filter(o => !o.box_staged_at).length;
   const groupReady = !activeGroupId || waitingCount === 0;
+  const isHost = !activeGroupId || session.user.id === squadHostId; // alleen de host mag verzenden
+  const canShip = groupReady && isHost;
+  const hostName = (squadOrders.find((o) => o.user_id === squadHostId) || {}).member;
 
   const addToHaul = (order) => {
     if (typeof setHaulItems !== "function") return;
@@ -968,6 +975,12 @@ export function WarehouseTab({ session, haulItems: allHaulItems = [], setHaulIte
     <div style={{ padding: "16px 20px", paddingBottom: 100 }}>
       <div style={{ fontSize: 16, fontWeight: 700, color: "#0F0E0C", marginBottom: 2 }}>My warehouse</div>
       <div style={{ fontSize: 13, color: "#aaa", marginBottom: 12 }}>Products ready for international shipping</div>
+      {activeGroupId && (isHost || session.user.id === squadAdminId) && (
+        <div style={{ display: "flex", gap: 6, marginTop: -4, marginBottom: 12, flexWrap: "wrap" }}>
+          {isHost && <span style={{ background: "#0F0E0C", color: "#fff", fontSize: 11, fontWeight: 700, padding: "3px 10px", borderRadius: 20 }}>📦 You're the host — you confirm &amp; ship</span>}
+          {!isHost && session.user.id === squadAdminId && <span style={{ background: "#FEF3C7", color: "#92400E", fontSize: 11, fontWeight: 700, padding: "3px 10px", borderRadius: 20 }}>You're the admin</span>}
+        </div>
+      )}
       <div style={{ background: "#FFF7ED", border: "1px solid #FCD9B6", borderRadius: 12, padding: "10px 13px", marginBottom: 16, fontSize: 12, color: "#92400E", lineHeight: 1.5 }}>
         💡 Shipping is charged <b>per parcel</b>, not per item. Send everything together in one box — the more you bundle, the less you pay per item.
         <div style={{ marginTop: 8, paddingTop: 8, borderTop: "1px solid #FCD9B6" }}>
@@ -1030,14 +1043,20 @@ export function WarehouseTab({ session, haulItems: allHaulItems = [], setHaulIte
           <>
           <motion.button initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 10 }}
             layoutId="confirmHaul" transition={springMorph}
-            onClick={() => groupReady && setScreen("confirm")}
-            disabled={!groupReady}
-            style={{ width: "100%", background: groupReady ? "#0F0E0C" : "#E8E6E0", color: groupReady ? "#FF5C00" : "#A8A5A0", border: "none", borderRadius: 12, padding: "14px", fontSize: 14, fontWeight: 700, cursor: groupReady ? "pointer" : "not-allowed", marginBottom: groupReady ? 20 : 8 }}>
-            {groupReady ? "Confirm parcel & ship →" : `Waiting for your squad · ${waitingCount} item${waitingCount === 1 ? "" : "s"} not in the box`}
+            onClick={() => canShip && setScreen("confirm")}
+            disabled={!canShip}
+            style={{ width: "100%", background: canShip ? "#0F0E0C" : "#E8E6E0", color: canShip ? "#FF5C00" : "#A8A5A0", border: "none", borderRadius: 12, padding: "14px", fontSize: 14, fontWeight: 700, cursor: canShip ? "pointer" : "not-allowed", marginBottom: canShip ? 20 : 8 }}>
+            {!groupReady
+              ? `Waiting for your squad · ${waitingCount} item${waitingCount === 1 ? "" : "s"} not in the box`
+              : !isHost
+                ? "Only the host can confirm & ship"
+                : "Confirm parcel & ship →"}
           </motion.button>
-          {!groupReady && (
+          {!canShip && (
             <div style={{ fontSize: 11, color: "#A8A5A0", textAlign: "center", marginBottom: 20, lineHeight: 1.4 }}>
-              Everyone adds their items to the shared box before it can ship. Accepted returns don't count.
+              {!groupReady
+                ? "Everyone adds their items to the shared box before it can ship. Accepted returns don't count."
+                : `The parcel ships to the host's address, so only the host${hostName ? ` (${hostName})` : ""} confirms it.`}
             </div>
           )}
           </>
@@ -1115,6 +1134,8 @@ export function WarehouseTab({ session, haulItems: allHaulItems = [], setHaulIte
                       {m0.avatar_url ? <img src={m0.avatar_url} referrerPolicy="no-referrer" alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : <span style={{ fontSize: 11, fontWeight: 700, color: "#fff" }}>{(m0.member || "?").charAt(0).toUpperCase()}</span>}
                     </div>
                     <div style={{ fontSize: 12.5, fontWeight: 700, color: "#0F0E0C" }}>{m0.member}</div>
+                    {m0.user_id === squadHostId && <span style={{ background: "#0F0E0C", color: "#fff", fontSize: 9.5, fontWeight: 700, padding: "1.5px 7px", borderRadius: 20, whiteSpace: "nowrap" }}>📦 Host</span>}
+                    {m0.user_id === squadAdminId && <span style={{ background: "#FEF3C7", color: "#92400E", fontSize: 9.5, fontWeight: 700, padding: "1.5px 7px", borderRadius: 20, whiteSpace: "nowrap" }}>Admin</span>}
                   </div>
                   <div style={{ background: "#fff", border: "1px solid #E8E6E0", borderRadius: 14, padding: "4px 12px" }}>
                     {memberOrders.map((o, i, arr) => (

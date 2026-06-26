@@ -20,6 +20,7 @@
 alter table public.hauls add column if not exists refund_eur numeric;
 alter table public.hauls add column if not exists settled_at timestamptz;
 alter table public.hauls add column if not exists exact_shipping_eur numeric;  -- echte freight (door admin/agent ingevuld)
+alter table public.hauls add column if not exists settle_proof_url text;       -- bewijs: screenshot van de echte BuckyDrop-factuurregel (openbaar zichtbaar voor de klant)
 
 -- ------------------------------------------------------------
 -- 1) Buffered verzendbetaling — ALLEEN door de edge function `haul-shipping`
@@ -91,7 +92,8 @@ grant execute on function public.pay_shipping_buffered(uuid, text[], numeric, nu
 --    FOR UPDATE (race-veilig) + cross-guard met agent_settle_haul (status='shipped').
 --    refund = wat de klant voor verzending betaalde (shipping_eur, buffered) − echte prijs.
 -- ------------------------------------------------------------
-create or replace function public.admin_settle_parcel(p_haul_id uuid, p_actual_eur numeric)
+drop function if exists public.admin_settle_parcel(uuid, numeric);
+create or replace function public.admin_settle_parcel(p_haul_id uuid, p_actual_eur numeric, p_proof_url text default null)
 returns json language plpgsql security definer set search_path = public as $$
 declare h record; v_actual numeric; v_refund numeric;
 begin
@@ -111,6 +113,7 @@ begin
   v_refund := greatest(0, round(coalesce(h.shipping_eur, 0) - v_actual, 2));
 
   update hauls set exact_shipping_eur = v_actual, refund_eur = v_refund,
+                   settle_proof_url = nullif(trim(coalesce(p_proof_url, '')), ''),
                    settled_at = now(), status = 'shipped'
    where id = p_haul_id;
 
@@ -121,7 +124,7 @@ begin
 
   return json_build_object('ok', true, 'refund', v_refund, 'actual', v_actual);
 end; $$;
-grant execute on function public.admin_settle_parcel(uuid, numeric) to authenticated;
+grant execute on function public.admin_settle_parcel(uuid, numeric, text) to authenticated;
 
 -- ------------------------------------------------------------
 -- 3) Legacy AgentPanel-afwikkeling — GELIJKGETROKKEN met admin_settle_parcel zodat

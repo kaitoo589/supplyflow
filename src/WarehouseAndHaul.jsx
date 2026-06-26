@@ -873,6 +873,27 @@ export function WarehouseTab({ session, haulItems: allHaulItems = [], setHaulIte
     return () => clearInterval(t);
   }, [activeGroupId]);
 
+  // Reconcile bij laden: lokale doos-items die nog NIET server-side gestaged zijn alsnog stagen.
+  // Vangt items die al vóór deze feature in je doos zaten (anders blijven ze bij je squad "Not in box").
+  // Alleen toevoegen, nooit unstagen → multi-device-veilig.
+  useEffect(() => {
+    if (!activeGroupId) return;
+    const myGroupBox = (allHaulItems || []).filter((it) => it.ff_group_id === activeGroupId);
+    if (!myGroupBox.length) return;
+    let cancelled = false;
+    (async () => {
+      const { data } = await supabase.rpc("ff_group_orders", { p_group_id: activeGroupId });
+      if (cancelled) return;
+      const staged = new Set((data?.orders || []).filter((o) => o.box_staged_at).map((o) => o.id));
+      const toStage = myGroupBox.filter((it) => !staged.has(it.id)).map((it) => it.id);
+      if (toStage.length) {
+        await supabase.rpc("ff_stage_box", { p_order_ids: toStage, p_staged: true });
+        fetchSquadOrders();
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [activeGroupId]);
+
   // Haal items die al in een betaald pakket zitten uit de doos
   // (bijv. achtergebleven via localStorage).
   useEffect(() => {

@@ -435,7 +435,7 @@ function OrderCard({ order, onDragStart, onDragEnd, inHaul, onOpenDetail, onRepo
           <div style={{ fontSize: 11, color: "#aaa" }}>{order.qty} pcs · {order.weight_grams ? `${order.weight_grams}g` : "no weight"}{warehouseDays != null && <span style={{ color: warehouseDays >= 30 ? "#DC2626" : warehouseDays >= 24 ? "#B45309" : "#9C9893", fontWeight: warehouseDays >= 24 ? 700 : 400 }}> · 📦 {warehouseDays}d in warehouse</span>}</div>
         </div>
         <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 6, flexShrink: 0 }}>
-          {inHaul && <div style={{ background: "#10B981", color: "#fff", fontSize: 10, fontWeight: 700, padding: "2px 8px", borderRadius: 20 }}>✓ In box</div>}
+          {canDrag && <div style={{ background: inHaul ? "#10B981" : "#F3F1ED", color: inHaul ? "#fff" : "#9C9893", fontSize: 10, fontWeight: 700, padding: "2px 8px", borderRadius: 20, whiteSpace: "nowrap" }}>{inHaul ? "✓ In box" : "Not in box"}</div>}
           <button onClick={(e) => { e.stopPropagation(); onOpenDetail(order); }}
             style={{ background: "#F8F7F4", border: "1px solid #E8E6E0", borderRadius: 8, padding: "4px 10px", fontSize: 11, fontWeight: 600, color: "#555", cursor: "pointer" }}>
             📸 Quality-control

@@ -1559,7 +1559,16 @@ export default function SupplyFlow({ session }) {
     ...flaggedInCart.map((it) => ({ icon: "⏸️", text: `On hold: ${it.product_title} — ${flaggedReasons[it.source_url] || "changed at the factory"}`, cart: true })),
     ...orders.filter(o => o.problem_type).map(o => ({ icon: "⚠️", text: `Action needed: issue with ${o.product_title || o.product}`, order: o })),
     ...orders.filter(o => o.status === "quote_sent").map(o => ({ icon: "📋", text: `Quote received for ${o.product_title || o.product}`, order: o })),
-    ...orders.filter(o => o.status === "qc_pending" && o.arrived_at && (Date.now() - new Date(o.arrived_at).getTime()) > 30 * 86400000).map(o => ({ icon: "⏳", text: `Storage now applies to ${o.product_title || o.product} — ship within 90 days, or it's forfeited`, order: o })),
+    ...orders.filter(o => o.status === "qc_pending" && o.arrived_at && Math.floor((Date.now() - new Date(o.arrived_at).getTime()) / 86400000) >= 24).map(o => {
+      const days = Math.floor((Date.now() - new Date(o.arrived_at).getTime()) / 86400000);
+      const name = o.product_title || o.product;
+      const text = days >= 30
+        ? `Storage now applies to ${name} (${days} days in storage) — ship within 90 days or it's forfeited`
+        : days >= 27
+          ? `${name}: only ${30 - days} day${30 - days === 1 ? "" : "s"} of free storage left — ship soon`
+          : `${name} has been in storage ${days} days — ship within ${30 - days} days to keep it free`;
+      return { icon: "⏳", text, order: o };
+    }),
     ...orders.filter(o => o.last_message_sender === "agent" && o.last_message_read === false).map(o => ({ icon: "💬", text: `Your agent replied (${o.product_title || o.product})`, order: o })),
     // "Delivered" zit bewust NIET meer in het belletje (bleef anders eeuwig staan) —
     // geleverde pakketten zie je in de Transit-tab.

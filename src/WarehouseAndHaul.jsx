@@ -402,6 +402,7 @@ function OrderDetailModal({ order, inHaul, onAdd, onRemove, onDispute, onClose, 
 function OrderCard({ order, onDragStart, onDragEnd, inHaul, onOpenDetail, onReport }) {
   // Pas sleepbaar zodra de quality-control foto's er zijn (= klaar om te verzenden).
   const hasQc = order.qc_images?.length > 0;
+  const warehouseDays = order.arrived_at ? Math.floor((Date.now() - new Date(order.arrived_at).getTime()) / 86400000) : null;
   // Een door BuckyDrop gemeld defect of een lopende retour blokkeert verzenden tot de klant kiest.
   const flagged = order.dispute_status === "bucky_flagged";
   const returning = !!order.return_status;
@@ -431,7 +432,7 @@ function OrderCard({ order, onDragStart, onDragEnd, inHaul, onOpenDetail, onRepo
           <div style={{ fontSize: 13, fontWeight: 600, color: "#0F0E0C", marginBottom: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
             {order.product_title || order.product}
           </div>
-          <div style={{ fontSize: 11, color: "#aaa" }}>{order.qty} pcs · {order.weight_grams ? `${order.weight_grams}g` : "no weight"}</div>
+          <div style={{ fontSize: 11, color: "#aaa" }}>{order.qty} pcs · {order.weight_grams ? `${order.weight_grams}g` : "no weight"}{warehouseDays != null && <span style={{ color: warehouseDays >= 30 ? "#DC2626" : warehouseDays >= 24 ? "#B45309" : "#9C9893", fontWeight: warehouseDays >= 24 ? 700 : 400 }}> · 📦 {warehouseDays}d in warehouse</span>}</div>
         </div>
         <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 6, flexShrink: 0 }}>
           {inHaul && <div style={{ background: "#10B981", color: "#fff", fontSize: 10, fontWeight: 700, padding: "2px 8px", borderRadius: 20 }}>✓ In box</div>}

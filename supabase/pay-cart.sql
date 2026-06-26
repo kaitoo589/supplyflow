@@ -66,6 +66,7 @@ declare
   v_total numeric := 0;
   v_units int := 0;
   v_domestic numeric := 0;
+  v_qc numeric := 0;
   v_fee numeric;
   v_charge numeric;
   v_balance numeric;
@@ -146,7 +147,8 @@ begin
 
   v_fee := service_fee_for(v_total);              -- max(8%, €5), alleen over de fabrieksprijs
   v_domestic := round(v_units * 5.0 / 7.8, 2);    -- China domestic shipping: ¥5/stuk → EUR (koers 7,8)
-  v_charge := v_total + v_domestic + v_fee;
+  v_qc := round(v_units * 6.0 / 7.8, 2);          -- Quality-control (¥2 foto + ¥4 measurement = ¥6/stuk)
+  v_charge := v_total + v_domestic + v_qc + v_fee;
 
   -- Saldo vergrendelen + controleren
   select balance into v_balance from profiles where id = v_uid for update;
@@ -202,7 +204,13 @@ begin
     values (v_uid, -v_domestic, 'domestic_shipping', v_first_id);
   end if;
 
-  v_result := json_build_object('ok', true, 'fee', v_fee, 'domestic', v_domestic, 'total', v_total, 'charged', v_charge, 'group', v_group);
+  -- Quality-control (¥6/stuk) als aparte regel
+  if v_qc > 0 then
+    insert into transactions (user_id, amount, type, order_id)
+    values (v_uid, -v_qc, 'qc_fee', v_first_id);
+  end if;
+
+  v_result := json_build_object('ok', true, 'fee', v_fee, 'domestic', v_domestic, 'qc', v_qc, 'total', v_total, 'charged', v_charge, 'group', v_group);
   -- Resultaat vastleggen onder het token: een latere retry met hetzelfde token krijgt
   -- exact dit succes terug i.p.v. een tweede afschrijving.
   if p_idem is not null then

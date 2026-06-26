@@ -572,7 +572,8 @@ function NormalShippingConfirm({ session, haulItems, balance, onBack, onSuccess 
   const estimate = shippingEstimate(totalWeight / 1000);
   const shipBuffered = r2(estimate * BUFFER_MULTIPLIER);
   const vatEst = r2((goodsValue + estimate) * IMPORT_VAT);
-  const toPayEst = r2(shipBuffered + vatEst);
+  const FULFIL_EUR = r2(9.9 / 7.8);   // fulfilment ¥9,9 per pakket
+  const toPayEst = r2(shipBuffered + vatEst + FULFIL_EUR);
 
   // Live tarieven ophalen bij het openen.
   useEffect(() => {
@@ -597,7 +598,7 @@ function NormalShippingConfirm({ session, haulItems, balance, onBack, onSuccess 
   }, []);
 
   const liveChannel = channels?.find(c => c.serviceCode === selected) || null;
-  const liveAmount = liveChannel ? r2(liveChannel.priceEur + (liveChannel.taxInclusive ? 0 : r2(liveChannel.priceEur * IMPORT_VAT))) : 0;
+  const liveAmount = liveChannel ? r2(liveChannel.priceEur + (liveChannel.taxInclusive ? 0 : r2(liveChannel.priceEur * IMPORT_VAT)) + FULFIL_EUR) : 0;
   const toPay = mode === "live" ? liveAmount : toPayEst;
   const canAfford = balance >= toPay;
 
@@ -680,6 +681,10 @@ function NormalShippingConfirm({ session, haulItems, balance, onBack, onSuccess 
               </motion.div>
             );
           })}
+          <div style={{ display: "flex", justifyContent: "space-between", marginTop: 8 }}>
+            <span style={{ fontSize: 12, color: "#9C9893" }}>Fulfillment (¥9.9)</span>
+            <span style={{ fontSize: 12, color: "#C9C6C1" }}>€{FULFIL_EUR.toFixed(2)}</span>
+          </div>
           <div style={{ borderTop: "1px solid #333", marginTop: 4, paddingTop: 10, display: "flex", justifyContent: "space-between" }}>
             <span style={{ fontSize: 14, fontWeight: 700, color: "#fff" }}>Pay now</span>
             <span style={{ fontSize: 14, fontWeight: 700, color: "#FF5C00" }}>€{toPay.toFixed(2)}</span>
@@ -694,6 +699,7 @@ function NormalShippingConfirm({ session, haulItems, balance, onBack, onSuccess 
             { label: "Shipping estimate", value: `€${estimate.toFixed(2)}` },
             { label: "Safety buffer (×1.3)", value: `+€${(shipBuffered - estimate).toFixed(2)}` },
             { label: "Import VAT (21%)", value: `€${vatEst.toFixed(2)}` },
+            { label: "Fulfillment (¥9.9)", value: `€${FULFIL_EUR.toFixed(2)}` },
           ].map((row, i) => (
             <div key={i} style={{ display: "flex", justifyContent: "space-between", marginBottom: 8 }}>
               <span style={{ fontSize: 13, color: "#888" }}>{row.label}</span>

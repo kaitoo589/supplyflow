@@ -24,6 +24,7 @@ declare
   v_ship numeric;         -- verzending vóór buffer
   v_ship_buffered numeric;
   v_vat numeric;
+  v_fulfil numeric;
   v_total numeric;
   v_balance numeric;
   c_first_kg  constant numeric := 0.5;
@@ -53,7 +54,8 @@ begin
   v_ship := c_first_eur + greatest(0, (v_weight / 1000.0) - c_first_kg) * c_per_kg;
   v_ship_buffered := round(v_ship * c_buffer, 2);
   v_vat := round((v_goods + v_ship) * c_vat, 2);   -- 21% over goederen + verzending (DDP)
-  v_total := v_ship_buffered + v_vat;
+  v_fulfil := round(9.9 / 7.8, 2);                 -- fulfilment ¥9,9 per pakket
+  v_total := v_ship_buffered + v_vat + v_fulfil;
 
   -- Lock de profielrij zodat dubbel betalen onmogelijk is.
   select balance into v_balance from profiles where id = v_uid for update;
@@ -67,9 +69,11 @@ begin
   -- Eén verzend-transactie (verzending + BTW samen, type bewust 'shipping' om
   -- bestaande type-constraints niet te raken). Het volledige bedrag staat in 'amount'.
   insert into transactions (user_id, amount, type)
-  values (v_uid, -v_total, 'shipping');
+  values (v_uid, -(v_ship_buffered + v_vat), 'shipping');
+  insert into transactions (user_id, amount, type)
+  values (v_uid, -v_fulfil, 'fulfillment');
 
-  return json_build_object('ok', true, 'paid', v_total, 'shipping', v_ship_buffered, 'vat', v_vat);
+  return json_build_object('ok', true, 'paid', v_total, 'shipping', v_ship_buffered, 'vat', v_vat, 'fulfillment', v_fulfil);
 end;
 $$;
 

@@ -52,7 +52,7 @@ grant execute on function public.request_storage_quote(text[]) to authenticated;
 -- 2) Admin stuurt de quote (verzending server-side berekend, opslag ingevuld). Vandaag geldig.
 create or replace function public.admin_send_storage_quote(p_quote_id uuid, p_storage_eur numeric)
 returns json language plpgsql security definer set search_path = public as $$
-declare q record; v_weight numeric; v_goods numeric; v_ship numeric; v_ship_buf numeric; v_vat numeric; v_ship_total numeric; v_total numeric;
+declare q record; v_weight numeric; v_goods numeric; v_ship numeric; v_ship_buf numeric; v_vat numeric; v_fulfil numeric; v_ship_total numeric; v_total numeric;
   c_first_kg constant numeric := 0.5; c_first_eur constant numeric := 9.0; c_per_kg constant numeric := 8.5; c_buffer constant numeric := 1.3; c_vat constant numeric := 0.21;
 begin
   if (select role from profiles where id = auth.uid()) is distinct from 'admin' then return json_build_object('ok', false, 'error', 'Alleen admins'); end if;
@@ -63,7 +63,8 @@ begin
   v_ship := c_first_eur + greatest(0, (v_weight / 1000.0) - c_first_kg) * c_per_kg;
   v_ship_buf := round(v_ship * c_buffer, 2);
   v_vat := round((v_goods + v_ship) * c_vat, 2);
-  v_ship_total := round(v_ship_buf + v_vat, 2);
+  v_fulfil := round(9.9 / 7.8, 2);   -- fulfilment ¥9,9 per pakket
+  v_ship_total := round(v_ship_buf + v_vat + v_fulfil, 2);
   v_total := round(v_ship_total + p_storage_eur, 2);
   update storage_quotes set shipping_eur = v_ship_total, storage_eur = round(p_storage_eur, 2),
     total_eur = v_total, status = 'sent', valid_date = current_date, sent_at = now()

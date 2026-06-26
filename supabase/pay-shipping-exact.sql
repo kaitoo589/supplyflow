@@ -34,6 +34,8 @@ declare
   v_count   int;
   v_balance numeric;
   v_haul_id hauls.id%type;
+  v_fulfil numeric;
+  v_charge numeric;
 begin
   if p_uid is null then
     return json_build_object('ok', false, 'error', 'No user');
@@ -50,16 +52,19 @@ begin
     return json_build_object('ok', false, 'error', 'Invalid amount');
   end if;
 
+  v_fulfil := round(9.9 / 7.8, 2);   -- fulfilment ¥9,9 per pakket
+  v_charge := p_amount + v_fulfil;
+
   -- Saldo vergrendelen + controleren.
   select balance into v_balance from profiles where id = p_uid for update;
-  if coalesce(v_balance, 0) < p_amount then
-    return json_build_object('ok', false, 'error', 'Insufficient balance', 'needed', p_amount);
+  if coalesce(v_balance, 0) < v_charge then
+    return json_build_object('ok', false, 'error', 'Insufficient balance', 'needed', v_charge);
   end if;
 
-  update profiles set balance = balance - p_amount where id = p_uid;
+  update profiles set balance = balance - v_charge where id = p_uid;
 
   insert into hauls (user_id, status, estimate_eur, paid_eur, items, service_code, service_name, shipping_eur, vat_eur)
-  values (p_uid, 'confirmed', p_shipping, p_amount, to_jsonb(p_order_ids), p_service_code, p_service_name, p_shipping, p_vat)
+  values (p_uid, 'confirmed', p_shipping, v_charge, to_jsonb(p_order_ids), p_service_code, p_service_name, p_shipping, p_vat)
   returning id into v_haul_id;
 
   insert into haul_items (haul_id, order_id)
@@ -67,12 +72,14 @@ begin
 
   insert into transactions (user_id, amount, type)
   values (p_uid, -p_amount, 'shipping');
+  insert into transactions (user_id, amount, type)
+  values (p_uid, -v_fulfil, 'fulfillment');
 
   -- Pakket betaald → orders naar "verzonden".
   update orders set status = 'shipped_international'
    where id = any(p_order_ids) and user_id = p_uid;
 
-  return json_build_object('ok', true, 'paid', p_amount, 'shipping', p_shipping, 'vat', p_vat, 'haul_id', v_haul_id);
+  return json_build_object('ok', true, 'paid', v_charge, 'shipping', p_shipping, 'vat', p_vat, 'fulfillment', v_fulfil, 'haul_id', v_haul_id);
 end;
 $$;
 

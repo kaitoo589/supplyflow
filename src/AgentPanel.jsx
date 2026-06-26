@@ -112,6 +112,8 @@ function OrderDetail({ order: initialOrder, onBack, onUpdate }) {
   const [quotedPrice, setQuotedPrice] = useState(order.quoted_price?.toString() || "");
   const [quotedLocalShipping, setQuotedLocalShipping] = useState(order.quoted_local_shipping?.toString() || "");
   const [quoteNote, setQuoteNote] = useState(order.quote_note || "");
+  const [defectNote, setDefectNote] = useState(order.agent_notitie || "");
+  const [defectUploading, setDefectUploading] = useState(false);
 
   const quotedPriceEur = quotedPrice ? parseFloat(quotedPrice) * eurRate : 0;
   const quotedLocalShippingEur = quotedLocalShipping ? parseFloat(quotedLocalShipping) * eurRate : 0;
@@ -222,6 +224,47 @@ function OrderDetail({ order: initialOrder, onBack, onUpdate }) {
     const updated = (order.qc_images || []).filter((_, idx) => idx !== i);
     await supabase.from("orders").update({ qc_images: updated }).eq("id", order.id);
     const u = { ...order, qc_images: updated };
+    setOrder(u); onUpdate(u);
+  };
+
+  const uploadDefectImages = async (files) => {
+    setDefectUploading(true);
+    const urls = [];
+    for (const file of Array.from(files)) {
+      const ext = file.name.split(".").pop();
+      const fileName = `defect-${order.id}-${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
+      const { error } = await supabase.storage.from("product-images").upload(fileName, file);
+      if (!error) {
+        const { data } = supabase.storage.from("product-images").getPublicUrl(fileName);
+        urls.push(data.publicUrl);
+      }
+    }
+    const all = [...(order.agent_defect_images || []), ...urls];
+    await supabase.from("orders").update({ agent_defect_images: all }).eq("id", order.id);
+    const u = { ...order, agent_defect_images: all };
+    setOrder(u); onUpdate(u);
+    setDefectUploading(false);
+  };
+
+  const removeDefectImage = async (i) => {
+    const updated = (order.agent_defect_images || []).filter((_, idx) => idx !== i);
+    await supabase.from("orders").update({ agent_defect_images: updated }).eq("id", order.id);
+    const u = { ...order, agent_defect_images: updated };
+    setOrder(u); onUpdate(u);
+  };
+
+  const flagDefect = async () => {
+    const note = defectNote.trim() || null;
+    const { error } = await supabase.from("orders").update({ dispute_status: "bucky_flagged", problem_type: "defect", agent_notitie: note }).eq("id", order.id);
+    if (error) { alert("Could not flag 无法标记: " + error.message); return; }
+    const u = { ...order, dispute_status: "bucky_flagged", problem_type: "defect", agent_notitie: note };
+    setOrder(u); onUpdate(u);
+  };
+
+  const clearDefectFlag = async () => {
+    const { error } = await supabase.from("orders").update({ dispute_status: null, problem_type: null }).eq("id", order.id);
+    if (error) { alert("Could not clear 无法清除: " + error.message); return; }
+    const u = { ...order, dispute_status: null, problem_type: null };
     setOrder(u); onUpdate(u);
   };
 
@@ -444,6 +487,43 @@ function OrderDetail({ order: initialOrder, onBack, onUpdate }) {
         {order.status === "qc_pending" && (
           <div style={{ background: "#F0FDF4", border: "1px solid #10B981", borderRadius: 12, padding: "12px 16px", fontSize: 13, color: "#065F46", textAlign: "center" }}>
             ✓ QC uploaded — waiting for customer to build parcel 等待客户组合包裹
+          </div>
+        )}
+
+        {/* DEFECT melden aan de klant (agent) */}
+        {(order.status === "shipped_local" || order.status === "qc_pending") && (
+          <div style={{ background: "#fff", border: `1.5px solid ${order.dispute_status === "bucky_flagged" ? "#F59E0B" : "#E8E6E0"}`, borderRadius: 14, padding: 16 }}>
+            <div style={{ fontSize: 13, fontWeight: 700, color: "#0F0E0C", marginBottom: 4 }}>⚠️ Report a defect 报告缺陷</div>
+            <div style={{ fontSize: 11, color: "#aaa", marginBottom: 12 }}>Add close-up photos + a message. The customer can then return or accept it. 添加缺陷照片和留言，客户可退货或接受</div>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8, marginBottom: 12 }}>
+              {(order.agent_defect_images || []).map((url, i) => (
+                <div key={i} style={{ position: "relative", borderRadius: 10, overflow: "hidden", aspectRatio: "1" }}>
+                  <img src={url} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                  <button onClick={() => removeDefectImage(i)} style={{ position: "absolute", top: 4, right: 4, background: "rgba(0,0,0,0.6)", color: "#fff", border: "none", borderRadius: 6, width: 22, height: 22, fontSize: 11, cursor: "pointer" }}>✕</button>
+                </div>
+              ))}
+              <label style={{ cursor: "pointer", borderRadius: 10, aspectRatio: "1", background: "#F8F7F4", border: "1.5px dashed #E8E6E0", display: "flex", alignItems: "center", justifyContent: "center", textAlign: "center", padding: 8 }}>
+                <div style={{ fontSize: 11, color: "#aaa" }}>{defectUploading ? "Uploading…" : "📷 + Add 添加"}</div>
+                <input type="file" accept="image/*" multiple onChange={e => uploadDefectImages(e.target.files)} style={{ display: "none" }} disabled={defectUploading} />
+              </label>
+            </div>
+            <textarea placeholder="Message to the customer — what's wrong? 给客户的留言" value={defectNote} onChange={e => setDefectNote(e.target.value)}
+              style={{ width: "100%", border: "1px solid #E8E6E0", borderRadius: 8, padding: "10px 12px", fontSize: 13, background: "#F8F7F4", minHeight: 70, resize: "vertical", boxSizing: "border-box", marginBottom: 12 }} />
+            <div style={{ display: "flex", gap: 8 }}>
+              <button onClick={flagDefect} disabled={defectUploading}
+                style={{ flex: 1, background: "#F59E0B", color: "#fff", border: "none", borderRadius: 10, padding: "12px", fontSize: 14, fontWeight: 700, cursor: "pointer" }}>
+                {order.dispute_status === "bucky_flagged" ? "Update defect 更新缺陷" : "⚠️ Flag defect 标记缺陷"}
+              </button>
+              {order.dispute_status === "bucky_flagged" && (
+                <button onClick={clearDefectFlag}
+                  style={{ background: "#F8F7F4", color: "#555", border: "1px solid #E8E6E0", borderRadius: 10, padding: "12px 16px", fontSize: 14, fontWeight: 600, cursor: "pointer" }}>
+                  Clear 清除
+                </button>
+              )}
+            </div>
+            {order.dispute_status === "bucky_flagged" && (
+              <div style={{ marginTop: 10, fontSize: 12, color: "#B45309", fontWeight: 600 }}>✓ Flagged — the customer will choose return or accept. 已标记，客户将选择退货或接受</div>
+            )}
           </div>
         )}
 

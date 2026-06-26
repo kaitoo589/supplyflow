@@ -225,11 +225,6 @@ function OrderDetailModal({ order, inHaul, onAdd, onRemove, onDispute, onClose, 
   const [lightbox, setLightbox] = useState(null);
   const [busy, setBusy] = useState(false);
   const [confirmReturn, setConfirmReturn] = useState(false);
-  // Bij een defect tonen we GEEN losse "Quality-control pictures", maar alle agent-foto's
-  // (qc + measurement samen) onder "Additional pictures provided by the agent" + het bericht.
-  const additionalPhotos = order.dispute_status === "bucky_flagged"
-    ? [...(order.qc_images || []), ...(order.measurement_images || [])]
-    : (order.measurement_images || []);
   const acceptDefect = async () => {
     setBusy(true);
     const { data, error } = await supabase.rpc("accept_qc_result", { p_order_id: order.id });
@@ -267,14 +262,8 @@ function OrderDetailModal({ order, inHaul, onAdd, onRemove, onDispute, onClose, 
         </div>
         <div style={{ fontSize: 18, fontWeight: 700, color: "#0F0E0C", marginBottom: 4 }}>{order.product_title || order.product}</div>
         <div style={{ fontSize: 13, color: "#aaa", marginBottom: 16 }}>{order.qty} pcs · {order.weight_grams ? `${order.weight_grams}g` : "weight unknown"}</div>
-        {order.dispute_status === "bucky_flagged" && (
-          <div style={{ background: "#FFF7ED", border: "1.5px solid #F59E0B", borderRadius: 14, padding: 16, marginBottom: 16 }}>
-            <div style={{ fontSize: 14, fontWeight: 700, color: "#B45309", marginBottom: 4 }}>⚠️ Quality-control flagged a possible defect</div>
-            <div style={{ fontSize: 13, color: "#92400E", lineHeight: 1.5 }}>Our warehouse spotted something off with your item. Check the photos below, then choose to <b>return it for a full refund</b> or <b>accept it as-is</b> and continue.</div>
-          </div>
-        )}
-        {/* Quality-control pictures — verborgen bij een defect; dan alleen de agent-foto's hieronder */}
-        {order.dispute_status !== "bucky_flagged" && (
+        {/* De defect-flag staat als aparte sectie ONDER quality-control + measurement (zie hieronder). */}
+        {/* Quality-control pictures — altijd zichtbaar */}
         <div style={{ marginBottom: 16 }}>
           <div style={{ fontSize: 12, fontWeight: 700, color: "#888", marginBottom: 8, letterSpacing: 1 }}>QUALITY-CONTROL PICTURES</div>
           {order.qc_images?.length > 0 ? (
@@ -298,7 +287,6 @@ function OrderDetailModal({ order, inHaul, onAdd, onRemove, onDispute, onClose, 
             </div>
           )}
         </div>
-        )}
 
         {/* Measurement-sectie uit: BuckyDrop geeft geen aparte maatfoto's via de API (één picList);
             alle inspectiefoto's staan hierboven bij Quality-control. */}
@@ -327,11 +315,11 @@ function OrderDetailModal({ order, inHaul, onAdd, onRemove, onDispute, onClose, 
           )}
         </div>
         )}
-        {additionalPhotos.length > 0 && (
+        {order.measurement_images?.length > 0 && (
           <div style={{ marginBottom: 16 }}>
-            <div style={{ fontSize: 12, fontWeight: 700, color: "#888", marginBottom: 8, letterSpacing: 1 }}>ADDITIONAL PICTURES PROVIDED BY THE AGENT</div>
+            <div style={{ fontSize: 12, fontWeight: 700, color: "#888", marginBottom: 8, letterSpacing: 1 }}>MEASUREMENT PICTURES</div>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
-              {additionalPhotos.map((url, i) => (
+              {order.measurement_images.map((url, i) => (
                 <motion.div key={i} whileTap={{ scale: 0.97 }} onClick={() => setLightbox(url)} style={{ borderRadius: 10, overflow: "hidden", aspectRatio: "1", cursor: "pointer" }}>
                   <img src={url} referrerPolicy="no-referrer" alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
                 </motion.div>
@@ -339,13 +327,31 @@ function OrderDetailModal({ order, inHaul, onAdd, onRemove, onDispute, onClose, 
             </div>
           </div>
         )}
-        {order.agent_notitie && (
-          <div style={{ background: "#fff", border: "1px solid #E8E6E0", borderRadius: 14, padding: 16, marginBottom: 16 }}>
-            <div style={{ fontSize: 12, fontWeight: 700, color: "#888", marginBottom: 8, letterSpacing: 1 }}>AGENT MESSAGE</div>
-            <div style={{ display: "flex", gap: 10, alignItems: "flex-start" }}>
-              <div style={{ width: 30, height: 30, borderRadius: "50%", background: "#FFF1E8", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16, flexShrink: 0 }}>🦊</div>
-              <div style={{ fontSize: 13, color: "#444", lineHeight: 1.55 }}>{order.agent_notitie}</div>
-            </div>
+        {order.dispute_status === "bucky_flagged" && (
+          <div style={{ background: "#FFF7ED", border: "1.5px solid #F59E0B", borderRadius: 14, padding: 16, marginBottom: 16 }}>
+            <div style={{ fontSize: 14, fontWeight: 700, color: "#B45309", marginBottom: 4 }}>⚠️ Quality-control flagged a possible defect</div>
+            <div style={{ fontSize: 13, color: "#92400E", lineHeight: 1.5 }}>Our warehouse spotted something off with your item. Review the agent's details below, then choose to <b>return it for a full refund</b> or <b>accept it as-is</b>.</div>
+            {order.agent_defect_images?.length > 0 && (
+              <div style={{ marginTop: 14 }}>
+                <div style={{ fontSize: 11, fontWeight: 700, color: "#B45309", marginBottom: 8, letterSpacing: 1 }}>ADDITIONAL PICTURES PROVIDED BY THE AGENT</div>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+                  {order.agent_defect_images.map((url, i) => (
+                    <motion.div key={i} whileTap={{ scale: 0.97 }} onClick={() => setLightbox(url)} style={{ borderRadius: 10, overflow: "hidden", aspectRatio: "1", cursor: "pointer" }}>
+                      <img src={url} referrerPolicy="no-referrer" alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                    </motion.div>
+                  ))}
+                </div>
+              </div>
+            )}
+            {order.agent_notitie && (
+              <div style={{ marginTop: 14 }}>
+                <div style={{ fontSize: 11, fontWeight: 700, color: "#B45309", marginBottom: 8, letterSpacing: 1 }}>AGENT MESSAGE</div>
+                <div style={{ display: "flex", gap: 10, alignItems: "flex-start" }}>
+                  <div style={{ width: 30, height: 30, borderRadius: "50%", background: "#fff", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16, flexShrink: 0 }}>🦊</div>
+                  <div style={{ fontSize: 13, color: "#92400E", lineHeight: 1.55 }}>{order.agent_notitie}</div>
+                </div>
+              </div>
+            )}
           </div>
         )}
         {order.weight_grams && (
@@ -720,7 +726,7 @@ function DisputeForm({ order, session, onBack, onSuccess }) {
       </div>
       {order.measurement_images?.length > 0 && (
         <div style={{ background: "#fff", border: "1px solid #E8E6E0", borderRadius: 14, padding: 16, marginBottom: 16 }}>
-          <div style={{ fontSize: 13, fontWeight: 600, color: "#0F0E0C", marginBottom: 8 }}>Additional pictures provided by the agent</div>
+          <div style={{ fontSize: 13, fontWeight: 600, color: "#0F0E0C", marginBottom: 8 }}>Measurement pictures</div>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8 }}>
             {order.measurement_images.map((url, i) => (
               <motion.img key={i} whileTap={{ scale: 0.95 }} onClick={() => setLightbox(url)} src={url} referrerPolicy="no-referrer" alt="" style={{ width: "100%", aspectRatio: "1", borderRadius: 8, objectFit: "cover", cursor: "pointer" }} />

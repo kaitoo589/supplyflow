@@ -2268,6 +2268,30 @@ export default function SupplyFlow({ session }) {
                   <button onClick={() => { setFriendsJoinCode(null); setShowFriends(true); }}
                     style={{ width: "100%", marginTop: 12, background: "#FFF0E7", border: "1px dashed rgba(255,92,0,0.4)", color: "#FF5C00", borderRadius: 12, padding: "12px", fontSize: 13, fontWeight: 700, cursor: "pointer" }}>{myGroups.length > 0 ? "View or manage your groups →" : "Join or create a group first →"}</button>
                 )}
+                {(() => {
+                  // Groepen waarin de bestelling al geplaatst is (niet meer 'gathering') —
+                  // niet selecteerbaar om in te shoppen, wél tikbaar om te openen/volgen.
+                  const placed = myGroups.filter((g) => g.status !== "gathering");
+                  if (placed.length === 0) return null;
+                  return (
+                    <>
+                      <div style={{ fontSize: 11, color: "#A8A5A0", fontWeight: 600, letterSpacing: 0.4, margin: "16px 2px 8px" }}>ORDERED</div>
+                      <div style={{ display: "flex", flexDirection: "column", gap: 7 }}>
+                        {placed.map((g) => (
+                          <div key={g.group_id} onClick={() => { setFriendsGroupId(g.group_id); setShowFriends(true); }}
+                            style={{ display: "flex", alignItems: "center", gap: 10, cursor: "pointer", borderRadius: 12, padding: "10px 12px", background: "#F8F7F4", border: "1px solid #ECEAE5" }}>
+                            <div style={{ width: 30, height: 30, borderRadius: 9, background: "#0F0E0C", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14, flexShrink: 0 }}>📦</div>
+                            <div style={{ flex: 1, minWidth: 0 }}>
+                              <div style={{ fontSize: 13, fontWeight: 600, color: "#111111", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{g.name}{g.role === "admin" ? " · admin" : ""}</div>
+                              <div style={{ fontSize: 11, color: "#A8A5A0" }}>{g.member_count}/{g.max_size} friends · order placed</div>
+                            </div>
+                            <span style={{ color: "#C9C6C1", fontSize: 16 }}>›</span>
+                          </div>
+                        ))}
+                      </div>
+                    </>
+                  );
+                })()}
               </div>
             );
           })()}

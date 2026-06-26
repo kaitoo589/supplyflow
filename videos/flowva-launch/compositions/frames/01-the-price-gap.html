@@ -1,0 +1,256 @@
+<!doctype html>
+<html>
+  <head><meta charset="UTF-8" /></head>
+  <body>
+    <template>
+      <style>
+
+        #root {
+          position: absolute;
+          inset: 0;
+          width: 1080px;
+          height: 1920px;
+          overflow: hidden;
+          background: #F8F7F4;
+          font-family: 'Inter', sans-serif;
+          color: #111111;
+        }
+
+        /* Macro-push layer — slow drift under the whole shot */
+        .stage {
+          position: absolute;
+          inset: 0;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: flex-start;
+          padding: 0 110px;
+          box-sizing: border-box;
+          will-change: transform;
+        }
+
+        /* ── Beat 1 : "You paid €32" — giant, ink, with 3D depth stack ── */
+        .you-paid {
+          margin-top: 470px; /* hero anchored high (~0.25h) */
+          text-align: center;
+        }
+        .kicker {
+          font-size: 50px;
+          font-weight: 700;
+          letter-spacing: 0.01em;
+          color: #6E6B66;
+          margin-bottom: 18px;
+          will-change: transform, opacity;
+        }
+        .depth-stack {
+          position: relative;
+          display: inline-block;
+          will-change: transform, filter, opacity;
+        }
+        .depth-text {
+          font-weight: 900;
+          font-size: 330px;
+          line-height: 0.92;
+          letter-spacing: -0.04em;
+          color: #111111;
+          white-space: nowrap;
+        }
+        .depth-text.is-back {
+          position: absolute;
+          top: 0;
+          left: 0;
+          pointer-events: none;
+        }
+        .depth-text.is-front {
+          position: relative;
+          z-index: 10;
+        }
+
+        /* faint grey "?" sitting in the gap */
+        .gap-q {
+          opacity: 0;
+          margin: 26px 0 14px;
+          will-change: transform, opacity;
+        }
+        /* inner wrapper carries the continuous breathing pulse so the
+           GSAP entrance (on .gap-q) and the idle pulse never write the
+           same element's transform — keeps every seek deterministic. */
+        .gap-q-inner {
+          display: inline-block;
+          font-weight: 800;
+          font-size: 200px;
+          line-height: 1;
+          color: #A8A5A0;
+          will-change: transform;
+        }
+
+        /* ── Beat 2 : "The factory charged €8" — smaller, calmer ── */
+        .factory {
+          text-align: center;
+          will-change: transform, opacity;
+        }
+        .factory-label {
+          font-size: 50px;
+          font-weight: 600;
+          letter-spacing: 0.01em;
+          color: #6E6B66;
+          margin-bottom: 6px;
+        }
+        .factory-amount {
+          font-weight: 800;
+          font-size: 160px;
+          line-height: 0.96;
+          letter-spacing: -0.03em;
+          color: #6E6B66;
+        }
+      </style>
+
+      <div id="root" data-composition-id="01-the-price-gap" data-width="1080" data-height="1920">
+        <div class="stage" id="stage">
+
+          <div class="you-paid">
+            <div class="kicker" id="kicker">You paid</div>
+            <div class="depth-stack" id="stack">
+              <!-- depth layers injected by script; front layer last -->
+            </div>
+          </div>
+
+          <div class="gap-q" id="gapq"><div class="gap-q-inner" id="gapqInner">?</div></div>
+
+          <div class="factory" id="factory">
+            <div class="factory-label">The factory charged</div>
+            <div class="factory-amount">€8</div>
+          </div>
+
+        </div>
+      </div>
+
+      <script>
+        window.__timelines = window.__timelines || {};
+
+        const TEXT = "€32";
+        const LAYER_COUNT = 5;
+        const OFFSET_X = 3;   // light from upper-left → (+x, +y)
+        const OFFSET_Y = 3;
+        const BACK_ALPHA_MAX = 0.34;
+        const BACK_ALPHA_STEP = 0.07;
+        const BACK_ALPHA_MIN = 0.10;
+        const BACK_RGB = "110, 107, 102"; // ink-soft, casts a warm-grey shadow
+
+        const stack = document.getElementById("stack");
+        // Build back-to-front so the front (i=0) is appended last and defines size.
+        for (let i = LAYER_COUNT - 1; i >= 0; i--) {
+          const el = document.createElement("div");
+          el.className = "depth-text " + (i === 0 ? "is-front" : "is-back");
+          el.textContent = TEXT;
+          if (i > 0) {
+            const alpha = Math.max(BACK_ALPHA_MAX - (i - 1) * BACK_ALPHA_STEP, BACK_ALPHA_MIN);
+            el.style.color = "rgba(" + BACK_RGB + ", " + alpha + ")";
+            el.style.transform = "translate(" + (i * OFFSET_X) + "px, " + (i * OFFSET_Y) + "px)";
+          } else {
+            el.style.color = "#111111";
+          }
+          el.dataset.layer = String(i);
+          el.dataset.alpha = i === 0 ? "1" : String(Math.max(BACK_ALPHA_MAX - (i - 1) * BACK_ALPHA_STEP, BACK_ALPHA_MIN));
+          stack.appendChild(el);
+        }
+
+        const stage = document.getElementById("stage");
+        const kicker = document.getElementById("kicker");
+        const factory = document.getElementById("factory");
+        const gapq = document.getElementById("gapq");
+        const gapqInner = document.getElementById("gapqInner");
+
+        const DUR = 4;
+        // ONE beat grid drives the slam sequence.
+        const PULSE = 0.7;
+        // beat-1 slam €32 (hero lands ~opaque by t<=0.5s), beat-2 snap €8
+        const BEATS = [PULSE * 0.16, PULSE * 1.7];
+
+        const tl = gsap.timeline({ paused: true });
+
+        // Macro push — slow continuous scale-up under the whole shot.
+        tl.fromTo(stage,
+          { scale: 1.0 },
+          { scale: 1.035, duration: DUR, ease: "none" },
+          0
+        );
+
+        // ── BEAT 1 — kicker + €32 slam down from the top (scale + blur) ──
+        tl.fromTo(kicker,
+          { y: -70, opacity: 0 },
+          { y: 0, opacity: 1, duration: 0.45, ease: "power4.out" },
+          BEATS[0]
+        );
+        tl.fromTo(stack,
+          { y: -260, scale: 1.32, filter: "blur(20px)", opacity: 0 },
+          { y: 0, scale: 1, filter: "blur(0px)", opacity: 1, duration: 0.6, ease: "power4.out" },
+          BEATS[0] + 0.04
+        );
+        // Depth grows on entry — offsets interpolate 0 → full as it lands.
+        const depthState = { p: 0 };
+        tl.fromTo(depthState,
+          { p: 0 },
+          { p: 1, duration: 0.55, ease: "power2.out",
+            onUpdate: () => {
+              stack.querySelectorAll(".depth-text.is-back").forEach((el) => {
+                const i = Number(el.dataset.layer);
+                el.style.transform = "translate(" + (i * OFFSET_X * depthState.p) + "px, " + (i * OFFSET_Y * depthState.p) + "px)";
+              });
+            }
+          },
+          BEATS[0] + 0.1
+        );
+
+        // ── BEAT 2 — "The factory charged €8" snaps in beneath (rise + rotate) ──
+        tl.fromTo(factory,
+          { y: 90, rotation: 4, opacity: 0 },
+          { y: 0, rotation: 0, opacity: 1, duration: 0.55, ease: "circ.out" },
+          BEATS[1]
+        );
+
+        // ── SETTLE — faint grey "?" fades into the gap, then pulses once ──
+        const QIN = BEATS[1] + 0.55;
+        tl.fromTo(gapq,
+          { opacity: 0, scale: 0.86, y: 8 },
+          { opacity: 0.85, scale: 1, y: 0, duration: 0.45, ease: "back.out(1.8)" },
+          QIN
+        );
+
+        // sine-wave-loop: the "?" breathes (one slow pulse) under the macro push.
+        // Writes the INNER wrapper's transform so it never collides with the
+        // GSAP entrance transform on #gapq above — each is the sole writer of
+        // its own element's transform, so every frame is reproducible by seek.
+        const IDLE_START = QIN + 0.45;
+        const IDLE_DUR = DUR - IDLE_START;     // fills to the end of the shot
+        const CYCLES = 1;                       // ~one pulse across the settle
+        const phase = { p: 0 };
+        tl.to(phase,
+          { p: Math.PI * 2 * CYCLES, duration: IDLE_DUR, ease: "none",
+            onUpdate: () => {
+              const s = 1 + Math.sin(phase.p) * 0.05;
+              const y = Math.sin(phase.p) * 5;
+              gapqInner.style.transform = "translateY(" + y + "px) scale(" + s + ")";
+            }
+          },
+          IDLE_START
+        );
+
+        // Front-layer of €32 breathes faintly so it reads "alive but heavy".
+        const heroFront = stack.querySelector(".depth-text.is-front");
+        const phase2 = { p: 0 };
+        tl.to(phase2,
+          { p: Math.PI * 2 * CYCLES, duration: IDLE_DUR, ease: "none",
+            onUpdate: () => {
+              const s = 1 + Math.sin(phase2.p + Math.PI / 2) * 0.01;
+              heroFront.style.transform = "scale(" + s + ")";
+            }
+          },
+          IDLE_START
+        );
+
+        window.__timelines["01-the-price-gap"] = tl;
+      </script>
+    </template>
+  </body>
+</html>

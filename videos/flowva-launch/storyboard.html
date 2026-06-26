@@ -1,0 +1,204 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Flowva — Launch Video Storyboard</title>
+<style>
+  :root{
+    --canvas:#F8F7F4; --card:#FFFFFF; --ink:#111111; --ink-soft:#6E6B66; --ink-faint:#A8A5A0;
+    --line:#ECEAE5; --field:#F3F1ED; --accent:#FF5C00; --accent-soft:#FFF0E7;
+    --shadow:0 1px 2px rgba(17,17,17,.04), 0 18px 50px rgba(17,17,17,.10);
+    --r:18px;
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{background:var(--canvas);color:var(--ink);font-family:'Inter','Helvetica Neue',system-ui,sans-serif;-webkit-font-smoothing:antialiased;line-height:1.45}
+  .wrap{max-width:1280px;margin:0 auto;padding:48px 28px 80px}
+  header{margin-bottom:40px}
+  .eyebrow{font-size:13px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--accent)}
+  h1{font-size:40px;font-weight:800;letter-spacing:-.02em;margin:6px 0 14px}
+  .meta{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}
+  .pill{background:var(--card);border:1px solid var(--line);border-radius:999px;padding:7px 14px;font-size:13px;color:var(--ink-soft);box-shadow:var(--shadow)}
+  .pill b{color:var(--ink);font-weight:700}
+  .msg{margin-top:18px;max-width:760px;color:var(--ink-soft);font-size:15.5px}
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:26px;margin-top:34px}
+  .scene{background:var(--card);border:1px solid var(--line);border-radius:var(--r);overflow:hidden;box-shadow:var(--shadow);display:flex;flex-direction:column}
+  .phone{position:relative;aspect-ratio:9/16;background:var(--canvas);overflow:hidden;border-bottom:1px solid var(--line)}
+  .num{position:absolute;top:12px;left:12px;z-index:6;width:30px;height:30px;border-radius:999px;background:var(--ink);color:#fff;font-size:13px;font-weight:700;display:flex;align-items:center;justify-content:center;box-shadow:var(--shadow)}
+  .tcat{position:absolute;top:14px;right:12px;z-index:6;font-size:10.5px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-faint)}
+  .stage{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:22px}
+  /* real screenshot crop */
+  .shot{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:top center}
+  .shotwrap::after{content:"";position:absolute;left:0;right:0;bottom:0;height:22%;background:linear-gradient(to top,var(--canvas),transparent)}
+  .callout{position:absolute;z-index:5;background:var(--card);border:1px solid var(--line);border-radius:12px;box-shadow:var(--shadow);padding:10px 12px;font-size:11px;text-align:left}
+  .callout .row{display:flex;justify-content:space-between;gap:14px;color:var(--ink-soft)}
+  .callout .row b{color:var(--ink);font-weight:700}
+  .link1688{color:var(--accent);font-weight:700;border-bottom:2px solid var(--accent);display:inline-block;margin-top:4px}
+  .chip{display:inline-block;background:var(--field);border-radius:999px;padding:5px 10px;font-size:10.5px;color:var(--ink-soft);font-weight:600}
+  .dot{display:inline-block;width:9px;height:9px;border-radius:999px;background:var(--accent);vertical-align:middle;margin-left:6px}
+  /* typographic stages */
+  .big{font-weight:900;letter-spacing:-.03em;line-height:.96}
+  .strike{position:relative;color:var(--ink-faint)}
+  .strike::after{content:"";position:absolute;left:-4px;right:-4px;top:52%;height:3px;background:var(--ink-faint);transform:rotate(-6deg)}
+  .btn{background:var(--accent);color:#fff;font-weight:800;border-radius:14px;padding:13px 26px;font-size:18px;box-shadow:0 10px 26px rgba(255,92,0,.32)}
+  .barwrap{width:64px;display:flex;flex-direction:column;align-items:center;gap:6px}
+  .bar{width:46px;background:#cfccc6;border-radius:8px 8px 0 0}
+  .fric{display:flex;flex-direction:column;gap:7px;margin-top:14px;width:100%}
+  .fric span{background:var(--field);border:1px solid var(--line);border-radius:10px;padding:7px 9px;font-size:10.5px;color:var(--ink-soft);text-align:left}
+  .info{padding:14px 15px 16px}
+  .sname{font-size:15px;font-weight:800;letter-spacing:-.01em}
+  .tags{display:flex;flex-wrap:wrap;gap:6px;margin:9px 0 10px}
+  .tag{font-size:10.5px;font-weight:600;color:var(--ink-soft);background:var(--field);border-radius:6px;padding:3px 7px}
+  .tag.beat{color:var(--accent);background:var(--accent-soft)}
+  .vo{font-size:12.5px;color:var(--ink);font-style:italic;border-left:2px solid var(--line);padding-left:10px;margin:8px 0}
+  .key{font-size:11.5px;color:var(--ink-soft);margin-top:8px}
+  .key b{color:var(--ink);font-weight:700}
+  .foot{margin-top:46px;color:var(--ink-faint);font-size:12.5px;text-align:center}
+  @media(max-width:520px){h1{font-size:30px}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="eyebrow">Storyboard review</div>
+    <h1>Flowva — Launch Video</h1>
+    <div class="meta">
+      <span class="pill"><b>Arc</b> · PAS (problem → agitate → solve)</span>
+      <span class="pill"><b>Format</b> · Portrait 1080×1920</span>
+      <span class="pill"><b>Length</b> · ~29s · 7 scenes</span>
+      <span class="pill"><b>Lang</b> · English</span>
+    </div>
+    <p class="msg">Dropshippers mark factory goods up 3–4× and hide the source. Flowva shows the real factory price plus one small visible fee — and lets you shop together to split the shipping. Scenes 4–6 use real captured app screens; 1–3 &amp; 7 are kinetic typography.</p>
+  </header>
+
+  <div class="grid">
+
+    <!-- 1 -->
+    <div class="scene">
+      <div class="phone"><div class="num">1</div><div class="tcat">Hook</div>
+        <div class="stage">
+          <div class="big" style="font-size:46px">€32</div>
+          <div style="color:var(--ink-faint);font-size:13px;margin:6px 0">You paid · <span style="color:var(--accent)">?</span></div>
+          <div class="big" style="font-size:30px;color:var(--ink-soft)">€8</div>
+          <div style="color:var(--ink-faint);font-size:12px;margin-top:4px">the factory charged</div>
+        </div>
+      </div>
+      <div class="info">
+        <div class="sname">The price gap</div>
+        <div class="tags"><span class="tag">Negative contrast</span><span class="tag beat">skepticism</span><span class="tag">4s · cut</span></div>
+        <div class="vo">"You paid thirty-two euros. The factory charged eight."</div>
+        <div class="key"><b>Key:</b> the price you paid and the real factory price are 4× apart.</div>
+      </div>
+    </div>
+
+    <!-- 2 -->
+    <div class="scene">
+      <div class="phone"><div class="num">2</div><div class="tcat">Pain point</div>
+        <div class="stage" style="justify-content:flex-start;padding-top:30px">
+          <div style="display:flex;align-items:flex-end;gap:10px;height:120px">
+            <div class="barwrap"><div class="bar" style="height:30px"></div><span style="font-size:11px;color:var(--ink-soft)">€8</span></div>
+            <div class="barwrap"><div class="bar" style="height:110px;background:#bdb9b2"></div><span style="font-size:11px;color:var(--ink)">€32</span></div>
+          </div>
+          <div style="font-size:10px;color:var(--ink-faint);margin-top:6px">dropshipper markup</div>
+          <div class="fric"><span>Shipping eats cheap items</span><span>Customs at the door</span><span>Quality? A gamble</span></div>
+        </div>
+      </div>
+      <div class="info">
+        <div class="sname">Where it went</div>
+        <div class="tags"><span class="tag">Rule of three</span><span class="tag beat">frustration</span><span class="tag">5s · slide-up</span></div>
+        <div class="vo">"A reseller marked it up and hid the source. Then shipping, customs, and quality you just gamble on."</div>
+        <div class="key"><b>Key:</b> hidden markup is only the start — shipping, customs &amp; quality all bite.</div>
+      </div>
+    </div>
+
+    <!-- 3 -->
+    <div class="scene">
+      <div class="phone"><div class="num">3</div><div class="tcat">Product intro</div>
+        <div class="stage">
+          <div class="strike" style="font-size:18px;margin-bottom:14px">alone</div>
+          <div class="big" style="font-size:27px">What if nothing<br>was hidden?<span class="dot"></span></div>
+        </div>
+      </div>
+      <div class="info">
+        <div class="sname">What if nothing was hidden</div>
+        <div class="tags"><span class="tag">Future pacing</span><span class="tag beat">relief</span><span class="tag">3s · blur</span></div>
+        <div class="vo">"What if you could just buy straight from the factory — nothing hidden?"</div>
+        <div class="key"><b>Key:</b> there is a way to shop where nothing is hidden. <span style="color:var(--accent)">●</span> first orange.</div>
+      </div>
+    </div>
+
+    <!-- 4 -->
+    <div class="scene">
+      <div class="phone shotwrap"><div class="num">4</div><div class="tcat">Feature · real screen</div>
+        <img class="shot" src="assets/app/real-feed.png" alt="Factory feed" />
+        <div class="callout" style="left:14px;right:14px;bottom:16px">
+          <div class="row"><span>Factory price</span><b>€8.00</b></div>
+          <div class="row"><span>Flowva fee 8%</span><b>€0.64</b></div>
+          <div class="row" style="margin-top:3px"><span><b>You pay</b></span><b>€8.64</b></div>
+          <span class="link1688">1688.com ↗</span>
+        </div>
+      </div>
+      <div class="info">
+        <div class="sname">Meet Flowva, the real price</div>
+        <div class="tags"><span class="tag">Show-don't-tell</span><span class="tag beat">trust</span><span class="tag">5s · slide-up</span></div>
+        <div class="vo">"Flowva. The real factory price, one small visible fee — and the raw source link, shown."</div>
+        <div class="key"><b>Key:</b> Flowva shows the true factory price, the fee, and the 1688 source.</div>
+      </div>
+    </div>
+
+    <!-- 5 -->
+    <div class="scene">
+      <div class="phone shotwrap"><div class="num">5</div><div class="tcat">Benefit · real screen</div>
+        <img class="shot" src="assets/app/real-orders.png" alt="Orders journey" />
+        <div class="callout" style="left:14px;top:120px"><b>Quality-control ✓</b><div style="color:var(--ink-soft);margin-top:2px">inspected &amp; measured</div></div>
+        <div class="callout" style="left:14px;right:14px;bottom:16px;text-align:center"><span class="chip">DDP — 21% VAT included</span></div>
+      </div>
+      <div class="info">
+        <div class="sname">Checked before it ships</div>
+        <div class="tags"><span class="tag">Risk reversal</span><span class="tag beat">trust</span><span class="tag">4s · slide-up</span></div>
+        <div class="vo">"Every item inspected and measured before it ships. VAT included — no surprise at the door."</div>
+        <div class="key"><b>Key:</b> inspected, measured &amp; VAT-paid before it ever reaches your door.</div>
+      </div>
+    </div>
+
+    <!-- 6 -->
+    <div class="scene">
+      <div class="phone shotwrap"><div class="num">6</div><div class="tcat">Peak · real screen</div>
+        <img class="shot" src="assets/app/real-warehouse.png" alt="One parcel, split shipping" />
+        <div class="callout" style="left:14px;right:14px;bottom:16px;text-align:center">
+          <div style="color:var(--ink-faint);font-size:10px">shipping / item</div>
+          <div style="font-size:13px;color:var(--ink-faint);text-decoration:line-through">€11.70</div>
+          <div style="font-size:24px;font-weight:900;color:var(--accent)">€3.90</div>
+        </div>
+      </div>
+      <div class="info">
+        <div class="sname">Shop together, split shipping</div>
+        <div class="tags"><span class="tag">Value stacking</span><span class="tag beat">belonging</span><span class="tag">5s · slide-up</span></div>
+        <div class="vo">"Or shop together. One parcel, split shipping — the more friends, the lower it drops."</div>
+        <div class="key"><b>Key:</b> buying together collapses shipping into one parcel and one shrinking cost.</div>
+      </div>
+    </div>
+
+    <!-- 7 -->
+    <div class="scene">
+      <div class="phone"><div class="num">7</div><div class="tcat">CTA</div>
+        <div class="stage">
+          <div style="font-weight:800;letter-spacing:.16em;font-size:14px;margin-bottom:20px">🦊 FLOWVA</div>
+          <div class="btn">Join Flowva</div>
+          <div style="color:var(--ink-soft);font-size:11.5px;margin-top:16px">Shop factory-direct · flowva.app</div>
+        </div>
+      </div>
+      <div class="info">
+        <div class="sname">Join Flowva</div>
+        <div class="tags"><span class="tag">Category announcement</span><span class="tag beat">urgency-to-act</span><span class="tag">3s · blur</span></div>
+        <div class="vo">"Shop factory-direct, nothing hidden. Join Flowva at flowva dot app."</div>
+        <div class="key"><b>Key:</b> factory-direct shopping has a home — flowva.app — and joining is one tap.</div>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="foot">Story beats unchanged · visual guidance from frame.md · scenes 4–6 = real captured app screens</div>
+</div>
+</body>
+</html>

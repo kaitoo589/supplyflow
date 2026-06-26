@@ -1,0 +1,253 @@
+<!doctype html>
+<html>
+  <head><meta charset="UTF-8" /></head>
+  <body>
+    <template>
+      <style>
+
+        #root {
+          position: absolute;
+          inset: 0;
+          width: 1080px;
+          height: 1920px;
+          overflow: hidden;
+          background: #F8F7F4;
+          font-family: 'Inter', sans-serif;
+          color: #111111;
+        }
+
+        /* macro-push wrapper — the whole shot drifts/pushes underneath */
+        .stage {
+          position: absolute;
+          inset: 0;
+          will-change: transform, filter;
+        }
+
+        /* the headline cluster sits centred ~0.4h (y ≈ 768) */
+        .cluster {
+          position: absolute;
+          left: 90px;
+          right: 90px;
+          top: 560px;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          will-change: transform, opacity, filter;
+        }
+
+        .eyebrow {
+          font-size: 30px;
+          font-weight: 600;
+          letter-spacing: 0.32em;
+          text-transform: uppercase;
+          color: #A8A5A0;
+          margin-bottom: 56px;
+          will-change: transform, opacity;
+        }
+
+        /* two text states stacked in the same box; we cross between them */
+        .headwrap {
+          position: relative;
+          width: 100%;
+          display: flex;
+          justify-content: center;
+          align-items: center;
+        }
+
+        .head {
+          font-weight: 800;
+          font-size: 116px;
+          line-height: 1.06;
+          letter-spacing: -0.02em;
+          text-align: center;
+          color: #111111;
+          max-width: 860px;
+        }
+
+        /* STATE A — "alone?" question that gets struck out */
+        .state-a {
+          position: relative;
+          will-change: opacity, transform, filter;
+        }
+
+        /* STATE B — the resolved headline */
+        .state-b {
+          position: absolute;
+          top: 0;
+          left: 50%;
+          transform: translateX(-50%);
+          width: 100%;
+          opacity: 0;
+          will-change: opacity, transform, filter;
+        }
+
+        .soft { color: #6E6B66; font-weight: 700; }
+
+        /* sketchout strike over the word "alone" (css-marker-patterns mode 5) */
+        .sketch-wrap {
+          position: relative;
+          display: inline-block;
+          white-space: nowrap;
+        }
+        .sketch-text {
+          position: relative;
+          z-index: 0;
+          color: #6E6B66;
+        }
+        .sketch-lines {
+          position: absolute;
+          top: 0;
+          left: -8px;
+          right: -8px;
+          bottom: 0;
+          overflow: hidden;
+          z-index: 1;
+          pointer-events: none;
+        }
+        .sketch-line {
+          position: absolute;
+          display: block;
+          top: 50%;
+          left: 0;
+          width: 100%;
+          height: 7px;
+          border-radius: 4px;
+          background: #A8A5A0;
+          transform-origin: left center;
+        }
+
+        /* the question mark / period anchor + the planted orange dot */
+        .qmark { position: relative; display: inline-block; }
+        .dot {
+          position: absolute;
+          right: -50px;
+          bottom: 18px;
+          width: 34px;
+          height: 34px;
+          border-radius: 50%;
+          background: #FF5C00;
+          box-shadow: 0 0 26px rgba(255, 92, 0, 0.42);
+          opacity: 0;
+          will-change: transform, opacity;
+        }
+      </style>
+
+      <div id="root" data-composition-id="03-what-if-nothing-hidden" data-width="1080" data-height="1920">
+        <div class="stage" id="stage">
+          <div class="cluster" id="cluster">
+            <div class="eyebrow" id="eyebrow">What if</div>
+
+            <div class="headwrap">
+              <!-- STATE A: the struck-out "alone" question -->
+              <div class="head state-a" id="stateA">
+                you could<br />do this
+                <span class="sketch-wrap">
+                  <span class="sketch-text">alone</span>
+                  <span class="sketch-lines">
+                    <span class="sketch-line sketch-fwd" id="strikeFwd"></span>
+                    <span class="sketch-line sketch-bwd" id="strikeBwd"></span>
+                  </span></span><span class="soft">?</span>
+              </div>
+
+              <!-- STATE B: the resolved headline -->
+              <div class="head state-b" id="stateB">
+                nothing<br />was hidden<span class="qmark">?<span class="dot" id="dot"></span></span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <script>
+        window.__timelines = window.__timelines || {};
+        const tl = gsap.timeline({ paused: true });
+
+        const stage = document.getElementById('stage');
+        const cluster = document.getElementById('cluster');
+        const eyebrow = document.getElementById('eyebrow');
+        const stateA = document.getElementById('stateA');
+        const stateB = document.getElementById('stateB');
+        const dot = document.getElementById('dot');
+
+        const TOTAL = 3;
+
+        // ---- ENTRANCE (0 - 0.8s): blur-crossfade into the relief canvas ----
+        tl.fromTo(cluster,
+          { opacity: 0, y: 24, filter: 'blur(14px)' },
+          { opacity: 1, y: 0, filter: 'blur(0px)', duration: 0.7, ease: 'power3.out' },
+          0);
+        tl.fromTo(eyebrow,
+          { opacity: 0, y: 12 },
+          { opacity: 1, y: 0, duration: 0.5, ease: 'power2.out' },
+          0.08);
+
+        // ---- the css-marker-patterns SKETCHOUT strike over "alone" ----
+        tl.fromTo('#strikeFwd',
+          { scaleX: 0, yPercent: -50, rotation: -7 },
+          { scaleX: 1, yPercent: -50, rotation: -7, duration: 0.26, ease: 'power2.out' },
+          0.74);
+        tl.fromTo('#strikeBwd',
+          { scaleX: 0, yPercent: -50, rotation: 6 },
+          { scaleX: 1, yPercent: -50, rotation: 6, duration: 0.26, ease: 'power2.out' },
+          0.88);
+
+        // ---- DEVELOPMENT (~1.15s): discrete-text-sequence STATE SWAP ----
+        // not per-char: state A is replaced wholesale by state B.
+        const SWAP_T = 1.18;
+        // A blurs/lifts out
+        tl.to(stateA,
+          { opacity: 0, y: -22, filter: 'blur(10px)', duration: 0.34, ease: 'power2.in' },
+          SWAP_T - 0.06);
+        // B drops into place (state swap, rises in)
+        tl.fromTo(stateB,
+          { opacity: 0, y: 26, filter: 'blur(10px)' },
+          { opacity: 1, y: 0, filter: 'blur(0px)', duration: 0.5, ease: 'power3.out' },
+          SWAP_T);
+
+        // ---- the FIRST vos-orange dot blinks on beside the question mark ----
+        const DOT_T = SWAP_T + 0.38;
+        tl.fromTo(dot,
+          { opacity: 0, scale: 0 },
+          { opacity: 1, scale: 1, duration: 0.46, ease: 'back.out(2.2)' },
+          DOT_T);
+
+        // ---- SETTLE (DOT_T+ ... 3s): orange dot BREATHES (sine-wave-loop) ----
+        const IDLE_START = DOT_T + 0.5;          // ~2.06s
+        const IDLE_DUR = TOTAL - IDLE_START;     // ~0.94s
+        const phase = { p: 0 };
+        const CYCLES = 0.55;                     // gentle single breath in the tail
+        tl.to(phase,
+          {
+            p: Math.PI * 2 * CYCLES,
+            duration: IDLE_DUR,
+            ease: 'none',
+            onUpdate: () => {
+              const s = 1 + Math.sin(phase.p) * 0.18;          // dot breathes
+              const glow = 0.42 + Math.sin(phase.p) * 0.18;
+              dot.style.transform = `scale(${s})`;
+              dot.style.boxShadow = `0 0 ${26 + Math.sin(phase.p) * 10}px rgba(255,92,0,${glow})`;
+            },
+          },
+          IDLE_START);
+
+        // ---- slow macro push running underneath the whole shot ----
+        const mpEnd = { v: 0 };
+        tl.to(mpEnd,
+          {
+            v: 1,
+            duration: TOTAL,
+            ease: 'none',
+            onUpdate: () => {
+              const t = mpEnd.v;                  // 0 -> 1 across the shot
+              const sc = 1.0 + 0.018 * t;         // slow push-in
+              const y = -8 * t;                   // gentle upward drift
+              stage.style.transform = `translateY(${y}px) scale(${sc})`;
+            },
+          },
+          0);
+
+        window.__timelines["03-what-if-nothing-hidden"] = tl;
+      </script>
+    </template>
+  </body>
+</html>

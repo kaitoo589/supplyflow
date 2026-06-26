@@ -1,0 +1,432 @@
+<!doctype html>
+<html>
+  <head><meta charset="UTF-8" /></head>
+  <body>
+    <template>
+      <style>
+
+        #root {
+          position: absolute;
+          inset: 0;
+          width: 1080px;
+          height: 1920px;
+          overflow: hidden;
+          background: #F8F7F4;
+          font-family: 'Inter', sans-serif;
+          color: #111111;
+        }
+
+        /* macro-drift wrapper — slow push under the whole shot */
+        .stage {
+          position: absolute;
+          inset: 0;
+          will-change: transform;
+        }
+
+        /* ---- Device card: the REAL screenshot is the hero ---- */
+        .device {
+          position: absolute;
+          top: 150px;
+          left: 110px;
+          width: 860px;
+          height: 1440px;
+          border-radius: 30px;
+          overflow: hidden;
+          background: #FFFFFF;
+          border: 1px solid #ECEAE5;
+          box-shadow: 0 1px 2px rgba(17,17,17,.04), 0 18px 50px rgba(17,17,17,.12);
+          will-change: transform, opacity;
+        }
+        .device-inner {
+          position: absolute;
+          inset: 0;
+          transform-origin: 50% 22%;
+          will-change: transform;
+        }
+        /* The capture is 1170x2532. We show the TOP of the screen and clip the
+           bottom PWA banner + bottom nav. width:100% sets the scale; height:118%
+           overscans so the bottom banner/nav fall below the card clip, and
+           object-position:top anchors the top so only the bottom is cropped. */
+        .shot {
+          position: absolute;
+          top: 0;
+          left: 0;
+          width: 100%;
+          height: 118%;
+          display: block;
+          object-fit: cover;
+          object-position: top center;
+        }
+
+        /* ---- Pulsing attention ring over the Quality-control node ----
+           Node sits center-right of the journey map, upper-middle of the card.
+           Anchored at canvas ~ (642, 498). */
+        .ring-wrap {
+          position: absolute;
+          left: 642px;
+          top: 498px;
+          width: 0;
+          height: 0;
+          pointer-events: none;
+          will-change: transform;
+        }
+        .ring {
+          position: absolute;
+          left: 50%;
+          top: 50%;
+          width: 230px;
+          height: 230px;
+          margin-left: -115px;
+          margin-top: -115px;
+          border-radius: 50%;
+          border: 4px solid #111111;
+          opacity: 0;
+          will-change: transform, opacity;
+        }
+        .ring.soft {
+          border-color: #6E6B66;
+        }
+        .ring-core {
+          position: absolute;
+          left: 50%;
+          top: 50%;
+          width: 150px;
+          height: 150px;
+          margin-left: -75px;
+          margin-top: -75px;
+          border-radius: 50%;
+          box-shadow: 0 0 0 2px rgba(17,17,17,.10), 0 0 44px 8px rgba(17,17,17,.10);
+          opacity: 0;
+          will-change: transform, opacity;
+        }
+
+        /* ---- White callout pill pointing to the node ---- */
+        .callout {
+          position: absolute;
+          left: 250px;
+          top: 690px;
+          width: 580px;
+          background: #FFFFFF;
+          border: 1px solid #ECEAE5;
+          border-radius: 22px;
+          box-shadow: 0 1px 2px rgba(17,17,17,.04), 0 18px 50px rgba(17,17,17,.12);
+          padding: 26px 30px;
+          opacity: 0;
+          will-change: transform, opacity;
+        }
+        /* connector leader line from pill up toward the node */
+        .leader {
+          position: absolute;
+          left: 392px;
+          top: 540px;
+          width: 160px;
+          height: 160px;
+          overflow: visible;
+          pointer-events: none;
+        }
+        .leader path {
+          fill: none;
+          stroke: #A8A5A0;
+          stroke-width: 3;
+          stroke-linecap: round;
+          stroke-dasharray: 2 9;
+        }
+        .leader circle {
+          fill: #111111;
+        }
+        .callout-row {
+          display: flex;
+          align-items: center;
+          gap: 18px;
+        }
+        .check {
+          flex: 0 0 auto;
+          width: 56px;
+          height: 56px;
+          border-radius: 50%;
+          background: #111111;
+          display: grid;
+          place-items: center;
+          will-change: transform;
+        }
+        .check svg { display: block; width: 30px; height: 30px; overflow: visible; }
+        .check path {
+          fill: none;
+          stroke: #FFFFFF;
+          stroke-width: 5;
+          stroke-linecap: round;
+          stroke-linejoin: round;
+        }
+        .callout-text { min-width: 0; }
+        .callout-title {
+          font-size: 38px;
+          font-weight: 800;
+          letter-spacing: -0.6px;
+          color: #111111;
+          line-height: 1.05;
+          white-space: nowrap;
+        }
+        .callout-sub {
+          margin-top: 6px;
+          font-size: 27px;
+          font-weight: 500;
+          color: #6E6B66;
+          letter-spacing: -0.2px;
+        }
+
+        /* ---- DDP / VAT trust chip near the bottom of the card area ---- */
+        .ddp {
+          position: absolute;
+          left: 50%;
+          top: 1520px;
+          transform: translateX(-50%);
+          display: inline-flex;
+          align-items: center;
+          gap: 16px;
+          background: #FFFFFF;
+          border: 1px solid #ECEAE5;
+          border-radius: 999px;
+          box-shadow: 0 1px 2px rgba(17,17,17,.04), 0 14px 36px rgba(17,17,17,.10);
+          padding: 20px 34px;
+          opacity: 0;
+          white-space: nowrap;
+          will-change: transform, opacity;
+        }
+        .ddp-dot {
+          width: 16px;
+          height: 16px;
+          border-radius: 50%;
+          background: #111111;
+          flex: 0 0 auto;
+        }
+        .ddp-text {
+          font-size: 30px;
+          font-weight: 700;
+          letter-spacing: -0.2px;
+          color: #111111;
+        }
+        .ddp-text .muted { color: #6E6B66; font-weight: 600; }
+      </style>
+
+      <div id="root" data-composition-id="05-checked-before-it-ships" data-width="1080" data-height="1920">
+        <div class="stage" id="stage">
+
+          <!-- HERO: real app screenshot inside a device card -->
+          <div class="device" id="device">
+            <div class="device-inner" id="device-inner">
+              <img class="shot" id="shot" src="assets/app/real-orders.png" alt="" />
+            </div>
+          </div>
+
+          <!-- pulsing attention rings over Quality-control node -->
+          <div class="ring-wrap" id="ring-wrap">
+            <div class="ring-core" id="ring-core"></div>
+            <div class="ring soft" id="ring-2"></div>
+            <div class="ring" id="ring-1"></div>
+          </div>
+
+          <!-- dotted leader from pill to node -->
+          <svg class="leader" id="leader" viewBox="0 0 160 160" xmlns="http://www.w3.org/2000/svg">
+            <path id="leader-path" d="M 150 150 C 110 120, 70 70, 30 18" />
+            <circle cx="150" cy="150" r="5" />
+          </svg>
+
+          <!-- white callout pill -->
+          <div class="callout" id="callout">
+            <div class="callout-row">
+              <div class="check" id="check">
+                <svg viewBox="0 0 30 30" xmlns="http://www.w3.org/2000/svg">
+                  <path id="check-path" d="M 6 16 L 13 23 L 25 8" />
+                </svg>
+              </div>
+              <div class="callout-text">
+                <div class="callout-title">Quality-control</div>
+                <div class="callout-sub">inspected &amp; measured</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- DDP / VAT trust chip -->
+          <div class="ddp" id="ddp">
+            <span class="ddp-dot"></span>
+            <span class="ddp-text">DDP &mdash; 21% VAT <span class="muted">included</span></span>
+          </div>
+
+        </div>
+      </div>
+
+      <script>
+        window.__timelines = window.__timelines || {};
+        const tl = gsap.timeline({ paused: true });
+        window.__timelines["05-checked-before-it-ships"] = tl;
+
+        const TOTAL = 4.0;
+
+        const T = {
+          // entrance — screen rises
+          shotStart: 0.0,
+          shotDur:   0.85,
+          // development — leader draws, callout pops, ring pulses
+          leaderStart: 1.05,
+          leaderDur:   0.55,
+          calloutStart: 1.35,
+          checkStart:   1.62,
+          ringStart:    1.55,
+          // DDP chip rises
+          ddpStart: 2.35,
+          ddpDur:   0.6,
+          // settle / breath
+          breathStart: 3.0
+        };
+
+        /* ---- ENTRANCE: device card + screenshot rise in (rule: rise-in) ---- */
+        tl.fromTo("#device",
+          { opacity: 0, y: 60, scale: 0.98 },
+          { opacity: 1, y: 0, scale: 1, duration: T.shotDur, ease: "power3.out" },
+          T.shotStart
+        );
+
+        /* slow ken-burns on the screenshot itself — never a static slab.
+           1.0 -> 1.04 over the full shot, anchored at the journey map. */
+        {
+          const inner = document.getElementById("device-inner");
+          tl.to({ tick: 0 },
+            {
+              tick: 1,
+              duration: TOTAL,
+              ease: "none",
+              onUpdate: function () {
+                const p = tl.time() / TOTAL;        // 0 -> 1
+                gsap.set(inner, { scale: 1.0 + 0.04 * p });
+              }
+            },
+            0
+          );
+        }
+
+        /* ---- DEVELOPMENT: dotted leader draws (svg-path-draw recipe) ----
+           strokeDasharray = getTotalLength(); offset len -> 0. The path uses a
+           dotted dash pattern, so we animate a wrapper clip instead of the dash
+           to keep the dots — reveal via stroke-dashoffset on a solid guide is not
+           possible with a patterned dash, so we fade+grow the leader cleanly. */
+        tl.fromTo("#leader",
+          { opacity: 0, scale: 0.9, transformOrigin: "100% 100%" },
+          { opacity: 1, scale: 1, duration: T.leaderDur, ease: "power2.out" },
+          T.leaderStart
+        );
+
+        /* callout pill pops in (spring-flavored back.out, like badges) */
+        tl.fromTo("#callout",
+          { opacity: 0, y: 26, scale: 0.92, transformOrigin: "0% 0%" },
+          { opacity: 1, y: 0, scale: 1, duration: 0.6, ease: "back.out(1.6)" },
+          T.calloutStart
+        );
+
+        /* check-mark draws itself inside the dark disc (svg-path-draw) */
+        {
+          const cp = document.getElementById("check-path");
+          const len = cp.getTotalLength();
+          cp.style.strokeDasharray = String(len);
+          cp.style.strokeDashoffset = String(len);
+          tl.fromTo(cp,
+            { strokeDashoffset: len },
+            { strokeDashoffset: 0, duration: 0.4, ease: "power2.out" },
+            T.checkStart
+          );
+          // tiny press-pop on the disc as the check lands
+          tl.fromTo("#check",
+            { scale: 0.7 },
+            { scale: 1, duration: 0.45, ease: "back.out(2.2)" },
+            T.checkStart - 0.05
+          );
+        }
+
+        /* ---- pulsing attention ring (deterministic, finite repeats) ----
+           Two expanding rings + a steady glowing core. Driven by tl.time()
+           so every frame is reproducible from time alone. */
+        {
+          const ring1 = document.getElementById("ring-1");
+          const ring2 = document.getElementById("ring-2");
+          const core  = document.getElementById("ring-core");
+          const PERIOD = 1.25;           // one pulse cycle
+          const dur = TOTAL - T.ringStart;
+          const phase2 = 0.5;            // ring2 offset by half a cycle
+
+          // steady core glow fades in and breathes gently
+          tl.to({ tick: 0 },
+            {
+              tick: 1,
+              duration: dur,
+              ease: "none",
+              onUpdate: function () {
+                const it = Math.max(0, tl.time() - T.ringStart);
+                // ease-in the core opacity over first 0.4s
+                const inOp = Math.min(1, it / 0.4);
+                const w = (it / PERIOD) * Math.PI * 2;
+                const coreScale = 1 + Math.sin(w) * 0.05;
+                gsap.set(core, { opacity: 0.9 * inOp, scale: coreScale });
+
+                // ring 1
+                const f1 = (it / PERIOD) % 1;            // 0 -> 1 sawtooth
+                const s1 = 0.55 + f1 * 0.85;             // grows outward
+                const o1 = (1 - f1) * 0.85 * inOp;       // fades as it expands
+                gsap.set(ring1, { opacity: o1, scale: s1 });
+
+                // ring 2 — offset half a cycle for a continuous ripple
+                const f2 = ((it / PERIOD) + phase2) % 1;
+                const s2 = 0.55 + f2 * 0.85;
+                const o2 = (1 - f2) * 0.6 * inOp;
+                gsap.set(ring2, { opacity: o2, scale: s2 });
+              }
+            },
+            T.ringStart
+          );
+        }
+
+        /* ---- DDP / 21% VAT chip rises near the bottom (rule: rise-in) ---- */
+        tl.fromTo("#ddp",
+          { opacity: 0, y: 34, scale: 0.96 },
+          { opacity: 1, y: 0, scale: 1, duration: T.ddpDur, ease: "power3.out" },
+          T.ddpStart
+        );
+
+        /* ---- SETTLE: gentle breath on the callout pill + macro drift ---- */
+        {
+          const callout = document.getElementById("callout");
+          const PERIOD = 1.9, AMP = 0.008;
+          const breathDur = TOTAL - T.breathStart;
+          tl.to({ tick: 0 },
+            {
+              tick: 1,
+              duration: breathDur,
+              ease: "none",
+              onUpdate: function () {
+                const it = Math.max(0, tl.time() - T.breathStart);
+                const w = (it / PERIOD) * Math.PI * 2;
+                gsap.set(callout, { scale: 1 + Math.sin(w) * AMP });
+              }
+            },
+            T.breathStart
+          );
+        }
+
+        /* macro push: very slow continuous drift under the whole shot */
+        {
+          const stage = document.getElementById("stage");
+          tl.to({ tick: 0 },
+            {
+              tick: 1,
+              duration: TOTAL,
+              ease: "none",
+              onUpdate: function () {
+                const p = tl.time() / TOTAL;
+                gsap.set(stage, { scale: 1.0 + 0.006 * p, y: -6 * p });
+              }
+            },
+            0
+          );
+        }
+      </script>
+    </template>
+  </body>
+</html>

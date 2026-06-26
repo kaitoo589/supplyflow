@@ -1,0 +1,347 @@
+<!doctype html>
+<html>
+  <head><meta charset="UTF-8" /></head>
+  <body>
+    <template>
+      <style>
+
+        #root {
+          position: absolute;
+          inset: 0;
+          width: 1080px;
+          height: 1920px;
+          overflow: hidden;
+          background: #F8F7F4;
+          font-family: 'Inter', sans-serif;
+          color: #111111;
+        }
+
+        /* macro push wrapper — slow drift under the whole shot */
+        .stage {
+          position: absolute;
+          inset: 0;
+          will-change: transform;
+        }
+
+        /* ---- small heading ---- */
+        .eyebrow {
+          position: absolute;
+          top: 150px;
+          left: 0;
+          width: 100%;
+          text-align: center;
+          font-size: 30px;
+          font-weight: 700;
+          letter-spacing: 0.14em;
+          text-transform: uppercase;
+          color: #A8A5A0;
+          will-change: transform, opacity;
+        }
+
+        /* ---- the markup bar column ---- */
+        /* Bar baseline sits at y=1000; bar grows UP to ~y=430. Top + label well above 1600. */
+        .bar-col {
+          position: absolute;
+          left: 50%;
+          top: 430px;
+          transform: translateX(-50%);
+          width: 300px;
+          height: 570px;            /* 430 -> 1000 */
+        }
+        .bar {
+          position: absolute;
+          inset: 0;
+          border-radius: 22px 22px 0 0;
+          background: linear-gradient(180deg, #E6E3DD 0%, #D9D5CE 100%);
+          border: 1px solid #ECEAE5;
+          box-shadow: 0 1px 2px rgba(17,17,17,.04), 0 10px 30px rgba(17,17,17,.07);
+          transform: scaleY(0);
+          transform-origin: bottom center;   /* grow up from baseline */
+          will-change: transform;
+          overflow: hidden;
+        }
+        /* faint diagonal hatch so the grey bar reads "dead weight" */
+        .bar::after {
+          content: "";
+          position: absolute;
+          inset: 0;
+          background-image: repeating-linear-gradient(
+            -45deg, transparent 0 18px, rgba(110,107,102,.06) 18px 19px
+          );
+        }
+        .bar-label {
+          position: absolute;
+          left: 50%;
+          top: 50%;
+          transform: translate(-50%, -50%);
+          width: 84%;
+          text-align: center;
+          font-size: 30px;
+          font-weight: 800;
+          letter-spacing: 0.02em;
+          color: #6E6B66;
+          line-height: 1.25;
+          opacity: 0;
+          will-change: opacity;
+        }
+        .bar-label .sub {
+          display: block;
+          font-size: 22px;
+          font-weight: 600;
+          letter-spacing: 0.12em;
+          text-transform: uppercase;
+          color: #A8A5A0;
+          margin-top: 8px;
+        }
+
+        /* ---- the rising number that gets stretched up ---- */
+        .price {
+          position: absolute;
+          left: 50%;
+          width: 360px;
+          margin-left: -180px;
+          text-align: center;
+          font-weight: 900;
+          letter-spacing: -0.02em;
+          will-change: transform, opacity;
+        }
+        .price.factory {
+          top: 940px;             /* small, low, near baseline */
+          font-size: 84px;
+          color: #6E6B66;
+        }
+        .price.paid {
+          top: 300px;             /* lands at the stretched top, above the bar */
+          font-size: 132px;
+          color: #111111;
+          opacity: 0;
+        }
+        .price .cur { font-weight: 800; opacity: .55; }
+
+        /* the up-arrow connecting factory -> paid, drawn as the bar grows */
+        .arrow {
+          position: absolute;
+          left: 50%;
+          margin-left: -2px;
+          width: 4px;
+          background: #C9C5BE;
+          bottom: 920px;          /* anchored just above factory price */
+          height: 0;
+          will-change: height, opacity;
+          opacity: 0;
+        }
+        .arrow::before {
+          content: "";
+          position: absolute;
+          top: -2px; left: 50%;
+          transform: translateX(-50%);
+          border-left: 11px solid transparent;
+          border-right: 11px solid transparent;
+          border-bottom: 16px solid #C9C5BE;
+        }
+
+        /* ---- friction chips (rule of three) ---- */
+        .chips {
+          position: absolute;
+          inset: 0;
+        }
+        .chip {
+          position: absolute;
+          top: 50%;
+          left: 50%;
+          display: flex;
+          align-items: center;
+          gap: 18px;
+          padding: 26px 34px;
+          background: #FFFFFF;
+          border: 1px solid #ECEAE5;
+          border-radius: 18px;
+          box-shadow: 0 1px 2px rgba(17,17,17,.04), 0 10px 30px rgba(17,17,17,.07);
+          font-size: 34px;
+          font-weight: 700;
+          color: #6E6B66;
+          white-space: nowrap;
+          will-change: transform, opacity;
+        }
+        .chip .ico {
+          width: 50px;
+          height: 50px;
+          flex: 0 0 50px;
+          border-radius: 13px;
+          background: #F3F1ED;
+          display: grid;
+          place-items: center;
+          color: #A8A5A0;
+        }
+        .chip .ico svg { display: block; }
+      </style>
+
+      <div id="root" data-composition-id="02-where-it-went" data-width="1080" data-height="1920">
+        <div class="stage" id="stage">
+
+          <div class="eyebrow" id="eyebrow">Where it went</div>
+
+          <!-- bar that stretches the price -->
+          <div class="bar-col">
+            <div class="bar" id="bar">
+              <div class="bar-label" id="barLabel">
+                +€24
+                <span class="sub">dropshipper markup</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- connector arrow -->
+          <div class="arrow" id="arrow"></div>
+
+          <!-- prices -->
+          <div class="price factory" id="factory"><span class="cur">€</span>8</div>
+          <div class="price paid" id="paid"><span class="cur">€</span>32</div>
+
+          <!-- three friction chips -->
+          <div class="chips">
+            <div class="chip" id="chip0" data-tx="-300" data-ty="-470">
+              <span class="ico">
+                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <rect x="1" y="7" width="13" height="10" rx="1.5"/><path d="M14 10h4l3 3v4h-7z"/><circle cx="5" cy="18" r="1.8"/><circle cx="17" cy="18" r="1.8"/>
+                </svg>
+              </span>
+              Shipping eats cheap items
+            </div>
+            <div class="chip" id="chip1" data-tx="330" data-ty="-150">
+              <span class="ico">
+                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M3 21V8l9-5 9 5v13"/><path d="M3 21h18"/><rect x="9" y="13" width="6" height="8"/>
+                </svg>
+              </span>
+              Customs at the door
+            </div>
+            <div class="chip" id="chip2" data-tx="-280" data-ty="200">
+              <span class="ico">
+                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M12 3l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 17l-5.2 2.1 1-5.8L3.5 9.2l5.9-.9z"/>
+                </svg>
+              </span>
+              Quality? A gamble
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <script>
+        window.__timelines = window.__timelines || {};
+        const tl = gsap.timeline({ paused: true });
+
+        const stage   = document.getElementById('stage');
+        const eyebrow = document.getElementById('eyebrow');
+        const bar     = document.getElementById('bar');
+        const barLabel= document.getElementById('barLabel');
+        const arrow   = document.getElementById('arrow');
+        const factory = document.getElementById('factory');
+        const paid    = document.getElementById('paid');
+        const chips   = [
+          document.getElementById('chip0'),
+          document.getElementById('chip1'),
+          document.getElementById('chip2'),
+        ];
+
+        const ARROW_LEN = 600; // height of the connector when full
+
+        // ---- macro push: very slow scale + drift under the whole shot ----
+        tl.fromTo(stage,
+          { scale: 1.03, y: -12 },
+          { scale: 1.0, y: 0, duration: 5, ease: 'power1.out' },
+          0
+        );
+
+        // ---- entrance ----
+        // eyebrow rises in
+        tl.fromTo(eyebrow,
+          { opacity: 0, y: 18 },
+          { opacity: 1, y: 0, duration: 0.6, ease: 'power3.out' },
+          0.1
+        );
+
+        // small €8 sits low and fades up first
+        tl.fromTo(factory,
+          { opacity: 0, y: 24, scale: 0.9 },
+          { opacity: 1, y: 0, scale: 1, duration: 0.55, ease: 'back.out(1.6)' },
+          0.25
+        );
+
+        // grey markup bar grows upward (scaleY from bottom origin) — heavy, dull
+        tl.fromTo(bar,
+          { scaleY: 0 },
+          { scaleY: 1, duration: 1.0, ease: 'power3.out' },
+          0.6
+        );
+
+        // connector arrow grows with the bar
+        tl.fromTo(arrow,
+          { height: 0, opacity: 0 },
+          { height: ARROW_LEN, opacity: 1, duration: 1.0, ease: 'power3.out' },
+          0.62
+        );
+
+        // €32 reveals at the stretched top as the bar tops out
+        tl.fromTo(paid,
+          { opacity: 0, y: 30, scale: 0.94 },
+          { opacity: 1, y: 0, scale: 1, duration: 0.55, ease: 'back.out(1.7)' },
+          1.25
+        );
+
+        // bar label fades in once the bar has body
+        tl.fromTo(barLabel,
+          { opacity: 0 },
+          { opacity: 1, duration: 0.5, ease: 'power2.out' },
+          1.05
+        );
+
+        // ---- development: three friction chips stagger in (center-outward-expansion) ----
+        // GSAP owns centering via xPercent/yPercent:-50 so the transform is fully
+        // GSAP-managed (seek-safe). Base x/y come from data-tx/data-ty.
+        const CHIP_START = 1.9, CHIP_STAGGER = 0.06, CHIP_DUR = 0.85;
+        chips.forEach((el, i) => {
+          const tx = Number(el.dataset.tx);
+          const ty = Number(el.dataset.ty);
+          tl.fromTo(el,
+            { xPercent: -50, yPercent: -50, x: 0, y: 0, scale: 0.55, opacity: 0 },
+            { xPercent: -50, yPercent: -50, x: tx, y: ty, scale: 1, opacity: 1, duration: CHIP_DUR, ease: 'power3.out' },
+            CHIP_START + i * CHIP_STAGGER
+          );
+        });
+
+        // ---- settle: the whole cluster sags with a slow downward sine drift ----
+        // Drives a tweened proxy (phase.p) and applies additive offsets through
+        // gsap.set, so every transform stays GSAP-managed and recomputes on any
+        // seek. cos(0)=1 -> sag starts at 0 and sin(0)=0 -> breath starts at 0:
+        // begins exactly at the rested state, no jump.
+        const IDLE_START = 3.0;
+        const IDLE_DUR = 5 - IDLE_START; // 2.0s
+        const phase = { p: 0 };
+        tl.to(phase, {
+          p: Math.PI * 1.5,           // ~3/4 cycle: ease into a sag and hold heavy
+          duration: IDLE_DUR,
+          ease: 'none',
+          onUpdate: () => {
+            // a slow downward sag — cluster feels heavy/weighed-down
+            const sag = (1 - Math.cos(phase.p)) * 9; // 0 -> ~15px downward, monotonic-ish
+            const breath = Math.sin(phase.p) * 4;
+            // chips each sag slightly differently (out-of-phase) for a cluttered, alive feel
+            chips.forEach((el, i) => {
+              const tx = Number(el.dataset.tx);
+              const ty = Number(el.dataset.ty);
+              const off = Math.sin(phase.p + i * (Math.PI / 3)) * 5;
+              gsap.set(el, { x: tx, y: ty + sag + off });
+            });
+            // the paid number breathes faintly at top
+            gsap.set(paid, { y: breath * 0.5 });
+          }
+        }, IDLE_START);
+
+        window.__timelines["02-where-it-went"] = tl;
+      </script>
+    </template>
+  </body>
+</html>

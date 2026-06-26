@@ -57,6 +57,11 @@ enabled = true
 verify_jwt = false
 entrypoint = "./functions/haul-shipping/index.ts"
 
+[functions.haul-shipping-group]
+enabled = true
+verify_jwt = false
+entrypoint = "./functions/haul-shipping-group/index.ts"
+
 [functions.withdrawal-request]
 enabled = true
 verify_jwt = false

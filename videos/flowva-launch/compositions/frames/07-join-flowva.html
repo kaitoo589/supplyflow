@@ -1,0 +1,285 @@
+<!doctype html>
+<html>
+  <head><meta charset="UTF-8" /></head>
+  <body>
+    <template>
+      <style>
+
+        #root {
+          position: absolute;
+          inset: 0;
+          width: 1080px;
+          height: 1920px;
+          overflow: hidden;
+          background: #F8F7F4;
+          font-family: 'Inter', sans-serif;
+          color: #111111;
+        }
+
+        /* Slow macro drift runs under the whole shot */
+        .macro {
+          position: absolute;
+          inset: 0;
+          will-change: transform;
+        }
+
+        /* Centered column, content anchored in the top ~83% (<= 1600px) */
+        .stage {
+          position: absolute;
+          left: 50%;
+          top: 760px;            /* hero cluster centered around ~0.4h */
+          transform: translateX(-50%);
+          width: 1080px;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+        }
+
+        /* Flowva wordmark in ink, settles above the button */
+        .wordmark {
+          font-size: 132px;
+          font-weight: 900;
+          letter-spacing: -3px;
+          line-height: 1;
+          color: #111111;
+          margin: 0 0 78px 0;
+          will-change: transform, opacity;
+        }
+
+        /* Morph footprint — dot and pill share this center anchor */
+        .swap-wrap {
+          position: relative;
+          width: 620px;
+          height: 188px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+        }
+
+        /* The single orange dot (bookend from Frame 3) */
+        .dot {
+          position: absolute;
+          left: 50%;
+          top: 50%;
+          width: 64px;
+          height: 64px;
+          margin-left: -32px;
+          margin-top: -32px;
+          border-radius: 50%;
+          background: #FF5C00;
+          box-shadow: 0 0 44px rgba(255, 92, 0, 0.45);
+          transform-origin: 50% 50%;
+          will-change: transform, opacity;
+          z-index: 1;
+        }
+
+        /* accent-soft halo behind the CTA pill */
+        .halo {
+          position: absolute;
+          left: 50%;
+          top: 50%;
+          width: 660px;
+          height: 240px;
+          margin-left: -330px;
+          margin-top: -120px;
+          border-radius: 140px;
+          background: #FFF0E7;
+          filter: blur(2px);
+          transform-origin: 50% 50%;
+          will-change: transform, opacity;
+          opacity: 0;
+          z-index: 1;
+        }
+
+        /* Primary "Join Flowva" pill — vos-orange */
+        .cta {
+          position: absolute;
+          left: 50%;
+          top: 50%;
+          transform: translate(-50%, -50%) scale(0.103);
+          width: 560px;
+          height: 176px;
+          border-radius: 88px;
+          background: #FF5C00;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          box-shadow:
+            0 1px 2px rgba(17, 17, 17, 0.04),
+            0 16px 44px rgba(255, 92, 0, 0.28);
+          transform-origin: 50% 50%;
+          will-change: transform, opacity;
+          opacity: 0;
+          z-index: 2;
+        }
+        .cta-text {
+          color: #FFFFFF;
+          font-size: 60px;
+          font-weight: 800;
+          letter-spacing: -0.5px;
+          white-space: nowrap;
+          will-change: transform, opacity;
+          opacity: 0;
+        }
+
+        /* ink-soft subline below the button */
+        .subline {
+          margin-top: 80px;
+          font-size: 42px;
+          font-weight: 500;
+          letter-spacing: 0.2px;
+          color: #6E6B66;
+          white-space: nowrap;
+          will-change: transform, opacity;
+          opacity: 0;
+        }
+        .subline .accent {
+          color: #FF5C00;
+          font-weight: 700;
+        }
+      </style>
+
+      <div id="root" data-composition-id="07-join-flowva" data-width="1080" data-height="1920">
+        <div class="macro" id="macro">
+          <div class="stage">
+            <h1 class="wordmark" id="wordmark">Flowva</h1>
+
+            <div class="swap-wrap">
+              <div class="halo" id="halo"></div>
+              <div class="dot" id="dot"></div>
+              <div class="cta" id="cta">
+                <span class="cta-text" id="cta-text">Join Flowva</span>
+              </div>
+            </div>
+
+            <div class="subline" id="subline">Shop factory-direct&nbsp;&middot;&nbsp;<span class="accent">flowva.app</span></div>
+          </div>
+        </div>
+      </div>
+
+      <script>
+        window.__timelines = window.__timelines || {};
+        const tl = gsap.timeline({ paused: true });
+
+        const W = 1080, H = 1920;
+        const TOTAL = 3;
+
+        const dot = document.getElementById('dot');
+        const cta = document.getElementById('cta');
+        const halo = document.getElementById('halo');
+
+        // ---- Initial states (explicit, seek-safe) ----
+        // Dot arrives travelling in from the lower-left toward center.
+        gsap.set('#dot', { x: -150, y: 120, scale: 0.85, opacity: 0 });
+        gsap.set('#wordmark', { opacity: 0, y: 26, scale: 0.985 });
+        gsap.set('#halo', { scale: 0.62, opacity: 0 });
+        // CTA pre-set to the morph EXIT_SCALE footprint (dot diameter / pill height
+        // = 64/176 ~= 0.103) so the scale-swap reads as one object growing.
+        gsap.set('#cta', { opacity: 0 });
+        gsap.set('#cta-text', { opacity: 0, y: 8 });
+        gsap.set('#subline', { opacity: 0, y: 18 });
+
+        // ============================================================
+        // PHASE 1 — Wordmark settles in ink + dot travels to center
+        // ============================================================
+        tl.to('#wordmark', {
+          opacity: 1, y: 0, scale: 1,
+          duration: 0.62, ease: 'power3.out'
+        }, 0.12);
+
+        // Dot fades on and glides to the swap center (arrives, decelerating)
+        tl.to('#dot', { opacity: 1, duration: 0.18, ease: 'power1.out' }, 0.18);
+        tl.to('#dot', {
+          x: 0, y: 0, scale: 1,
+          duration: 0.62, ease: 'power3.out'
+        }, 0.20);
+
+        // ============================================================
+        // PHASE 2 — Scale-swap: dot -> "Join Flowva" pill (back.out(2))
+        // ============================================================
+        const MORPH_AT = 1.02;
+        const EXIT_DUR = 0.30;
+        const ENTER_DUR = 0.58;
+        const OVERLAP = 0.14;
+
+        // Outgoing dot: shrink + fade fast (rushing away)
+        tl.to('#dot', {
+          scale: 0.55, opacity: 0,
+          duration: EXIT_DUR, ease: 'power2.in'
+        }, MORPH_AT);
+
+        // accent-soft halo blooms in under the pill
+        tl.to('#halo', {
+          scale: 1, opacity: 1,
+          duration: ENTER_DUR, ease: 'power3.out'
+        }, MORPH_AT + EXIT_DUR - OVERLAP);
+
+        // Incoming pill: scale 0.103 -> 1 with overshoot (arrives with weight)
+        tl.fromTo('#cta',
+          { scale: 0.103, opacity: 0 },
+          { scale: 1, opacity: 1, duration: ENTER_DUR, ease: 'back.out(2)' },
+          MORPH_AT + EXIT_DUR - OVERLAP
+        );
+
+        // Label reveals AFTER the pill reaches a recognizable scale
+        tl.to('#cta-text', {
+          opacity: 1, y: 0,
+          duration: 0.30, ease: 'power2.out'
+        }, MORPH_AT + EXIT_DUR - OVERLAP + 0.22);
+
+        // Subline fades in below once the button has settled
+        tl.to('#subline', {
+          opacity: 1, y: 0,
+          duration: 0.40, ease: 'power3.out'
+        }, MORPH_AT + EXIT_DUR + ENTER_DUR + 0.04);
+
+        // ============================================================
+        // PHASE 3 — Settle / breathe (final frame, quiet)
+        //   One full-duration continuous driver reading tl.time() — fully
+        //   seek-safe (correct value at ANY seeked time, no stale inline
+        //   transforms, no enter/idle handoff pops). The breathe amplitude
+        //   ramps up from ZERO at IDLE_START so neither the pill nor the
+        //   halo jumps when GSAP hands them off.
+        // ============================================================
+        const IDLE_START = MORPH_AT + EXIT_DUR + ENTER_DUR + 0.10; // ~2.04s
+        const IDLE_DUR = TOTAL - IDLE_START;
+        const CYCLES = 0.6; // gentle, well under one full breath in ~1s
+        const macroEl = document.getElementById('macro');
+
+        const driver = { p: 0 };
+        tl.to(driver, {
+          p: 1,
+          duration: TOTAL,
+          ease: 'none',
+          onUpdate: () => {
+            const t = tl.time(); // seconds along the timeline — seek-safe
+
+            // --- Slow macro drift under the entire shot ---
+            const dt = Math.min(Math.max(t / TOTAL, 0), 1); // 0 -> 1
+            const my = Math.sin(dt * Math.PI) * -6;          // gentle lift then settle
+            const ms = 1 + dt * 0.006;                       // imperceptible push-in
+            macroEl.style.transform = `translateY(${my}px) scale(${ms})`;
+
+            // --- Button + halo breathe (final-frame settle) ---
+            // Only take over #cta / #halo AFTER their GSAP entrances finish
+            // (last entrance ends ~1.90s; IDLE_START 2.04s). Before that we
+            // leave the transform untouched so GSAP owns the morph. The
+            // amplitude also ramps 0 -> 1 over the first ~0.35s of idle, so
+            // the take-over value is exactly scale 1.0 — no pop, seek-safe.
+            if (t >= IDLE_START) {
+              const idle = Math.min((t - IDLE_START) / 0.35, 1);
+              const ph = (t - IDLE_START) / IDLE_DUR * (Math.PI * 2 * CYCLES);
+              const s = 1 + Math.sin(ph) * 0.012 * idle;
+              cta.style.transform = `translate(-50%, -50%) scale(${s})`;
+              const hs = 1 + Math.sin(ph) * 0.02 * idle;
+              halo.style.transform = `translate(0, 0) scale(${hs})`;
+            }
+          }
+        }, 0);
+
+        window.__timelines["07-join-flowva"] = tl;
+      </script>
+    </template>
+  </body>
+</html>

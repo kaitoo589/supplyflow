@@ -1,0 +1,329 @@
+<!doctype html>
+<html>
+  <head><meta charset="UTF-8" /></head>
+  <body>
+    <template>
+      <style>
+
+        #root {
+          position: absolute;
+          inset: 0;
+          width: 1080px;
+          height: 1920px;
+          overflow: hidden;
+          background: #F8F7F4;
+          font-family: 'Inter', sans-serif;
+          color: #111111;
+        }
+
+        /* ---- Macro push layer: a slow drift under the whole shot ---- */
+        .macro {
+          position: absolute;
+          inset: 0;
+          transform-origin: 50% 50%;
+          will-change: transform;
+        }
+
+        /* ---- Wordmark, anchored at the very top ---- */
+        .wordmark-wrap {
+          position: absolute;
+          top: 70px;
+          left: 0;
+          right: 0;
+          display: flex;
+          justify-content: center;
+          will-change: transform, opacity;
+        }
+        .wordmark {
+          font-size: 84px;
+          font-weight: 800;
+          letter-spacing: -2.5px;
+          line-height: 1;
+          color: #111111;
+          white-space: nowrap;
+        }
+
+        /* ---- Device card holding the REAL screenshot ---- */
+        .device {
+          position: absolute;
+          top: 200px;
+          left: 110px;
+          width: 860px;
+          height: 1380px;
+          border-radius: 30px;
+          overflow: hidden;
+          background: #FFFFFF;
+          border: 1px solid #ECEAE5;
+          box-shadow: 0 1px 2px rgba(17,17,17,.04), 0 18px 50px rgba(17,17,17,.12);
+          will-change: transform, opacity;
+        }
+        .device-burns {
+          position: absolute;
+          inset: 0;
+          transform-origin: 50% 28%;
+          will-change: transform;
+        }
+        /* The capture is ~1170x2532. We show the TOP of the screen and clip the
+           bottom PWA banner + bottom nav. object-fit:cover + object-position:top
+           anchors the top; the container's shorter aspect ratio crops the bottom. */
+        .device img {
+          display: block;
+          width: 100%;
+          height: 118%;            /* overscan so the bottom banner/nav fall below the clip */
+          object-fit: cover;
+          object-position: top center;
+        }
+
+        /* ---- White price-breakdown callout over the lower third ---- */
+        .callout {
+          position: absolute;
+          left: 130px;
+          right: 130px;
+          top: 1090px;
+          background: #FFFFFF;
+          border: 1px solid #ECEAE5;
+          border-radius: 26px;
+          box-shadow: 0 1px 2px rgba(17,17,17,.04), 0 18px 50px rgba(17,17,17,.16);
+          padding: 38px 44px 34px;
+          will-change: transform, opacity;
+        }
+        .callout-title {
+          font-size: 26px;
+          font-weight: 700;
+          letter-spacing: 1.6px;
+          text-transform: uppercase;
+          color: #A8A5A0;
+          margin-bottom: 22px;
+        }
+        .price-row {
+          display: flex;
+          align-items: baseline;
+          justify-content: space-between;
+          padding: 11px 0;
+          opacity: 0;
+          will-change: transform, opacity;
+        }
+        .price-row .label {
+          font-size: 30px;
+          font-weight: 500;
+          color: #6E6B66;
+        }
+        .price-row .val {
+          font-size: 32px;
+          font-weight: 700;
+          color: #111111;
+          font-variant-numeric: tabular-nums;
+        }
+        .price-row.total {
+          margin-top: 10px;
+          padding-top: 20px;
+          border-top: 1px solid #ECEAE5;
+        }
+        .price-row.total .label {
+          font-size: 32px;
+          font-weight: 700;
+          color: #111111;
+        }
+        .price-row.total .val {
+          font-size: 44px;
+          font-weight: 900;
+          color: #111111;
+        }
+
+        /* ---- Source link row — the ONLY orange ---- */
+        .source {
+          margin-top: 26px;
+          display: inline-flex;
+          flex-direction: column;
+          align-items: flex-start;
+          opacity: 0;
+          will-change: opacity;
+        }
+        .source-link {
+          font-size: 32px;
+          font-weight: 700;
+          color: #FF5C00;
+          letter-spacing: 0.2px;
+          line-height: 1.1;
+        }
+        .underline-svg {
+          display: block;
+          width: 240px;
+          height: 14px;
+          margin-top: 4px;
+          overflow: visible;
+        }
+        .underline-svg path {
+          fill: none;
+          stroke: #FF5C00;
+          stroke-width: 6;
+          stroke-linecap: round;
+        }
+      </style>
+
+      <div id="root" data-composition-id="04-meet-flowva" data-width="1080" data-height="1920">
+        <div class="macro" id="macro">
+
+          <div class="wordmark-wrap" id="wordmark-wrap">
+            <div class="wordmark" id="wordmark">F</div>
+          </div>
+
+          <!-- REAL screenshot as the hero -->
+          <div class="device" id="device">
+            <div class="device-burns" id="device-burns">
+              <img src="assets/app/real-feed.png" alt="Flowva Factory Feed" />
+            </div>
+          </div>
+
+          <!-- Kinetic price-breakdown overlay -->
+          <div class="callout" id="callout">
+            <div class="callout-title">What you pay</div>
+
+            <div class="price-row" data-prow>
+              <span class="label">Factory price</span>
+              <span class="val">&euro;8.00</span>
+            </div>
+            <div class="price-row" data-prow>
+              <span class="label">Flowva fee 8%</span>
+              <span class="val">&euro;0.64</span>
+            </div>
+            <div class="price-row total" data-prow>
+              <span class="label">You pay</span>
+              <span class="val">&euro;8.64</span>
+            </div>
+
+            <div class="source" id="source">
+              <span class="source-link">1688.com &#8599;</span>
+              <svg class="underline-svg" viewBox="0 0 240 14" xmlns="http://www.w3.org/2000/svg">
+                <path id="ul-path" d="M 4 8 C 64 12, 128 4, 176 8 S 228 9, 236 7" />
+              </svg>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <script>
+        window.__timelines = window.__timelines || {};
+        const tl = gsap.timeline({ paused: true });
+        window.__timelines["04-meet-flowva"] = tl;
+
+        const TOTAL = 5.0;
+
+        // ---- Phase 1: "Flowva" wordmark discrete assembly (ink) ----
+        const SEQ = [
+          { t: 0.00, text: "F" },
+          { t: 0.10, text: "Fl" },
+          { t: 0.20, text: "Flo" },
+          { t: 0.32, text: "Flo" },   // pacing hold
+          { t: 0.44, text: "Flow" },
+          { t: 0.56, text: "Flowv" },
+          { t: 0.70, text: "Flowva" }
+        ];
+        const wordEl = document.getElementById("wordmark");
+        for (const s of SEQ) {
+          tl.set(wordEl, { textContent: s.text }, s.t);
+        }
+        tl.fromTo("#wordmark-wrap",
+          { opacity: 0, y: 18 },
+          { opacity: 1, y: 0, duration: 0.5, ease: "power3.out" },
+          0.0
+        );
+
+        // ---- Phase 1/2: REAL screenshot device rises in (hero visible by t<=0.5) ----
+        tl.fromTo("#device",
+          { opacity: 0, y: 40, scale: 0.985 },
+          { opacity: 1, y: 0, scale: 1, duration: 0.7, ease: "power3.out" },
+          0.0
+        );
+
+        // ---- Phase 3: price callout pops in (back.out), rows stagger ----
+        tl.fromTo("#callout",
+          { opacity: 0, y: 50, scale: 0.94 },
+          { opacity: 1, y: 0, scale: 1, duration: 0.62, ease: "back.out(1.6)" },
+          1.55
+        );
+        tl.fromTo("[data-prow]",
+          { opacity: 0, y: 16 },
+          { opacity: 1, y: 0, duration: 0.42, stagger: 0.06, ease: "power3.out" },
+          1.95
+        );
+
+        // ---- Phase 4: source link appears, then orange 1688 underline DRAWS ----
+        tl.to("#source",
+          { opacity: 1, duration: 0.38, ease: "power2.out" },
+          2.55
+        );
+
+        // svg-path-draw: dasharray = getTotalLength(), animate dashoffset -> 0
+        const ul = document.getElementById("ul-path");
+        const len = ul.getTotalLength();
+        ul.style.strokeDasharray = String(len);
+        ul.style.strokeDashoffset = String(len);
+        tl.fromTo(ul,
+          { strokeDashoffset: len },
+          { strokeDashoffset: 0, duration: 0.7, ease: "power2.out" },
+          2.75
+        );
+
+        // ---- Settle: slow ken-burns on the screenshot across the whole shot ----
+        {
+          const burns = document.getElementById("device-burns");
+          tl.to({ tick: 0 },
+            {
+              tick: 1,
+              duration: TOTAL,
+              ease: "none",
+              onUpdate: function () {
+                const p = tl.time() / TOTAL;          // 0 -> 1
+                const s = 1.0 + 0.04 * p;             // 1.0 -> 1.04 ken-burns
+                gsap.set(burns, { scale: s });
+              }
+            },
+            0
+          );
+        }
+
+        // ---- Settle: gentle breath on the callout card (multiplicative) ----
+        {
+          const callout = document.getElementById("callout");
+          const BREATH_START = 3.6;
+          const PERIOD = 1.9;
+          const AMP = 0.006;
+          tl.to({ tick: 0 },
+            {
+              tick: 1,
+              duration: TOTAL - BREATH_START,
+              ease: "none",
+              onUpdate: function () {
+                const it = Math.max(0, tl.time() - BREATH_START);
+                const w = (it / PERIOD) * Math.PI * 2;
+                gsap.set(callout, { scale: 1 + Math.sin(w) * AMP });
+              }
+            },
+            BREATH_START
+          );
+        }
+
+        // ---- Macro push: slow continuous drift under the whole shot ----
+        {
+          const macroEl = document.getElementById("macro");
+          tl.to({ tick: 0 },
+            {
+              tick: 1,
+              duration: TOTAL,
+              ease: "none",
+              onUpdate: function () {
+                const p = tl.time() / TOTAL;
+                const s = 1.0 + 0.006 * p;            // very gentle push
+                const y = -6 * p;                     // tiny upward drift
+                gsap.set(macroEl, { scale: s, y: y });
+              }
+            },
+            0
+          );
+        }
+      </script>
+    </template>
+  </body>
+</html>

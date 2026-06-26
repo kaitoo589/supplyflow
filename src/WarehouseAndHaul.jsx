@@ -854,6 +854,7 @@ export function WarehouseTab({ session, haulItems: allHaulItems = [], setHaulIte
   const [squadOrders, setSquadOrders] = useState([]);
   const [squadAdminId, setSquadAdminId] = useState(null);
   const [squadHostId, setSquadHostId] = useState(null);
+  const [shipState, setShipState] = useState(null);
 
   // Gedeelde groep-status: ff_group_orders geeft per groep-item box_staged_at + return_status terug.
   const fetchSquadOrders = async () => {
@@ -863,6 +864,12 @@ export function WarehouseTab({ session, haulItems: allHaulItems = [], setHaulIte
     setSquadAdminId(data?.admin_id || null);
     setSquadHostId(data?.host_id || null);
   };
+  // Verzend-settlement-status: bevroren quote + per-lid aandeel + wie al betaalde.
+  const fetchShipState = async () => {
+    if (!activeGroupId) { setShipState(null); return; }
+    const { data } = await supabase.rpc("ff_group_shipping_state", { p_group_id: activeGroupId });
+    setShipState(data?.shipment || null);
+  };
   // Markeer je EIGEN groep-item als in/uit de gedeelde doos zodat je vrienden + de gate het zien.
   const stageGroup = async (orderId, staged) => {
     if (!activeGroupId) return;
@@ -871,9 +878,9 @@ export function WarehouseTab({ session, haulItems: allHaulItems = [], setHaulIte
   };
 
   useEffect(() => {
-    fetchWarehouseOrders(); fetchBalance(); fetchSquadOrders();
+    fetchWarehouseOrders(); fetchBalance(); fetchSquadOrders(); fetchShipState();
     if (!activeGroupId) return;
-    const t = setInterval(fetchSquadOrders, 8000); // lichte poll → vrienden-staging verschijnt live
+    const t = setInterval(() => { fetchSquadOrders(); fetchShipState(); }, 8000); // lichte poll → squad-staging + betaal-status live
     return () => clearInterval(t);
   }, [activeGroupId]);
 
@@ -1038,30 +1045,25 @@ export function WarehouseTab({ session, haulItems: allHaulItems = [], setHaulIte
         })()}
       </div>
 
-      <AnimatePresence>
-        {haulItems.length > 0 && (
-          <>
-          <motion.button initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 10 }}
-            layoutId="confirmHaul" transition={springMorph}
-            onClick={() => canShip && setScreen("confirm")}
-            disabled={!canShip}
-            style={{ width: "100%", background: canShip ? "#0F0E0C" : "#E8E6E0", color: canShip ? "#FF5C00" : "#A8A5A0", border: "none", borderRadius: 12, padding: "14px", fontSize: 14, fontWeight: 700, cursor: canShip ? "pointer" : "not-allowed", marginBottom: canShip ? 20 : 8 }}>
-            {!groupReady
-              ? `Waiting for your squad · ${waitingCount} item${waitingCount === 1 ? "" : "s"} not in the box`
-              : !isHost
-                ? "Only the host can confirm & ship"
-                : "Confirm parcel & ship →"}
-          </motion.button>
-          {!canShip && (
-            <div style={{ fontSize: 11, color: "#A8A5A0", textAlign: "center", marginBottom: 20, lineHeight: 1.4 }}>
-              {!groupReady
-                ? "Everyone adds their items to the shared box before it can ship. Accepted returns don't count."
-                : `The parcel ships to the host's address, so only the host${hostName ? ` (${hostName})` : ""} confirms it.`}
-            </div>
+      {activeGroupId ? (
+        <GroupShippingPanel
+          session={session} groupId={activeGroupId} shipment={shipState}
+          waitingCount={waitingCount} isHost={isHost} hostName={hostName}
+          haulCount={haulItems.length}
+          onRefresh={() => { fetchShipState(); fetchSquadOrders(); fetchWarehouseOrders(); fetchBalance(); }}
+        />
+      ) : (
+        <AnimatePresence>
+          {haulItems.length > 0 && (
+            <motion.button initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 10 }}
+              layoutId="confirmHaul" transition={springMorph}
+              onClick={() => setScreen("confirm")}
+              style={{ width: "100%", background: "#0F0E0C", color: "#FF5C00", border: "none", borderRadius: 12, padding: "14px", fontSize: 14, fontWeight: 700, cursor: "pointer", marginBottom: 20 }}>
+              Confirm parcel & ship →
+            </motion.button>
           )}
-          </>
-        )}
-      </AnimatePresence>
+        </AnimatePresence>
+      )}
 
       {loading && <div style={{ textAlign: "center", padding: 40, color: "#999" }}>Loading...</div>}
       {!loading && warehouseOrders.length === 0 && (
@@ -1181,6 +1183,125 @@ export function WarehouseTab({ session, haulItems: allHaulItems = [], setHaulIte
       </AnimatePresence>
     </div>
   );
+}
+
+// ── Groep-verzending (gewicht-gesplitst, directe betaling). Vervangt de solo "Confirm
+//    parcel & ship" in groep-modus: host bevriest één gecombineerde quote → elk lid betaalt
+//    z'n gewichtsaandeel → laatste betaling verzendt administratief naar het host-adres. ──
+function GroupShippingPanel({ session, groupId, shipment, waitingCount, isHost, hostName, haulCount, onRefresh }) {
+  const [busy, setBusy] = useState(false);
+  const [channels, setChannels] = useState(null); // null = dicht, array = kanaal-keuze
+  const [msg, setMsg] = useState("");
+  const myId = session.user.id;
+
+  const wrap = { background: "#fff", border: "1px solid #E8E6E0", borderRadius: 16, padding: 16, marginBottom: 20 };
+  const darkBtn = (disabled) => ({ width: "100%", background: disabled ? "#E8E6E0" : "#0F0E0C", color: disabled ? "#A8A5A0" : "#FF5C00", border: "none", borderRadius: 12, padding: "14px", fontSize: 14, fontWeight: 700, cursor: disabled ? "not-allowed" : "pointer" });
+  const eur = (x) => `€${Number(x || 0).toFixed(2)}`;
+
+  const getQuote = async () => {
+    setBusy(true); setMsg("");
+    const { data, error } = await supabase.functions.invoke("haul-shipping-group", { body: { action: "quote", groupId } });
+    setBusy(false);
+    if (error || !data?.ok) { setMsg(data?.error || error?.message || "Could not get a shipping quote"); return; }
+    if (!data.channels?.length) { setMsg(data.isSandbox ? "Sandbox: no live channels yet" : "No shipping options available right now"); return; }
+    setChannels(data.channels);
+  };
+  const lock = async (serviceCode) => {
+    setBusy(true); setMsg("");
+    const { data, error } = await supabase.functions.invoke("haul-shipping-group", { body: { action: "lock", groupId, serviceCode } });
+    setBusy(false);
+    if (error || !data?.ok) { setMsg(data?.error || error?.message || "Could not lock the quote"); return; }
+    setChannels(null); onRefresh();
+  };
+  const pay = async () => {
+    setBusy(true); setMsg("");
+    const { data, error } = await supabase.rpc("ff_pay_group_shipping", { p_group_id: groupId });
+    setBusy(false);
+    if (error || !data?.ok) { setMsg(data?.error || error?.message || "Payment failed"); return; }
+    onRefresh();
+  };
+  const drop = async () => {
+    setBusy(true); setMsg("");
+    const { data, error } = await supabase.rpc("ff_drop_unpaid_and_requote", { p_group_id: groupId });
+    setBusy(false);
+    if (error || !data?.ok) { setMsg(data?.error || error?.message || "Could not re-open shipping"); return; }
+    onRefresh();
+  };
+  const err = msg ? <div style={{ fontSize: 11, color: "#B91C1C", textAlign: "center", marginTop: 8 }}>{msg}</div> : null;
+
+  // ── Nog geen vergrendelde quote ──
+  if (!shipment) {
+    if (haulCount === 0 && waitingCount === 0) return null;
+    if (waitingCount > 0) {
+      return <div style={{ ...wrap, textAlign: "center", color: "#92400E", background: "#FFF7ED", borderColor: "#FCD9B6", fontSize: 13 }}>
+        ⏳ Waiting for your squad — {waitingCount} item{waitingCount === 1 ? "" : "s"} not in the box yet.
+      </div>;
+    }
+    if (!isHost) {
+      return <div style={{ ...wrap, textAlign: "center", fontSize: 13, color: "#6b6b6b" }}>
+        ✓ Everyone's in the box. The host{hostName ? ` (${hostName})` : ""} locks the shipping quote, then you each pay your share.
+      </div>;
+    }
+    if (channels === null) {
+      return <div style={{ marginBottom: 20 }}>
+        <button disabled={busy} onClick={getQuote} style={darkBtn(busy)}>{busy ? "Getting quote…" : "Lock shipping quote & open split →"}</button>
+        {err}
+      </div>;
+    }
+    return <div style={wrap}>
+      <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 4 }}>Choose the shipping option</div>
+      <div style={{ fontSize: 11, color: "#9C9893", marginBottom: 10 }}>One combined parcel to {hostName || "the host"}. The cost is split across everyone by weight.</div>
+      {channels.map((c) => (
+        <button key={c.serviceCode} disabled={busy} onClick={() => lock(c.serviceCode)}
+          style={{ width: "100%", textAlign: "left", background: "#F8F7F4", border: "1px solid #E8E6E0", borderRadius: 12, padding: "10px 12px", marginBottom: 8, cursor: busy ? "wait" : "pointer", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <span><span style={{ fontWeight: 600, fontSize: 13 }}>{c.name}</span>{c.maxDays ? <span style={{ fontSize: 11, color: "#9C9893" }}> · {c.minDays}-{c.maxDays} days</span> : null}</span>
+          <span style={{ fontWeight: 700, fontSize: 13 }}>~{eur(c.priceEur)}</span>
+        </button>
+      ))}
+      <button onClick={() => { setChannels(null); setMsg(""); }} style={{ width: "100%", background: "none", border: "none", color: "#9C9893", fontSize: 12, padding: 6, cursor: "pointer" }}>Cancel</button>
+      {err}
+    </div>;
+  }
+
+  // ── Quote vergrendeld → iedereen betaalt z'n aandeel ──
+  if (shipment.status === "quoted") {
+    const members = shipment.members || [];
+    const me = members.find((m) => m.user_id === myId);
+    const unpaid = members.filter((m) => !m.paid).length;
+    const deadlinePassed = shipment.pay_deadline && new Date(shipment.pay_deadline).getTime() < Date.now();
+    return <div style={wrap}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 2 }}>
+        <span style={{ fontSize: 13, fontWeight: 700 }}>Shipping · split by weight</span>
+        <span style={{ fontSize: 12, fontWeight: 700, color: "#FF5C00" }}>{shipment.members_paid}/{shipment.members_total} paid</span>
+      </div>
+      <div style={{ fontSize: 11, color: "#9C9893", marginBottom: 10 }}>One parcel to {hostName || "the host"}{shipment.service_name ? ` · ${shipment.service_name}` : ""}</div>
+      {members.map((m) => (
+        <div key={m.user_id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "7px 0", borderBottom: "1px solid #F0EEE8", fontSize: 12.5 }}>
+          <span style={{ fontWeight: 600, color: "#111" }}>{m.user_id === myId ? "You" : m.member}<span style={{ color: "#9C9893", fontWeight: 400 }}> · {(Number(m.weight_g) / 1000).toFixed(2)} kg</span></span>
+          <span style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <span style={{ fontWeight: 700 }}>{eur(m.share_total)}</span>
+            <span style={{ fontSize: 10, fontWeight: 700, color: m.paid ? "#10B981" : "#9C9893" }}>{m.paid ? "✓ Paid" : "Pending"}</span>
+          </span>
+        </div>
+      ))}
+      {me && !me.paid && (
+        <button disabled={busy} onClick={pay} style={{ ...darkBtn(busy), marginTop: 12 }}>{busy ? "Paying…" : `Pay my share · ${eur(me.share_total)} →`}</button>
+      )}
+      {me && me.paid && (
+        <div style={{ marginTop: 12, textAlign: "center", fontSize: 12.5, fontWeight: 700, color: "#10B981" }}>✓ You paid {eur(me.share_total)} — waiting for the rest of your squad.</div>
+      )}
+      {isHost && deadlinePassed && unpaid > 0 && (
+        <button disabled={busy} onClick={drop} style={{ width: "100%", marginTop: 8, background: "#FFF7ED", color: "#92400E", border: "1px solid #FCD9B6", borderRadius: 12, padding: "11px", fontSize: 12.5, fontWeight: 700, cursor: "pointer" }}>Ship without {unpaid} unpaid member{unpaid === 1 ? "" : "s"} →</button>
+      )}
+      {err}
+    </div>;
+  }
+
+  // ── Alles betaald → consolideren / verzonden ──
+  return <div style={{ ...wrap, textAlign: "center", background: "#ECFDF5", borderColor: "#A7F3D0" }}>
+    <div style={{ fontSize: 13, fontWeight: 700, color: "#065F46" }}>✓ All paid — your parcel is on its way</div>
+    <div style={{ fontSize: 11.5, color: "#047857", marginTop: 4 }}>Everyone's items are being combined into one parcel and shipped to {hostName || "the host"}. You'll get tracking once it leaves the warehouse.</div>
+  </div>;
 }
 
 // "In transit": de pakketten van de klant — betaald en verzonden, met live tracking.

@@ -1299,7 +1299,8 @@ export default function SupplyFlow({ session }) {
     setActiveGroup((cur) => {
       if (!cur) return cur;
       const g = groups.find((x) => x.group_id === cur.id);
-      return g && g.status === "gathering" ? cur : null;
+      // Behoud de actieve groep ook ná plaatsing (volg-modus); alleen weg bij echt einde.
+      return g && !["cancelled", "expired", "closed"].includes(g.status) ? cur : null;
     });
   };
   useEffect(() => { if (session && (tab === "profile" || !showFriends)) loadMyGroups(); // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -1324,7 +1325,9 @@ export default function SupplyFlow({ session }) {
       .on("postgres_changes", { event: "UPDATE", schema: "public", table: "flowva_groups", filter: `id=eq.${gid}` },
         (payload) => {
           const st = payload.new?.status;
-          if (st && st !== "gathering") { setActiveGroup(null); setGroupToast({ kind: st, name: payload.new?.name || gname }); }
+          // Geplaatst → blijf in de groep (volg-modus) + toast; alleen bij echt einde uit.
+          if (st && st !== "gathering") setGroupToast({ kind: st, name: payload.new?.name || gname });
+          if (st && ["cancelled", "expired", "closed"].includes(st)) setActiveGroup(null);
         })
       .subscribe();
     return () => supabase.removeChannel(channel);
@@ -2227,7 +2230,7 @@ export default function SupplyFlow({ session }) {
                   <div style={{ width: 38, height: 38, borderRadius: 11, background: "#FFF0E7", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18, flexShrink: 0 }}>🦊</div>
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ fontSize: 14, fontWeight: 700, color: "#0F0E0C" }}>Flowva Friends</div>
-                    <div style={{ fontSize: 12, color: "#A8A5A0", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{activeGroup ? `Shopping for ${activeGroup.name}` : "Order together — select a group to activate"}</div>
+                    <div style={{ fontSize: 12, color: "#A8A5A0", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{activeGroup ? ((myGroups.find((g) => g.group_id === activeGroup.id)?.status || "gathering") === "gathering" ? `Shopping for ${activeGroup.name}` : `Following ${activeGroup.name}`) : "Order together — select a group to activate"}</div>
                   </div>
                   <div onClick={onToggle} role="switch" aria-checked={!!activeGroup}
                     style={{ width: 48, height: 28, borderRadius: 999, background: activeGroup ? "#FF5C00" : "#E3E1DC", position: "relative", cursor: "pointer", flexShrink: 0, transition: "background .25s" }}>
@@ -2277,18 +2280,29 @@ export default function SupplyFlow({ session }) {
                     <>
                       <div style={{ fontSize: 11, color: "#A8A5A0", fontWeight: 600, letterSpacing: 0.4, margin: "16px 2px 8px" }}>ORDERED</div>
                       <div style={{ display: "flex", flexDirection: "column", gap: 7 }}>
-                        {placed.map((g) => (
-                          <div key={g.group_id} onClick={() => { setFriendsGroupId(g.group_id); setShowFriends(true); }}
-                            style={{ display: "flex", alignItems: "center", gap: 10, cursor: "pointer", borderRadius: 12, padding: "10px 12px", background: "#F8F7F4", border: "1px solid #ECEAE5" }}>
+                        {placed.map((g) => {
+                          const live = activeGroup && activeGroup.id === g.group_id;
+                          const gOrder = orders.find((o) => o.ff_group_id === g.group_id);
+                          const statusLabel = (gOrder && statusConfig[gOrder.status]?.label) || "Order placed";
+                          return (
+                          <div key={g.group_id} onClick={() => setActiveGroup(live ? null : { id: g.group_id, name: g.name })}
+                            style={{ display: "flex", alignItems: "center", gap: 10, cursor: "pointer", borderRadius: 12, padding: "10px 12px", background: live ? "#F1FBF4" : "#F8F7F4", border: `1.5px solid ${live ? "rgba(22,163,74,0.5)" : "#ECEAE5"}` }}>
                             <div style={{ width: 30, height: 30, borderRadius: 9, background: "#0F0E0C", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14, flexShrink: 0 }}>📦</div>
                             <div style={{ flex: 1, minWidth: 0 }}>
                               <div style={{ fontSize: 13, fontWeight: 600, color: "#111111", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{g.name}{g.role === "admin" ? " · admin" : ""}</div>
-                              <div style={{ fontSize: 11, color: "#A8A5A0" }}>{g.member_count}/{g.max_size} friends · order placed</div>
+                              <div style={{ fontSize: 11, color: "#A8A5A0" }}>{g.member_count}/{g.max_size} friends · {statusLabel}{live ? " · following" : ""}</div>
                             </div>
-                            <span style={{ color: "#C9C6C1", fontSize: 16 }}>›</span>
+                            <div style={{ width: 18, height: 18, borderRadius: "50%", border: `2px solid ${live ? "#16A34A" : "#D4D2CC"}`, flexShrink: 0, position: "relative" }}>
+                              {live && <div style={{ position: "absolute", inset: 3, borderRadius: "50%", background: "#16A34A" }} />}
+                            </div>
                           </div>
-                        ))}
+                          );
+                        })}
                       </div>
+                      {activeGroup && placed.some((g) => g.group_id === activeGroup.id) && (
+                        <button onClick={() => { setFriendsGroupId(activeGroup.id); setShowFriends(true); }}
+                          style={{ background: "transparent", border: "none", color: "#16A34A", fontSize: 12, fontWeight: 700, cursor: "pointer", padding: "8px 0 0", textAlign: "left" }}>Open group &amp; see details →</button>
+                      )}
                     </>
                   );
                 })()}

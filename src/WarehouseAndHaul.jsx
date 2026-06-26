@@ -225,8 +225,6 @@ function OrderDetailModal({ order, inHaul, onAdd, onRemove, onDispute, onClose, 
   const [lightbox, setLightbox] = useState(null);
   const [busy, setBusy] = useState(false);
   const [confirmReturn, setConfirmReturn] = useState(false);
-  // Toon álle officiële foto's samen: quality-control + measurement (één blok).
-  const photos = [...(order.qc_images || []), ...(order.measurement_images || [])];
   const acceptDefect = async () => {
     setBusy(true);
     const { data, error } = await supabase.rpc("accept_qc_result", { p_order_id: order.id });
@@ -273,11 +271,11 @@ function OrderDetailModal({ order, inHaul, onAdd, onRemove, onDispute, onClose, 
         {/* Quality-control foto's — of "awaiting" zolang ze er nog niet zijn */}
         <div style={{ marginBottom: 16 }}>
           <div style={{ fontSize: 12, fontWeight: 700, color: "#888", marginBottom: 8, letterSpacing: 1 }}>QUALITY-CONTROL PICTURES</div>
-          {photos.length > 0 ? (
+          {order.qc_images?.length > 0 ? (
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
-              {photos.map((url, i) => (
+              {order.qc_images.map((url, i) => (
                 <motion.div key={i} whileTap={{ scale: 0.97 }} onClick={() => setLightbox(url)} style={{ borderRadius: 10, overflow: "hidden", aspectRatio: "1", cursor: "pointer" }}>
-                  <img src={url} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                  <img src={url} referrerPolicy="no-referrer" alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
                 </motion.div>
               ))}
             </div>
@@ -321,6 +319,27 @@ function OrderDetailModal({ order, inHaul, onAdd, onRemove, onDispute, onClose, 
             </div>
           )}
         </div>
+        )}
+        {order.measurement_images?.length > 0 && (
+          <div style={{ marginBottom: 16 }}>
+            <div style={{ fontSize: 12, fontWeight: 700, color: "#888", marginBottom: 8, letterSpacing: 1 }}>ADDITIONAL PICTURES PROVIDED BY THE AGENT</div>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+              {order.measurement_images.map((url, i) => (
+                <motion.div key={i} whileTap={{ scale: 0.97 }} onClick={() => setLightbox(url)} style={{ borderRadius: 10, overflow: "hidden", aspectRatio: "1", cursor: "pointer" }}>
+                  <img src={url} referrerPolicy="no-referrer" alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                </motion.div>
+              ))}
+            </div>
+          </div>
+        )}
+        {order.agent_notitie && (
+          <div style={{ background: "#fff", border: "1px solid #E8E6E0", borderRadius: 14, padding: 16, marginBottom: 16 }}>
+            <div style={{ fontSize: 12, fontWeight: 700, color: "#888", marginBottom: 8, letterSpacing: 1 }}>AGENT MESSAGE</div>
+            <div style={{ display: "flex", gap: 10, alignItems: "flex-start" }}>
+              <div style={{ width: 30, height: 30, borderRadius: "50%", background: "#FFF1E8", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16, flexShrink: 0 }}>🦊</div>
+              <div style={{ fontSize: 13, color: "#444", lineHeight: 1.55 }}>{order.agent_notitie}</div>
+            </div>
+          </div>
         )}
         {order.weight_grams && (
           <div style={{ background: "#F0FDF4", border: "1px solid #10B981", borderRadius: 12, padding: "10px 14px", marginBottom: 16, fontSize: 13, color: "#065F46", fontWeight: 600 }}>
@@ -681,10 +700,10 @@ function DisputeForm({ order, session, onBack, onSuccess }) {
       <div style={{ fontSize: 13, color: "#aaa", marginBottom: 20 }}>Tell us why — we review it against the warehouse's quality-control photos.</div>
       <div style={{ background: "#fff", border: "1px solid #E8E6E0", borderRadius: 14, padding: 16, marginBottom: 16 }}>
         <div style={{ fontSize: 13, fontWeight: 600, color: "#0F0E0C", marginBottom: 4 }}>Quality-control photos</div>
-        <div style={{ fontSize: 11.5, color: "#aaa", marginBottom: 10, lineHeight: 1.5 }}>The official photos our warehouse took during inspection (quality-control + measurement). Tap any photo to enlarge.</div>
-        {officialPhotos.length > 0 ? (
+        <div style={{ fontSize: 11.5, color: "#aaa", marginBottom: 10, lineHeight: 1.5 }}>The official photos our warehouse took during inspection. Tap any photo to enlarge.</div>
+        {order.qc_images?.length > 0 ? (
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8 }}>
-            {officialPhotos.map((url, i) => (
+            {order.qc_images.map((url, i) => (
               <motion.img key={i} whileTap={{ scale: 0.95 }} onClick={() => setLightbox(url)} src={url} referrerPolicy="no-referrer" alt="" style={{ width: "100%", aspectRatio: "1", borderRadius: 8, objectFit: "cover", cursor: "pointer" }} />
             ))}
           </div>
@@ -692,6 +711,25 @@ function DisputeForm({ order, session, onBack, onSuccess }) {
           <div style={{ background: "#F8F7F4", borderRadius: 10, padding: "14px", textAlign: "center", fontSize: 12, color: "#9C9893" }}>No quality-control photos for this item yet.</div>
         )}
       </div>
+      {order.measurement_images?.length > 0 && (
+        <div style={{ background: "#fff", border: "1px solid #E8E6E0", borderRadius: 14, padding: 16, marginBottom: 16 }}>
+          <div style={{ fontSize: 13, fontWeight: 600, color: "#0F0E0C", marginBottom: 8 }}>Additional pictures provided by the agent</div>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8 }}>
+            {order.measurement_images.map((url, i) => (
+              <motion.img key={i} whileTap={{ scale: 0.95 }} onClick={() => setLightbox(url)} src={url} referrerPolicy="no-referrer" alt="" style={{ width: "100%", aspectRatio: "1", borderRadius: 8, objectFit: "cover", cursor: "pointer" }} />
+            ))}
+          </div>
+        </div>
+      )}
+      {order.agent_notitie && (
+        <div style={{ background: "#fff", border: "1px solid #E8E6E0", borderRadius: 14, padding: 16, marginBottom: 16 }}>
+          <div style={{ fontSize: 13, fontWeight: 600, color: "#0F0E0C", marginBottom: 8 }}>Agent message</div>
+          <div style={{ display: "flex", gap: 10, alignItems: "flex-start" }}>
+            <div style={{ width: 30, height: 30, borderRadius: "50%", background: "#FFF1E8", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16, flexShrink: 0 }}>🦊</div>
+            <div style={{ fontSize: 13, color: "#444", lineHeight: 1.55 }}>{order.agent_notitie}</div>
+          </div>
+        </div>
+      )}
       <div style={{ background: "#fff", border: "1px solid #E8E6E0", borderRadius: 14, padding: 16, marginBottom: 16 }}>
         <div style={{ fontSize: 13, fontWeight: 600, color: "#0F0E0C", marginBottom: 8 }}>{order.product_title || order.product}</div>
         <textarea placeholder="Describe the problem..." value={description} onChange={e => setDescription(e.target.value)}

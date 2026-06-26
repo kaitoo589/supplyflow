@@ -109,12 +109,12 @@ export function groupSavings(members, items) {
 export async function ffFetchGroup(groupId) {
   const [g, members, items] = await Promise.all([
     supabase.from("flowva_groups").select("*").eq("id", groupId).single(),
-    supabase.from("flowva_group_members").select("*").eq("group_id", groupId).order("joined_at"),
+    supabase.rpc("ff_group_members", { p_group_id: groupId }),   // live naam + foto, geen verouderde momentopname
     supabase.from("flowva_group_items").select("*").eq("group_id", groupId).order("created_at"),
   ]);
   return {
     group: g.data || null,
-    members: members.data || [],
+    members: members.data?.members || [],
     items: items.data || [],
     error: g.error?.message || members.error?.message || items.error?.message || null,
   };

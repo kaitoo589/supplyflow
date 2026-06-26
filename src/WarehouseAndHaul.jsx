@@ -442,7 +442,7 @@ function OrderCard({ order, onDragStart, onDragEnd, inHaul, onOpenDetail, onRepo
         </div>
       </div>
       <div style={{ marginTop: 8, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-        <div style={{ fontSize: 11, color: flagged ? "#B45309" : "#bbb", fontWeight: flagged ? 700 : 400 }}>{returning ? "↩ Return in progress" : flagged ? "⚠️ Defect found — your choice" : order.dispute_status === "pending" ? "⏳ On hold for review" : !hasQc ? "⏳ Awaiting quality-control pictures" : inHaul ? "✓ Added" : "↕ Drag to the box"}</div>
+        <div style={{ flex: 1, minWidth: 0, marginRight: 8, fontSize: 11, lineHeight: 1.3, color: flagged ? "#B45309" : "#bbb", fontWeight: flagged ? 700 : 400 }}>{returning ? "↩ Return in progress" : flagged ? "⚠️ Defect found — your choice" : order.dispute_status === "pending" ? "⏳ On hold for review" : !hasQc ? "⏳ Awaiting quality-control pictures and measurement pictures" : inHaul ? "✓ Added" : (<><span style={{ color: "#10B981", fontWeight: 700 }}>✓ All quality-control and measurement photos are ready</span><br />↕ Drag to the box</>)}</div>
         {returning ? (
           <span style={{ fontSize: 11, fontWeight: 600, color: "#B45309" }}>↩ Returning</span>
         ) : flagged ? (

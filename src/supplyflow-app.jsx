@@ -1764,16 +1764,10 @@ export default function SupplyFlow({ session }) {
               </motion.div>
               {(() => {
                 const dia = Math.max(0, Math.min(4, Number(selectedFactory.diamonds) || 0));
-                const stats = [
-                  { label: "Repurchase rate", v: selectedFactory.repurchase },
-                  { label: "Service score", v: selectedFactory.service },
-                  { label: "On-time delivery", v: selectedFactory.ontime },
-                  { label: "Positive reviews", v: selectedFactory.reviews },
-                ].filter(s => s.v);
                 return (
                   <motion.div layoutId={`factory-${selectedFactory.id}`} transition={springMorph}
                     style={{ background: "#fff", borderRadius: 16, padding: 14, marginBottom: 16, boxShadow: "0 1px 2px rgba(17,17,17,0.04), 0 6px 18px rgba(17,17,17,0.05)" }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: stats.length ? 12 : 0 }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
                       <div style={{ width: 52, height: 52, borderRadius: 13, background: "#F3F1EC", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 26, overflow: "hidden", flexShrink: 0 }}>
                         {(selectedFactory.cover || (selectedFactory.logo && selectedFactory.logo.startsWith("http"))) ? <img src={selectedFactory.cover || selectedFactory.logo} referrerPolicy="no-referrer" alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : "🏭"}
                       </div>
@@ -1782,16 +1776,7 @@ export default function SupplyFlow({ session }) {
                         <div style={{ fontSize: 16, fontWeight: 700, color: "#111" }}>{selectedFactory.name}</div>
                       </div>
                     </div>
-                    {stats.length > 0 && (
-                      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
-                        {stats.map(s => (
-                          <div key={s.label} style={{ background: "#F8F7F4", borderRadius: 10, padding: "8px 10px", border: "1px solid #EFEDE7" }}>
-                            <div style={{ fontSize: 15, fontWeight: 800, color: "#FF5C00" }}>{s.v}</div>
-                            <div style={{ fontSize: 10.5, color: "#8A8780" }}>{s.label}</div>
-                          </div>
-                        ))}
-                      </div>
-                    )}
+                    {/* Factory-stats verwijderd uit de drill-in items-weergave (alleen avatar + rang + naam). */}
                   </motion.div>
                 );
               })()}

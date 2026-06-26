@@ -64,6 +64,8 @@ declare
   v_prior jsonb;
   v_result json;
   v_total numeric := 0;
+  v_units int := 0;
+  v_domestic numeric := 0;
   v_fee numeric;
   v_charge numeric;
   v_balance numeric;
@@ -133,16 +135,18 @@ begin
     count(*) filter (
       where (e->>'source_url') is null
          or not exists (select 1 from public.products pr where pr.source_url = (e->>'source_url') and pr.price is not null)
-    )
-    into v_total, v_unknown
+    ),
+    coalesce(sum(greatest(coalesce((e->>'qty')::int, 1), 1)), 0)
+    into v_total, v_unknown, v_units
   from jsonb_array_elements(p_items) e;
 
   if v_unknown > 0 then
     return json_build_object('ok', false, 'error', 'One or more products are no longer available');
   end if;
 
-  v_fee := service_fee_for(v_total);   -- max(8%, €5)
-  v_charge := v_total + v_fee;
+  v_fee := service_fee_for(v_total);              -- max(8%, €5), alleen over de fabrieksprijs
+  v_domestic := round(v_units * 5.0 / 7.8, 2);    -- China domestic shipping: ¥5/stuk → EUR (koers 7,8)
+  v_charge := v_total + v_domestic + v_fee;
 
   -- Saldo vergrendelen + controleren
   select balance into v_balance from profiles where id = v_uid for update;
@@ -192,7 +196,13 @@ begin
   insert into transactions (user_id, amount, type, order_id)
   values (v_uid, -v_fee, 'service_fee', v_first_id);
 
-  v_result := json_build_object('ok', true, 'fee', v_fee, 'total', v_total, 'charged', v_charge, 'group', v_group);
+  -- China domestic shipping (¥5/stuk) als aparte regel
+  if v_domestic > 0 then
+    insert into transactions (user_id, amount, type, order_id)
+    values (v_uid, -v_domestic, 'domestic_shipping', v_first_id);
+  end if;
+
+  v_result := json_build_object('ok', true, 'fee', v_fee, 'domestic', v_domestic, 'total', v_total, 'charged', v_charge, 'group', v_group);
   -- Resultaat vastleggen onder het token: een latere retry met hetzelfde token krijgt
   -- exact dit succes terug i.p.v. een tweede afschrijving.
   if p_idem is not null then

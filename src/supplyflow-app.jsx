@@ -495,8 +495,12 @@ function RequestListSheet({ items, onRemove, onSetQty, onClose, onSend, sending,
   const payable = items.filter((it) => !isHeld(it));
   const total = payable.reduce((s, it) => s + Number(it.price || 0) * (it.qty || 1), 0);
   const fee = payable.length ? serviceFee(total) : 0;
-  const charge = total + fee;
-  const perItem = payable.length ? fee / payable.length : fee;
+  const KOERS = 7.8;
+  const totalQty = payable.reduce((s, it) => s + (it.qty || 1), 0);
+  const domesticCny = 5 * totalQty;
+  const domestic = Math.round((domesticCny / KOERS) * 100) / 100;
+  const charge = total + domestic + fee;
+  const perItem = totalQty ? fee / totalQty : fee;
   const perItemColor = perItem >= 4 ? "#C9C6C1" : perItem >= 2 ? "#FF5C00" : "#16A34A";
   const m = session?.user?.user_metadata || {};
   const addrName = `${m.voornaam || ""} ${m.achternaam || ""}`.trim();
@@ -587,6 +591,10 @@ function RequestListSheet({ items, onRemove, onSetQty, onClose, onSend, sending,
                     <span style={{ fontSize: 12.5, color: "#9C9893" }}>Items</span>
                     <span style={{ fontSize: 12.5, color: "#fff", fontWeight: 600 }}>€{total.toFixed(2)}</span>
                   </div>
+                  <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
+                    <span style={{ fontSize: 12.5, color: "#9C9893" }}>Domestic shipping (¥5 × {totalQty})</span>
+                    <span style={{ fontSize: 12.5, color: "#fff", fontWeight: 600 }}>€{domestic.toFixed(2)} <span style={{ color: "#9C9893", fontWeight: 400 }}>· ¥{domesticCny}</span></span>
+                  </div>
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                     <span style={{ fontSize: 12.5, color: "#9C9893" }}>Service fee (8%, min €5)</span>
                     <span style={{ fontSize: 12.5, color: "#fff", fontWeight: 600 }}>€{fee.toFixed(2)}</span>
@@ -662,6 +670,10 @@ function RequestListSheet({ items, onRemove, onSetQty, onClose, onSend, sending,
                 <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
                   <span style={{ fontSize: 12.5, color: "#9C9893" }}>Items</span>
                   <span style={{ fontSize: 12.5, color: "#fff" }}>€{total.toFixed(2)}</span>
+                </div>
+                <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
+                  <span style={{ fontSize: 12.5, color: "#9C9893" }}>Domestic shipping (¥5 × {totalQty})</span>
+                  <span style={{ fontSize: 12.5, color: "#fff" }}>€{domestic.toFixed(2)} <span style={{ color: "#9C9893" }}>· ¥{domesticCny}</span></span>
                 </div>
                 <div style={{ display: "flex", justifyContent: "space-between" }}>
                   <span style={{ fontSize: 12.5, color: "#9C9893" }}>Service fee (8%, min €5)</span>

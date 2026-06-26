@@ -563,7 +563,8 @@ function HaulDetail({ haul, orders, onBack, onUpdate }) {
 
   const haulOrders = orders.filter(o => haul.items?.includes(o.id));
   const totalWeight = haulOrders.reduce((sum, o) => sum + (o.weight_grams || 0), 0);
-  const refund = haul.paid_eur && exactShipping ? (haul.paid_eur - parseFloat(exactShipping)).toFixed(2) : null;
+  // Zelfde formule als admin_settle_parcel: alleen de (buffered) verzending wordt verrekend, gevloerd op 0.
+  const refund = haul.shipping_eur != null && exactShipping ? Math.max(0, haul.shipping_eur - parseFloat(exactShipping)).toFixed(2) : null;
 
   const uploadBoxPhoto = async (file) => {
     setUploadingBox(true);

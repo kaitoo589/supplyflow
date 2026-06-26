@@ -562,75 +562,57 @@ function ConfirmHaul(props) {
 function NormalShippingConfirm({ session, haulItems, balance, onBack, onSuccess }) {
   const [confirming, setConfirming] = useState(false);
   const [quoting, setQuoting] = useState(true);
-  const [channels, setChannels] = useState(null);   // echte BuckyDrop-kanalen (productie)
-  const [selected, setSelected] = useState(null);
-  const [mode, setMode] = useState("estimate");      // "live" = echte tarieven | "estimate" = fallback
+  const [chosen, setChosen] = useState(null);     // route waarop we de schatting baseren
+  const [error, setError] = useState(null);
   const orderIds = haulItems.map(o => o.id);
   const totalWeight = haulItems.reduce((s, o) => s + (o.weight_grams || 0), 0);
-  const goodsValue = haulItems.reduce((s, o) => s + (Number(o.price) || 0), 0);
 
-  // Schatting (fallback zolang we op de sandbox zitten / als de quote faalt).
-  const estimate = shippingEstimate(totalWeight / 1000);
-  const shipBuffered = r2(estimate * BUFFER_MULTIPLIER);
-  const vatEst = r2((goodsValue + estimate) * IMPORT_VAT);
-  const FULFIL_EUR = r2(9.9 / 7.8);   // fulfilment ¥9,9 per pakket
-  const toPayEst = r2(shipBuffered + vatEst + FULFIL_EUR);
+  const LIVE_BUFFER = 1.25;             // houd gelijk aan pay_shipping_buffered (SQL)
+  const FULFIL_EUR = r2(9.9 / 7.8);     // fulfilment ¥9,9 per pakket
 
-  // Live tarieven ophalen bij het openen.
+  // Live tarief ophalen bij openen. GEEN schatting-fallback meer: lukt de quote niet,
+  // dan tonen we een nette melding (de echte prijs komt later sowieso via de admin-refund).
   useEffect(() => {
     let on = true;
     (async () => {
       try {
-        const { data, error } = await supabase.functions.invoke("haul-shipping", {
+        const { data, error: e } = await supabase.functions.invoke("haul-shipping", {
           body: { action: "quote", orderIds },
         });
         if (!on) return;
-        if (!error && data?.ok && !data.isSandbox && Array.isArray(data.channels) && data.channels.length) {
-          setChannels(data.channels);
-          setSelected(data.channels[0].serviceCode);  // goedkoopste (server sorteert)
-          setMode("live");
+        if (!e && data?.ok && !data.isSandbox && Array.isArray(data.channels) && data.channels.length) {
+          // BuckyDrop kiest de route zelf (dashboard-prioriteit); wij baseren de schatting
+          // op de DDP-route die het meest waarschijnlijk gebruikt wordt (DHL Duty-Free).
+          // ALLEEN DDP/duty-paid — anders klopt de "duties included"-belofte niet. Geen non-DDP fallback.
+          const ddp = data.channels.filter(c => c.taxInclusive);
+          if (ddp.length) setChosen(ddp.find(c => /dhl/i.test(c.name)) || ddp[0]);
+          else setError("No duty-paid shipping option is available right now. Please try again in a little while.");
+        } else if (!e && data?.needWeight) {
+          setError("We're still weighing your parcel — shipping will be available shortly.");
         } else {
-          setMode("estimate");
+          setError("Shipping isn't available right now. Please try again in a little while.");
         }
-      } catch { if (on) setMode("estimate"); }
+      } catch { if (on) setError("Shipping isn't available right now. Please try again in a little while."); }
       finally { if (on) setQuoting(false); }
     })();
     return () => { on = false; };
   }, []);
 
-  const liveChannel = channels?.find(c => c.serviceCode === selected) || null;
-  const liveAmount = liveChannel ? r2(liveChannel.priceEur + (liveChannel.taxInclusive ? 0 : r2(liveChannel.priceEur * IMPORT_VAT)) + FULFIL_EUR) : 0;
-  const toPay = mode === "live" ? liveAmount : toPayEst;
+  const estFreight = chosen ? chosen.priceEur : 0;
+  const buffered = r2(estFreight * LIVE_BUFFER);
+  const vat = chosen ? (chosen.taxInclusive ? 0 : r2(estFreight * IMPORT_VAT)) : 0;
+  const toPay = r2(buffered + vat + FULFIL_EUR);
   const canAfford = balance >= toPay;
 
-  // Live afrekenen: de edge function her-quote't + rekent server-side het echte tarief af.
+  // Afrekenen: de edge function her-quote't + rekent server-side de buffered schatting af.
   const payLive = async () => {
-    if (!liveChannel || !canAfford) return;
+    if (!chosen || !canAfford) return;
     setConfirming(true);
-    const { data, error } = await supabase.functions.invoke("haul-shipping", {
-      body: { action: "pay", orderIds, serviceCode: liveChannel.serviceCode },
+    const { data, error: e } = await supabase.functions.invoke("haul-shipping", {
+      body: { action: "pay", orderIds, serviceCode: chosen.serviceCode },
     });
     setConfirming(false);
-    if (error || !data?.ok) { alert("Payment failed: " + (error?.message || data?.error || "unknown error")); return; }
-    onSuccess();
-  };
-
-  // Fallback-afrekenen via de schatting (pay_shipping).
-  const confirmHaul = async () => {
-    if (!canAfford) return;
-    setConfirming(true);
-    const { data: pay, error: payError } = await supabase.rpc("pay_shipping", { p_order_ids: orderIds });
-    if (payError || (pay && pay.ok === false)) {
-      alert("Payment failed: " + (payError?.message || pay?.error || "unknown error"));
-      setConfirming(false);
-      return;
-    }
-    const { data: haul } = await supabase.from("hauls").insert({
-      user_id: session.user.id, status: "confirmed", estimate_eur: estimate, paid_eur: toPayEst, items: orderIds,
-    }).select().single();
-    if (haul) for (const id of orderIds) await supabase.from("haul_items").insert({ haul_id: haul.id, order_id: id });
-    // De orders zijn server-side al op 'shipped_international' gezet door pay_shipping.
-    setConfirming(false);
+    if (e || !data?.ok) { alert("Payment failed: " + (e?.message || data?.error || "unknown error")); return; }
     onSuccess();
   };
 
@@ -659,59 +641,36 @@ function NormalShippingConfirm({ session, haulItems, balance, onBack, onSuccess 
       {quoting ? (
         <motion.div layoutId="confirmHaul" transition={springMorph} style={{ background: "#0F0E0C", borderRadius: 14, padding: 22, marginBottom: 16, textAlign: "center" }}>
           <motion.div animate={{ rotate: 360 }} transition={{ repeat: Infinity, duration: 1, ease: "linear" }} style={{ width: 22, height: 22, border: "2.5px solid #333", borderTopColor: "#FF5C00", borderRadius: "50%", margin: "0 auto 10px" }} />
-          <div style={{ fontSize: 12.5, color: "#C9C6C1" }}>Finding the best shipping rate to your address…</div>
+          <div style={{ fontSize: 12.5, color: "#C9C6C1" }}>Calculating shipping to your address…</div>
         </motion.div>
-      ) : mode === "live" ? (
-        <motion.div layoutId="confirmHaul" transition={springMorph} style={{ background: "#0F0E0C", borderRadius: 14, padding: 16, marginBottom: 16 }}>
-          <div style={{ fontSize: 13, fontWeight: 700, color: "#FF5C00", marginBottom: 4 }}>Choose your shipping</div>
-          <div style={{ fontSize: 11, color: "#888", marginBottom: 12 }}>Live BuckyDrop rates — you pay exactly this, no surprises.</div>
-          {channels.map(c => {
-            const all = r2(c.priceEur + (c.taxInclusive ? 0 : r2(c.priceEur * IMPORT_VAT)));
-            const sel = c.serviceCode === selected;
-            return (
-              <motion.div key={c.serviceCode} whileTap={{ scale: 0.99 }} onClick={() => setSelected(c.serviceCode)}
-                style={{ display: "flex", alignItems: "center", gap: 10, padding: "11px 12px", marginBottom: 8, borderRadius: 12, cursor: "pointer", background: sel ? "rgba(255,92,0,0.12)" : "rgba(255,255,255,0.04)", border: `1.5px solid ${sel ? "#FF5C00" : "transparent"}` }}>
-                <div style={{ width: 18, height: 18, borderRadius: "50%", border: `2px solid ${sel ? "#FF5C00" : "#555"}`, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                  {sel && <div style={{ width: 9, height: 9, borderRadius: "50%", background: "#FF5C00" }} />}
-                </div>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontSize: 13, fontWeight: 600, color: "#fff", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{c.name}</div>
-                  <div style={{ fontSize: 11, color: "#9C9893" }}>{c.minDays}–{c.maxDays} days{c.taxInclusive ? " · duties included" : " · +21% VAT"}</div>
-                </div>
-                <div style={{ fontSize: 14, fontWeight: 800, color: "#fff", flexShrink: 0 }}>€{all.toFixed(2)}</div>
-              </motion.div>
-            );
-          })}
-          <div style={{ display: "flex", justifyContent: "space-between", marginTop: 8 }}>
-            <span style={{ fontSize: 12, color: "#9C9893" }}>Fulfillment (¥9.9)</span>
-            <span style={{ fontSize: 12, color: "#C9C6C1" }}>€{FULFIL_EUR.toFixed(2)}</span>
-          </div>
-          <div style={{ borderTop: "1px solid #333", marginTop: 4, paddingTop: 10, display: "flex", justifyContent: "space-between" }}>
-            <span style={{ fontSize: 14, fontWeight: 700, color: "#fff" }}>Pay now</span>
-            <span style={{ fontSize: 14, fontWeight: 700, color: "#FF5C00" }}>€{toPay.toFixed(2)}</span>
-          </div>
-          <div style={{ marginTop: 8, fontSize: 11, color: "#555", lineHeight: 1.5 }}>{liveChannel?.taxInclusive ? "✅ Duties prepaid (DDP) — nothing to pay on delivery." : "21% import VAT included above."}</div>
-        </motion.div>
+      ) : error ? (
+        <div style={{ background: "#FEF3C7", border: "1px solid #F59E0B", borderRadius: 14, padding: 16, marginBottom: 16 }}>
+          <div style={{ fontSize: 13, fontWeight: 700, color: "#92400E", marginBottom: 4 }}>Shipping unavailable</div>
+          <div style={{ fontSize: 12.5, color: "#92400E", lineHeight: 1.5 }}>{error}</div>
+        </div>
       ) : (
         <motion.div layoutId="confirmHaul" transition={springMorph} style={{ background: "#0F0E0C", borderRadius: 14, padding: 16, marginBottom: 16 }}>
-          <div style={{ fontSize: 13, fontWeight: 700, color: "#FF5C00", marginBottom: 12 }}>Cost overview <span style={{ color: "#666", fontWeight: 500 }}>· estimate</span></div>
-          {[
-            { label: "Total weight", value: `${totalWeight}g` },
-            { label: "Shipping estimate", value: `€${estimate.toFixed(2)}` },
-            { label: "Safety buffer (×1.3)", value: `+€${(shipBuffered - estimate).toFixed(2)}` },
-            { label: "Import VAT (21%)", value: `€${vatEst.toFixed(2)}` },
-            { label: "Fulfillment (¥9.9)", value: `€${FULFIL_EUR.toFixed(2)}` },
-          ].map((row, i) => (
-            <div key={i} style={{ display: "flex", justifyContent: "space-between", marginBottom: 8 }}>
-              <span style={{ fontSize: 13, color: "#888" }}>{row.label}</span>
-              <span style={{ fontSize: 13, color: "#fff" }}>{row.value}</span>
-            </div>
-          ))}
-          <div style={{ borderTop: "1px solid #333", paddingTop: 10, display: "flex", justifyContent: "space-between" }}>
-            <span style={{ fontSize: 14, fontWeight: 700, color: "#fff" }}>Pay now</span>
-            <span style={{ fontSize: 14, fontWeight: 700, color: "#FF5C00" }}>€{toPayEst.toFixed(2)}</span>
+          <div style={{ fontSize: 13, fontWeight: 700, color: "#FF5C00", marginBottom: 4 }}>Cost overview <span style={{ color: "#666", fontWeight: 500 }}>· estimate</span></div>
+          <div style={{ fontSize: 11, color: "#888", marginBottom: 12 }}>Estimated now — any difference comes back after the carrier's final bill.</div>
+          <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8 }}>
+            <span style={{ fontSize: 13, color: "#888" }}>International shipping <span style={{ color: "#666" }}>· duties included</span></span>
+            <span style={{ fontSize: 13, color: "#fff" }}>€{buffered.toFixed(2)}</span>
           </div>
-          <div style={{ marginTop: 10, fontSize: 11, color: "#555", lineHeight: 1.5 }}>✅ All duties prepaid (DDP) — nothing to pay on delivery. After we ship, the shipping-buffer difference comes back to your balance.</div>
+          {vat > 0 && (
+            <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8 }}>
+              <span style={{ fontSize: 13, color: "#888" }}>Import VAT (21%)</span>
+              <span style={{ fontSize: 13, color: "#fff" }}>€{vat.toFixed(2)}</span>
+            </div>
+          )}
+          <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8 }}>
+            <span style={{ fontSize: 13, color: "#888" }}>Fulfillment (¥9.9)</span>
+            <span style={{ fontSize: 13, color: "#fff" }}>€{FULFIL_EUR.toFixed(2)}</span>
+          </div>
+          <div style={{ borderTop: "1px solid #333", paddingTop: 10, display: "flex", justifyContent: "space-between" }}>
+            <span style={{ fontSize: 14, fontWeight: 700, color: "#fff" }}>Pay now <span style={{ fontWeight: 500, color: "#9C9893", fontSize: 12 }}>· estimate</span></span>
+            <span style={{ fontSize: 14, fontWeight: 700, color: "#FF5C00" }}>€{toPay.toFixed(2)}</span>
+          </div>
+          <div style={{ marginTop: 10, fontSize: 11, color: "#555", lineHeight: 1.5 }}>✅ Duties prepaid (DDP) — nothing to pay on delivery. This is an estimate with a small buffer; about a week after shipping, the carrier's final bill comes in and you get any difference back as a shipping refund.</div>
         </motion.div>
       )}
 
@@ -722,9 +681,9 @@ function NormalShippingConfirm({ session, haulItems, balance, onBack, onSuccess 
         </div>
         {!canAfford && <div style={{ fontSize: 12, color: "#B45309", marginTop: 6 }}>You're €{(toPay - balance).toFixed(2)} short.</div>}
       </div>
-      <button onClick={mode === "live" ? payLive : confirmHaul} disabled={quoting || !canAfford || confirming || (mode === "live" && !liveChannel)}
-        style={{ width: "100%", background: quoting || !canAfford || confirming ? "#E8E6E0" : "#FF5C00", color: "#fff", border: "none", borderRadius: 12, padding: "14px", fontSize: 14, fontWeight: 700, cursor: quoting || !canAfford || confirming ? "default" : "pointer" }}>
-        {confirming ? "Processing..." : quoting ? "Calculating…" : !canAfford ? "Insufficient balance" : `Confirm & pay €${toPay.toFixed(2)}`}
+      <button onClick={payLive} disabled={quoting || !!error || !chosen || !canAfford || confirming}
+        style={{ width: "100%", background: quoting || error || !chosen || !canAfford || confirming ? "#E8E6E0" : "#FF5C00", color: "#fff", border: "none", borderRadius: 12, padding: "14px", fontSize: 14, fontWeight: 700, cursor: quoting || error || !chosen || !canAfford || confirming ? "default" : "pointer" }}>
+        {confirming ? "Processing..." : quoting ? "Calculating…" : error ? "Unavailable" : !canAfford ? "Insufficient balance" : `Confirm & pay €${toPay.toFixed(2)}`}
       </button>
     </div>
   );
@@ -748,7 +707,7 @@ function HaulSuccess({ haulItems, onDone }) {
           <div style={{ background: "#F0FDF4", border: "1px solid #10B981", borderRadius: 14, padding: "14px 16px", marginBottom: 24, textAlign: "left" }}>
             <div style={{ fontSize: 13, fontWeight: 700, color: "#065F46", marginBottom: 6 }}>💸 Money back</div>
             <div style={{ fontSize: 13, color: "#065F46", lineHeight: 1.5 }}>
-              Once your parcel ships and the exact costs are known, you'll automatically get the difference back in your balance.
+              You paid an estimated shipping cost with a small buffer. About a week after your parcel ships, the carrier's final bill comes in — and you get any difference back in your balance as a shipping refund.
             </div>
           </div>
           <button onClick={onDone} style={{ width: "100%", background: "#FF5C00", color: "#fff", border: "none", borderRadius: 12, padding: "14px", fontSize: 14, fontWeight: 700, cursor: "pointer" }}>
@@ -1231,10 +1190,17 @@ export function TransitTab({ session, orders = [] }) {
               </div>
             )}
 
-            <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 10 }}>
-              <span style={{ fontSize: 12, color: "#8A8780" }}>Paid (shipping + VAT)</span>
+            <div style={{ display: "flex", justifyContent: "space-between", marginBottom: haul.settled_at && Number(haul.refund_eur) > 0 ? 8 : 10 }}>
+              <span style={{ fontSize: 12, color: "#8A8780" }}>Paid <span style={{ color: "#A8A5A0" }}>· estimated</span></span>
               <span style={{ fontSize: 12, fontWeight: 700, color: "#111111" }}>€{Number(haul.paid_eur || 0).toFixed(2)}</span>
             </div>
+
+            {haul.settled_at && Number(haul.refund_eur) > 0 && (
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10, background: "#F0FDF4", border: "1px solid #BBF7D0", borderRadius: 10, padding: "8px 11px" }}>
+                <span style={{ fontSize: 12, fontWeight: 600, color: "#065F46" }}>💸 Refund · shipping costs</span>
+                <span style={{ fontSize: 12.5, fontWeight: 800, color: "#10B981" }}>+€{Number(haul.refund_eur).toFixed(2)}</span>
+              </div>
+            )}
 
             {(haul.tracking_no || nodes.length > 0) ? (
               <div style={{ background: "#F8F7F4", borderRadius: 12, padding: "12px 13px" }}>

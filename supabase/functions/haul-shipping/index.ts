@@ -2,8 +2,9 @@
 // Twee acties (klant-JWT vereist):
 //   quote → haalt de echte verzendkanalen op (channel-carriage-list) voor de items
 //           in het pakket, vertaald naar EUR + levertijd. PRIJS KOMT SERVER-SIDE.
-//   pay   → her-quote't server-side, pakt het gekozen kanaal, en rekent EXACT af via
-//           de service-role RPC pay_shipping_exact (geen buffer, geen na-refund).
+//   pay   → her-quote't server-side, pakt het gekozen kanaal (de quote is een SCHATTING —
+//           BuckyDrop heeft geen freight-API), en rekent af via de service-role RPC
+//           pay_shipping_buffered (×1,25 buffer; de admin verrekent ~1 week later het verschil).
 // De client stuurt NOOIT een prijs mee — zelfde les als de pay_cart-fix.
 //
 // Sandbox (dev.buckydrop.com) geeft NEP test-kanalen → we geven isSandbox=true terug
@@ -168,13 +169,15 @@ Deno.serve(async (req) => {
     const serviceCode = String(payload?.serviceCode ?? "");
     const ch = channels.find((c: any) => c.serviceCode === serviceCode);
     if (!ch) return json({ ok: false, error: "Chosen shipping option is no longer available" }, 400);
-    // VAT: tax-inclusive lijnen hebben de BTW al in de prijs → niets bovenop. Anders 21%.
-    const shipping = ch.priceEur;
-    const vat = ch.taxInclusive ? 0 : round2(shipping * 0.21);
-    const amount = round2(shipping + vat);
-    const { data, error } = await admin.rpc("pay_shipping_exact", {
-      p_uid: user.id, p_order_ids: orderIds, p_amount: amount,
-      p_shipping: shipping, p_vat: vat, p_service_code: ch.serviceCode, p_service_name: ch.name,
+    // Alleen DDP/duty-paid lijnen — dan klopt de "duties included"-belofte en is er geen losse BTW.
+    if (!ch.taxInclusive) return json({ ok: false, error: "Only duty-paid (DDP) shipping is supported" }, 400);
+    // De RAW live-quote is een SCHATTING — de echte prijs komt ~1 week later (geen API).
+    // pay_shipping_buffered zet de ×1,25-buffer erop; de admin verrekent later het verschil.
+    // VAT: tax-inclusive (DDP) lijnen hebben de BTW al in de prijs → niets bovenop. Anders 21%.
+    const vat = ch.taxInclusive ? 0 : round2(ch.priceEur * 0.21);
+    const { data, error } = await admin.rpc("pay_shipping_buffered", {
+      p_uid: user.id, p_order_ids: orderIds, p_estimate: ch.priceEur,
+      p_vat: vat, p_service_code: ch.serviceCode, p_service_name: ch.name,
     });
     if (error) return json({ ok: false, error: error.message }, 500);
     return json(data);

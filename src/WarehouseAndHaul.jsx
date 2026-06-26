@@ -225,6 +225,8 @@ function OrderDetailModal({ order, inHaul, onAdd, onRemove, onDispute, onClose, 
   const [lightbox, setLightbox] = useState(null);
   const [busy, setBusy] = useState(false);
   const [confirmReturn, setConfirmReturn] = useState(false);
+  // QC + measurement komen via één gezamenlijke BuckyDrop-fotolijst → samen in één blok tonen.
+  const qcmPhotos = [...(order.qc_images || []), ...(order.measurement_images || [])];
   const acceptDefect = async () => {
     setBusy(true);
     const { data, error } = await supabase.rpc("accept_qc_result", { p_order_id: order.id });
@@ -263,25 +265,25 @@ function OrderDetailModal({ order, inHaul, onAdd, onRemove, onDispute, onClose, 
         <div style={{ fontSize: 18, fontWeight: 700, color: "#0F0E0C", marginBottom: 4 }}>{order.product_title || order.product}</div>
         <div style={{ fontSize: 13, color: "#aaa", marginBottom: 16 }}>{order.qty} pcs · {order.weight_grams ? `${order.weight_grams}g` : "weight unknown"}</div>
         {/* De defect-flag staat als aparte sectie ONDER quality-control + measurement (zie hieronder). */}
-        {/* Quality-control pictures — altijd zichtbaar */}
+        {/* QC + measurement samen — één gezamenlijke BuckyDrop-fotolijst (niet te scheiden) */}
         <div style={{ marginBottom: 16 }}>
-          <div style={{ fontSize: 12, fontWeight: 700, color: "#888", marginBottom: 8, letterSpacing: 1 }}>QUALITY-CONTROL PICTURES</div>
-          {order.qc_images?.length > 0 ? (
+          <div style={{ fontSize: 12, fontWeight: 700, color: "#888", marginBottom: 8, letterSpacing: 1 }}>QUALITY-CONTROL &amp; MEASUREMENT PICTURES</div>
+          {qcmPhotos.length > 0 ? (
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
-              {order.qc_images.map((url, i) => (
+              {qcmPhotos.map((url, i) => (
                 <motion.div key={i} whileTap={{ scale: 0.97 }} onClick={() => setLightbox(url)} style={{ borderRadius: 10, overflow: "hidden", aspectRatio: "1", cursor: "pointer" }}>
                   <img src={url} referrerPolicy="no-referrer" alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
                 </motion.div>
               ))}
             </div>
           ) : (
-            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-              {[0, 1, 2].map((i) => (
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+              {[0, 1, 2, 3, 4, 5].map((i) => (
                 <motion.div key={i}
                   animate={i === 0 ? undefined : { opacity: [0.55, 1, 0.55] }}
-                  transition={i === 0 ? undefined : { duration: 1.6, repeat: Infinity, ease: "easeInOut", delay: i * 0.2 }}
-                  style={{ background: "#F8F7F4", borderRadius: 12, padding: "16px 14px", textAlign: "center", fontSize: 13, color: "#9C9893" }}>
-                  {i === 0 ? "⏳ Awaiting quality-control pictures" : " "}
+                  transition={i === 0 ? undefined : { duration: 1.6, repeat: Infinity, ease: "easeInOut", delay: i * 0.15 }}
+                  style={{ background: "#F8F7F4", borderRadius: 10, aspectRatio: "1", display: "flex", alignItems: "center", justifyContent: "center", textAlign: "center", padding: 10, fontSize: 11.5, color: "#9C9893", lineHeight: 1.35 }}>
+                  {i === 0 ? "⏳ Awaiting pictures" : ""}
                 </motion.div>
               ))}
             </div>
@@ -308,25 +310,14 @@ function OrderDetailModal({ order, inHaul, onAdd, onRemove, onDispute, onClose, 
                   animate={i === 0 ? undefined : { opacity: [0.55, 1, 0.55] }}
                   transition={i === 0 ? undefined : { duration: 1.6, repeat: Infinity, ease: "easeInOut", delay: i * 0.2 }}
                   style={{ background: "#F8F7F4", borderRadius: 12, padding: "16px 14px", textAlign: "center", fontSize: 13, color: "#9C9893" }}>
-                  {i === 0 ? "⏳ Awaiting measurement photos" : " "}
+                  {i === 0 ? "⏳ Awaiting measurement photos" : " "}
                 </motion.div>
               ))}
             </div>
           )}
         </div>
         )}
-        {order.measurement_images?.length > 0 && (
-          <div style={{ marginBottom: 16 }}>
-            <div style={{ fontSize: 12, fontWeight: 700, color: "#888", marginBottom: 8, letterSpacing: 1 }}>MEASUREMENT PICTURES</div>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
-              {order.measurement_images.map((url, i) => (
-                <motion.div key={i} whileTap={{ scale: 0.97 }} onClick={() => setLightbox(url)} style={{ borderRadius: 10, overflow: "hidden", aspectRatio: "1", cursor: "pointer" }}>
-                  <img src={url} referrerPolicy="no-referrer" alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-                </motion.div>
-              ))}
-            </div>
-          </div>
-        )}
+        {/* Measurement zit nu samen met QC in één blok hierboven (gezamenlijke API). */}
         {order.dispute_status === "bucky_flagged" && (
           <div style={{ background: "#FFF7ED", border: "1.5px solid #F59E0B", borderRadius: 14, padding: 16, marginBottom: 16 }}>
             <div style={{ fontSize: 14, fontWeight: 700, color: "#B45309", marginBottom: 4 }}>⚠️ Quality-control flagged a possible defect</div>
@@ -805,28 +796,27 @@ function DisputeForm({ order, session, onBack, onSuccess }) {
       <div style={{ fontSize: 16, fontWeight: 700, color: "#0F0E0C", marginBottom: 4 }}>Report a problem</div>
       <div style={{ fontSize: 13, color: "#aaa", marginBottom: 20 }}>Tell us why — we review it against the warehouse's quality-control photos.</div>
       <div style={{ background: "#fff", border: "1px solid #E8E6E0", borderRadius: 14, padding: 16, marginBottom: 16 }}>
-        <div style={{ fontSize: 13, fontWeight: 600, color: "#0F0E0C", marginBottom: 4 }}>Quality-control photos</div>
+        <div style={{ fontSize: 13, fontWeight: 600, color: "#0F0E0C", marginBottom: 4 }}>Quality-control &amp; measurement pictures</div>
         <div style={{ fontSize: 11.5, color: "#aaa", marginBottom: 10, lineHeight: 1.5 }}>The official photos our warehouse took during inspection. Tap any photo to enlarge.</div>
-        {order.qc_images?.length > 0 ? (
+        {officialPhotos.length > 0 ? (
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8 }}>
-            {order.qc_images.map((url, i) => (
+            {officialPhotos.map((url, i) => (
               <motion.img key={i} whileTap={{ scale: 0.95 }} onClick={() => setLightbox(url)} src={url} referrerPolicy="no-referrer" alt="" style={{ width: "100%", aspectRatio: "1", borderRadius: 8, objectFit: "cover", cursor: "pointer" }} />
             ))}
           </div>
         ) : (
-          <div style={{ background: "#F8F7F4", borderRadius: 10, padding: "14px", textAlign: "center", fontSize: 12, color: "#9C9893" }}>No quality-control photos for this item yet.</div>
-        )}
-      </div>
-      {order.measurement_images?.length > 0 && (
-        <div style={{ background: "#fff", border: "1px solid #E8E6E0", borderRadius: 14, padding: 16, marginBottom: 16 }}>
-          <div style={{ fontSize: 13, fontWeight: 600, color: "#0F0E0C", marginBottom: 8 }}>Measurement pictures</div>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8 }}>
-            {order.measurement_images.map((url, i) => (
-              <motion.img key={i} whileTap={{ scale: 0.95 }} onClick={() => setLightbox(url)} src={url} referrerPolicy="no-referrer" alt="" style={{ width: "100%", aspectRatio: "1", borderRadius: 8, objectFit: "cover", cursor: "pointer" }} />
+            {[0, 1, 2, 3, 4, 5].map((i) => (
+              <motion.div key={i}
+                animate={i === 0 ? undefined : { opacity: [0.55, 1, 0.55] }}
+                transition={i === 0 ? undefined : { duration: 1.6, repeat: Infinity, ease: "easeInOut", delay: i * 0.15 }}
+                style={{ background: "#F8F7F4", borderRadius: 8, aspectRatio: "1", display: "flex", alignItems: "center", justifyContent: "center", textAlign: "center", padding: 8, fontSize: 11, color: "#9C9893", lineHeight: 1.3 }}>
+                {i === 0 ? "⏳ Awaiting" : ""}
+              </motion.div>
             ))}
           </div>
-        </div>
-      )}
+        )}
+      </div>
       {order.agent_notitie && (
         <div style={{ background: "#fff", border: "1px solid #E8E6E0", borderRadius: 14, padding: 16, marginBottom: 16 }}>
           <div style={{ fontSize: 13, fontWeight: 600, color: "#0F0E0C", marginBottom: 8 }}>Agent message</div>

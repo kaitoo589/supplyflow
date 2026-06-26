@@ -185,8 +185,8 @@ export default function OrderRequest({ product, session, onClose, onSuccess, onA
                   {product.title}
                 </motion.div>
                 <motion.div layoutId={`platform-${product.id}`} transition={spring}
-                  style={{ fontSize: 13, color: "#888", marginTop: 4 }}>
-                  {product.platform} · €{Number(product.price).toFixed(2)} · factory price
+                  style={{ fontSize: 12.5, color: "#888", marginTop: 4 }}>
+                  {product.platform}{product.source_url ? <> · raw link: <a href={product.source_url} target="_blank" rel="noreferrer" style={{ color: "#FF7A1A", wordBreak: "break-all" }}>{product.source_url}</a></> : null}
                 </motion.div>
               </div>
               <motion.button
@@ -256,35 +256,21 @@ export default function OrderRequest({ product, session, onClose, onSuccess, onA
               </motion.div>
             )}
 
+            {/* Prijs — duidelijk boven Quantity, in euro én yuan, plus de China-verzending. */}
             {(() => {
-              const fname = product.supplier && product.supplier !== product.platform ? product.supplier : null;
-              const st = product.factory_stats;
-              if (!fname && !st) return null;
-              const stats = st ? [
-                { label: "Repurchase rate", v: st.repurchase },
-                { label: "Service score", v: st.service },
-                { label: "On-time delivery", v: st.ontime },
-                { label: "Positive reviews", v: st.reviews },
-              ].filter(s => s.v) : [];
+              const KOERS = 7.8;
+              const priceEur = Number(product.price) || 0;
+              const shipCny = 5;
               return (
-                <motion.div variants={fadeUp} style={{ background: "#F8F7F4", borderRadius: 14, padding: "12px 14px", marginBottom: 24 }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: 9, marginBottom: stats.length ? 10 : 0 }}>
-                    <span style={{ fontSize: 17 }}>🏭</span>
-                    <div>
-                      <div style={{ fontSize: 11, color: "#A8A5A0", fontWeight: 600 }}>Factory</div>
-                      <div style={{ fontSize: 13.5, fontWeight: 700, color: "#111" }}>{fname || "Verified supplier"}</div>
-                    </div>
+                <motion.div variants={fadeUp} style={{ background: "#F8F7F4", borderRadius: 14, padding: "14px 16px", marginBottom: 24 }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
+                    <span style={{ fontSize: 13, color: "#6B6862", fontWeight: 600 }}>Factory price</span>
+                    <span style={{ fontSize: 18, fontWeight: 800, color: "#111" }}>€{priceEur.toFixed(2)} <span style={{ fontSize: 13, color: "#A8A5A0", fontWeight: 600 }}>· ¥{(priceEur * KOERS).toFixed(2)}</span></span>
                   </div>
-                  {stats.length > 0 && (
-                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
-                      {stats.map(s => (
-                        <div key={s.label} style={{ background: "#fff", borderRadius: 10, padding: "8px 10px", border: "1px solid #EFEDE7" }}>
-                          <div style={{ fontSize: 15, fontWeight: 800, color: "#FF5C00" }}>{s.v}</div>
-                          <div style={{ fontSize: 10.5, color: "#8A8780" }}>{s.label}</div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginTop: 7 }}>
+                    <span style={{ fontSize: 12.5, color: "#8A8780" }}>China shipping</span>
+                    <span style={{ fontSize: 13.5, fontWeight: 700, color: "#111" }}>€{(shipCny / KOERS).toFixed(2)} <span style={{ fontSize: 12, color: "#A8A5A0", fontWeight: 600 }}>· ¥{shipCny}</span></span>
+                  </div>
                 </motion.div>
               );
             })()}

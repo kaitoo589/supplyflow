@@ -147,6 +147,16 @@ function productProgress(o) {
   if (step > QC_FULL_STEP) return 100;   // shipped_international / delivered
   return [20, 40, 60][step] ?? 20;        // order placed / bought / shipped_local
 }
+// Bij 'qc_pending' is een item eerst "Arrived in warehouse" (net binnen, nog geen
+// quality-control foto's) en pas "Quality-control pictures ready" zodra de foto's er zijn.
+function qcArrived(o) {
+  return typeof o === "object" && o?.status === "qc_pending" && !(o?.qc_images?.length > 0);
+}
+function statusLabel(o) {
+  if (qcArrived(o)) return "Arrived in warehouse";
+  const status = typeof o === "string" ? o : o?.status;
+  return (statusConfig[status] || statusConfig.purchased).label;
+}
 const PRODUCT_COLORS = ["#FF5C00", "#6366F1", "#16A34A", "#EAB308", "#EC4899"];
 
 // Tik op de ring → groot voortgangswiel: elk product een concentrische boog die
@@ -273,7 +283,7 @@ function OrderGroupCard({ items, onOpenItem }) {
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{ fontSize: 12.5, fontWeight: 600, color: "#111", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{o.product_title || o.product}</div>
                       <div style={{ fontSize: 11, color: "#A8A5A0", marginBottom: 3 }}>{o.qty} pcs{o.kleur ? ` · ${o.kleur}` : ""} · €{(Number(o.price) || 0).toFixed(2)}</div>
-                      <div style={{ display: "inline-block", background: s.bg, color: s.color, fontSize: 10.5, fontWeight: 700, padding: "2px 9px", borderRadius: 20 }}>{s.label}{o.problem_type ? " · ⚠️" : ""}</div>
+                      <div style={{ display: "inline-block", background: s.bg, color: s.color, fontSize: 10.5, fontWeight: 700, padding: "2px 9px", borderRadius: 20 }}>{statusLabel(o)}{o.problem_type ? " · ⚠️" : ""}</div>
                     </div>
                     <div style={{ color: "#ccc", fontSize: 16, flexShrink: 0 }}>→</div>
                   </motion.div>
@@ -2055,13 +2065,16 @@ export default function SupplyFlow({ session }) {
           )}
           {(() => {
             const fm = foxMessages[selectedOrder.status];
+            const fmMsg = qcArrived(selectedOrder)
+              ? "Arrived at our warehouse! The quality-control photos are being prepared."
+              : fm?.msg;
             return fm ? (
               <div style={{ display: "flex", alignItems: "flex-start", gap: 12, background: "#111111", borderRadius: 18, padding: "15px 16px", marginBottom: 16 }}>
                 <div style={{ width: 34, height: 34, borderRadius: "50%", background: "rgba(255,255,255,0.08)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 17, flexShrink: 0 }}>🦊</div>
                 <div style={{ flex: 1 }}>
-                  <div style={{ fontSize: 12.5, fontWeight: 700, color: "#FF5C00", marginBottom: 4 }}>{statusConfig[selectedOrder.status]?.label}</div>
+                  <div style={{ fontSize: 12.5, fontWeight: 700, color: "#FF5C00", marginBottom: 4 }}>{statusLabel(selectedOrder)}</div>
                   <div style={{ fontSize: 13, color: "#C9C6C1", lineHeight: 1.55 }}>
-                    <WordReveal key={selectedOrder.status} text={fm.msg} stagger={0.025} />
+                    <WordReveal key={selectedOrder.status} text={fmMsg} stagger={0.025} />
                   </div>
                 </div>
               </div>

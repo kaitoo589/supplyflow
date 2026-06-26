@@ -474,7 +474,100 @@ function OrderCard({ order, onDragStart, onDragEnd, inHaul, onOpenDetail, onRepo
   );
 }
 
-function ConfirmHaul({ session, haulItems, balance, onBack, onSuccess }) {
+// Items die >30 dagen in het magazijn lagen lopen niet via de directe verzendbetaling,
+// maar via een handmatige quote (verzending + opslag) die de admin opstelt.
+function StorageQuoteFlow({ haulItems, balance, orderIds, onBack, onSuccess }) {
+  const [quote, setQuote] = useState(undefined); // undefined = laden, null = geen, obj = quote
+  const [busy, setBusy] = useState(false);
+  const today = new Date().toISOString().slice(0, 10);
+  const sameSet = (a, b) => a && b && a.length === b.length && [...a].map(String).sort().join("|") === [...b].map(String).sort().join("|");
+  const load = async () => {
+    const { data } = await supabase.from("storage_quotes").select("*").order("created_at", { ascending: false }).limit(20);
+    setQuote((data || []).find(r => sameSet(r.order_ids, orderIds)) || null);
+  };
+  useEffect(() => { load(); }, []);
+  const request = async () => {
+    setBusy(true);
+    const { data } = await supabase.rpc("request_storage_quote", { p_order_ids: orderIds });
+    setBusy(false);
+    if (data?.ok) load(); else alert(data?.error || "Something went wrong");
+  };
+  const pay = async () => {
+    setBusy(true);
+    const { data } = await supabase.rpc("pay_storage_quote", { p_quote_id: quote.id });
+    setBusy(false);
+    if (data?.ok) onSuccess(); else { alert(data?.error || "Payment failed"); load(); }
+  };
+  const activeSent = quote && quote.status === "sent" && quote.valid_date === today;
+  const total = Number(quote?.total_eur || 0);
+  const row = (label, value, strong) => (
+    <div style={{ display: "flex", justifyContent: "space-between", padding: "6px 0", fontSize: 13, color: strong ? "#fff" : "#C9C6C1", fontWeight: strong ? 700 : 400, borderTop: strong ? "1px solid #333" : "none", marginTop: strong ? 4 : 0 }}>
+      <span>{label}</span><span style={{ color: strong ? "#FF5C00" : "#fff", fontWeight: strong ? 700 : 600 }}>{value}</span>
+    </div>
+  );
+  return (
+    <div style={{ padding: "16px 20px", paddingBottom: 80 }}>
+      <button onClick={onBack} style={{ background: "none", border: "none", fontSize: 14, color: "#666", cursor: "pointer", padding: 0, marginBottom: 16 }}>← Back</button>
+      <div style={{ fontSize: 16, fontWeight: 700, color: "#0F0E0C", marginBottom: 4 }}>Shipping &amp; storage</div>
+      <div style={{ fontSize: 13, color: "#aaa", marginBottom: 20 }}>These items have been in storage for over 30 days</div>
+      <div style={{ background: "#fff", border: "1px solid #E8E6E0", borderRadius: 14, padding: 16, marginBottom: 16 }}>
+        {haulItems.map((o, i) => (
+          <div key={i} style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 0", borderBottom: i < haulItems.length - 1 ? "1px solid #F0EEE8" : "none" }}>
+            <div style={{ width: 36, height: 36, borderRadius: 8, background: "#fff", border: "1px solid #F0EEE8", overflow: "hidden", flexShrink: 0 }}>
+              {o.variant_image ? <img src={o.variant_image} referrerPolicy="no-referrer" alt="" style={{ width: "100%", height: "100%", objectFit: "contain" }} />
+                : o.qc_images?.[0] ? <img src={o.qc_images[0]} referrerPolicy="no-referrer" alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                : <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100%", fontSize: 16 }}>📦</div>}
+            </div>
+            <div style={{ flex: 1 }}><div style={{ fontSize: 13, fontWeight: 600, color: "#0F0E0C" }}>{o.product_title || o.product}</div></div>
+          </div>
+        ))}
+      </div>
+
+      {quote === undefined ? (
+        <div style={{ background: "#0F0E0C", borderRadius: 14, padding: 22, marginBottom: 16, textAlign: "center" }}>
+          <div style={{ fontSize: 12.5, color: "#C9C6C1" }}>Checking your quote…</div>
+        </div>
+      ) : activeSent ? (
+        <div style={{ background: "#0F0E0C", borderRadius: 14, padding: 16, marginBottom: 16 }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+            <div style={{ fontSize: 13, fontWeight: 700, color: "#FF5C00" }}>Your quote</div>
+            <div style={{ fontSize: 10, fontWeight: 700, color: "#0F0E0C", background: "#FF5C00", padding: "3px 9px", borderRadius: 999 }}>VALID TODAY</div>
+          </div>
+          {row("International shipping", `€${Number(quote.shipping_eur).toFixed(2)}`)}
+          {row(`Storage${quote.storage_days ? ` (${quote.storage_days} days)` : ""}`, `€${Number(quote.storage_eur).toFixed(2)}`)}
+          {row("Total", `€${total.toFixed(2)}`, true)}
+          <motion.button whileTap={{ scale: 0.98 }} onClick={pay} disabled={busy || balance < total}
+            style={{ width: "100%", marginTop: 14, background: busy || balance < total ? "#3a352f" : "#FF5C00", color: "#fff", border: "none", borderRadius: 12, padding: "13px", fontSize: 14, fontWeight: 700, cursor: busy || balance < total ? "default" : "pointer" }}>
+            {busy ? "Processing…" : balance < total ? `Top up — short €${(total - balance).toFixed(2)}` : `Pay €${total.toFixed(2)} & ship`}
+          </motion.button>
+        </div>
+      ) : (
+        <div style={{ background: "#0F0E0C", borderRadius: 14, padding: 18, marginBottom: 16 }}>
+          <div style={{ fontSize: 13, color: "#C9C6C1", lineHeight: 1.55, marginBottom: 14 }}>
+            {quote?.status === "requested"
+              ? "Quote requested — you'll receive it today. Tap refresh to check."
+              : quote?.status === "sent"
+                ? "Your previous quote expired. Request a fresh one — we'll send it today."
+                : "Storage costs now apply to these items. Request a shipping quote and we'll send you the total (shipping + storage) today."}
+          </div>
+          <motion.button whileTap={{ scale: 0.98 }} onClick={request} disabled={busy}
+            style={{ width: "100%", background: "#FF5C00", color: "#fff", border: "none", borderRadius: 12, padding: "13px", fontSize: 14, fontWeight: 700, cursor: busy ? "default" : "pointer" }}>
+            {busy ? "…" : quote?.status === "requested" ? "Refresh" : "Request shipping quote"}
+          </motion.button>
+        </div>
+      )}
+      <div style={{ fontSize: 11.5, color: "#A8A5A0", lineHeight: 1.5 }}>Free storage lasts 30 days. After that, storage is added to your shipping quote. If it isn't paid by day 90, the item is forfeited (see how pricing works).</div>
+    </div>
+  );
+}
+
+function ConfirmHaul(props) {
+  const overdue = props.haulItems.some(o => o.arrived_at && (Date.now() - new Date(o.arrived_at).getTime()) > 30 * 86400000);
+  if (overdue) return <StorageQuoteFlow {...props} orderIds={props.haulItems.map(o => o.id)} />;
+  return <NormalShippingConfirm {...props} />;
+}
+
+function NormalShippingConfirm({ session, haulItems, balance, onBack, onSuccess }) {
   const [confirming, setConfirming] = useState(false);
   const [quoting, setQuoting] = useState(true);
   const [channels, setChannels] = useState(null);   // echte BuckyDrop-kanalen (productie)

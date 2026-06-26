@@ -637,31 +637,14 @@ function HaulSuccess({ haulItems, onDone }) {
 
 function DisputeForm({ order, session, onBack, onSuccess }) {
   const [description, setDescription] = useState("");
-  const [images, setImages] = useState([]);
-  const [uploading, setUploading] = useState(false);
   const [saving, setSaving] = useState(false);
-
-  const uploadImages = async (files) => {
-    setUploading(true);
-    const urls = [];
-    for (const file of Array.from(files)) {
-      const ext = file.name.split(".").pop();
-      const fileName = `dispute-${order.id}-${Date.now()}.${ext}`;
-      const { error } = await supabase.storage.from("product-images").upload(fileName, file);
-      if (!error) {
-        const { data } = supabase.storage.from("product-images").getPublicUrl(fileName);
-        urls.push(data.publicUrl);
-      }
-    }
-    setImages(prev => [...prev, ...urls]);
-    setUploading(false);
-  };
 
   const submitDispute = async () => {
     if (!description.trim()) { alert("Describe the problem"); return; }
     setSaving(true);
     // Server-side via RPC: dispute_status is afgeschermd, alleen submit_dispute mag het zetten.
-    const { data, error } = await supabase.rpc("submit_dispute", { p_order_id: order.id, p_description: description, p_images: images });
+    // GEEN eigen klant-foto's: we hangen de officiële quality-control foto's aan als bewijs.
+    const { data, error } = await supabase.rpc("submit_dispute", { p_order_id: order.id, p_description: description, p_images: order.qc_images || [] });
     setSaving(false);
     if (error || (data && data.ok === false)) { alert("Could not submit: " + (error?.message || data?.error || "unknown error")); return; }
     onSuccess();
@@ -671,34 +654,27 @@ function DisputeForm({ order, session, onBack, onSuccess }) {
     <div style={{ padding: "16px 20px", paddingBottom: 80 }}>
       <button onClick={onBack} style={{ background: "none", border: "none", fontSize: 14, color: "#666", cursor: "pointer", padding: 0, marginBottom: 16 }}>← Back</button>
       <div style={{ fontSize: 16, fontWeight: 700, color: "#0F0E0C", marginBottom: 4 }}>Report a problem</div>
-      <div style={{ fontSize: 13, color: "#aaa", marginBottom: 20 }}>Describe what is wrong with your product</div>
-      {order.qc_images?.length > 0 && (
-        <div style={{ background: "#fff", border: "1px solid #E8E6E0", borderRadius: 14, padding: 16, marginBottom: 16 }}>
-          <div style={{ fontSize: 13, fontWeight: 600, color: "#0F0E0C", marginBottom: 8 }}>Quality-control photos from the warehouse</div>
+      <div style={{ fontSize: 13, color: "#aaa", marginBottom: 20 }}>Tell us why — we review it against the warehouse's quality-control photos.</div>
+      <div style={{ background: "#fff", border: "1px solid #E8E6E0", borderRadius: 14, padding: 16, marginBottom: 16 }}>
+        <div style={{ fontSize: 13, fontWeight: 600, color: "#0F0E0C", marginBottom: 4 }}>Quality-control photos</div>
+        <div style={{ fontSize: 11.5, color: "#aaa", marginBottom: 10, lineHeight: 1.5 }}>The official photos our warehouse took during inspection. We review your request against these — you can't add your own photos.</div>
+        {order.qc_images?.length > 0 ? (
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8 }}>
             {order.qc_images.map((url, i) => (
-              <img key={i} src={url} referrerPolicy="no-referrer" alt="" style={{ width: "100%", aspectRatio: "1", borderRadius: 8, objectFit: "cover" }} />
+              <motion.img key={i} whileTap={{ scale: 0.97 }} src={url} referrerPolicy="no-referrer" alt="" style={{ width: "100%", aspectRatio: "1", borderRadius: 8, objectFit: "cover" }} />
             ))}
           </div>
-        </div>
-      )}
+        ) : (
+          <div style={{ background: "#F8F7F4", borderRadius: 10, padding: "14px", textAlign: "center", fontSize: 12, color: "#9C9893" }}>No quality-control photos for this item yet.</div>
+        )}
+      </div>
       <div style={{ background: "#fff", border: "1px solid #E8E6E0", borderRadius: 14, padding: 16, marginBottom: 16 }}>
         <div style={{ fontSize: 13, fontWeight: 600, color: "#0F0E0C", marginBottom: 8 }}>{order.product_title || order.product}</div>
         <textarea placeholder="Describe the problem..." value={description} onChange={e => setDescription(e.target.value)}
           style={{ width: "100%", border: "1px solid #E8E6E0", borderRadius: 8, padding: "10px 12px", fontSize: 13, background: "#F8F7F4", minHeight: 100, resize: "vertical", boxSizing: "border-box" }} />
       </div>
-      <div style={{ background: "#fff", border: "1px solid #E8E6E0", borderRadius: 14, padding: 16, marginBottom: 16 }}>
-        <div style={{ fontSize: 13, fontWeight: 600, color: "#0F0E0C", marginBottom: 8 }}>Photos as proof</div>
-        {images.length > 0 && (
-          <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 12 }}>
-            {images.map((url, i) => <img key={i} src={url} alt="" style={{ width: 72, height: 72, borderRadius: 8, objectFit: "cover" }} />)}
-          </div>
-        )}
-        <label style={{ display: "block", border: "1.5px dashed #E8E6E0", borderRadius: 10, padding: 14, textAlign: "center", cursor: "pointer", background: "#F8F7F4" }}>
-          <div style={{ fontSize: 12, color: "#aaa" }}>{uploading ? "Uploading..." : "📷 Add photos"}</div>
-          <input type="file" accept="image/*" multiple onChange={e => uploadImages(e.target.files)} style={{ display: "none" }} disabled={uploading} />
-        </label>
-      </div>
+      {/* Geen eigen foto-upload meer: alleen de officiële quality-control foto's hierboven
+          gelden als bewijs (de klant kan niets zelf inbrengen/bewerken). */}
       <div style={{ background: "#FEF3C7", borderRadius: 12, padding: "12px 16px", marginBottom: 16, fontSize: 12, color: "#92400E" }}>
         ⚠️ If your dispute is approved, you get the product price + local shipping refunded.
       </div>

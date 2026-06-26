@@ -1598,6 +1598,9 @@ export default function SupplyFlow({ session }) {
   // Solo/standaard-modus toont ALLE orders (ook groep-orders) zodat een geplaatste
   // groep-order altijd zichtbaar/volgbaar is; groep-modus blijft op die groep gefocust.
   const visibleOrders = orders.filter((o) => activeGroup ? o.ff_group_id === activeGroup.id : true);
+  // Shop-modus geldt ALLEEN voor een 'gathering'-groep. Een geplaatste groep is "Following"
+  // (volgen) — dan gedraagt de feed/cart/glow zich gewoon solo; Orders blijft wel die groep volgen.
+  const activeGroupShopping = !!activeGroup && (myGroups.find((g) => g.group_id === activeGroup.id)?.status || "gathering") === "gathering";
 
   // Alleen categorie-chips tonen waar echt producten in zitten — lege
   // categorieën blijven verborgen tot de admin er iets aan toevoegt.
@@ -1730,7 +1733,7 @@ export default function SupplyFlow({ session }) {
   return (
     <div style={{ fontFamily: "'Inter', 'Helvetica Neue', sans-serif", background: "#F8F7F4", minHeight: "100vh", maxWidth: 430, margin: "0 auto", width: "100%", position: "relative" }}>
 
-      <GroupModeGlow key={activeGroup?.id || "none"} active={!!activeGroup} dimmed={!!(selectedProduct || showRequestList || showFriends || showNotifs || showVable)} />
+      <GroupModeGlow key={activeGroup?.id || "none"} active={activeGroupShopping} dimmed={!!(selectedProduct || showRequestList || showFriends || showNotifs || showVable)} />
       {/* Header */}
       <div style={{ padding: "16px 20px 10px", display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 9, minWidth: 0 }}>
@@ -2438,7 +2441,7 @@ export default function SupplyFlow({ session }) {
             listCount={requestList.length}
             onAddToList={(item) => { setRequestList(list => [...list, item]); setSelectedProduct(null); }}
             isFavorite={isFavorite(selectedProduct)} onToggleFavorite={() => toggleFavorite(selectedProduct)}
-            activeGroup={activeGroup} onActiveGroupGone={() => setActiveGroup(null)} />
+            activeGroup={activeGroupShopping ? activeGroup : null} onActiveGroupGone={() => setActiveGroup(null)} />
         )}
       </AnimatePresence>
 
@@ -2510,7 +2513,7 @@ export default function SupplyFlow({ session }) {
         {infoToast && (
           <div style={{ position: "fixed", bottom: 90, left: "50%", transform: "translateX(-50%)", zIndex: 350, background: "#0F0E0C", color: "#fff", borderRadius: 999, padding: "10px 18px", fontSize: 13, fontWeight: 600, boxShadow: "0 8px 30px rgba(0,0,0,0.4)", maxWidth: "90%", textAlign: "center" }}>{infoToast}</div>
         )}
-        {activeGroup && tab === "feed" && !selectedProduct && !showFriends && !showRequestList && (
+        {activeGroupShopping && tab === "feed" && !selectedProduct && !showFriends && !showRequestList && (
           <motion.div initial={{ y: 24, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 30, opacity: 0, scale: 0.96 }} whileTap={{ scale: 0.97 }} transition={springMorph}
             onClick={() => { setFriendsGroupId(activeGroup.id); setShowFriends(true); }}
             style={{ position: "fixed", bottom: 78, left: 0, right: 0, margin: "0 auto", width: "calc(100% - 40px)", maxWidth: 390, background: "#111111", borderRadius: 16, overflow: "hidden", cursor: "pointer", zIndex: 301, boxShadow: "0 12px 40px rgba(255,92,0,0.28)", border: "1px solid rgba(255,92,0,0.4)" }}>
@@ -2529,7 +2532,7 @@ export default function SupplyFlow({ session }) {
             </div>
           </motion.div>
         )}
-        {requestList.length > 0 && tab === "feed" && !showRequestList && !selectedProduct && !showFriends && !activeGroup && (
+        {requestList.length > 0 && tab === "feed" && !showRequestList && !selectedProduct && !showFriends && !activeGroupShopping && (
           <motion.div layoutId="request-list-morph" transition={springMorph}
             onClick={() => { setListError(null); setShowRequestList(true); }}
             style={{ position: "fixed", bottom: 78, left: 0, right: 0, margin: "0 auto", width: "calc(100% - 40px)", maxWidth: 390, background: "#111111", borderRadius: 16, overflow: "hidden", cursor: "pointer", zIndex: 301, boxShadow: "0 12px 40px rgba(17,17,17,0.35)" }}>

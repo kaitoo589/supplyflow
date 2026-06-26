@@ -539,7 +539,14 @@ export default function Friends({ session, onClose, initialJoinCode, initialGrou
             )}
 
             {/* shared cart */}
-            <div style={{ fontSize: 12, color: "#9C9893", margin: "16px 2px 8px" }}>Shared cart</div>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", margin: "16px 2px 8px" }}>
+              <span style={{ fontSize: 12, color: "#9C9893" }}>Shared cart</span>
+              <motion.button whileTap={{ scale: 0.9 }} transition={springMorph} onClick={() => setChatOpen((v) => !v)} aria-label="Squad chat"
+                style={{ position: "relative", display: "flex", alignItems: "center", gap: 6, background: chatOpen ? "#FF5C00" : "#1A1917", border: "1px solid #2c2b29", borderRadius: 999, padding: "5px 11px", cursor: "pointer", color: chatOpen ? "#fff" : "#C9C6C1", WebkitTapHighlightColor: "transparent" }}>
+                <span style={{ fontSize: 13, lineHeight: 1 }}>💬</span>
+                <span style={{ fontSize: 11.5, fontWeight: 700 }}>Chat{messages.length ? ` · ${messages.length}` : ""}</span>
+              </motion.button>
+            </div>
             {(lobby.items || []).length === 0 ? (
               <div style={{ background: "#1A1917", borderRadius: 14, padding: "16px", textAlign: "center", color: "#777", fontSize: 12.5 }}>Nothing added yet. Tap "Shop for this group" and add products from the feed.</div>
             ) : (
@@ -619,19 +626,15 @@ export default function Friends({ session, onClose, initialJoinCode, initialGrou
 
             {/* squad chat — accordion (vloeiende height-expand) */}
             <div style={{ marginTop: 22, background: "#161513", borderRadius: 14, overflow: "hidden" }}>
-              <button onClick={() => setChatOpen((v) => !v)}
-                style={{ width: "100%", display: "flex", alignItems: "center", gap: 10, background: "none", border: "none", padding: "12px 14px", cursor: "pointer", color: "#fff" }}>
-                <span style={{ fontSize: 18 }}>💬</span>
-                <div style={{ flex: 1, textAlign: "left", minWidth: 0 }}>
-                  <div style={{ fontSize: 13, fontWeight: 700 }}>Squad chat</div>
-                  <div style={{ fontSize: 11, color: "#9C9893" }}>{messages.length ? `${messages.length} message${messages.length === 1 ? "" : "s"}` : "Say hi to your squad 👋"}</div>
-                </div>
-                <motion.span animate={{ rotate: chatOpen ? 180 : 0 }} transition={springMorph} style={{ color: "#6b6862", fontSize: 15, display: "inline-block" }}>▾</motion.span>
-              </button>
               <AnimatePresence initial={false}>
                 {chatOpen && (
                   <motion.div key="chatbody" initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }} transition={springMorph} style={{ overflow: "hidden" }}>
-                    <div style={{ padding: "0 12px 12px" }}>
+                    <div style={{ padding: "12px 12px 12px" }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
+                      <span style={{ fontSize: 16 }}>💬</span>
+                      <div style={{ flex: 1, fontSize: 13, fontWeight: 700, color: "#fff" }}>Squad chat</div>
+                      <button onClick={() => setChatOpen(false)} aria-label="Close chat" style={{ background: "none", border: "none", color: "#9C9893", fontSize: 15, cursor: "pointer" }}>✕</button>
+                    </div>
                     <div style={{ maxHeight: 240, overflowY: "auto", display: "flex", flexDirection: "column", gap: 9, marginBottom: 9 }}>
                 {messages.length === 0 ? (
                   <div style={{ textAlign: "center", color: "#6b6862", fontSize: 12, padding: "12px 0" }}>No messages yet — say hi 👋</div>

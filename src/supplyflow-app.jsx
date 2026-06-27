@@ -1703,10 +1703,10 @@ export default function SupplyFlow({ session }) {
   const factoryCardEl = (f) => {
     const dia = Math.max(0, Math.min(4, Number(f.diamonds) || 0));
     const stats = [
-      { label: "Repurchase", v: f.repurchase },
-      { label: "Service", v: f.service },
-      { label: "On-time", v: f.ontime },
-      { label: "Reviews", v: f.reviews },
+      { label: "Repurchase rate", v: f.repurchase },
+      { label: "Service score", v: f.service },
+      { label: "On-time delivery", v: f.ontime },
+      { label: "Positive reviews", v: f.reviews },
     ].filter(s => s.v);
     const pv = (f.previews && f.previews.length) ? f.previews : (f.cover ? [f.cover] : []);
     const extra = Math.max(0, (f.count || 0) - 3);
@@ -1751,11 +1751,11 @@ export default function SupplyFlow({ session }) {
             <div style={{ fontSize: 12, color: "#A8A5A0", whiteSpace: "nowrap" }}>{f.count} product{f.count === 1 ? "" : "s"} ›</div>
           </div>
           {stats.length > 0 && (
-            <div style={{ display: "flex", gap: 6, marginTop: 11 }}>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6, marginTop: 11 }}>
               {stats.map(s => (
-                <div key={s.label} style={{ flex: 1, background: "#F6F4EF", borderRadius: 10, padding: "7px 6px", textAlign: "center" }}>
+                <div key={s.label} style={{ background: "#F6F4EF", borderRadius: 10, padding: "7px 10px" }}>
                   <div style={{ fontSize: 13, fontWeight: 800, color: "#FF5C00", lineHeight: 1.1 }}>{s.v}</div>
-                  <div style={{ fontSize: 9, color: "#8A8780", lineHeight: 1.2, marginTop: 2 }}>{s.label}</div>
+                  <div style={{ fontSize: 10, color: "#8A8780", lineHeight: 1.25, marginTop: 2 }}>{s.label}</div>
                 </div>
               ))}
             </div>

@@ -322,6 +322,13 @@ export default function Auth() {
           {loading ? "One moment..." : mode === "login" ? "Log in" : "Create account"}
         </motion.button>
 
+        <div style={{ textAlign: "center", marginTop: 14, fontSize: 11.5, color: "#A8A5A0", lineHeight: 1.5 }}>
+          {mode === "register" ? "By creating an account you agree to our " : ""}
+          <a href="/terms" target="_blank" rel="noreferrer" style={{ color: "#8A8780", textDecoration: "underline" }}>Terms</a>
+          {" & "}
+          <a href="/privacy" target="_blank" rel="noreferrer" style={{ color: "#8A8780", textDecoration: "underline" }}>Privacy Policy</a>.
+        </div>
+
         {mode === "login" && (
           <>
             <div style={{ textAlign: "center", marginTop: 16, fontSize: 13, color: "#888" }}>

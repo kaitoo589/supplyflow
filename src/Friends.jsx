@@ -571,8 +571,9 @@ export default function Friends({ session, onClose, initialJoinCode, initialGrou
                             {flaggedUrls.includes(it.source_url) && <span style={{ color: "#F0997B", marginLeft: 6 }}>· on hold</span>}
                           </div>
                         </div>
-                        {it.source_url && <button onClick={() => onOpenProduct?.(it)} title="View item" style={{ background: "none", border: "none", color: "#777", fontSize: 15, cursor: "pointer" }}>↗</button>}
+                        {it.source_url && !isPlaced && <button onClick={() => onOpenProduct?.(it)} title="View item" style={{ background: "none", border: "none", color: "#777", fontSize: 15, cursor: "pointer" }}>↗</button>}
                         {self && !isPlaced && <button onClick={async () => { const r = await ffRemoveItem(it.id); if (r && !r.ok) setErr(r.error); refreshLobby(); }} style={{ background: "none", border: "none", color: "#777", fontSize: 14, cursor: "pointer" }}>✕</button>}
+                        {isPlaced && <span style={{ fontSize: 10, fontWeight: 700, color: "#34D17B", background: "rgba(52,209,123,0.12)", borderRadius: 6, padding: "2px 7px", whiteSpace: "nowrap" }}>🔒 Ordered</span>}
                       </div>
                     ))}
                   </div>

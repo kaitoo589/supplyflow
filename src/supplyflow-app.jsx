@@ -1637,12 +1637,16 @@ export default function SupplyFlow({ session }) {
       const cover = (f.logo && f.logo.startsWith("http"))
         ? f.logo
         : (fp.find(p => p.image && p.image.startsWith("http"))?.image || null);
-      // Etalage: tot 3 product-foto's (hoogst beoordeeld eerst) zodat je ziet wat de fabriek maakt.
-      const previews = fp
-        .filter(p => p.image && p.image.startsWith("http"))
-        .sort((a, b) => (Number(b.rating) || 0) - (Number(a.rating) || 0))
-        .slice(0, 3)
-        .map(p => p.image);
+      // Etalage: handmatig gekozen + bijgesneden foto's (admin) winnen; anders automatisch top-3.
+      const manual = Array.isArray(f.storefront_images)
+        ? f.storefront_images.filter(u => typeof u === "string" && u.startsWith("http"))
+        : [];
+      const previews = manual.length
+        ? manual
+        : fp.filter(p => p.image && p.image.startsWith("http"))
+            .sort((a, b) => (Number(b.rating) || 0) - (Number(a.rating) || 0))
+            .slice(0, 3)
+            .map(p => p.image);
       return { ...f, count: fp.length, cover, previews };
     })
     .filter(f => f.count > 0)
@@ -1707,8 +1711,8 @@ export default function SupplyFlow({ session }) {
     const pv = (f.previews && f.previews.length) ? f.previews : (f.cover ? [f.cover] : []);
     const extra = Math.max(0, (f.count || 0) - 3);
     const imgBox = (src, big) => (
-      <div style={{ flex: 1, minHeight: 0, minWidth: 0, background: "#FBFAF8", display: "flex", alignItems: "center", justifyContent: "center", fontSize: big ? 44 : 26, overflow: "hidden" }}>
-        {src ? <img src={src} referrerPolicy="no-referrer" alt="" style={{ width: "100%", height: "100%", objectFit: "contain", display: "block" }} /> : "🏭"}
+      <div style={{ flex: 1, minHeight: 0, minWidth: 0, background: "#ECE8E0", display: "flex", alignItems: "center", justifyContent: "center", fontSize: big ? 44 : 26, overflow: "hidden" }}>
+        {src ? <img src={src} referrerPolicy="no-referrer" alt="" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} /> : "🏭"}
       </div>
     );
     return (

@@ -7,6 +7,10 @@ import SupportWidget from "./SupportWidget";
 import InstallPrompt from "./InstallPrompt";
 import WithdrawalPage from "./WithdrawalPage";
 import ReturnsPage from "./ReturnsPage";
+import LegalPage from "./LegalPage";
+import privacySrc from "./legal/privacy-policy.md?raw";
+import termsSrc from "./legal/terms-and-conditions.md?raw";
+import returnsPolicySrc from "./legal/returns-right-of-withdrawal.md?raw";
 
 // De admin draait volledig in het gamified command center (ai-ops-hud).
 // Lokaal → poort 5181; op de live site → het gedeployde admin-dashboard.
@@ -150,6 +154,9 @@ export default function App() {
   // Publieke pagina's — geen login/auth nodig (EU-herroepingsknop + retourbeleid).
   if (window.location.pathname === "/withdraw") return <WithdrawalPage />;
   if (window.location.pathname === "/returns") return <ReturnsPage />;
+  if (window.location.pathname === "/privacy") return <LegalPage source={privacySrc} />;
+  if (window.location.pathname === "/terms") return <LegalPage source={termsSrc} />;
+  if (window.location.pathname === "/returns-policy") return <LegalPage source={returnsPolicySrc} />;
 
   if (loading) {
     return (

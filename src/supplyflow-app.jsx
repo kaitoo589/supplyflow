@@ -2359,7 +2359,7 @@ export default function SupplyFlow({ session }) {
                       style={{ position: "absolute", top: 3, left: 3, width: 22, height: 22, borderRadius: "50%", background: "#fff", boxShadow: "0 1px 3px rgba(0,0,0,0.25)" }} />
                   </div>
                 </div>
-                {gathering.length > 0 ? (
+                {gathering.length > 0 && (
                   <>
                     <div style={{ fontSize: 11, color: "#A8A5A0", fontWeight: 600, letterSpacing: 0.4, margin: "14px 2px 8px" }}>YOUR GROUPS</div>
                     <motion.div animate={shakeGroups ? { x: [0, -7, 7, -5, 5, 0] } : { x: 0 }} transition={{ duration: 0.45 }}
@@ -2385,12 +2385,7 @@ export default function SupplyFlow({ session }) {
                         );
                       })}
                     </motion.div>
-                    <button onClick={() => { setFriendsJoinCode(null); setShowFriends(true); }}
-                      style={{ background: "transparent", border: "none", color: "#A8A5A0", fontSize: 12, fontWeight: 600, cursor: "pointer", padding: "8px 0 0", textAlign: "left" }}>+ Create, join or manage groups</button>
                   </>
-                ) : (
-                  <button onClick={() => { setFriendsJoinCode(null); setShowFriends(true); }}
-                    style={{ width: "100%", marginTop: 12, background: "#FFF0E7", border: "1px dashed rgba(255,92,0,0.4)", color: "#FF5C00", borderRadius: 12, padding: "12px", fontSize: 13, fontWeight: 700, cursor: "pointer" }}>{myGroups.length > 0 ? "View or manage your groups →" : "Join or create a group first →"}</button>
                 )}
                 {(() => {
                   // Groepen waarin de bestelling al geplaatst is (niet meer 'gathering') —
@@ -2405,7 +2400,7 @@ export default function SupplyFlow({ session }) {
                           return (
                           <div key={g.group_id} onClick={() => setActiveGroup(live ? null : { id: g.group_id, name: g.name })}
                             style={{ display: "flex", alignItems: "center", gap: 10, cursor: "pointer", borderRadius: 12, padding: "10px 12px", background: live ? "#F1FBF4" : "#F8F7F4", border: `1.5px solid ${live ? "rgba(22,163,74,0.5)" : "#ECEAE5"}` }}>
-                            <div style={{ width: 30, height: 30, borderRadius: 9, background: "#0F0E0C", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14, flexShrink: 0 }}>📦</div>
+                            <div style={{ width: 30, height: 30, borderRadius: 9, background: "#FF5C00", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14, flexShrink: 0 }}>🦊</div>
                             <div style={{ flex: 1, minWidth: 0 }}>
                               <div style={{ fontSize: 13, fontWeight: 600, color: "#111111", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{g.name}{g.role === "admin" ? " · admin" : ""}</div>
                               <div style={{ fontSize: 11, color: "#A8A5A0" }}>{g.member_count}/{g.max_size} friends{live ? " · following" : ""}</div>
@@ -2424,6 +2419,8 @@ export default function SupplyFlow({ session }) {
                     </>
                   );
                 })()}
+                <button onClick={() => { setFriendsJoinCode(null); setShowFriends(true); }}
+                  style={{ width: "100%", marginTop: 12, background: "#FFF0E7", border: "1px dashed rgba(255,92,0,0.4)", color: "#FF5C00", borderRadius: 12, padding: "12px", fontSize: 13, fontWeight: 700, cursor: "pointer" }}>+ Create, join or manage groups</button>
               </div>
             );
           })()}

@@ -1828,7 +1828,7 @@ export default function SupplyFlow({ session }) {
                 style={{ width: 42, height: 42, borderRadius: "50%", background: showFavoritesOnly ? "#FF5C00" : "#fff", border: "1px solid #ECEAE5", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}>
                 <Star size={19} color={showFavoritesOnly ? "#fff" : "#111111"} fill={showFavoritesOnly ? "#fff" : "none"} strokeWidth={2} />
               </motion.button>
-              <motion.button whileTap={{ scale: 0.85 }} transition={springSnappy} onClick={() => setShowVable(true)} aria-label="VABLE — our label"
+              <motion.button whileTap={{ scale: 0.85 }} transition={springSnappy} onClick={() => setShowVable(true)} aria-label="VABLE — our brand"
                 style={{ width: 42, height: 42, borderRadius: "50%", background: "#111111", border: "1px solid #111111", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", WebkitTapHighlightColor: "transparent" }}>
                 <img src="/vable-phoenix.svg" alt="VABLE" style={{ width: 26, height: 26, filter: "brightness(0) invert(1)" }} />
               </motion.button>
@@ -2514,7 +2514,7 @@ export default function SupplyFlow({ session }) {
               </div>
               <div style={{ padding: "14px 20px 40px" }}>
               <div style={{ fontSize: 13, fontWeight: 700, color: "#0F0E0C", marginBottom: 2 }}>Shop the First Drop</div>
-              <div style={{ fontSize: 12, color: "#8A8780", marginBottom: 14 }}>Japanese-embroidered denim — our own label.</div>
+              <div style={{ fontSize: 12, color: "#8A8780", marginBottom: 14 }}>Japanese-embroidered denim — our own brand.</div>
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
                 {VABLE_ITEMS.map((it, i) => (
                   <a key={i} href={it.url || VABLE_URL} target="_blank" rel="noreferrer" style={{ textDecoration: "none", borderRadius: 16, overflow: "hidden", background: "#fff", border: "1px solid #F0EEE8", display: "block" }}>

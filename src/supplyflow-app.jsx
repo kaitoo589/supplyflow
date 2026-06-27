@@ -2399,19 +2399,16 @@ export default function SupplyFlow({ session }) {
                   if (placed.length === 0) return null;
                   return (
                     <>
-                      <div style={{ fontSize: 11, color: "#A8A5A0", fontWeight: 600, letterSpacing: 0.4, margin: "16px 2px 8px" }}>AWAITING SHIPPING</div>
-                      <div style={{ display: "flex", flexDirection: "column", gap: 7 }}>
+                      <div style={{ display: "flex", flexDirection: "column", gap: 7, marginTop: 12 }}>
                         {placed.map((g) => {
                           const live = activeGroup && activeGroup.id === g.group_id;
-                          const gOrder = orders.find((o) => o.ff_group_id === g.group_id);
-                          const statusLabel = (gOrder && statusConfig[gOrder.status]?.label) || "Order placed";
                           return (
                           <div key={g.group_id} onClick={() => setActiveGroup(live ? null : { id: g.group_id, name: g.name })}
                             style={{ display: "flex", alignItems: "center", gap: 10, cursor: "pointer", borderRadius: 12, padding: "10px 12px", background: live ? "#F1FBF4" : "#F8F7F4", border: `1.5px solid ${live ? "rgba(22,163,74,0.5)" : "#ECEAE5"}` }}>
                             <div style={{ width: 30, height: 30, borderRadius: 9, background: "#0F0E0C", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14, flexShrink: 0 }}>📦</div>
                             <div style={{ flex: 1, minWidth: 0 }}>
                               <div style={{ fontSize: 13, fontWeight: 600, color: "#111111", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{g.name}{g.role === "admin" ? " · admin" : ""}</div>
-                              <div style={{ fontSize: 11, color: "#A8A5A0" }}>{g.member_count}/{g.max_size} friends · {statusLabel}{live ? " · following" : ""}</div>
+                              <div style={{ fontSize: 11, color: "#A8A5A0" }}>{g.member_count}/{g.max_size} friends{live ? " · following" : ""}</div>
                             </div>
                             <div style={{ width: 18, height: 18, borderRadius: "50%", border: `2px solid ${live ? "#16A34A" : "#D4D2CC"}`, flexShrink: 0, position: "relative" }}>
                               {live && <div style={{ position: "absolute", inset: 3, borderRadius: "50%", background: "#16A34A" }} />}

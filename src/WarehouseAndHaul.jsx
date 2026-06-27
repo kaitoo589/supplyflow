@@ -1336,17 +1336,6 @@ export function TransitTab({ session, orders = [], activeGroupId = null }) {
   // Geleverde pakketten (trace_status 3) blijven standaard staan; de knop verbergt ze.
   const deliveredCount = modeHauls.filter(h => h.trace_status === 3).length;
   const shownHauls = hideDelivered ? modeHauls.filter(h => h.trace_status !== 3) : modeHauls;
-
-  // Orders die wél besteld zijn maar nog geen verzonden parcel → "Preparing shipment",
-  // zodat Transit niet leeg/onzichtbaar lijkt. Mode-gescheiden + niet als ze al in een haul zitten.
-  const haulItemIds = new Set(hauls.flatMap(h => h.items || []));
-  const PREP_STATUSES = ["qc_pending"];   // alleen warehouse-ready items (matcht de Warehouse-teller), niet de vroege fases
-  const preparing = orders.filter(o =>
-    PREP_STATUSES.includes(o.status) && !haulItemIds.has(o.id) &&
-    (activeGroupId ? o.ff_group_id === activeGroupId : !o.ff_group_id)
-  );
-  const prepWeight = preparing.reduce((s, o) => s + (o.weight_grams || 0), 0);
-
   const toggleHideDelivered = () => setHideDelivered((v) => {
     const nv = !v;
     try { localStorage.setItem("flowva_hide_delivered", nv ? "1" : "0"); } catch {}
@@ -1367,40 +1356,13 @@ export function TransitTab({ session, orders = [], activeGroupId = null }) {
 
       {loading && <div style={{ textAlign: "center", padding: 40, color: "#999" }}>Loading...</div>}
 
-      {!loading && modeHauls.length === 0 && preparing.length === 0 && (
+      {!loading && modeHauls.length === 0 && (
         <div style={{ textAlign: "center", padding: "50px 0", color: "#aaa" }}>
           <div style={{ width: 64, height: 64, borderRadius: "50%", background: "#F3F1ED", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 14px" }}>
             <Plane size={26} color="#A8A5A0" strokeWidth={1.8} />
           </div>
           <div style={{ fontSize: 15, fontWeight: 600, color: "#111111", marginBottom: 6 }}>No parcels yet</div>
           <div style={{ fontSize: 13 }}>Confirm a parcel in your warehouse and it will appear here.</div>
-        </div>
-      )}
-
-      {!loading && preparing.length > 0 && (
-        <div style={{ background: "#fff", borderRadius: 18, padding: "15px 16px", marginBottom: 12, boxShadow: "0 1px 2px rgba(17,17,17,0.04), 0 6px 18px rgba(17,17,17,0.05)" }}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
-            <div>
-              <div style={{ fontSize: 14, fontWeight: 700, color: "#111111" }}>Preparing shipment · {preparing.length} item{preparing.length !== 1 ? "s" : ""}</div>
-              <div style={{ fontSize: 11.5, color: "#A8A5A0" }}>{prepWeight ? `${prepWeight}g` : "weight pending"}</div>
-            </div>
-            <div style={{ background: "#F0EEE8", color: "#8A8780", fontSize: 11, fontWeight: 700, padding: "5px 11px", borderRadius: 16, whiteSpace: "nowrap" }}>Not shipped yet</div>
-          </div>
-          {preparing.map((o, i) => (
-            <div key={o.id} style={{ display: "flex", alignItems: "center", gap: 10, padding: "7px 0", borderBottom: i < preparing.length - 1 ? "1px solid #F4F2EE" : "none" }}>
-              <div style={{ flexShrink: 0, width: 38, height: 38, borderRadius: 9, background: "#fff", border: "1px solid #F0EEE8", overflow: "hidden", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                {o.variant_image ? <img src={o.variant_image} referrerPolicy="no-referrer" alt="" style={{ width: "100%", height: "100%", objectFit: "contain" }} />
-                  : o.qc_images?.[0] ? <img src={o.qc_images[0]} referrerPolicy="no-referrer" alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-                  : <span style={{ fontSize: 17 }}>📦</span>}
-              </div>
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontSize: 12.5, fontWeight: 600, color: "#111111", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{o.product_title || o.product}</div>
-                <div style={{ fontSize: 11, color: "#A8A5A0" }}>{o.qty || 1} pcs{o.kleur ? ` · ${o.kleur}` : ""}</div>
-              </div>
-              <div style={{ flexShrink: 0, fontSize: 12, fontWeight: 700, color: o.weight_grams ? "#111111" : "#C2BEB6" }}>{o.weight_grams ? `${o.weight_grams} g` : "—"}</div>
-            </div>
-          ))}
-          <div style={{ marginTop: 10, fontSize: 11, color: "#8A8780", lineHeight: 1.45 }}>📦 In your warehouse, ready to ship — they'll appear here with live tracking once your parcel ships.</div>
         </div>
       )}
 

@@ -2399,7 +2399,7 @@ export default function SupplyFlow({ session }) {
                   if (placed.length === 0) return null;
                   return (
                     <>
-                      <div style={{ fontSize: 11, color: "#A8A5A0", fontWeight: 600, letterSpacing: 0.4, margin: "16px 2px 8px" }}>ORDERED</div>
+                      <div style={{ fontSize: 11, color: "#A8A5A0", fontWeight: 600, letterSpacing: 0.4, margin: "16px 2px 8px" }}>AWAITING SHIPPING</div>
                       <div style={{ display: "flex", flexDirection: "column", gap: 7 }}>
                         {placed.map((g) => {
                           const live = activeGroup && activeGroup.id === g.group_id;

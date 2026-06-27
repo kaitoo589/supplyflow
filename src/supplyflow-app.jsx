@@ -994,15 +994,11 @@ function EditProfileSheet({ session, onClose }) {
 function HowItWorksSheet({ onClose }) {
   const steps = [
     { icon: "🏭", title: "Shop straight from the factory", body: "You see the real 1688 & Taobao factory prices — no inflated retail markup. What it costs in China is what you pay." },
-    { icon: "🛒", title: "A small service fee", body: "We buy it, check it and handle everything for you. The fee is 8% (min €5) per order — so ordering a few items at once keeps the fee tiny per item." },
-    { icon: "🏬", title: "Your items wait in your China warehouse", body: "Bought items gather safely in your personal warehouse. No rush — keep adding to your haul." },
-    { icon: "📸", title: "Quality-control photos before it ships", body: "We photograph your actual item so you see exactly what you're getting — no surprises on the doorstep." },
-    { icon: "📦", title: "Ship it all in one parcel", body: "International shipping is charged per parcel, not per item. So the more you bundle, the cheaper it gets per item:" },
-  ];
-  const ship = [
-    { n: "1 t-shirt", per: "€9.30" },
-    { n: "5 t-shirts", per: "€2.66" },
-    { n: "A full haul (25+)", per: "~€1.30" },
+    { icon: "🛒", title: "A small service fee", body: "We buy it, check it and handle everything for you. The fee is 8% (min €5) per order — and it drops further when you order together with Flowva Friends." },
+    { icon: "🏬", title: "Your items wait in your China warehouse", body: "Bought items gather safely in your personal warehouse — 30 days free. No rush; keep adding to your haul." },
+    { icon: "📸", title: "Quality-control + measurement photos", body: "We photograph and measure your actual item before it ships — so you see exactly what you're getting, no surprises on the doorstep." },
+    { icon: "📦", title: "One parcel — duties included (DDP)", body: "International shipping is charged per parcel, not per item — so the more you bundle, the cheaper it gets per item. Sent duty-paid (DDP): nothing extra to pay at your door." },
+    { icon: "💸", title: "You only pay the real shipping", body: "At checkout you pay an estimate with a small safety buffer. About a week after it ships, the carrier's final bill comes in and you get any difference back on your balance." },
   ];
   return (
     <>
@@ -1016,7 +1012,7 @@ function HowItWorksSheet({ onClose }) {
           <span style={{ fontSize: 26 }}>🦊</span>
           <div style={{ fontSize: 20, fontWeight: 800, color: "#0F0E0C" }}>How Flowva works</div>
         </div>
-        <div style={{ fontSize: 13, color: "#8A8780", marginBottom: 18 }}>Factory prices, real photos, one smart parcel.</div>
+        <div style={{ fontSize: 13, color: "#8A8780", marginBottom: 18 }}>Factory prices, real photos, one parcel — duties included.</div>
 
         {steps.map((s, i) => (
           <div key={i} style={{ display: "flex", gap: 13, marginBottom: 15 }}>
@@ -1028,19 +1024,17 @@ function HowItWorksSheet({ onClose }) {
           </div>
         ))}
 
-        <div style={{ background: "#F8F7F4", borderRadius: 14, padding: "10px 14px", marginBottom: 16 }}>
-          {ship.map((r, i) => (
-            <div key={i} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "6px 0", borderBottom: i < ship.length - 1 ? "1px solid #ECEAE5" : "none" }}>
-              <span style={{ fontSize: 13, color: "#6B6862" }}>{r.n} in one parcel</span>
-              <span style={{ fontSize: 13.5, fontWeight: 800, color: i === ship.length - 1 ? "#16A34A" : "#0F0E0C" }}>{r.per} <span style={{ fontWeight: 500, color: "#A8A5A0", fontSize: 11 }}>/ item</span></span>
-            </div>
-          ))}
+        <div style={{ background: "#FFF7F2", border: "1px solid rgba(255,92,0,0.25)", borderRadius: 16, padding: "14px 16px", marginBottom: 14 }}>
+          <div style={{ fontSize: 13, fontWeight: 800, color: "#B8430A", marginBottom: 3 }}>🦊 Cheaper with Flowva Friends</div>
+          <div style={{ fontSize: 13, color: "#6B6862", lineHeight: 1.55 }}>Team up, combine everyone's items into one parcel and split the shipping — the cheapest way to ship, and the service fee drops too.</div>
         </div>
 
         <div style={{ background: "#0F0E0C", borderRadius: 16, padding: "15px 18px", marginBottom: 18 }}>
           <div style={{ fontSize: 13, fontWeight: 800, color: "#FF5C00", marginBottom: 4 }}>The golden rule 🪙</div>
           <div style={{ fontSize: 13.5, color: "#E8E6E0", lineHeight: 1.55 }}>Build your haul, then ship it as one box. The more you bundle, the less you pay per item — on both the fee and the shipping.</div>
         </div>
+
+        <div style={{ fontSize: 11.5, color: "#A8A5A0", textAlign: "center", marginBottom: 16 }}>Your exact shipping is calculated live at checkout.</div>
 
         <motion.button whileTap={{ scale: 0.97 }} onClick={onClose}
           style={{ width: "100%", background: "#FF5C00", color: "#fff", border: "none", borderRadius: 12, padding: "14px", fontSize: 15, fontWeight: 700, cursor: "pointer", WebkitTapHighlightColor: "transparent" }}>

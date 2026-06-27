@@ -1340,7 +1340,7 @@ export function TransitTab({ session, orders = [], activeGroupId = null }) {
   // Orders die wél besteld zijn maar nog geen verzonden parcel → "Preparing shipment",
   // zodat Transit niet leeg/onzichtbaar lijkt. Mode-gescheiden + niet als ze al in een haul zitten.
   const haulItemIds = new Set(hauls.flatMap(h => h.items || []));
-  const PREP_STATUSES = ["requested", "quote_sent", "quote_accepted", "purchased", "bought", "shipped_local", "qc_pending"];
+  const PREP_STATUSES = ["qc_pending"];   // alleen warehouse-ready items (matcht de Warehouse-teller), niet de vroege fases
   const preparing = orders.filter(o =>
     PREP_STATUSES.includes(o.status) && !haulItemIds.has(o.id) &&
     (activeGroupId ? o.ff_group_id === activeGroupId : !o.ff_group_id)
@@ -1400,7 +1400,7 @@ export function TransitTab({ session, orders = [], activeGroupId = null }) {
               <div style={{ flexShrink: 0, fontSize: 12, fontWeight: 700, color: o.weight_grams ? "#111111" : "#C2BEB6" }}>{o.weight_grams ? `${o.weight_grams} g` : "—"}</div>
             </div>
           ))}
-          <div style={{ marginTop: 10, fontSize: 11, color: "#8A8780", lineHeight: 1.45 }}>📦 Not shipped yet — these appear here with live tracking once your parcel ships.</div>
+          <div style={{ marginTop: 10, fontSize: 11, color: "#8A8780", lineHeight: 1.45 }}>📦 In your warehouse, ready to ship — they'll appear here with live tracking once your parcel ships.</div>
         </div>
       )}
 

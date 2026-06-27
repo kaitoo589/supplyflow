@@ -1253,10 +1253,8 @@ export default function SupplyFlow({ session }) {
   const [showVable, setShowVable] = useState(false);
   const VABLE_URL = "https://vable.store";
   const VABLE_ITEMS = [
-    { name: "Phoenix Cargo", price: "€69", bg: "#26303A", img: null },
-    { name: "Ember Wide-leg", price: "€74", bg: "#1A1A1A", img: null },
-    { name: "Rise Straight", price: "€69", bg: "#5A5142", img: null },
-    { name: "Olive Flight", price: "€72", bg: "#3A4A3A", img: null },
+    { name: "Crane Bird Jeans", price: "€79.99", bg: "#1f2937", img: "/vable/crane.jpg", url: "https://vable.store/products/crane-bird-jeans" },
+    { name: "Koi Fish Jeans", price: "€79.99", bg: "#1f2937", img: "/vable/koi.jpg", url: "https://vable.store/products/koi-fish-jeans" },
   ];
   useEffect(() => { try { localStorage.setItem(lsKey("flowva_favorites"), JSON.stringify(favorites)); } catch { /* ignore */ } }, [favorites]);
   const favKey = (p) => (p && (p.source_url || p.id)) || "";
@@ -2501,33 +2499,35 @@ export default function SupplyFlow({ session }) {
               style={{ position: "fixed", inset: 0, zIndex: 300, background: "rgba(0,0,0,0.55)", backdropFilter: "blur(6px)" }} />
             <motion.div initial={{ y: "100%" }} animate={{ y: 0 }} exit={{ y: "100%" }} transition={{ type: "spring", stiffness: 320, damping: 34 }}
               style={{ position: "fixed", bottom: 0, left: 0, right: 0, margin: "0 auto", width: "100%", maxWidth: 430, boxSizing: "border-box", background: "#fff", borderRadius: "24px 24px 0 0", zIndex: 301, maxHeight: "88vh", overflowY: "auto", padding: 0 }}>
-              <div style={{ position: "relative", height: "58vh", minHeight: 340, maxHeight: 520, background: "#0b101d", overflow: "hidden" }}>
+              <div style={{ position: "relative", width: "100%", aspectRatio: "1080 / 1934", background: "#0b101d", overflow: "hidden" }}>
                 <video src="/vable/hero.mp4" poster="/vable/hero-poster.jpg" autoPlay loop muted playsInline preload="auto"
-                  style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover" }} />
-                <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to bottom, rgba(0,0,0,0.28) 0%, rgba(0,0,0,0) 30%, rgba(11,16,29,0.1) 58%, rgba(11,16,29,0.93) 100%)" }} />
-                <div style={{ position: "absolute", top: 10, left: "50%", transform: "translateX(-50%)", width: 38, height: 4, background: "rgba(255,255,255,0.55)", borderRadius: 2, zIndex: 3 }} />
+                  style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
+                <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to bottom, rgba(0,0,0,0.34) 0%, rgba(0,0,0,0) 16%)" }} />
+                <div style={{ position: "absolute", top: 10, left: "50%", transform: "translateX(-50%)", width: 38, height: 4, background: "rgba(255,255,255,0.6)", borderRadius: 2, zIndex: 3 }} />
                 <button onClick={() => setShowVable(false)} aria-label="close" style={{ position: "absolute", top: 12, right: 12, background: "rgba(0,0,0,0.4)", border: "none", borderRadius: 999, width: 30, height: 30, fontSize: 14, color: "#fff", cursor: "pointer", zIndex: 3 }}>✕</button>
-                <div style={{ position: "absolute", left: 20, right: 20, bottom: 18, zIndex: 2 }}>
-                  <img src="/vable-logo.svg" alt="VABLE" style={{ width: 112, height: "auto", filter: "brightness(0) invert(1)", marginBottom: 10 }} />
-                  <div style={{ fontSize: 32, fontWeight: 800, color: "#fff", lineHeight: 1.02, letterSpacing: -0.5 }}>Wearable Art.</div>
-                  <div style={{ fontSize: 13, color: "#EFE7DA", marginTop: 8, opacity: 0.92 }}>Embroidery elevated — inspired by Japan.</div>
-                  <div style={{ fontSize: 10.5, letterSpacing: 2, color: "#E0A85C", marginTop: 10 }}>FIRST DROP · 2026</div>
+                <div style={{ position: "absolute", top: "29%", left: 18, right: 18, textAlign: "center", zIndex: 2 }}>
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 9, marginBottom: 12 }}>
+                    <img src="/vable-logo.svg" alt="VABLE" style={{ height: 24, width: "auto", filter: "brightness(0) invert(1)" }} />
+                    <span style={{ fontSize: 11, letterSpacing: 2, color: "rgba(255,255,255,0.82)", textShadow: "0 1px 8px rgba(0,0,0,0.55)" }}>— FIRST DROP 2026</span>
+                  </div>
+                  <div style={{ fontSize: 40, fontWeight: 800, color: "#fff", lineHeight: 1.0, letterSpacing: -1, textShadow: "0 2px 16px rgba(0,0,0,0.5)" }}>Wearable Art.</div>
+                  <div style={{ fontSize: 14, color: "rgba(255,255,255,0.88)", marginTop: 12, textShadow: "0 1px 10px rgba(0,0,0,0.55)" }}>Embroidery elevated — inspired by Japan.</div>
                 </div>
               </div>
               <div style={{ padding: "14px 20px 40px" }}>
-              <div style={{ fontSize: 12.5, color: "#8A8780", marginBottom: 16 }}>Japanese-embroidered denim — our own label.</div>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 11 }}>
+              <div style={{ fontSize: 13, fontWeight: 700, color: "#0F0E0C", marginBottom: 2 }}>Shop the First Drop</div>
+              <div style={{ fontSize: 12, color: "#8A8780", marginBottom: 14 }}>Japanese-embroidered denim — our own label.</div>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
                 {VABLE_ITEMS.map((it, i) => (
-                  <div key={i} style={{ borderRadius: 14, overflow: "hidden", background: "#fff", border: "1px solid #F0EEE8" }}>
-                    <div style={{ height: 150, background: it.bg, display: "flex", alignItems: "center", justifyContent: "center" }}>
-                      {it.img ? <img src={it.img} alt={it.name} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-                        : <img src="/vable-phoenix.svg" alt="" style={{ width: 42, height: 42, opacity: 0.2, filter: "brightness(0) invert(1)" }} />}
+                  <a key={i} href={it.url || VABLE_URL} target="_blank" rel="noreferrer" style={{ textDecoration: "none", borderRadius: 16, overflow: "hidden", background: "#fff", border: "1px solid #F0EEE8", display: "block" }}>
+                    <div style={{ aspectRatio: "4 / 5", background: it.bg, overflow: "hidden" }}>
+                      <img src={it.img} alt={it.name} style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
                     </div>
-                    <div style={{ padding: "8px 10px 10px" }}>
-                      <div style={{ fontSize: 12, fontWeight: 700, color: "#111" }}>{it.name}</div>
-                      <div style={{ fontSize: 11, color: "#A8A5A0" }}>{it.price}</div>
+                    <div style={{ padding: "10px 11px 12px" }}>
+                      <div style={{ fontSize: 12.5, fontWeight: 700, color: "#111" }}>{it.name}</div>
+                      <div style={{ fontSize: 12, color: "#6B6863", marginTop: 2 }}>{it.price}</div>
                     </div>
-                  </div>
+                  </a>
                 ))}
               </div>
               <a href={VABLE_URL} target="_blank" rel="noreferrer"

@@ -1258,22 +1258,6 @@ export default function SupplyFlow({ session }) {
     { name: "Rise Straight", price: "€69", bg: "#5A5142", img: null },
     { name: "Olive Flight", price: "€72", bg: "#3A4A3A", img: null },
   ];
-  // Schattig koi-visje (zoals jouw borduurstijl) — staart + rugvin wiebelen vloeiend.
-  const vableFish = (color, light) => (
-    <svg viewBox="0 0 112 56" width="56" style={{ overflow: "visible" }}>
-      <g style={{ transformBox: "fill-box", transformOrigin: "100% 50%", animation: "vTail 0.8s ease-in-out infinite" }}>
-        <path d="M44 28 C 30 13, 17 11, 13 15 C 21 21, 24 25, 22 28 C 24 31, 21 35, 13 41 C 17 45, 30 43, 44 28 Z" fill={color} />
-      </g>
-      <ellipse cx="66" cy="28" rx="32" ry="19" fill={color} />
-      <path d="M98 28 C 98 17, 84 12, 74 14 C 78 22, 78 34, 74 42 C 84 44, 98 39, 98 28 Z" fill="#FBF2E6" />
-      <g style={{ transformBox: "fill-box", transformOrigin: "50% 100%", animation: "vFin 1.5s ease-in-out infinite" }}>
-        <path d="M56 10 C 64 1, 74 3, 76 11 C 70 10, 62 10, 58 13 Z" fill={color} opacity="0.9" />
-      </g>
-      <circle cx="88" cy="26" r="3.6" fill="#16161a" />
-      <circle cx="89.3" cy="24.8" r="1.1" fill="#fff" />
-      {!light && <circle cx="58" cy="24" r="4.5" fill="#D9622B" opacity="0.5" />}
-    </svg>
-  );
   useEffect(() => { try { localStorage.setItem(lsKey("flowva_favorites"), JSON.stringify(favorites)); } catch { /* ignore */ } }, [favorites]);
   const favKey = (p) => (p && (p.source_url || p.id)) || "";
   const isFavorite = (p) => favorites.includes(favKey(p));
@@ -2517,20 +2501,18 @@ export default function SupplyFlow({ session }) {
               style={{ position: "fixed", inset: 0, zIndex: 300, background: "rgba(0,0,0,0.55)", backdropFilter: "blur(6px)" }} />
             <motion.div initial={{ y: "100%" }} animate={{ y: 0 }} exit={{ y: "100%" }} transition={{ type: "spring", stiffness: 320, damping: 34 }}
               style={{ position: "fixed", bottom: 0, left: 0, right: 0, margin: "0 auto", width: "100%", maxWidth: 430, boxSizing: "border-box", background: "#fff", borderRadius: "24px 24px 0 0", zIndex: 301, maxHeight: "88vh", overflowY: "auto", padding: 0 }}>
-              <style>{`@keyframes vKoiA{0%{transform:translate(-70px,0)}50%{transform:translate(170px,-7px)}100%{transform:translate(390px,0)}}@keyframes vKoiB{0%{transform:translate(390px,0) scaleX(-1)}50%{transform:translate(170px,7px) scaleX(-1)}100%{transform:translate(-80px,0) scaleX(-1)}}@keyframes vTail{0%,100%{transform:rotate(-15deg)}50%{transform:rotate(15deg)}}@keyframes vFin{0%,100%{transform:rotate(-7deg)}50%{transform:rotate(7deg)}}@keyframes vRip{from{transform:translateX(0)}to{transform:translateX(-44px)}}`}</style>
-              <div style={{ position: "relative", height: 152, background: "linear-gradient(155deg,#1d2740,#121a2c 55%,#0b101d)", overflow: "hidden" }}>
-                <div style={{ position: "absolute", top: 10, left: "50%", transform: "translateX(-50%)", width: 38, height: 4, background: "rgba(255,255,255,0.25)", borderRadius: 2, zIndex: 2 }} />
-                <svg viewBox="0 0 440 60" preserveAspectRatio="none" style={{ position: "absolute", left: 0, bottom: 0, width: "120%", height: 70, opacity: 0.22, animation: "vRip 9s linear infinite" }}>
-                  <path d="M0 30 Q 55 22 110 30 T 220 30 T 330 30 T 440 30" stroke="#7d9bd6" fill="none" strokeWidth="1" />
-                  <path d="M0 46 Q 55 38 110 46 T 220 46 T 330 46 T 440 46" stroke="#7d9bd6" fill="none" strokeWidth="1" />
-                </svg>
-                <div style={{ position: "absolute", top: 80, left: 0, animation: "vKoiA 13s linear infinite" }}>{vableFish("#F08A3E", false)}</div>
-                <div style={{ position: "absolute", top: 110, left: 0, animation: "vKoiB 17s linear infinite" }}>{vableFish("#EFE7DA", true)}</div>
-                <div style={{ position: "absolute", right: 14, bottom: 4 }}>
-                  <svg viewBox="0 0 70 110" width="44"><line x1="30" y1="66" x2="27" y2="100" stroke="#cfd4dc" strokeWidth="1.6" /><line x1="37" y1="66" x2="41" y2="100" stroke="#cfd4dc" strokeWidth="1.6" /><ellipse cx="34" cy="56" rx="18" ry="10" fill="#EDEFF2" /><path d="M18 56 L 3 62 L 16 53 Z" fill="#2b2f38" /><path d="M44 52 C 57 43, 49 24, 38 15" stroke="#EDEFF2" strokeWidth="4.6" fill="none" strokeLinecap="round" /><circle cx="37" cy="14" r="4" fill="#EDEFF2" /><circle cx="37" cy="10.5" r="2.2" fill="#cc2b2b" /><path d="M33 14 L 22 15.5 L 33 17.5 Z" fill="#c9a566" /></svg>
+              <div style={{ position: "relative", height: "58vh", minHeight: 340, maxHeight: 520, background: "#0b101d", overflow: "hidden" }}>
+                <video src="/vable/hero.mp4" poster="/vable/hero-poster.jpg" autoPlay loop muted playsInline preload="auto"
+                  style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover" }} />
+                <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to bottom, rgba(0,0,0,0.28) 0%, rgba(0,0,0,0) 30%, rgba(11,16,29,0.1) 58%, rgba(11,16,29,0.93) 100%)" }} />
+                <div style={{ position: "absolute", top: 10, left: "50%", transform: "translateX(-50%)", width: 38, height: 4, background: "rgba(255,255,255,0.55)", borderRadius: 2, zIndex: 3 }} />
+                <button onClick={() => setShowVable(false)} aria-label="close" style={{ position: "absolute", top: 12, right: 12, background: "rgba(0,0,0,0.4)", border: "none", borderRadius: 999, width: 30, height: 30, fontSize: 14, color: "#fff", cursor: "pointer", zIndex: 3 }}>✕</button>
+                <div style={{ position: "absolute", left: 20, right: 20, bottom: 18, zIndex: 2 }}>
+                  <img src="/vable-logo.svg" alt="VABLE" style={{ width: 112, height: "auto", filter: "brightness(0) invert(1)", marginBottom: 10 }} />
+                  <div style={{ fontSize: 32, fontWeight: 800, color: "#fff", lineHeight: 1.02, letterSpacing: -0.5 }}>Wearable Art.</div>
+                  <div style={{ fontSize: 13, color: "#EFE7DA", marginTop: 8, opacity: 0.92 }}>Embroidery elevated — inspired by Japan.</div>
+                  <div style={{ fontSize: 10.5, letterSpacing: 2, color: "#E0A85C", marginTop: 10 }}>FIRST DROP · 2026</div>
                 </div>
-                <img src="/vable-logo.svg" alt="VABLE" style={{ position: "absolute", left: 18, bottom: 15, width: 138, height: "auto", filter: "brightness(0) invert(1)", zIndex: 2 }} />
-                <button onClick={() => setShowVable(false)} style={{ position: "absolute", top: 12, right: 12, background: "rgba(255,255,255,0.16)", border: "none", borderRadius: 999, width: 30, height: 30, fontSize: 14, color: "#fff", cursor: "pointer", zIndex: 2 }}>✕</button>
               </div>
               <div style={{ padding: "14px 20px 40px" }}>
               <div style={{ fontSize: 12.5, color: "#8A8780", marginBottom: 16 }}>Japanese-embroidered denim — our own label.</div>

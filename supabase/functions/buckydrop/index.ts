@@ -10,6 +10,7 @@ import { createHash } from "node:crypto";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY")!;
+const SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const APP_CODE = Deno.env.get("BUCKY_APP_CODE")!;
 const APP_SECRET = Deno.env.get("BUCKY_APP_SECRET")!;
 const BUCKY_DOMAIN = Deno.env.get("BUCKY_DOMAIN") ?? "https://dev.buckydrop.com";
@@ -43,11 +44,19 @@ async function buckyPost(path: string, bodyObj: unknown) {
     body,
   });
   const text = await res.text();
-  try {
-    return JSON.parse(text);
-  } catch {
-    return { success: false, info: text || `HTTP ${res.status}`, httpStatus: res.status };
+  let parsed: any = null;
+  try { parsed = JSON.parse(text); } catch { /* niet-JSON respons */ }
+  // Bij een HTTP-fout (of niet-JSON respons) geven we een diagnostische melding
+  // mét het BuckyDrop-adres en de status terug, zodat een dev/prod-domein- of
+  // permissie-mismatch meteen zichtbaar is. Het appCode/secret lekken we nooit.
+  if (!res.ok || !parsed) {
+    const host = (() => { try { return new URL(BUCKY_DOMAIN).host; } catch { return BUCKY_DOMAIN; } })();
+    const msg = parsed && typeof parsed === "object"
+      ? (parsed.message || parsed.msg || parsed.info || JSON.stringify(parsed).slice(0, 160))
+      : (text || "lege respons").slice(0, 160);
+    return { success: false, httpStatus: res.status, info: `BuckyDrop ${host} → HTTP ${res.status}: ${msg}` };
   }
+  return parsed;
 }
 
 // Witte lijst van toegestane acties → BuckyDrop-endpoints.
@@ -64,16 +73,27 @@ Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
   if (req.method !== "POST") return json({ error: "Method not allowed" }, 405);
 
-  // Admin-check: valideer de JWT van de aanroeper en eis role = admin.
+  // Admin-check: valideer het user-JWT en eis role = admin.
+  // We valideren het token RECHTSTREEKS tegen GoTrue (/auth/v1/user) i.p.v. via
+  // supabase-js getUser(): die wierp in de esm.sh-build "Auth session missing!"
+  // (nam het token-argument niet) ook al stuurde de client een geldig token mee.
+  // Een directe fetch is versie-onafhankelijk en toont de exacte HTTP-reden.
   const authHeader = req.headers.get("Authorization") ?? "";
-  const supabase = createClient(SUPABASE_URL, ANON_KEY, {
-    global: { headers: { Authorization: authHeader } },
+  const token = authHeader.replace(/^Bearer\s+/i, "").trim();
+  if (!token) return json({ error: "Niet ingelogd (geen token meegestuurd)" }, 401);
+  const userRes = await fetch(`${SUPABASE_URL}/auth/v1/user`, {
+    headers: { apikey: ANON_KEY, Authorization: `Bearer ${token}` },
   });
-  const { data: userData } = await supabase.auth.getUser();
-  const user = userData?.user;
-  if (!user) return json({ error: "Niet ingelogd" }, 401);
-  const { data: profile } = await supabase.from("profiles").select("role").eq("id", user.id).single();
-  if (profile?.role !== "admin") return json({ error: "Alleen admins" }, 403);
+  if (!userRes.ok) {
+    const body = await userRes.text().catch(() => "");
+    return json({ error: `Niet ingelogd — GoTrue ${userRes.status}: ${body.slice(0, 200)}` }, 401);
+  }
+  const user = await userRes.json().catch(() => null);
+  if (!user?.id) return json({ error: "Niet ingelogd (geen gebruiker uit token)" }, 401);
+  // Rol-check met service role (omzeilt RLS; de gebruiker is hierboven al geverifieerd).
+  const admin = createClient(SUPABASE_URL, SERVICE_ROLE_KEY);
+  const { data: profile, error: profErr } = await admin.from("profiles").select("role").eq("id", user.id).single();
+  if (profile?.role !== "admin") return json({ error: `Alleen admins${profErr ? ` — ${profErr.message}` : ""}` }, 403);
 
   const payload = await req.json().catch(() => ({}));
   const { action, ...params } = payload ?? {};

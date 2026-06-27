@@ -500,6 +500,7 @@ function QuoteAcceptance({ order, session, balance, allOrders = [], onAccepted }
 // De sheet deelt z'n layoutId met het zwevende balkje en morpht ervandaan open.
 function RequestListSheet({ items, onRemove, onSetQty, onClose, onSend, sending, error, session, onEditAddress, onTopUp, onFinish, flagged, reasons }) {
   const [view, setView] = useState("cart");
+  const [agreed, setAgreed] = useState(false);
   const isHeld = (item) => !!flagged && flagged.has(item.source_url);
   const heldReason = (item) => reasons?.[item.source_url] || "On hold — changed at the factory";
   const heldCount = items.filter(isHeld).length;
@@ -718,12 +719,13 @@ function RequestListSheet({ items, onRemove, onSetQty, onClose, onSend, sending,
                   ⏸ {heldCount === 1 ? "1 item is" : `${heldCount} items are`} on hold and won't be charged — we'll only check out your {payable.length} available item{payable.length > 1 ? "s" : ""}. The held {heldCount === 1 ? "one stays" : "ones stay"} in your cart for when {heldCount === 1 ? "it's" : "they're"} back.
                 </div>
               )}
-              <div style={{ fontSize: 11, color: "#8A8780", lineHeight: 1.55, marginTop: 12 }}>
-                By placing your order you agree to our <a href="/terms" target="_blank" rel="noreferrer" style={{ color: "#A5B4FC" }}>Terms</a> and confirm you've read the <a href="/returns-policy" target="_blank" rel="noreferrer" style={{ color: "#A5B4FC" }}>Returns &amp; withdrawal policy</a>. You have a <b style={{ color: "#C9C6C1" }}>14-day right of withdrawal</b>. If you change your mind you pay the return shipping (we give you an EU return address); if an item is faulty, we cover it.
-              </div>
-              <motion.button whileTap={sending || !hasAddress || !payable.length ? undefined : { scale: 0.97 }} onClick={confirmAndPay} disabled={sending || !hasAddress || payable.length === 0}
-                style={{ width: "100%", marginTop: 10, background: sending ? "#333" : (!hasAddress || !payable.length) ? "#444" : "#FF5C00", color: "#fff", border: "none", borderRadius: 14, padding: "16px", fontSize: 15, fontWeight: 700, cursor: sending || !hasAddress || !payable.length ? "default" : "pointer", WebkitTapHighlightColor: "transparent" }}>
-                {sending ? "Processing payment…" : !hasAddress ? "Add an address to continue" : payable.length === 0 ? "All items are on hold" : heldCount > 0 ? `Order & pay €${charge.toFixed(2)} for the rest →` : `Order & pay €${charge.toFixed(2)} →`}
+              <label style={{ display: "flex", alignItems: "flex-start", gap: 9, marginTop: 12, cursor: "pointer", fontSize: 11, color: "#8A8780", lineHeight: 1.55 }}>
+                <input type="checkbox" checked={agreed} onChange={(e) => setAgreed(e.target.checked)} style={{ marginTop: 2, accentColor: "#FF5C00", width: 16, height: 16, flexShrink: 0 }} />
+                <span>I agree to the <a href="/terms" target="_blank" rel="noreferrer" style={{ color: "#A5B4FC" }}>Terms</a> and the <a href="/returns-policy" target="_blank" rel="noreferrer" style={{ color: "#A5B4FC" }}>Returns &amp; withdrawal policy</a>, and that any refunds are credited to my Flowva balance. I have a <b style={{ color: "#C9C6C1" }}>14-day right of withdrawal</b>; for a change of mind I pay the return shipping (EU return address), faulty items are on Flowva.</span>
+              </label>
+              <motion.button whileTap={sending || !hasAddress || !payable.length || !agreed ? undefined : { scale: 0.97 }} onClick={confirmAndPay} disabled={sending || !hasAddress || payable.length === 0 || !agreed}
+                style={{ width: "100%", marginTop: 10, background: sending ? "#333" : (!hasAddress || !payable.length || !agreed) ? "#444" : "#FF5C00", color: "#fff", border: "none", borderRadius: 14, padding: "16px", fontSize: 15, fontWeight: 700, cursor: sending || !hasAddress || !payable.length || !agreed ? "default" : "pointer", WebkitTapHighlightColor: "transparent" }}>
+                {sending ? "Processing payment…" : !hasAddress ? "Add an address to continue" : payable.length === 0 ? "All items are on hold" : !agreed ? "Tick the box to continue" : heldCount > 0 ? `Order & pay €${charge.toFixed(2)} for the rest →` : `Order & pay €${charge.toFixed(2)} →`}
               </motion.button>
 
               <motion.button whileTap={{ scale: 0.97 }} onClick={() => setView("cart")}
@@ -1208,6 +1210,7 @@ export default function SupplyFlow({ session }) {
   const [successProduct, setSuccessProduct] = useState(null);
   const [loadingBalance, setLoadingBalance] = useState(false);
   const [topupAmount, setTopupAmount] = useState("");
+  const [topupAgreed, setTopupAgreed] = useState(false);
   // Apparaat-lokale state PER GEBRUIKER opslaan, zodat een ander account op hetzelfde
   // toestel nooit de mand/favorieten/haul van de vorige ziet — ook zonder uitloggen.
   const uid = session?.user?.id || "anon";
@@ -2241,6 +2244,21 @@ export default function SupplyFlow({ session }) {
                 style={{ fontSize: 13, color: "#6366F1", fontWeight: 600, textDecoration: "none" }}>Track your parcel →</a>
             </div>
           )}
+          {(selectedOrder.status === "shipped_international" || selectedOrder.status === "delivered") && (selectedOrder.qc_images?.length > 0 || selectedOrder.measurement_images?.length > 0) && (
+            <div style={{ background: "#fff", border: "1px solid #E8E6E0", borderRadius: 14, padding: "16px", marginBottom: 16 }}>
+              <div style={{ fontSize: 14, fontWeight: 700, color: "#0F0E0C", marginBottom: 4 }}>Recorded condition <span style={{ fontSize: 11, fontWeight: 500, color: "#A8A5A0" }}>· kept for returns</span></div>
+              <div style={{ fontSize: 12, color: "#8A8780", lineHeight: 1.5, marginBottom: 12 }}>
+                These quality-control &amp; measurement photos are the documented condition of your item before it shipped — we keep them as the record if you request a return or withdrawal. For a change of mind the international shipping isn't refunded; a faulty item is on us. See our <a href="/returns-policy" target="_blank" rel="noreferrer" style={{ color: "#FF5C00" }}>Returns policy</a>.
+              </div>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 6 }}>
+                {[...(selectedOrder.qc_images || []), ...(selectedOrder.measurement_images || [])].map((url, i) => (
+                  <div key={i} style={{ borderRadius: 10, overflow: "hidden", aspectRatio: "1", background: "#F3F1ED" }}>
+                    <img src={url} referrerPolicy="no-referrer" alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
           <CustomerChat order={selectedOrder} session={session} />
         </motion.div>
       )}
@@ -2308,8 +2326,12 @@ export default function SupplyFlow({ session }) {
             </div>
             <input type="number" placeholder="Or type an amount..." value={topupAmount} onChange={e => setTopupAmount(e.target.value)}
               style={{ width: "100%", border: "1px solid #E8E6E0", borderRadius: 10, padding: "10px 14px", fontSize: 14, background: "#F8F7F4", boxSizing: "border-box", marginBottom: 10 }} />
-            <button onClick={handleTopup} disabled={loadingBalance || !topupAmount}
-              style={{ width: "100%", background: loadingBalance || !topupAmount ? "#E8E6E0" : "#FF5C00", color: "#fff", border: "none", borderRadius: 10, padding: "12px", fontSize: 14, fontWeight: 700, cursor: loadingBalance || !topupAmount ? "default" : "pointer" }}>
+            <label style={{ display: "flex", alignItems: "flex-start", gap: 9, margin: "2px 2px 10px", cursor: "pointer", fontSize: 11, color: "#8A8780", lineHeight: 1.5 }}>
+              <input type="checkbox" checked={topupAgreed} onChange={e => setTopupAgreed(e.target.checked)} style={{ marginTop: 1, accentColor: "#FF5C00", width: 16, height: 16, flexShrink: 0 }} />
+              <span>I agree to the <a href="/terms" target="_blank" rel="noreferrer" style={{ color: "#FF5C00" }}>Terms</a>, and that my balance is prepayment for Flowva orders and that any refunds are credited back to my balance.</span>
+            </label>
+            <button onClick={handleTopup} disabled={loadingBalance || !topupAmount || !topupAgreed}
+              style={{ width: "100%", background: loadingBalance || !topupAmount || !topupAgreed ? "#E8E6E0" : "#FF5C00", color: "#fff", border: "none", borderRadius: 10, padding: "12px", fontSize: 14, fontWeight: 700, cursor: loadingBalance || !topupAmount || !topupAgreed ? "default" : "pointer" }}>
               {loadingBalance ? "Loading..." : `+ Add €${topupAmount || "0"} via iDEAL`}
             </button>
           </div>

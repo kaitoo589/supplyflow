@@ -1707,8 +1707,8 @@ export default function SupplyFlow({ session }) {
     const pv = (f.previews && f.previews.length) ? f.previews : (f.cover ? [f.cover] : []);
     const extra = Math.max(0, (f.count || 0) - 3);
     const imgBox = (src, big) => (
-      <div style={{ flex: 1, background: "#ECE8E0", display: "flex", alignItems: "center", justifyContent: "center", fontSize: big ? 44 : 26, overflow: "hidden" }}>
-        {src ? <img src={src} referrerPolicy="no-referrer" alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : "🏭"}
+      <div style={{ flex: 1, minHeight: 0, minWidth: 0, background: "#ECE8E0", display: "flex", alignItems: "center", justifyContent: "center", fontSize: big ? 44 : 26, overflow: "hidden" }}>
+        {src ? <img src={src} referrerPolicy="no-referrer" alt="" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} /> : "🏭"}
       </div>
     );
     return (
@@ -1720,13 +1720,13 @@ export default function SupplyFlow({ session }) {
         whileHover={{ y: -3 }} whileTap={{ scale: 0.99 }}
         transition={springMorph}
         style={{ background: "#fff", borderRadius: 20, overflow: "hidden", boxShadow: "0 1px 2px rgba(17,17,17,0.04), 0 8px 22px rgba(17,17,17,0.06)", cursor: "pointer" }}>
-        <div style={{ position: "relative", display: "flex", gap: 2, height: 168 }}>
+        <div style={{ position: "relative", display: "flex", gap: 2, aspectRatio: "9 / 4", overflow: "hidden" }}>
           {imgBox(pv[0], true)}
           {pv.length >= 2 && (
-            <div style={{ flex: 0.62, display: "flex", flexDirection: "column", gap: 2 }}>
+            <div style={{ flex: 0.62, minWidth: 0, display: "flex", flexDirection: "column", gap: 2 }}>
               {imgBox(pv[1])}
               {pv.length >= 3 && (
-                <div style={{ flex: 1, position: "relative", display: "flex" }}>
+                <div style={{ flex: 1, minHeight: 0, position: "relative", display: "flex" }}>
                   {imgBox(pv[2])}
                   {extra > 0 && (
                     <div style={{ position: "absolute", right: 6, bottom: 6, background: "rgba(17,17,17,0.74)", color: "#fff", fontSize: 11, fontWeight: 700, padding: "2px 8px", borderRadius: 12 }}>+{extra} more</div>

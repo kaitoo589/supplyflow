@@ -399,10 +399,14 @@ function OrderDetailModal({ order, inHaul, onAdd, onRemove, onDispute, onClose, 
   );
 }
 
-function OrderCard({ order, onDragStart, onDragEnd, inHaul, onOpenDetail, onReport }) {
+function OrderCard({ order, onDragStart, onDragMove, onDragEnd, inHaul, onOpenDetail, onReport }) {
   // Pas sleepbaar zodra de quality-control foto's er zijn (= klaar om te verzenden).
   const hasQc = order.qc_images?.length > 0;
   const warehouseDays = order.arrived_at ? Math.floor((Date.now() - new Date(order.arrived_at).getTime()) / 86400000) : null;
+  // Opslag-teller: 30 dagen gratis, daarna lopen kosten (x/90) tot verbeurd op dag 90.
+  const overStorage = warehouseDays != null && warehouseDays > 30;
+  const storageColor = warehouseDays == null ? "#9C9893" : overStorage ? "#DC2626" : warehouseDays >= 24 ? "#B45309" : "#10B981";
+  const storageLabel = warehouseDays == null ? "" : overStorage ? `${warehouseDays}/90 · storage fee` : `${warehouseDays}/30 free storage`;
   // Een door BuckyDrop gemeld defect of een lopende retour blokkeert verzenden tot de klant kiest.
   const flagged = order.dispute_status === "bucky_flagged";
   const returning = !!order.return_status;
@@ -412,7 +416,8 @@ function OrderCard({ order, onDragStart, onDragEnd, inHaul, onOpenDetail, onRepo
       drag={canDrag}
       dragSnapToOrigin
       onDragStart={() => canDrag && onDragStart(order)}
-      onDragEnd={(e, info) => canDrag && onDragEnd(order, info)}
+      onDrag={(e, info) => canDrag && onDragMove && onDragMove(info, e)}
+      onDragEnd={(e, info) => canDrag && onDragEnd(order, info, e)}
       whileDrag={canDrag ? { scale: 1.06, zIndex: 50, boxShadow: "0 20px 60px rgba(0,0,0,0.2)", cursor: "grabbing" } : {}}
       whileHover={{ y: -2 }}
       style={{
@@ -432,7 +437,7 @@ function OrderCard({ order, onDragStart, onDragEnd, inHaul, onOpenDetail, onRepo
           <div style={{ fontSize: 13, fontWeight: 600, color: "#0F0E0C", marginBottom: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
             {order.product_title || order.product}
           </div>
-          <div style={{ fontSize: 11, color: "#aaa" }}>{order.qty} pcs · {order.weight_grams ? `${order.weight_grams}g` : "no weight"}{warehouseDays != null && <span style={{ color: warehouseDays >= 30 ? "#DC2626" : warehouseDays >= 24 ? "#B45309" : "#9C9893", fontWeight: warehouseDays >= 24 ? 700 : 400 }}> · 📦 {warehouseDays}d in warehouse</span>}</div>
+          <div style={{ fontSize: 11, color: "#aaa" }}>{order.qty} pcs · {order.weight_grams ? `${order.weight_grams}g` : "no weight"}{warehouseDays != null && <span style={{ color: storageColor, fontWeight: warehouseDays >= 24 ? 700 : 400 }}> · 📦 {storageLabel}</span>}</div>
         </div>
         <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 6, flexShrink: 0 }}>
           {canDrag && <div style={{ background: inHaul ? "#10B981" : "#F3F1ED", color: inHaul ? "#fff" : "#9C9893", fontSize: 10, fontWeight: 700, padding: "2px 8px", borderRadius: 20, whiteSpace: "nowrap" }}>{inHaul ? "✓ In box" : "Not in box"}</div>}
@@ -960,14 +965,32 @@ export function WarehouseTab({ session, haulItems: allHaulItems = [], setHaulIte
 
   const onDragStart = (order) => setDraggingOrder(order);
 
-  const onDragEnd = (order, info) => {
+  // Viewport-coördinaten uit het pointer-event (robuust bij scroll); pointer-events
+  // hebben clientX/Y voor zowel muis als touch. Val terug op info.point.
+  const evXY = (info, e) => ({
+    x: (e && typeof e.clientX === "number" ? e.clientX : e?.changedTouches?.[0]?.clientX) ?? info.point.x,
+    y: (e && typeof e.clientY === "number" ? e.clientY : e?.changedTouches?.[0]?.clientY) ?? info.point.y,
+  });
+  // Royale trefzone: de hele doos + een ruime marge eromheen telt als "erin gesleept",
+  // zodat een net-niet-precieze drop tóch landt.
+  const pointInZone = (x, y, margin = 90) => {
+    if (!dropZoneRef.current) return false;
+    const r = dropZoneRef.current.getBoundingClientRect();
+    return x >= r.left - margin && x <= r.right + margin && y >= r.top - margin && y <= r.bottom + margin;
+  };
+
+  // Live highlight terwijl je sleept (werkt ook op mobiel, waar mouseenter niet vuurt).
+  const onDragMove = (info, e) => {
+    const { x, y } = evXY(info, e);
+    setIsDropTarget(pointInZone(x, y));
+  };
+
+  const onDragEnd = (order, info, e) => {
     setDraggingOrder(null);
     setIsDropTarget(false);
     if (dropZoneRef.current && typeof setHaulItems === "function") {
-      const rect = dropZoneRef.current.getBoundingClientRect();
-      const { point } = info;
-      const inZone = point.x >= rect.left && point.x <= rect.right && point.y >= rect.top && point.y <= rect.bottom;
-      if (inZone && !lockedIds.includes(order.id) && !haulItems.some(h => h.id === order.id)) {
+      const { x, y } = evXY(info, e);
+      if (pointInZone(x, y) && !lockedIds.includes(order.id) && !haulItems.some(h => h.id === order.id)) {
         setHaulItems(prev => [...prev, order]);
         stageGroup(order.id, true);
       }
@@ -993,6 +1016,11 @@ export function WarehouseTab({ session, haulItems: allHaulItems = [], setHaulIte
         <div style={{ marginTop: 8, paddingTop: 8, borderTop: "1px solid #FCD9B6" }}>
           👯 <b>Shopping with friends?</b> With <b>Flowva Friends</b> you can team up, combine everyone's items into one parcel, and split the shipping — the cheapest way to ship together.
         </div>
+      </div>
+
+      {/* Opslag-uitleg: 30 dagen gratis, daarna kosten, en wat er bij overschrijding gebeurt. */}
+      <div style={{ background: "#F8F7F4", border: "1px solid #EAE7E0", borderRadius: 12, padding: "10px 13px", marginBottom: 16, fontSize: 12, color: "#6B6863", lineHeight: 1.5 }}>
+        🗓️ <b style={{ color: "#0F0E0C" }}>Storage is free for 30 days.</b> After your items arrive they're stored safely at no cost for 30 days. After that a small storage fee applies — we'll send you a quote (shipping + storage) to pay today. If it stays unpaid by day 90, the item is forfeited. Each item below shows its storage day count (e.g. <b>5/30 free storage</b>).
       </div>
 
       {incomingCount > 0 && (
@@ -1117,7 +1145,7 @@ export function WarehouseTab({ session, haulItems: allHaulItems = [], setHaulIte
             </div>
           );
         }
-        return <OrderCard key={order.id} order={order} onDragStart={onDragStart} onDragEnd={onDragEnd} inHaul={inHaul} onOpenDetail={setDetailOrder} onReport={setDisputeOrder} />;
+        return <OrderCard key={order.id} order={order} onDragStart={onDragStart} onDragMove={onDragMove} onDragEnd={onDragEnd} inHaul={inHaul} onOpenDetail={setDetailOrder} onReport={setDisputeOrder} />;
       })}
 
       {/* SQUAD — items van groepsgenoten (alleen-lezen, net als op de Orders-pagina) */}

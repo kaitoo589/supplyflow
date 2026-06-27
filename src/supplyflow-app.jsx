@@ -2589,6 +2589,22 @@ export default function SupplyFlow({ session }) {
             </div>
           </motion.div>
         )}
+        {/* Geplaatste/gevolgde groep: maak glashelder dat de groep op slot zit en je nu solo winkelt. */}
+        {activeGroup && !activeGroupShopping && tab === "feed" && !selectedProduct && !showFriends && !showRequestList && requestList.length === 0 && (
+          <motion.div initial={{ y: 24, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={springMorph}
+            onClick={() => { setFriendsGroupId(activeGroup.id); setShowFriends(true); }}
+            style={{ position: "fixed", bottom: 78, left: 0, right: 0, margin: "0 auto", width: "calc(100% - 40px)", maxWidth: 390, background: "#111111", borderRadius: 16, overflow: "hidden", cursor: "pointer", zIndex: 301, boxShadow: "0 12px 40px rgba(17,17,17,0.35)", border: "1px solid rgba(52,209,123,0.35)" }}>
+            <div style={{ padding: "12px 16px", display: "flex", alignItems: "center", gap: 12 }}>
+              <span style={{ fontSize: 18 }}>📦</span>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontSize: 13, fontWeight: 700, color: "#fff", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{activeGroup.name} · order placed</div>
+                <div style={{ fontSize: 11.5, color: "#9C9893" }}>Group locked — you're shopping on your own now 🦊</div>
+              </div>
+              <button onClick={(e) => { e.stopPropagation(); setActiveGroup(null); }} aria-label="stop following"
+                style={{ background: "rgba(255,255,255,0.08)", border: "none", color: "#9C9893", fontSize: 11, fontWeight: 700, padding: "6px 11px", borderRadius: 999, cursor: "pointer", whiteSpace: "nowrap", flexShrink: 0 }}>Shop solo ✓</button>
+            </div>
+          </motion.div>
+        )}
         {requestList.length > 0 && tab === "feed" && !showRequestList && !selectedProduct && !showFriends && !activeGroupShopping && (
           <motion.div layoutId="request-list-morph" transition={springMorph}
             onClick={() => { setListError(null); setShowRequestList(true); }}

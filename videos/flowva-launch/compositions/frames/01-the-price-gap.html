@@ -14,6 +14,7 @@
           background: #F8F7F4;
           font-family: 'Inter', sans-serif;
           color: #111111;
+          -webkit-font-smoothing: antialiased;
         }
 
         /* Macro-push layer — slow drift under the whole shot */
@@ -24,22 +25,24 @@
           flex-direction: column;
           align-items: center;
           justify-content: flex-start;
-          padding: 0 110px;
+          padding: 0 88px;
           box-sizing: border-box;
           will-change: transform;
         }
 
         /* ── Beat 1 : "You paid €32" — giant, ink, with 3D depth stack ── */
         .you-paid {
-          margin-top: 470px; /* hero anchored high (~0.25h) */
+          margin-top: 480px; /* hero anchored high (~0.25h) */
           text-align: center;
         }
+        /* Flowva LABEL — small, uppercase, ink-soft, tracked */
         .kicker {
-          font-size: 50px;
+          font-size: 34px;
           font-weight: 700;
-          letter-spacing: 0.01em;
+          text-transform: uppercase;
+          letter-spacing: 0.18em;
           color: #6E6B66;
-          margin-bottom: 18px;
+          margin-bottom: 34px;
           will-change: transform, opacity;
         }
         .depth-stack {
@@ -51,7 +54,7 @@
           font-weight: 900;
           font-size: 330px;
           line-height: 0.92;
-          letter-spacing: -0.04em;
+          letter-spacing: -0.045em;
           color: #111111;
           white-space: nowrap;
         }
@@ -69,7 +72,7 @@
         /* faint grey "?" sitting in the gap */
         .gap-q {
           opacity: 0;
-          margin: 26px 0 14px;
+          margin: 46px 0 44px;
           will-change: transform, opacity;
         }
         /* inner wrapper carries the continuous breathing pulse so the
@@ -78,7 +81,7 @@
         .gap-q-inner {
           display: inline-block;
           font-weight: 800;
-          font-size: 200px;
+          font-size: 190px;
           line-height: 1;
           color: #A8A5A0;
           will-change: transform;
@@ -89,18 +92,20 @@
           text-align: center;
           will-change: transform, opacity;
         }
+        /* Flowva LABEL — matches the "You paid" label rhythm */
         .factory-label {
-          font-size: 50px;
-          font-weight: 600;
-          letter-spacing: 0.01em;
+          font-size: 34px;
+          font-weight: 700;
+          text-transform: uppercase;
+          letter-spacing: 0.18em;
           color: #6E6B66;
-          margin-bottom: 6px;
+          margin-bottom: 22px;
         }
         .factory-amount {
           font-weight: 800;
-          font-size: 160px;
+          font-size: 158px;
           line-height: 0.96;
-          letter-spacing: -0.03em;
+          letter-spacing: -0.035em;
           color: #6E6B66;
         }
       </style>

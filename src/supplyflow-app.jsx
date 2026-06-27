@@ -1637,7 +1637,13 @@ export default function SupplyFlow({ session }) {
       const cover = (f.logo && f.logo.startsWith("http"))
         ? f.logo
         : (fp.find(p => p.image && p.image.startsWith("http"))?.image || null);
-      return { ...f, count: fp.length, cover };
+      // Etalage: tot 3 product-foto's (hoogst beoordeeld eerst) zodat je ziet wat de fabriek maakt.
+      const previews = fp
+        .filter(p => p.image && p.image.startsWith("http"))
+        .sort((a, b) => (Number(b.rating) || 0) - (Number(a.rating) || 0))
+        .slice(0, 3)
+        .map(p => p.image);
+      return { ...f, count: fp.length, cover, previews };
     })
     .filter(f => f.count > 0)
     .filter(f => { const q = search.trim().toLowerCase(); return !q || (f.name || "").toLowerCase().includes(q); })
@@ -1688,43 +1694,64 @@ export default function SupplyFlow({ session }) {
     </motion.div>
   );
 
-  // Fabriek-kaart voor de top van de feed (zelfde grid-stijl als producten).
+  // Fabriek-kaart = volledige telefoon-breedte, één per rij (verticaal scrollen).
+  // Etalage-collage: 1 grote + 2 kleine product-foto's → je ziet meteen wat de fabriek maakt.
   const factoryCardEl = (f) => {
     const dia = Math.max(0, Math.min(4, Number(f.diamonds) || 0));
     const stats = [
-      { label: "Repurchase rate", v: f.repurchase },
-      { label: "Service score", v: f.service },
-      { label: "On-time delivery", v: f.ontime },
-      { label: "Positive reviews", v: f.reviews },
+      { label: "Repurchase", v: f.repurchase },
+      { label: "Service", v: f.service },
+      { label: "On-time", v: f.ontime },
+      { label: "Reviews", v: f.reviews },
     ].filter(s => s.v);
+    const pv = (f.previews && f.previews.length) ? f.previews : (f.cover ? [f.cover] : []);
+    const extra = Math.max(0, (f.count || 0) - 3);
+    const imgBox = (src, big) => (
+      <div style={{ flex: 1, background: "#ECE8E0", display: "flex", alignItems: "center", justifyContent: "center", fontSize: big ? 44 : 26, overflow: "hidden" }}>
+        {src ? <img src={src} referrerPolicy="no-referrer" alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : "🏭"}
+      </div>
+    );
     return (
       <motion.div key={f.id} layout layoutId={`factory-${f.id}`} className={activeGroup ? "ff-glow" : ""}
-        initial={{ opacity: 0, scale: 0.92, y: 14 }}
+        initial={{ opacity: 0, scale: 0.96, y: 14 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
-        exit={{ opacity: 0, scale: 0.92, transition: { duration: 0.16, ease: [0.32, 0.72, 0, 1] } }}
+        exit={{ opacity: 0, scale: 0.96, transition: { duration: 0.16, ease: [0.32, 0.72, 0, 1] } }}
         onClick={() => { setSelectedFactory(f); setSearch(""); setActiveCategory("All"); setActiveSub(null); }}
-        whileHover={{ y: -4 }} whileTap={{ scale: 0.98 }}
+        whileHover={{ y: -3 }} whileTap={{ scale: 0.99 }}
         transition={springMorph}
-        style={{ background: "#fff", borderRadius: 18, overflow: "hidden", boxShadow: "0 1px 2px rgba(17,17,17,0.04), 0 6px 18px rgba(17,17,17,0.05)", cursor: "pointer" }}>
-        <div style={{ position: "relative", height: 132, background: "#F3F1EC", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 46, overflow: "hidden" }}>
-          {f.cover
-            ? <img src={f.cover} referrerPolicy="no-referrer" alt={f.name} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-            : "🏭"}
+        style={{ background: "#fff", borderRadius: 20, overflow: "hidden", boxShadow: "0 1px 2px rgba(17,17,17,0.04), 0 8px 22px rgba(17,17,17,0.06)", cursor: "pointer" }}>
+        <div style={{ position: "relative", display: "flex", gap: 2, height: 168 }}>
+          {imgBox(pv[0], true)}
+          {pv.length >= 2 && (
+            <div style={{ flex: 0.62, display: "flex", flexDirection: "column", gap: 2 }}>
+              {imgBox(pv[1])}
+              {pv.length >= 3 && (
+                <div style={{ flex: 1, position: "relative", display: "flex" }}>
+                  {imgBox(pv[2])}
+                  {extra > 0 && (
+                    <div style={{ position: "absolute", right: 6, bottom: 6, background: "rgba(17,17,17,0.74)", color: "#fff", fontSize: 11, fontWeight: 700, padding: "2px 8px", borderRadius: 12 }}>+{extra} more</div>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
           {dia >= 1 && (
-            <div style={{ position: "absolute", top: 10, left: 10, background: "rgba(17,17,17,0.82)", borderRadius: 20, padding: "3px 8px", fontSize: 12, fontWeight: 700, letterSpacing: 1 }}>
+            <div style={{ position: "absolute", top: 11, left: 11, background: "rgba(17,17,17,0.82)", borderRadius: 20, padding: "3px 9px", fontSize: 12, fontWeight: 700, letterSpacing: 1 }}>
               {"💎".repeat(dia)}
             </div>
           )}
         </div>
-        <div style={{ padding: "11px 13px 13px" }}>
-          <div style={{ fontSize: 13.5, fontWeight: 700, color: "#111111", marginBottom: 3, lineHeight: 1.3 }}>{f.name}</div>
-          <div style={{ fontSize: 11, color: "#A8A5A0", marginBottom: stats.length ? 8 : 0 }}>{f.count} product{f.count === 1 ? "" : "s"} ›</div>
+        <div style={{ padding: "13px 15px 14px" }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 8 }}>
+            <div style={{ fontSize: 15.5, fontWeight: 700, color: "#111111", lineHeight: 1.3 }}>{f.name}</div>
+            <div style={{ fontSize: 12, color: "#A8A5A0", whiteSpace: "nowrap" }}>{f.count} product{f.count === 1 ? "" : "s"} ›</div>
+          </div>
           {stats.length > 0 && (
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 5 }}>
+            <div style={{ display: "flex", gap: 6, marginTop: 11 }}>
               {stats.map(s => (
-                <div key={s.label} style={{ background: "#F6F4EF", borderRadius: 8, padding: "5px 7px" }}>
-                  <div style={{ fontSize: 12.5, fontWeight: 800, color: "#FF5C00", lineHeight: 1.1 }}>{s.v}</div>
-                  <div style={{ fontSize: 9, color: "#8A8780", lineHeight: 1.2, marginTop: 1 }}>{s.label}</div>
+                <div key={s.label} style={{ flex: 1, background: "#F6F4EF", borderRadius: 10, padding: "7px 6px", textAlign: "center" }}>
+                  <div style={{ fontSize: 13, fontWeight: 800, color: "#FF5C00", lineHeight: 1.1 }}>{s.v}</div>
+                  <div style={{ fontSize: 9, color: "#8A8780", lineHeight: 1.2, marginTop: 2 }}>{s.label}</div>
                 </div>
               ))}
             </div>
@@ -1937,7 +1964,7 @@ export default function SupplyFlow({ session }) {
                 <div style={{ textAlign: "center", padding: 40, color: "#999", lineHeight: 1.5 }}>{search ? "No factories match your search." : "No factories yet — check back soon."}</div>
               )}
               {!loadingProducts && !productsError && factoryCards.length > 0 && (
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: 14 }}>
                   <AnimatePresence mode="popLayout" initial={false}>
                     {factoryCards.map(factoryCardEl)}
                   </AnimatePresence>

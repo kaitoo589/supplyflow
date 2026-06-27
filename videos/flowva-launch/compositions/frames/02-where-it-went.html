@@ -51,8 +51,9 @@
         .bar {
           position: absolute;
           inset: 0;
-          border-radius: 22px 22px 0 0;
-          background: linear-gradient(180deg, #E6E3DD 0%, #D9D5CE 100%);
+          border-radius: 24px 24px 0 0;
+          /* neutral field/line tones — dead-weight markup, never orange */
+          background: linear-gradient(180deg, #F3F1ED 0%, #E9E6E0 100%);
           border: 1px solid #ECEAE5;
           box-shadow: 0 1px 2px rgba(17,17,17,.04), 0 10px 30px rgba(17,17,17,.07);
           transform: scaleY(0);
@@ -60,13 +61,13 @@
           will-change: transform;
           overflow: hidden;
         }
-        /* faint diagonal hatch so the grey bar reads "dead weight" */
+        /* faint diagonal hatch so the neutral bar reads "dead weight" */
         .bar::after {
           content: "";
           position: absolute;
           inset: 0;
           background-image: repeating-linear-gradient(
-            -45deg, transparent 0 18px, rgba(110,107,102,.06) 18px 19px
+            -45deg, transparent 0 18px, rgba(110,107,102,.05) 18px 19px
           );
         }
         .bar-label {
@@ -76,22 +77,22 @@
           transform: translate(-50%, -50%);
           width: 84%;
           text-align: center;
-          font-size: 30px;
+          font-size: 46px;
           font-weight: 800;
-          letter-spacing: 0.02em;
+          letter-spacing: -0.01em;
           color: #6E6B66;
-          line-height: 1.25;
+          line-height: 1.1;
           opacity: 0;
           will-change: opacity;
         }
         .bar-label .sub {
           display: block;
-          font-size: 22px;
-          font-weight: 600;
-          letter-spacing: 0.12em;
+          font-size: 17px;
+          font-weight: 700;
+          letter-spacing: 0.32em;
           text-transform: uppercase;
           color: #A8A5A0;
-          margin-top: 8px;
+          margin-top: 14px;
         }
 
         /* ---- the rising number that gets stretched up ---- */
@@ -140,7 +141,7 @@
           border-bottom: 16px solid #C9C5BE;
         }
 
-        /* ---- friction chips (rule of three) ---- */
+        /* ---- friction chips (rule of three) — real Flowva white cards ---- */
         .chips {
           position: absolute;
           inset: 0;
@@ -152,28 +153,45 @@
           display: flex;
           align-items: center;
           gap: 18px;
-          padding: 26px 34px;
+          padding: 24px 32px;
           background: #FFFFFF;
           border: 1px solid #ECEAE5;
-          border-radius: 18px;
+          border-radius: 16px;
           box-shadow: 0 1px 2px rgba(17,17,17,.04), 0 10px 30px rgba(17,17,17,.07);
-          font-size: 34px;
+          font-size: 33px;
           font-weight: 700;
-          color: #6E6B66;
+          letter-spacing: -0.01em;
+          color: #111111;
           white-space: nowrap;
           will-change: transform, opacity;
         }
+        /* small leading icon tile — field background, soft rounded, like Flowva tiles */
         .chip .ico {
-          width: 50px;
-          height: 50px;
-          flex: 0 0 50px;
-          border-radius: 13px;
+          width: 56px;
+          height: 56px;
+          flex: 0 0 56px;
+          border-radius: 14px;
           background: #F3F1ED;
           display: grid;
           place-items: center;
+          font-size: 30px;
+          line-height: 1;
+        }
+        /* small uppercase ink-soft kicker above the label, Flowva-style */
+        .chip .body { display: flex; flex-direction: column; gap: 4px; }
+        .chip .kick {
+          font-size: 16px;
+          font-weight: 700;
+          letter-spacing: 0.28em;
+          text-transform: uppercase;
           color: #A8A5A0;
         }
-        .chip .ico svg { display: block; }
+        .chip .lbl {
+          font-size: 33px;
+          font-weight: 700;
+          letter-spacing: -0.01em;
+          color: #111111;
+        }
       </style>
 
       <div id="root" data-composition-id="02-where-it-went" data-width="1080" data-height="1920">
@@ -186,7 +204,7 @@
             <div class="bar" id="bar">
               <div class="bar-label" id="barLabel">
                 +€24
-                <span class="sub">dropshipper markup</span>
+                <span class="sub">Dropshipper markup</span>
               </div>
             </div>
           </div>
@@ -201,28 +219,25 @@
           <!-- three friction chips -->
           <div class="chips">
             <div class="chip" id="chip0" data-tx="-300" data-ty="-470">
-              <span class="ico">
-                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                  <rect x="1" y="7" width="13" height="10" rx="1.5"/><path d="M14 10h4l3 3v4h-7z"/><circle cx="5" cy="18" r="1.8"/><circle cx="17" cy="18" r="1.8"/>
-                </svg>
+              <span class="ico">📦</span>
+              <span class="body">
+                <span class="kick">Shipping</span>
+                <span class="lbl">Eats cheap items</span>
               </span>
-              Shipping eats cheap items
             </div>
             <div class="chip" id="chip1" data-tx="330" data-ty="-150">
-              <span class="ico">
-                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                  <path d="M3 21V8l9-5 9 5v13"/><path d="M3 21h18"/><rect x="9" y="13" width="6" height="8"/>
-                </svg>
+              <span class="ico">🏛️</span>
+              <span class="body">
+                <span class="kick">Customs</span>
+                <span class="lbl">At the door</span>
               </span>
-              Customs at the door
             </div>
             <div class="chip" id="chip2" data-tx="-280" data-ty="200">
-              <span class="ico">
-                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                  <path d="M12 3l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 17l-5.2 2.1 1-5.8L3.5 9.2l5.9-.9z"/>
-                </svg>
+              <span class="ico">🎲</span>
+              <span class="body">
+                <span class="kick">Quality</span>
+                <span class="lbl">A gamble</span>
               </span>
-              Quality? A gamble
             </div>
           </div>
 

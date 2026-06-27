@@ -34,7 +34,7 @@
           overflow: hidden;
           background: #FFFFFF;
           border: 1px solid #ECEAE5;
-          box-shadow: 0 1px 2px rgba(17,17,17,.04), 0 18px 50px rgba(17,17,17,.12);
+          box-shadow: 0 1px 2px rgba(17,17,17,.04), 0 10px 30px rgba(17,17,17,.07);
           will-change: transform, opacity;
         }
         .device-inner {
@@ -79,12 +79,12 @@
           margin-left: -115px;
           margin-top: -115px;
           border-radius: 50%;
-          border: 4px solid #111111;
+          border: 3px solid #6E6B66;
           opacity: 0;
           will-change: transform, opacity;
         }
         .ring.soft {
-          border-color: #6E6B66;
+          border-color: #A8A5A0;
         }
         .ring-core {
           position: absolute;
@@ -95,22 +95,22 @@
           margin-left: -75px;
           margin-top: -75px;
           border-radius: 50%;
-          box-shadow: 0 0 0 2px rgba(17,17,17,.10), 0 0 44px 8px rgba(17,17,17,.10);
+          box-shadow: 0 0 0 2px rgba(17,17,17,.07), 0 0 44px 8px rgba(17,17,17,.08);
           opacity: 0;
           will-change: transform, opacity;
         }
 
-        /* ---- White callout pill pointing to the node ---- */
+        /* ---- Flowva BADGE/CARD pointing to the node ---- */
         .callout {
           position: absolute;
-          left: 250px;
-          top: 690px;
-          width: 580px;
+          left: 232px;
+          top: 686px;
+          width: 616px;
           background: #FFFFFF;
           border: 1px solid #ECEAE5;
-          border-radius: 22px;
-          box-shadow: 0 1px 2px rgba(17,17,17,.04), 0 18px 50px rgba(17,17,17,.12);
-          padding: 26px 30px;
+          border-radius: 18px;
+          box-shadow: 0 1px 2px rgba(17,17,17,.04), 0 10px 30px rgba(17,17,17,.07);
+          padding: 22px 26px;
           opacity: 0;
           will-change: transform, opacity;
         }
@@ -132,7 +132,7 @@
           stroke-dasharray: 2 9;
         }
         .leader circle {
-          fill: #111111;
+          fill: #6E6B66;
         }
         .callout-row {
           display: flex;
@@ -141,10 +141,10 @@
         }
         .check {
           flex: 0 0 auto;
-          width: 56px;
-          height: 56px;
+          width: 58px;
+          height: 58px;
           border-radius: 50%;
-          background: #111111;
+          background: #F3F1ED;
           display: grid;
           place-items: center;
           will-change: transform;
@@ -152,60 +152,59 @@
         .check svg { display: block; width: 30px; height: 30px; overflow: visible; }
         .check path {
           fill: none;
-          stroke: #FFFFFF;
-          stroke-width: 5;
+          stroke: #111111;
+          stroke-width: 4.5;
           stroke-linecap: round;
           stroke-linejoin: round;
         }
         .callout-text { min-width: 0; }
         .callout-title {
-          font-size: 38px;
-          font-weight: 800;
-          letter-spacing: -0.6px;
+          font-size: 39px;
+          font-weight: 700;
+          letter-spacing: -0.5px;
           color: #111111;
-          line-height: 1.05;
+          line-height: 1.02;
           white-space: nowrap;
         }
         .callout-sub {
-          margin-top: 6px;
-          font-size: 27px;
+          margin-top: 5px;
+          font-size: 26px;
           font-weight: 500;
           color: #6E6B66;
-          letter-spacing: -0.2px;
+          letter-spacing: -0.1px;
         }
 
-        /* ---- DDP / VAT trust chip near the bottom of the card area ---- */
+        /* ---- DDP / VAT trust chip — real Flowva field-bg pill ---- */
         .ddp {
           position: absolute;
           left: 50%;
-          top: 1520px;
+          top: 1524px;
           transform: translateX(-50%);
           display: inline-flex;
           align-items: center;
-          gap: 16px;
-          background: #FFFFFF;
+          gap: 14px;
+          background: #F3F1ED;
           border: 1px solid #ECEAE5;
           border-radius: 999px;
-          box-shadow: 0 1px 2px rgba(17,17,17,.04), 0 14px 36px rgba(17,17,17,.10);
-          padding: 20px 34px;
+          padding: 16px 30px;
           opacity: 0;
           white-space: nowrap;
           will-change: transform, opacity;
         }
         .ddp-dot {
-          width: 16px;
-          height: 16px;
+          width: 12px;
+          height: 12px;
           border-radius: 50%;
-          background: #111111;
+          background: #6E6B66;
           flex: 0 0 auto;
         }
         .ddp-text {
-          font-size: 30px;
-          font-weight: 700;
-          letter-spacing: -0.2px;
+          font-size: 28px;
+          font-weight: 600;
+          letter-spacing: -0.1px;
           color: #111111;
         }
-        .ddp-text .muted { color: #6E6B66; font-weight: 600; }
+        .ddp-text .muted { color: #6E6B66; font-weight: 500; }
       </style>
 
       <div id="root" data-composition-id="05-checked-before-it-ships" data-width="1080" data-height="1920">

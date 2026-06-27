@@ -35,9 +35,10 @@
           will-change: transform, opacity;
         }
         .wordmark {
-          font-size: 84px;
+          font-size: 70px;
           font-weight: 800;
-          letter-spacing: -2.5px;
+          letter-spacing: 0.14em;
+          text-transform: uppercase;
           line-height: 1;
           color: #111111;
           white-space: nowrap;
@@ -82,24 +83,24 @@
           top: 1090px;
           background: #FFFFFF;
           border: 1px solid #ECEAE5;
-          border-radius: 26px;
-          box-shadow: 0 1px 2px rgba(17,17,17,.04), 0 18px 50px rgba(17,17,17,.16);
-          padding: 38px 44px 34px;
+          border-radius: 18px;
+          box-shadow: 0 1px 2px rgba(17,17,17,.04), 0 10px 30px rgba(17,17,17,.07);
+          padding: 36px 40px 32px;
           will-change: transform, opacity;
         }
         .callout-title {
-          font-size: 26px;
+          font-size: 24px;
           font-weight: 700;
-          letter-spacing: 1.6px;
+          letter-spacing: 0.4px;
           text-transform: uppercase;
-          color: #A8A5A0;
-          margin-bottom: 22px;
+          color: #6E6B66;
+          margin-bottom: 20px;
         }
         .price-row {
           display: flex;
           align-items: baseline;
           justify-content: space-between;
-          padding: 11px 0;
+          padding: 10px 0;
           opacity: 0;
           will-change: transform, opacity;
         }
@@ -115,7 +116,7 @@
           font-variant-numeric: tabular-nums;
         }
         .price-row.total {
-          margin-top: 10px;
+          margin-top: 12px;
           padding-top: 20px;
           border-top: 1px solid #ECEAE5;
         }
@@ -165,7 +166,7 @@
         <div class="macro" id="macro">
 
           <div class="wordmark-wrap" id="wordmark-wrap">
-            <div class="wordmark" id="wordmark">F</div>
+            <div class="wordmark" id="wordmark">&#129418; F</div>
           </div>
 
           <!-- REAL screenshot as the hero -->
@@ -184,7 +185,7 @@
               <span class="val">&euro;8.00</span>
             </div>
             <div class="price-row" data-prow>
-              <span class="label">Flowva fee 8%</span>
+              <span class="label">Flowva service (8%)</span>
               <span class="val">&euro;0.64</span>
             </div>
             <div class="price-row total" data-prow>
@@ -211,14 +212,15 @@
         const TOTAL = 5.0;
 
         // ---- Phase 1: "Flowva" wordmark discrete assembly (ink) ----
+        const FOX = "🦊 ";
         const SEQ = [
-          { t: 0.00, text: "F" },
-          { t: 0.10, text: "Fl" },
-          { t: 0.20, text: "Flo" },
-          { t: 0.32, text: "Flo" },   // pacing hold
-          { t: 0.44, text: "Flow" },
-          { t: 0.56, text: "Flowv" },
-          { t: 0.70, text: "Flowva" }
+          { t: 0.00, text: FOX + "F" },
+          { t: 0.10, text: FOX + "Fl" },
+          { t: 0.20, text: FOX + "Flo" },
+          { t: 0.32, text: FOX + "Flo" },   // pacing hold
+          { t: 0.44, text: FOX + "Flow" },
+          { t: 0.56, text: FOX + "Flowv" },
+          { t: 0.70, text: FOX + "Flowva" }
         ];
         const wordEl = document.getElementById("wordmark");
         for (const s of SEQ) {

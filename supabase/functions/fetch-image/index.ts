@@ -27,7 +27,8 @@ Deno.serve(async (req) => {
 
     const buf = await res.arrayBuffer();
     if (buf.byteLength > 12_000_000) return errJson("Image too large");
-    return new Response(buf, { headers: { ...cors, "Content-Type": ct, "Cache-Control": "no-store" } });
+    // octet-stream → supabase-js functions.invoke geeft 'm als Blob terug (image/* zou als tekst gelezen worden).
+    return new Response(buf, { headers: { ...cors, "Content-Type": "application/octet-stream", "X-Image-Type": ct, "Cache-Control": "no-store" } });
   } catch (e) {
     return errJson(String((e as Error)?.message || e), 500);
   }

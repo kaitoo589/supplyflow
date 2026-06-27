@@ -2505,11 +2505,9 @@ export default function SupplyFlow({ session }) {
                 <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to bottom, rgba(0,0,0,0.34) 0%, rgba(0,0,0,0) 16%)" }} />
                 <div style={{ position: "absolute", top: 10, left: "50%", transform: "translateX(-50%)", width: 38, height: 4, background: "rgba(255,255,255,0.6)", borderRadius: 2, zIndex: 3 }} />
                 <button onClick={() => setShowVable(false)} aria-label="close" style={{ position: "absolute", top: 12, right: 12, background: "rgba(0,0,0,0.4)", border: "none", borderRadius: 999, width: 30, height: 30, fontSize: 14, color: "#fff", cursor: "pointer", zIndex: 3 }}>✕</button>
-                <div style={{ position: "absolute", top: "29%", left: 18, right: 18, textAlign: "center", zIndex: 2 }}>
-                  <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 9, marginBottom: 12 }}>
-                    <img src="/vable-logo.svg" alt="VABLE" style={{ height: 24, width: "auto", filter: "brightness(0) invert(1)" }} />
-                    <span style={{ fontSize: 11, letterSpacing: 2, color: "rgba(255,255,255,0.82)", textShadow: "0 1px 8px rgba(0,0,0,0.55)" }}>— FIRST DROP 2026</span>
-                  </div>
+                <div style={{ position: "absolute", top: "24%", left: 18, right: 18, textAlign: "center", zIndex: 2 }}>
+                  <img src="/vable-logo.svg" alt="VABLE" style={{ height: 64, width: "auto", maxWidth: "82%", filter: "brightness(0) invert(1)", marginBottom: 10 }} />
+                  <div style={{ fontSize: 11, letterSpacing: 3, color: "rgba(255,255,255,0.8)", textShadow: "0 1px 8px rgba(0,0,0,0.55)", marginBottom: 14 }}>FIRST DROP 2026</div>
                   <div style={{ fontSize: 40, fontWeight: 800, color: "#fff", lineHeight: 1.0, letterSpacing: -1, textShadow: "0 2px 16px rgba(0,0,0,0.5)" }}>Wearable Art.</div>
                   <div style={{ fontSize: 14, color: "rgba(255,255,255,0.88)", marginTop: 12, textShadow: "0 1px 10px rgba(0,0,0,0.55)" }}>Embroidery elevated — inspired by Japan.</div>
                 </div>
@@ -2552,7 +2550,7 @@ export default function SupplyFlow({ session }) {
         {infoToast && (
           <div style={{ position: "fixed", bottom: 90, left: "50%", transform: "translateX(-50%)", zIndex: 350, background: "#0F0E0C", color: "#fff", borderRadius: 999, padding: "10px 18px", fontSize: 13, fontWeight: 600, boxShadow: "0 8px 30px rgba(0,0,0,0.4)", maxWidth: "90%", textAlign: "center" }}>{infoToast}</div>
         )}
-        {activeGroupShopping && tab === "feed" && !selectedProduct && !showFriends && !showRequestList && (
+        {activeGroupShopping && tab === "feed" && !selectedProduct && !showFriends && !showRequestList && !showVable && (
           <motion.div initial={{ y: 24, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 30, opacity: 0, scale: 0.96 }} whileTap={{ scale: 0.97 }} transition={springMorph}
             onClick={() => { setFriendsGroupId(activeGroup.id); setShowFriends(true); }}
             style={{ position: "fixed", bottom: 78, left: 0, right: 0, margin: "0 auto", width: "calc(100% - 40px)", maxWidth: 390, background: "#111111", borderRadius: 16, overflow: "hidden", cursor: "pointer", zIndex: 301, boxShadow: "0 12px 40px rgba(255,92,0,0.28)", border: "1px solid rgba(255,92,0,0.4)" }}>
@@ -2572,7 +2570,7 @@ export default function SupplyFlow({ session }) {
           </motion.div>
         )}
         {/* Geplaatste/gevolgde groep: maak glashelder dat de groep op slot zit en je nu solo winkelt. */}
-        {activeGroup && !activeGroupShopping && tab === "feed" && !selectedProduct && !showFriends && !showRequestList && requestList.length === 0 && (
+        {activeGroup && !activeGroupShopping && tab === "feed" && !selectedProduct && !showFriends && !showRequestList && requestList.length === 0 && !showVable && (
           <motion.div initial={{ y: 24, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={springMorph}
             onClick={() => { setFriendsGroupId(activeGroup.id); setShowFriends(true); }}
             style={{ position: "fixed", bottom: 78, left: 0, right: 0, margin: "0 auto", width: "calc(100% - 40px)", maxWidth: 390, background: "#111111", borderRadius: 16, overflow: "hidden", cursor: "pointer", zIndex: 301, boxShadow: "0 12px 40px rgba(17,17,17,0.35)", border: "1px solid rgba(52,209,123,0.35)" }}>
@@ -2587,7 +2585,7 @@ export default function SupplyFlow({ session }) {
             </div>
           </motion.div>
         )}
-        {requestList.length > 0 && tab === "feed" && !showRequestList && !selectedProduct && !showFriends && !activeGroupShopping && (
+        {requestList.length > 0 && tab === "feed" && !showRequestList && !selectedProduct && !showFriends && !activeGroupShopping && !showVable && (
           <motion.div layoutId="request-list-morph" transition={springMorph}
             onClick={() => { setListError(null); setShowRequestList(true); }}
             style={{ position: "fixed", bottom: 78, left: 0, right: 0, margin: "0 auto", width: "calc(100% - 40px)", maxWidth: 390, background: "#111111", borderRadius: 16, overflow: "hidden", cursor: "pointer", zIndex: 301, boxShadow: "0 12px 40px rgba(17,17,17,0.35)" }}>

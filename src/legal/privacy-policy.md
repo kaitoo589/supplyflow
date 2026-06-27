@@ -13,14 +13,14 @@ By using the Service, you acknowledge that you have read and understood this Pri
 The data controller responsible for your personal data is:
 
 - **[LEGAL_ENTITY]**
-- Registered office: **[REGISTERED_ADDRESS]**
+- Registered office: **Kleikoeleweg 108, 6373 CD Landgraaf, Netherlands**
 - Chamber of Commerce (KvK) number: **[KVK_NUMBER]**
 - VAT number: **[VAT_NUMBER]**
-- Contact e-mail for privacy matters: **[SUPPORT_EMAIL]**
+- Contact e-mail for privacy matters: **contact@flowva.app**
 
 In this policy, "Flowva", "we", "us", and "our" refer to [LEGAL_ENTITY]. A "data controller" is the party that decides why and how your personal data is processed — that is us.
 
-If you have any question about this policy or want to exercise your rights (see Section 8), please contact us at **[SUPPORT_EMAIL]**.
+If you have any question about this policy or want to exercise your rights (see Section 8), please contact us at **contact@flowva.app**.
 
 `[LEGAL REVIEW: Confirm whether the scale of processing requires a formal Data Protection Officer (DPO) under Article 37 GDPR, or whether a designated privacy contact is sufficient. If a DPO is appointed, add their contact details here.]`
 
@@ -137,7 +137,7 @@ China is not the subject of a European Commission "adequacy decision," which mea
 
 Stripe, Supabase, and our other providers may also process data outside the EEA (for example in the United States). Where they do, the transfer is protected by an adequacy decision, the SCCs, or another valid transfer mechanism.
 
-You can request more information about these safeguards by contacting **[SUPPORT_EMAIL]**.
+You can request more information about these safeguards by contacting **contact@flowva.app**.
 
 `[LEGAL REVIEW: This is a high-priority item. Confirm the transfer mechanism for personal data sent to BuckyDrop in China — SCCs (with the correct module), a transfer impact assessment, and supplementary measures. China is not an adequacy country, and government-access risk should be assessed. Confirm the mechanism and location for each non-EEA processor (Stripe, Supabase, e-mail/push providers) and update this section to match.]`
 
@@ -173,7 +173,7 @@ If we use any **non-essential** cookies or analytics that are not strictly neces
 
 ## 8. Your rights under the GDPR
 
-You have the following rights regarding your personal data. To exercise any of them, contact us at **[SUPPORT_EMAIL]**. We will respond within one month (this period can be extended by two further months for complex requests, and we will tell you if so). Exercising your rights is free, unless a request is manifestly unfounded or excessive.
+You have the following rights regarding your personal data. To exercise any of them, contact us at **contact@flowva.app**. We will respond within one month (this period can be extended by two further months for complex requests, and we will tell you if so). Exercising your rights is free, unless a request is manifestly unfounded or excessive.
 
 - **Right of access** — get confirmation of whether we process your data and a copy of it.
 - **Right to rectification** — have inaccurate or incomplete data corrected.
@@ -212,7 +212,7 @@ No system is perfectly secure, but we work continuously to protect your data. If
 
 ## 10. Children
 
-Flowva is intended only for adults. You must be **18 years old (or the age of majority in your country)** to create an account and place orders. We do not knowingly collect personal data from anyone under 18. If you believe a minor has provided us with personal data, please contact **[SUPPORT_EMAIL]** and we will delete it.
+Flowva is intended only for adults. You must be **18 years old (or the age of majority in your country)** to create an account and place orders. We do not knowingly collect personal data from anyone under 18. If you believe a minor has provided us with personal data, please contact **contact@flowva.app** and we will delete it.
 
 ---
 
@@ -227,8 +227,8 @@ We may update this Privacy Policy from time to time, for example when we change 
 If you have any questions, requests, or concerns about this Privacy Policy or your personal data, please contact us:
 
 - **[LEGAL_ENTITY]**
-- **[REGISTERED_ADDRESS]**
-- E-mail: **[SUPPORT_EMAIL]**
+- **Kleikoeleweg 108, 6373 CD Landgraaf, Netherlands**
+- E-mail: **contact@flowva.app**
 - KvK: **[KVK_NUMBER]** · VAT: **[VAT_NUMBER]**
 
 We are committed to handling your data with the same transparency we bring to our prices.

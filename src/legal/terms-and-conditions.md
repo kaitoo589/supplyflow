@@ -12,7 +12,7 @@ Flowva is built on radical transparency: we show you the real factory price and 
 
 In these Terms, the following words have the following meanings:
 
-1.1 **"Flowva", "we", "us", "our"** — [LEGAL_ENTITY], a company registered in the Netherlands under Chamber of Commerce (KvK) number [KVK_NUMBER], VAT number [VAT_NUMBER], with its registered address at [REGISTERED_ADDRESS]. Flowva operates the website and application available at flowva.app (the "**Platform**"). Flowva is the **seller** of the products offered through the Platform.
+1.1 **"Flowva", "we", "us", "our"** — [LEGAL_ENTITY], a company registered in the Netherlands under Chamber of Commerce (KvK) number [KVK_NUMBER], VAT number [VAT_NUMBER], with its registered address at Kleikoeleweg 108, 6373 CD Landgraaf, Netherlands. Flowva operates the website and application available at flowva.app (the "**Platform**"). Flowva is the **seller** of the products offered through the Platform.
 
 1.2 **"You", "your", "customer"** — the natural person who creates an account and/or places an order through the Platform, acting as a consumer (i.e. for purposes outside your trade, business, craft or profession).
 
@@ -69,7 +69,7 @@ In these Terms, the following words have the following meanings:
 
 ## 4. Your Account
 
-4.1 To place Orders you need an Account. You are responsible for keeping your login details confidential and for all activity under your Account. Tell us promptly at [SUPPORT_EMAIL] if you believe your Account has been used without your permission.
+4.1 To place Orders you need an Account. You are responsible for keeping your login details confidential and for all activity under your Account. Tell us promptly at contact@flowva.app if you believe your Account has been used without your permission.
 
 4.2 You agree to keep your Account information — in particular your delivery address, email and phone number — accurate and up to date. We are not responsible for failed or delayed delivery caused by incorrect information you provided.
 
@@ -79,8 +79,8 @@ In these Terms, the following words have the following meanings:
 
 ## 5. The Flowva Balance (prepayment)
 
-5.1 **What the Balance is.** The Flowva Balance is a **prepayment** that you make towards goods and services you will order from Flowva. You top up your Balance and then use it to pay for Products, shipping and related charges. The Balance is **not** general-purpose stored value, it is **not** electronic money, it is **not** a bank deposit or payment account, and it cannot be used to pay anyone other than Flowva. It exists solely to pay for what you order from us.
-[LEGAL REVIEW: confirm the prepaid-balance model does not constitute electronic money under the Second E-Money Directive (EMD2 / Wft) or a payment service under PSD2. The framing as a closed-loop prepayment for the customer's own future orders from Flowva only is intended to stay outside EMD2, but the top-up-before-order mechanic, refundability of unused balance, and the absence of a fixed delivery commitment at top-up time should be reviewed. Consider a maximum balance cap, an expiry/dormancy policy, and clear "single-merchant, goods-only" wording. If EMD2 applies, licensing/safeguarding obligations follow.]
+5.1 **What the Balance is.** The Flowva Balance is a **prepayment** that you make towards goods and services you will order from Flowva. You top up your Balance and then use it to pay for Products, shipping and related charges. The Balance is **not** general-purpose stored value, it is **not** electronic money, it is **not** a bank deposit or payment account, and it cannot be used to pay anyone other than Flowva. It exists solely to pay for what you order from us. A maximum Balance limit applies (currently €[MAX_BALANCE]); we may decline a top-up that would take you over it.
+[LEGAL REVIEW — RESOLVED: counsel has confirmed the closed-loop, single-merchant, goods-only prepaid Balance falls under the EMD2/Wft limited-purpose exemption — no e-money licence required. The maximum Balance cap (section 5.1) and the refundability of unused Balance (section 5.6) support this. Re-confirm only if the model changes.]
 
 5.2 **Topping up.** You add to your Balance by paying us, for example by card or another supported payment method, through our payment processor Stripe (see section 5.8). The amount you pay is added to your Balance. Top-ups are payments to Flowva.
 
@@ -150,7 +150,7 @@ The total you pay is the sum of these clearly itemised amounts. We do not add hi
 
 8.4 **Risk and title.** Risk of loss or damage to the Products passes to you when you (or someone you nominate, other than the carrier) take physical possession of the Products. For Flowva Friends, see section 13 regarding delivery to the Host.
 
-8.5 **Delivery problems.** If your Order is not delivered within a reasonable time, contact us at [SUPPORT_EMAIL] and we will help resolve it consistent with your statutory rights, including (where applicable) re-delivery or refund.
+8.5 **Delivery problems.** If your Order is not delivered within a reasonable time, contact us at contact@flowva.app and we will help resolve it consistent with your statutory rights, including (where applicable) re-delivery or refund.
 
 ---
 
@@ -162,7 +162,7 @@ The total you pay is the sum of these clearly itemised amounts. We do not add hi
 
 9.3 **The Quality-Control gate.** Our mandatory Quality Control (section 6.3) is designed to catch defects and wrong items **before** international shipping. If Quality Control reveals a defect, a damaged item, or an item that is not as described, you may choose to **return** it (factory return + refund) at **no cost to you, including return shipping**, because the problem is a defect — see section 10.
 
-9.4 **Defects discovered after delivery.** The Quality-Control gate does not reduce your statutory rights if a defect only becomes apparent after delivery. Contact us at [SUPPORT_EMAIL] and we will handle your conformity claim under the legal guarantee.
+9.4 **Defects discovered after delivery.** The Quality-Control gate does not reduce your statutory rights if a defect only becomes apparent after delivery. Contact us at contact@flowva.app and we will handle your conformity claim under the legal guarantee.
 
 ---
 
@@ -174,7 +174,7 @@ The total you pay is the sum of these clearly itemised amounts. We do not add hi
 
 10.2 **After delivery.** If a Product is faulty, damaged in transit, or not as described when it reaches you, report it to us promptly (and within the period your statutory rights allow). Where the problem is a genuine defect or our error, **Flowva bears the cost of the remedy, including return shipping**, and provides a repair, replacement, price reduction or refund in line with section 9 and applicable law.
 
-10.3 **How to report.** Report problems through the Platform's problem/after-sales function or by emailing [SUPPORT_EMAIL]. We may ask for photos or other reasonable evidence to assess the claim.
+10.3 **How to report.** Report problems through the Platform's problem/after-sales function or by emailing contact@flowva.app. We may ask for photos or other reasonable evidence to assess the claim.
 
 ---
 
@@ -182,7 +182,7 @@ The total you pay is the sum of these clearly itemised amounts. We do not add hi
 
 11.1 **14-day right of withdrawal.** As an EU consumer you generally have the right to withdraw from a distance purchase within **14 days** without giving any reason. The 14-day period normally starts on the day you (or someone you nominate, other than the carrier) receive the Products. For Flowva Friends, the Host's own 14-day period starts when the **Host** receives the combined parcel (see section 13).
 
-11.2 **How to withdraw.** You can withdraw using the withdrawal function on the Platform, by the model withdrawal form, or by any other clear statement to [SUPPORT_EMAIL]. After a valid withdrawal we refund the amounts you paid for the returned item without undue delay and within the period required by law, using the same means of payment you used for the original transaction, unless you expressly agree to a refund to your Balance instead.
+11.2 **How to withdraw.** You can withdraw using the withdrawal function on the Platform, by the model withdrawal form, or by any other clear statement to contact@flowva.app. After a valid withdrawal we refund you as set out in our Returns Policy — in short, the **product price** of the returned item; the **service fee and international shipping are not refunded** on a change-of-mind withdrawal once an item has passed Quality Control and shipped (see Returns Policy section 3.1) — without undue delay and within the period required by law, using the same means of payment you used for the original transaction, unless you expressly agree to a refund to your Balance instead.
 
 11.3 **Who pays return shipping.**
 - **Genuine defect / faulty / not-as-described:** **Flowva** bears the cost, including return shipping (see sections 9 and 10).
@@ -223,7 +223,7 @@ Where an exclusion applies, we will tell you clearly before you order. Exclusion
 
 13.6 **Member-to-member collection is outside Flowva.** The arrangement by which a member collects their items from the Host (when, where and how) is **between those individuals and is outside Flowva's control and responsibility**. Flowva delivers the combined parcel to the Host; what happens between Host and members after that is their own arrangement.
 
-13.7 **Host disclaimer.** The Host receives other members' goods purely as a convenience to enable shared shipping. To the extent permitted by law, **the Host is not liable to other members as a seller** and Flowva is the party responsible for the Products. Members should agree among themselves on safe and timely handover. Flowva is not responsible for loss, damage or delay caused after the parcel is delivered to the Host and while items are in the Host's keeping or being handed over between members.
+13.7 **Host disclaimer.** The Host receives other members' goods purely as a convenience to enable shared shipping. To the extent permitted by law, **the Host is not liable to other members as a seller** and Flowva is the party responsible for the Products. Members should agree among themselves on safe and timely handover. Flowva is not responsible for loss, damage or delay caused after the parcel is delivered to the Host and while items are in the Host's keeping or being handed over between members. **In plain terms: if a Host keeps your items or fails to hand them over, that is a matter between you and that Host — Flowva is not responsible, and cannot refund or replace items already delivered to your Host. Only join a group whose Host you personally trust.**
 [LEGAL REVIEW: this is a key risk area. Confirm (a) that the Host does not become a "trader"/reseller or assume seller liability by receiving and handing over others' goods; (b) the data-protection position of the Host receiving other members' names/items (and whether a member's delivery to the Host needs its own consent / disclosure); (c) whether Flowva needs to obtain each member's informed consent to ship their goods to the Host's address; (d) how risk/title passes for a non-Host member whose goods are delivered to the Host rather than to the member; and (e) the enforceability of the Host disclaimer against both members and the Host.]
 
 13.8 **One member's problem is handled individually.** If one member's item has a defect, is delayed, or is withdrawn, that is resolved **individually for that member** (for example by refunding that member). A single member's problem **never** blocks, delays or penalises the whole group.
@@ -267,9 +267,9 @@ Where an exclusion applies, we will tell you clearly before you order. Exclusion
 
 ## 17. Complaints and dispute resolution
 
-17.1 **Talk to us first.** If you have a complaint, please contact us at [SUPPORT_EMAIL]. We aim to acknowledge complaints promptly and to resolve them within a reasonable time (and in any event within the period required by applicable consumer law).
+17.1 **Talk to us first.** If you have a complaint, please contact us at contact@flowva.app. We aim to acknowledge complaints promptly and to resolve them within a reasonable time (and in any event within the period required by applicable consumer law).
 
-17.2 **EU Online Dispute Resolution (ODR).** If we cannot resolve your complaint, EU consumers may use the European Commission's Online Dispute Resolution platform at **https://ec.europa.eu/consumers/odr**. Our contact email for this purpose is [SUPPORT_EMAIL].
+17.2 **EU Online Dispute Resolution (ODR).** If we cannot resolve your complaint, EU consumers may use the European Commission's Online Dispute Resolution platform at **https://ec.europa.eu/consumers/odr**. Our contact email for this purpose is contact@flowva.app.
 [LEGAL REVIEW: confirm the EU ODR platform is still operative at the effective date (the Commission has signalled changes to the ODR platform) and update or replace this reference accordingly; consider naming a relevant Dutch alternative dispute-resolution body (Geschillencommissie / Stichting Webshop Keurmerk) if Flowva is affiliated.]
 
 17.3 **Your statutory route.** Using the complaints procedure or ODR does not affect your right to take your dispute to a competent court (see section 18).
@@ -303,8 +303,8 @@ Where an exclusion applies, we will tell you clearly before you order. Exclusion
 
 20.3 **Assignment.** You may not transfer your rights or obligations under these Terms without our consent. We may transfer ours to a successor (for example on a business transfer), provided this does not reduce your rights.
 
-20.4 **Contact.** Questions about these Terms? Contact us at [SUPPORT_EMAIL], or write to [LEGAL_ENTITY], [REGISTERED_ADDRESS].
+20.4 **Contact.** Questions about these Terms? Contact us at contact@flowva.app, or write to [LEGAL_ENTITY], Kleikoeleweg 108, 6373 CD Landgraaf, Netherlands.
 
 ---
 
-**[LEGAL_ENTITY]** · KvK [KVK_NUMBER] · VAT [VAT_NUMBER] · [REGISTERED_ADDRESS] · [SUPPORT_EMAIL]
+**[LEGAL_ENTITY]** · KvK [KVK_NUMBER] · VAT [VAT_NUMBER] · Kleikoeleweg 108, 6373 CD Landgraaf, Netherlands · contact@flowva.app

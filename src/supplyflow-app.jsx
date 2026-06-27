@@ -718,9 +718,12 @@ function RequestListSheet({ items, onRemove, onSetQty, onClose, onSend, sending,
                   ⏸ {heldCount === 1 ? "1 item is" : `${heldCount} items are`} on hold and won't be charged — we'll only check out your {payable.length} available item{payable.length > 1 ? "s" : ""}. The held {heldCount === 1 ? "one stays" : "ones stay"} in your cart for when {heldCount === 1 ? "it's" : "they're"} back.
                 </div>
               )}
+              <div style={{ fontSize: 11, color: "#8A8780", lineHeight: 1.55, marginTop: 12 }}>
+                By placing your order you agree to our <a href="/terms" target="_blank" rel="noreferrer" style={{ color: "#A5B4FC" }}>Terms</a> and confirm you've read the <a href="/returns-policy" target="_blank" rel="noreferrer" style={{ color: "#A5B4FC" }}>Returns &amp; withdrawal policy</a>. You have a <b style={{ color: "#C9C6C1" }}>14-day right of withdrawal</b>. If you change your mind you pay the return shipping (we give you an EU return address); if an item is faulty, we cover it.
+              </div>
               <motion.button whileTap={sending || !hasAddress || !payable.length ? undefined : { scale: 0.97 }} onClick={confirmAndPay} disabled={sending || !hasAddress || payable.length === 0}
-                style={{ width: "100%", marginTop: 4, background: sending ? "#333" : (!hasAddress || !payable.length) ? "#444" : "#FF5C00", color: "#fff", border: "none", borderRadius: 14, padding: "16px", fontSize: 15, fontWeight: 700, cursor: sending || !hasAddress || !payable.length ? "default" : "pointer", WebkitTapHighlightColor: "transparent" }}>
-                {sending ? "Processing payment…" : !hasAddress ? "Add an address to continue" : payable.length === 0 ? "All items are on hold" : heldCount > 0 ? `Pay €${charge.toFixed(2)} for the rest →` : `Confirm & pay €${charge.toFixed(2)} →`}
+                style={{ width: "100%", marginTop: 10, background: sending ? "#333" : (!hasAddress || !payable.length) ? "#444" : "#FF5C00", color: "#fff", border: "none", borderRadius: 14, padding: "16px", fontSize: 15, fontWeight: 700, cursor: sending || !hasAddress || !payable.length ? "default" : "pointer", WebkitTapHighlightColor: "transparent" }}>
+                {sending ? "Processing payment…" : !hasAddress ? "Add an address to continue" : payable.length === 0 ? "All items are on hold" : heldCount > 0 ? `Order & pay €${charge.toFixed(2)} for the rest →` : `Order & pay €${charge.toFixed(2)} →`}
               </motion.button>
 
               <motion.button whileTap={{ scale: 0.97 }} onClick={() => setView("cart")}

@@ -1724,7 +1724,7 @@ export default function SupplyFlow({ session }) {
         whileHover={{ y: -3 }} whileTap={{ scale: 0.99 }}
         transition={springMorph}
         style={{ background: "#fff", borderRadius: 20, overflow: "hidden", boxShadow: "0 1px 2px rgba(17,17,17,0.04), 0 8px 22px rgba(17,17,17,0.06)", cursor: "pointer" }}>
-        <div style={{ position: "relative", display: "flex", gap: 2, aspectRatio: "9 / 4", overflow: "hidden" }}>
+        <div style={{ position: "relative", display: "flex", gap: 2, aspectRatio: "5 / 4", overflow: "hidden" }}>
           {imgBox(pv[0], true)}
           {pv.length >= 2 && (
             <div style={{ flex: 0.62, minWidth: 0, display: "flex", flexDirection: "column", gap: 2 }}>

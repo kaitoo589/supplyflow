@@ -2487,6 +2487,15 @@ export default function SupplyFlow({ session }) {
             } catch { /* ignore */ }
             supabase.auth.signOut();
           }} style={{ width: "100%", background: "#FEE2E2", color: "#DC2626", border: "none", borderRadius: 12, padding: "14px", fontSize: 14, fontWeight: 700, cursor: "pointer" }}>Log out</button>
+
+          <div style={{ display: "flex", justifyContent: "center", gap: 14, flexWrap: "wrap", marginTop: 20 }}>
+            <a href="/terms" style={{ fontSize: 11.5, color: "#A8A5A0", textDecoration: "none" }}>Terms</a>
+            <span style={{ fontSize: 11.5, color: "#D4D1CA" }}>·</span>
+            <a href="/privacy" style={{ fontSize: 11.5, color: "#A8A5A0", textDecoration: "none" }}>Privacy</a>
+            <span style={{ fontSize: 11.5, color: "#D4D1CA" }}>·</span>
+            <a href="/returns-policy" style={{ fontSize: 11.5, color: "#A8A5A0", textDecoration: "none" }}>Returns</a>
+          </div>
+          <div style={{ textAlign: "center", fontSize: 10.5, color: "#C9C6C1", marginTop: 8 }}>© Flowva</div>
         </motion.div>
       )}
 

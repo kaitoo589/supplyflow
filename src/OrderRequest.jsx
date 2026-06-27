@@ -226,14 +226,6 @@ export default function OrderRequest({ product, session, onClose, onSuccess, onA
               </motion.div>
             )}
 
-            {product.gender?.length > 0 && (
-              <motion.div variants={fadeUp} style={{ display: "flex", gap: 6, marginBottom: 20, flexWrap: "wrap" }}>
-                {product.gender.map((g) => (
-                  <span key={g} style={{ fontSize: 11.5, fontWeight: 700, color: "#6B6862", background: "#F3F1ED", borderRadius: 20, padding: "4px 11px" }}>{g}</span>
-                ))}
-              </motion.div>
-            )}
-
             {/* Beschrijving */}
             {product.description && (
               <motion.div variants={fadeUp} style={{ marginBottom: 24 }}>

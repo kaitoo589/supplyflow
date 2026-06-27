@@ -1307,7 +1307,7 @@ function GroupShippingPanel({ session, groupId, shipment, waitingCount, isHost, 
 // "In transit": de pakketten van de klant — betaald en verzonden, met live tracking.
 // De cron-functie track-haul vult trace_status/trace_nodes/carrier; wij tonen ze hier.
 const TRACE_LABEL = { 1: "In transit", 2: "Out for delivery", 3: "Delivered", 4: "Delivery issue", 5: "Held at customs", 6: "Returning", 7: "Returned", 8: "Return pending", 9: "Awaiting tracking" };
-export function TransitTab({ session, orders = [] }) {
+export function TransitTab({ session, orders = [], activeGroupId = null }) {
   const [hauls, setHauls] = useState([]);
   const [loading, setLoading] = useState(true);
   const [hideDelivered, setHideDelivered] = useState(() => { try { return localStorage.getItem("flowva_hide_delivered") === "1"; } catch { return false; } });
@@ -1325,9 +1325,17 @@ export function TransitTab({ session, orders = [] }) {
 
   const orderById = (id) => orders.find(o => o.id === id);
 
+  // Modus-scheiding: een parcel hoort bij de groep van z'n items (orders dragen ff_group_id).
+  // Groep-modus toont alleen díe groep; solo-modus alleen solo-parcels (geen ff_group_id).
+  const haulGroupId = (h) => {
+    for (const id of (h.items || [])) { const o = orderById(id); if (o) return o.ff_group_id || null; }
+    return null;
+  };
+  const modeHauls = hauls.filter(h => activeGroupId ? haulGroupId(h) === activeGroupId : !haulGroupId(h));
+
   // Geleverde pakketten (trace_status 3) blijven standaard staan; de knop verbergt ze.
-  const deliveredCount = hauls.filter(h => h.trace_status === 3).length;
-  const shownHauls = hideDelivered ? hauls.filter(h => h.trace_status !== 3) : hauls;
+  const deliveredCount = modeHauls.filter(h => h.trace_status === 3).length;
+  const shownHauls = hideDelivered ? modeHauls.filter(h => h.trace_status !== 3) : modeHauls;
   const toggleHideDelivered = () => setHideDelivered((v) => {
     const nv = !v;
     try { localStorage.setItem("flowva_hide_delivered", nv ? "1" : "0"); } catch {}
@@ -1348,7 +1356,7 @@ export function TransitTab({ session, orders = [] }) {
 
       {loading && <div style={{ textAlign: "center", padding: 40, color: "#999" }}>Loading...</div>}
 
-      {!loading && hauls.length === 0 && (
+      {!loading && modeHauls.length === 0 && (
         <div style={{ textAlign: "center", padding: "50px 0", color: "#aaa" }}>
           <div style={{ width: 64, height: 64, borderRadius: "50%", background: "#F3F1ED", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 14px" }}>
             <Plane size={26} color="#A8A5A0" strokeWidth={1.8} />
@@ -1380,12 +1388,19 @@ export function TransitTab({ session, orders = [] }) {
             </div>
 
             {items.length > 0 && (
-              <div style={{ display: "flex", gap: 8, overflowX: "auto", marginBottom: 10 }}>
-                {items.map((o) => (
-                  <div key={o.id} style={{ flexShrink: 0, width: 44, height: 44, borderRadius: 10, background: "#fff", border: "1px solid #F0EEE8", overflow: "hidden" }}>
-                    {o.variant_image ? <img src={o.variant_image} alt="" style={{ width: "100%", height: "100%", objectFit: "contain" }} />
-                      : o.qc_images?.[0] ? <img src={o.qc_images[0]} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-                      : <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100%", fontSize: 18 }}>📦</div>}
+              <div style={{ marginBottom: 10 }}>
+                {items.map((o, i) => (
+                  <div key={o.id} style={{ display: "flex", alignItems: "center", gap: 10, padding: "7px 0", borderBottom: i < items.length - 1 ? "1px solid #F4F2EE" : "none" }}>
+                    <div style={{ flexShrink: 0, width: 38, height: 38, borderRadius: 9, background: "#fff", border: "1px solid #F0EEE8", overflow: "hidden", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                      {o.variant_image ? <img src={o.variant_image} referrerPolicy="no-referrer" alt="" style={{ width: "100%", height: "100%", objectFit: "contain" }} />
+                        : o.qc_images?.[0] ? <img src={o.qc_images[0]} referrerPolicy="no-referrer" alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                        : <span style={{ fontSize: 17 }}>📦</span>}
+                    </div>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontSize: 12.5, fontWeight: 600, color: "#111111", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{o.product_title || o.product}</div>
+                      <div style={{ fontSize: 11, color: "#A8A5A0" }}>{o.qty || 1} pcs{o.kleur ? ` · ${o.kleur}` : ""}</div>
+                    </div>
+                    <div style={{ flexShrink: 0, fontSize: 12, fontWeight: 700, color: o.weight_grams ? "#111111" : "#C2BEB6" }}>{o.weight_grams ? `${o.weight_grams} g` : "—"}</div>
                   </div>
                 ))}
               </div>

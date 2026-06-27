@@ -2252,7 +2252,7 @@ export default function SupplyFlow({ session }) {
       {/* TRANSIT TAB */}
       {tab === "transit" && (
         <motion.div key="transit" {...pageTransition}>
-          <TransitTab session={session} orders={visibleOrders} />
+          <TransitTab session={session} orders={orders} activeGroupId={activeGroup?.id || null} />
         </motion.div>
       )}
 

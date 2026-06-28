@@ -1638,10 +1638,6 @@ export default function SupplyFlow({ session }) {
   const factoryProducts = selectedFactory
     ? visibleProducts.filter(p => belongsToFactory(p, selectedFactory))
     : [];
-  // Categorie-chips binnen een fabriek = alleen de categorieën die díe fabriek heeft.
-  const chipCategories = selectedFactory
-    ? ["All", ...[...new Set(products.filter(p => belongsToFactory(p, selectedFactory)).map(p => p.category).filter(Boolean))].sort()]
-    : visibleCategories;
 
   // Herbruikbare productkaart (zelfde stijl als voorheen) — voor drill-in + favorieten.
   const productCardEl = (p) => (
@@ -1665,7 +1661,7 @@ export default function SupplyFlow({ session }) {
         </motion.div>
       </div>
       <div style={{ padding: "11px 13px 13px" }}>
-        <div style={{ fontSize: 11.5, color: "#A8A5A0", marginBottom: 3 }}>{p.platform} · {p.category}</div>
+        <div style={{ fontSize: 11.5, color: "#A8A5A0", marginBottom: 3 }}>{p.platform}</div>
         <div style={{ fontSize: 13.5, fontWeight: 600, color: "#111111", marginBottom: 7, lineHeight: 1.35 }}>{p.title}</div>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end" }}>
           <div>
@@ -1836,69 +1832,12 @@ export default function SupplyFlow({ session }) {
           </div>
           <div style={{ fontSize: 13.5, color: "#8A8780", marginBottom: 16 }}>{showFavoritesOnly ? "Your starred products." : selectedFactory ? "Curated products from this factory." : "Tap a factory to explore its products."}</div>
 
-          {/* Terug-knop + fabriek-header bij drill-in */}
+          {/* Terug-knop bij drill-in — duidelijke pill */}
           {selectedFactory && !showFavoritesOnly && (
-            <>
-              <motion.div whileTap={{ scale: 0.96 }} onClick={() => { setSelectedFactory(null); setSearch(""); setActiveCategory("All"); setActiveSub(null); }}
-                style={{ display: "inline-flex", alignItems: "center", gap: 5, marginBottom: 12, cursor: "pointer", color: "#8A8780", fontSize: 13, fontWeight: 600, WebkitTapHighlightColor: "transparent" }}>
-                <span style={{ fontSize: 17, lineHeight: 1, marginTop: -1 }}>‹</span> All factories
-              </motion.div>
-              {(() => {
-                const dia = Math.max(0, Math.min(4, Number(selectedFactory.diamonds) || 0));
-                return (
-                  <motion.div layoutId={`factory-${selectedFactory.id}`} transition={springMorph}
-                    style={{ background: "#fff", borderRadius: 16, padding: 14, marginBottom: 16, boxShadow: "0 1px 2px rgba(17,17,17,0.04), 0 6px 18px rgba(17,17,17,0.05)" }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                      <div style={{ width: 52, height: 52, borderRadius: 13, background: "#F3F1EC", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 26, overflow: "hidden", flexShrink: 0 }}>
-                        {(selectedFactory.cover || (selectedFactory.logo && selectedFactory.logo.startsWith("http"))) ? <img src={selectedFactory.cover || selectedFactory.logo} referrerPolicy="no-referrer" alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : "🏭"}
-                      </div>
-                      <div style={{ flex: 1, minWidth: 0 }}>
-                        <div style={{ fontSize: 11, color: "#A8A5A0", fontWeight: 600, display: "flex", alignItems: "center", gap: 6 }}>Factory{dia >= 1 && <span style={{ letterSpacing: 1 }}>{"💎".repeat(dia)}</span>}</div>
-                        <div style={{ fontSize: 16, fontWeight: 700, color: "#111" }}>{selectedFactory.name}</div>
-                      </div>
-                    </div>
-                    {/* Factory-stats verwijderd uit de drill-in items-weergave (alleen avatar + rang + naam). */}
-                  </motion.div>
-                );
-              })()}
-            </>
-          )}
-          <div className={activeGroup ? "ff-glow" : ""} style={{ background: "#F0EEE8", borderRadius: 15, padding: "12px 14px", display: "flex", alignItems: "center", gap: 9, marginBottom: 14 }}>
-            <Search size={17} color="#8A8780" strokeWidth={2} />
-            <input value={search} onChange={e => setSearch(e.target.value)} placeholder={selectedFactory || showFavoritesOnly ? "Search products by name..." : "Search factories by name..."}
-              style={{ flex: 1, border: "none", outline: "none", background: "transparent", fontSize: 14, color: "#111111", fontFamily: "inherit" }} />
-            {search ? (
-              <X size={15} color="#8A8780" onClick={() => setSearch("")} style={{ cursor: "pointer" }} />
-            ) : (selectedFactory || showFavoritesOnly) ? (
-              <SlidersHorizontal size={15} color="#8A8780" onClick={() => setShowClothesPicker(true)} style={{ cursor: "pointer" }} />
-            ) : null}
-          </div>
-          {(selectedFactory || showFavoritesOnly || factories.length === 0) && (
-          <div style={{ display: "flex", gap: 8, overflowX: "auto", marginBottom: 18, paddingBottom: 4 }}>
-            {chipCategories.map((c) => {
-              const active = activeCategory === c;
-              const hasSubs = c !== "All" && subsForCategory(c).length > 0;
-              const label = c === activeCategory && activeSub ? `${c} · ${activeSub}` : c;
-              return (
-                <motion.div key={c} layout whileTap={{ scale: 0.92 }} transition={springSnappy}
-                  className={activeGroup ? "ff-cat-on" : ""}
-                  onClick={() => {
-                    setActiveCategory(c); setActiveSub(null);
-                    if (hasSubs) setShowClothesPicker(true);
-                  }}
-                  style={{ position: "relative", display: "flex", alignItems: "center", gap: 5, padding: "8px 15px", borderRadius: 20, background: active ? "transparent" : "#fff", color: active ? "#fff" : "#555", fontSize: 13, fontWeight: active ? 600 : 500, border: "1px solid " + (active ? "transparent" : "#ECEAE5"), whiteSpace: "nowrap", cursor: "pointer", WebkitTapHighlightColor: "transparent" }}>
-                  {/* Glijdend pilletje achter de actieve chip — zelfde patroon als de bottom-nav */}
-                  {active && (
-                    <motion.div layoutId="catPill" transition={springSnappy}
-                      style={{ position: "absolute", inset: 0, background: "#111111", borderRadius: 20, zIndex: 0 }} />
-                  )}
-                  <span style={{ position: "relative", zIndex: 1, display: "flex", alignItems: "center", gap: 5 }}>
-                    {label}{hasSubs && <span style={{ fontSize: 9, opacity: 0.7 }}>▾</span>}
-                  </span>
-                </motion.div>
-              );
-            })}
-          </div>
+            <motion.div whileTap={{ scale: 0.96 }} onClick={() => { setSelectedFactory(null); setSearch(""); setActiveCategory("All"); setActiveSub(null); }}
+              style={{ display: "inline-flex", alignItems: "center", gap: 4, marginBottom: 16, cursor: "pointer", color: "#111", fontSize: 14, fontWeight: 700, background: "#fff", border: "1px solid #E4E1DA", borderRadius: 22, padding: "9px 16px 9px 12px", boxShadow: "0 1px 2px rgba(17,17,17,0.05), 0 4px 12px rgba(17,17,17,0.05)", WebkitTapHighlightColor: "transparent" }}>
+              <span style={{ fontSize: 19, lineHeight: 1, marginTop: -2 }}>‹</span> All factories
+            </motion.div>
           )}
           {/* === BODY: favorieten · fabriek-drill-in · fabriek-kaarten === */}
           {showFavoritesOnly ? (

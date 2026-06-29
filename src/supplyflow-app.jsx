@@ -1651,7 +1651,14 @@ export default function SupplyFlow({ session }) {
       style={{ background: "#fff", borderRadius: 18, overflow: "hidden", boxShadow: "0 1px 2px rgba(17,17,17,0.04), 0 6px 18px rgba(17,17,17,0.05)", cursor: "pointer" }}>
       <div style={{ position: "relative" }}>
         <motion.div layoutId={`pimg-${p.id}`} transition={springMorph} style={{ background: "#fff", height: 160, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 48, overflow: "hidden" }}>
-          {p.image?.startsWith("http") ? <img src={p.image} referrerPolicy="no-referrer" alt={p.title} style={{ width: "100%", height: "100%", objectFit: "contain" }} /> : p.image}
+          {p.image?.startsWith("http") ? (
+            <>
+              <img src={p.image} referrerPolicy="no-referrer" alt={p.title}
+                onError={(e) => { e.currentTarget.style.display = "none"; const fb = e.currentTarget.nextSibling; if (fb) fb.style.display = "flex"; }}
+                style={{ width: "100%", height: "100%", objectFit: "contain" }} />
+              <span style={{ display: "none", width: "100%", height: "100%", alignItems: "center", justifyContent: "center" }}>📦</span>
+            </>
+          ) : p.image}
         </motion.div>
         <motion.div layoutId={`plus-${p.id}`} transition={springMorph}
           onClick={e => { e.stopPropagation(); setActionProduct(p); }}

@@ -8,6 +8,7 @@ import { supabase } from "./supabase";
 import { motion, AnimatePresence } from "framer-motion";
 import { springMorph } from "./motion";
 import { ffAddItem, ffShareProduct } from "./ffApi";
+import Fox from "./Fox";
 
 const spring = springMorph;
 
@@ -342,7 +343,7 @@ export default function OrderRequest({ product, session, onClose, onSuccess, onA
             {/* Vos-tip: aanvragen bundelen = één service fee i.p.v. één per aanvraag */}
             <motion.div variants={fadeUp}
               style={{ display: "flex", alignItems: "center", gap: 10, background: "#111111", borderRadius: 12, padding: "10px 14px", marginBottom: 16 }}>
-              <span style={{ fontSize: 20, flexShrink: 0 }}>🦊</span>
+              <span style={{ fontSize: 20, flexShrink: 0 }}><Fox /></span>
               <span style={{ fontSize: 12, color: "#C9C6C1", lineHeight: 1.5 }}>
                 <b style={{ color: "#FF5C00" }}>Tip:</b> want more items? Add them to your cart and buy everything at once — separate orders each get their own service fee.
               </span>
@@ -351,7 +352,7 @@ export default function OrderRequest({ product, session, onClose, onSuccess, onA
             {activeGroup && (
               <>
                 <motion.div variants={fadeUp} style={{ display: "flex", alignItems: "center", gap: 6, background: "rgba(255,92,0,0.1)", border: "1px solid rgba(255,92,0,0.3)", borderRadius: 12, padding: "10px 13px", marginBottom: 10, fontSize: 12.5, color: "#B45309" }}>
-                  🦊 Shopping for <b style={{ marginLeft: 2 }}>{activeGroup.name}</b>
+                  <Fox /> Shopping for <b style={{ marginLeft: 2 }}>{activeGroup.name}</b>
                 </motion.div>
                 <motion.button variants={fadeUp} whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.96 }}
                   onClick={handleAddToGroup} disabled={loading || addedToGroup}

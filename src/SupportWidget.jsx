@@ -4,9 +4,10 @@ import { MessageCircle, X, Send } from "lucide-react";
 import { supabase } from "./supabase";
 import { theme } from "./theme";
 import { springSoft, springSnappy, pressable } from "./motion";
+import Fox from "./Fox";
 
 const ESCALATED_TEXT =
-  "Great question! We're looking into it — you'll get your answer right here as soon as possible. 🦊";
+  "Great question! We're looking into it — you'll get your answer right here as soon as possible.";
 
 const POS_KEY = "supportWidget:pos";
 
@@ -184,7 +185,7 @@ export default function SupportWidget({ session }) {
               }}
             >
               <div>
-                <div style={{ fontWeight: 700, fontSize: 15 }}>Flowva support 🦊</div>
+                <div style={{ fontWeight: 700, fontSize: 15 }}>Flowva support <Fox /></div>
                 <div style={{ fontSize: 12, opacity: 0.7 }}>Usually replies instantly</div>
               </div>
               <button

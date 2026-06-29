@@ -23,12 +23,7 @@ import { problemTypes } from "./problemTypes";
 import { toChinese, toEnglish, hasChinese } from "./translate";
 import { serviceFee } from "./fees";
 import PushToggle from "./PushToggle";
-
-// Consistente vos overal: de native vos-emoji verschilt per toestel (iPhone, Samsung en
-// PC tonen elk een andere vos). Daarom renderen we 'm als vaste afbeelding (Fluent/Windows-
-// stijl), em-groot zodat 'ie de omringende fontSize volgt — een drop-in vervanger.
-const FOX_SRC = "/fox.svg";
-const Fox = ({ style }) => <img src={FOX_SRC} alt="" aria-hidden="true" draggable={false} style={{ width: "1em", height: "1em", display: "inline-block", verticalAlign: "-0.15em", ...style }} />;
+import Fox from "./Fox";
 
 // Overgang tussen tabs/schermen: zacht in-/uitschuiven (Apple-stijl).
 const pageTransition = {
@@ -556,7 +551,7 @@ function RequestListSheet({ items, onRemove, onSetQty, onClose, onSend, sending,
     <>
       <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={view === "placed" ? () => onFinish?.(false) : onClose}
         style={{ position: "fixed", inset: 0, zIndex: 300, background: "rgba(0,0,0,0.5)", backdropFilter: "blur(6px)" }} />
-      <motion.div layoutId="request-list-morph" transition={springMorph}
+      <motion.div initial={{ y: "100%" }} animate={{ y: 0 }} exit={{ y: "100%" }} transition={{ type: "spring", stiffness: 320, damping: 34 }}
         style={{ position: "fixed", bottom: 0, left: 0, right: 0, margin: "0 auto", width: "100%", maxWidth: 430, boxSizing: "border-box", background: "#111111", borderRadius: "24px 24px 0 0", zIndex: 301, maxHeight: "88vh", overflowY: "auto" }}>
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1, transition: { delay: 0.12, duration: 0.18 } }} exit={{ opacity: 0, transition: { duration: 0.08 } }}
           style={{ padding: "20px 20px 40px" }}>
@@ -1866,8 +1861,8 @@ export default function SupplyFlow({ session }) {
           {/* === BODY: smooth fade+slide bij wisselen feed ↔ fabriek ↔ favorieten === */}
           <motion.div
             key={showFavoritesOnly ? "favs" : selectedFactory ? `fac-${selectedFactory.id}` : "factory-list"}
-            initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.26, ease: [0.32, 0.72, 0, 1] }}>
+            initial={{ opacity: 0, y: 22 }} animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.34, ease: [0.22, 0.61, 0.36, 1] }}>
           {showFavoritesOnly ? (
             <>
               {!loadingProducts && !productsError && visibleProducts.length === 0 && (
@@ -2554,11 +2549,10 @@ export default function SupplyFlow({ session }) {
           </motion.div>
         )}
         {requestList.length > 0 && tab === "feed" && !showRequestList && !selectedProduct && !showFriends && !activeGroupShopping && !showVable && (
-          <motion.div layoutId="request-list-morph" transition={springMorph}
+          <motion.div initial={{ y: 24, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 30, opacity: 0, scale: 0.96 }} whileTap={{ scale: 0.97 }} transition={springMorph}
             onClick={() => { setListError(null); setShowRequestList(true); }}
             style={{ position: "fixed", bottom: 78, left: 0, right: 0, margin: "0 auto", width: "calc(100% - 40px)", maxWidth: 390, background: "#111111", borderRadius: 16, overflow: "hidden", cursor: "pointer", zIndex: 301, boxShadow: "0 12px 40px rgba(17,17,17,0.35)" }}>
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1, transition: { delay: 0.1, duration: 0.16 } }} exit={{ opacity: 0, transition: { duration: 0.08 } }}
-              style={{ padding: "12px 16px", display: "flex", alignItems: "center", gap: 12 }}>
+            <div style={{ padding: "12px 16px", display: "flex", alignItems: "center", gap: 12 }}>
               <span style={{ fontSize: 18 }}>📋</span>
               <div style={{ flex: 1 }}>
                 <div style={{ fontSize: 13, fontWeight: 700, color: "#fff" }}>Shopping cart · {requestList.length} item{requestList.length > 1 ? "s" : ""}</div>
@@ -2568,7 +2562,7 @@ export default function SupplyFlow({ session }) {
                 style={{ width: 30, height: 30, borderRadius: "50%", background: "rgba(255,92,0,0.15)", display: "flex", alignItems: "center", justifyContent: "center" }}>
                 <ChevronUp size={16} color="#FF5C00" strokeWidth={2.5} />
               </motion.div>
-            </motion.div>
+            </div>
           </motion.div>
         )}
       </AnimatePresence>

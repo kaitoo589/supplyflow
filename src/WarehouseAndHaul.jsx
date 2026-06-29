@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { springBouncy, springMorph, springSoft } from "./motion";
 import { WordReveal, SpeechBubble } from "./MotionBits";
 import { Plane, MapPin } from "lucide-react";
+import Fox from "./Fox";
 
 // Verzendmodel China → NL: een first-weight-blok (eerste 0,5 kg) + tarief per extra kg,
 // dan een veiligheidsbuffer (verschil komt terug) en 21% invoer-BTW (DDP — wij schieten
@@ -174,7 +175,7 @@ function WarehouseFox({ haulItems, isDropTarget }) {
           scale: { type: "spring", stiffness: 420, damping: 15 },
           rotate: { duration: 1.8, repeat: Infinity, repeatDelay: 1.6, ease: "easeInOut", delay: 0.5 },
         }}
-        style={{ fontSize: 40, lineHeight: 1, flexShrink: 0, transformOrigin: "bottom center", willChange: "transform" }}>🦊</motion.div>
+        style={{ fontSize: 40, lineHeight: 1, flexShrink: 0, transformOrigin: "bottom center", willChange: "transform" }}><Fox /></motion.div>
       <SpeechBubble bg="#0F0E0C" color="#ddd" style={{ borderRadius: 14 }}>
         <div style={{ fontSize: 12, color: "#ddd", lineHeight: 1.5 }}>
           <WordReveal key={msg} text={msg} stagger={0.035} />
@@ -338,7 +339,7 @@ function OrderDetailModal({ order, inHaul, onAdd, onRemove, onDispute, onClose, 
               <div style={{ marginTop: 14 }}>
                 <div style={{ fontSize: 11, fontWeight: 700, color: "#B45309", marginBottom: 8, letterSpacing: 1 }}>AGENT MESSAGE</div>
                 <div style={{ display: "flex", gap: 10, alignItems: "flex-start" }}>
-                  <div style={{ width: 30, height: 30, borderRadius: "50%", background: "#fff", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16, flexShrink: 0 }}>🦊</div>
+                  <div style={{ width: 30, height: 30, borderRadius: "50%", background: "#fff", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16, flexShrink: 0 }}><Fox /></div>
                   <div style={{ fontSize: 13, color: "#92400E", lineHeight: 1.55 }}>{order.agent_notitie}</div>
                 </div>
               </div>
@@ -792,7 +793,7 @@ function DisputeForm({ order, session, onBack, onSuccess }) {
         <div style={{ background: "#fff", border: "1px solid #E8E6E0", borderRadius: 14, padding: 16, marginBottom: 16 }}>
           <div style={{ fontSize: 13, fontWeight: 600, color: "#0F0E0C", marginBottom: 8 }}>Agent message</div>
           <div style={{ display: "flex", gap: 10, alignItems: "flex-start" }}>
-            <div style={{ width: 30, height: 30, borderRadius: "50%", background: "#FFF1E8", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16, flexShrink: 0 }}>🦊</div>
+            <div style={{ width: 30, height: 30, borderRadius: "50%", background: "#FFF1E8", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16, flexShrink: 0 }}><Fox /></div>
             <div style={{ fontSize: 13, color: "#444", lineHeight: 1.55 }}>{order.agent_notitie}</div>
           </div>
         </div>

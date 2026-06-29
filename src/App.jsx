@@ -11,6 +11,7 @@ import LegalPage from "./LegalPage";
 import privacySrc from "./legal/privacy-policy.md?raw";
 import termsSrc from "./legal/terms-and-conditions.md?raw";
 import returnsPolicySrc from "./legal/returns-right-of-withdrawal.md?raw";
+import Fox from "./Fox";
 
 // De admin draait volledig in het gamified command center (ai-ops-hud).
 // Lokaal → poort 5181; op de live site → het gedeployde admin-dashboard.
@@ -23,7 +24,7 @@ function AdminGate() {
   return (
     <div style={{ fontFamily: "'Cascadia Mono', 'JetBrains Mono', Consolas, monospace", background: "#070b07", minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
       <div style={{ background: "#0b100b", border: "1px solid #2c4a2c", borderRadius: 8, padding: "28px 30px", maxWidth: 420, width: "100%", textAlign: "center" }}>
-        <div style={{ fontSize: 44, marginBottom: 12 }}>🦊</div>
+        <div style={{ fontSize: 44, marginBottom: 12 }}><Fox /></div>
         <div style={{ color: "#ffb84d", fontSize: 15, fontWeight: 700, letterSpacing: 1, marginBottom: 8 }}>◆ FLOWVA ADMIN</div>
         <div style={{ color: "#6b9a6b", fontSize: 13, lineHeight: 1.6, marginBottom: 20 }}>
           Your admin now runs entirely in the command center — missions, products and treasury in one dashboard. Log in there with this same admin account.
@@ -69,7 +70,7 @@ function PaymentSuccess({ session }) {
   return (
     <div style={{ fontFamily: "'Inter', sans-serif", background: "#F8F7F4", minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
       <div style={{ background: "#0F0E0C", borderRadius: 24, padding: "40px 32px", maxWidth: 380, width: "100%", textAlign: "center" }}>
-        <div style={{ fontSize: 64, marginBottom: 16 }}>🦊</div>
+        <div style={{ fontSize: 64, marginBottom: 16 }}><Fox /></div>
         <div style={{ color: "#FF5C00", fontSize: 24, fontWeight: 700, marginBottom: 8 }}>Payment successful!</div>
         <div style={{ color: "#888", fontSize: 14, marginBottom: 28 }}>Your balance has been topped up and is ready to use.</div>
         
@@ -162,7 +163,7 @@ export default function App() {
     return (
       <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: "#F8F7F4" }}>
         <div style={{ textAlign: "center" }}>
-          <div style={{ fontSize: 32, marginBottom: 12 }}>🦊</div>
+          <div style={{ fontSize: 32, marginBottom: 12 }}><Fox /></div>
           <div style={{ fontSize: 14, color: "#888" }}>Loading...</div>
         </div>
       </div>

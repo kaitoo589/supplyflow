@@ -2,6 +2,7 @@ import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { supabase } from "./supabase";
 import { springSnappy, springSoft, pressable, collapse } from "./motion";
+import Fox from "./Fox";
 
 // Pagina waar de "wachtwoord vergeten"-maillink naartoe leidt (/reset-password).
 export function ResetPassword({ session }) {
@@ -37,7 +38,7 @@ export function ResetPassword({ session }) {
           </div>
         ) : done ? (
           <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={springSoft} style={{ textAlign: "center" }}>
-            <div style={{ fontSize: 48, marginBottom: 12 }}>🦊</div>
+            <div style={{ fontSize: 48, marginBottom: 12 }}><Fox /></div>
             <div style={{ fontSize: 17, fontWeight: 700, color: "#0F0E0C", marginBottom: 6 }}>Password changed!</div>
             <motion.button whileTap={{ scale: 0.97 }} onClick={() => { window.location.href = "/"; }}
               style={{ marginTop: 14, width: "100%", background: "#FF5C00", color: "#fff", border: "none", borderRadius: 12, padding: "14px", fontSize: 15, fontWeight: 700, cursor: "pointer" }}>

@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { ChevronUp, ChevronDown, X } from "lucide-react";
+import Fox from "./Fox";
 
 // Install bar: only shows in Chrome (Android) or Safari (iOS), and never once the
 // app is already installed. Dismissing = snooze for 1 day (returns tomorrow).
@@ -96,7 +97,7 @@ export default function InstallPrompt() {
   };
 
   const fox = (
-    <div style={{ width: 40, height: 40, borderRadius: 11, background: "#FF5C00", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 22, flexShrink: 0 }}>🦊</div>
+    <div style={{ width: 40, height: 40, borderRadius: 11, background: "#FF5C00", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 22, flexShrink: 0 }}><Fox /></div>
   );
   const installCta =
     iosHint ? (
@@ -167,7 +168,7 @@ export default function InstallPrompt() {
               <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 14 }}>
                 {[
                   ["⚡", "Faster and fullscreen — just like a real app"],
-                  ["🦊", "Your own icon on your home screen"],
+                  [<Fox />, "Your own icon on your home screen"],
                 ].map(([icon, text]) => (
                   <div key={text} style={{ display: "flex", alignItems: "center", gap: 10 }}>
                     <span style={{ fontSize: 15, width: 20, textAlign: "center", flexShrink: 0 }}>{icon}</span>

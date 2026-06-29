@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { springMorph } from "./motion";
+import Fox from "./Fox";
 import {
   ffMyGroups, ffPreview, ffCreateGroup, ffJoinGroup, ffLeaveGroup,
   ffKickMember, ffSetHost, ffSetAdmin, ffSetPrivate, ffUpdateSettings, ffAddItem, ffRemoveItem, ffFetchGroup,
@@ -362,7 +363,7 @@ export default function Friends({ session, onClose, initialJoinCode, initialGrou
   if (view === "list") {
     body = (
       <>
-        {header("🦊 Flowva Friends")}
+        {header(<><Fox /> Flowva Friends</>)}
         <div style={{ padding: "0 18px 4px", fontSize: 12.5, color: "#9C9893", lineHeight: 1.5 }}>Order together with friends — share one delivery so shipping and fees get way cheaper per person.</div>
         {errLine}
         <div style={{ padding: "12px 18px 6px" }}>
@@ -373,7 +374,7 @@ export default function Friends({ session, onClose, initialJoinCode, initialGrou
           ) : groups.map((g) => (
             <button key={g.group_id} onClick={() => openLobby(g.group_id)}
               style={{ width: "100%", display: "flex", alignItems: "center", gap: 12, background: "#1A1917", border: "none", borderRadius: 14, padding: "12px 14px", marginBottom: 8, cursor: "pointer", textAlign: "left" }}>
-              <div style={{ width: 40, height: 40, borderRadius: 12, background: "#FF5C00", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18, flexShrink: 0 }}>🦊</div>
+              <div style={{ width: 40, height: 40, borderRadius: 12, background: "#FF5C00", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18, flexShrink: 0 }}><Fox /></div>
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ fontSize: 14, fontWeight: 600, color: "#fff" }}>{g.name}{g.role === "admin" ? " · admin" : ""}</div>
                 <div style={{ fontSize: 11.5, color: "#9C9893" }}>{g.member_count}/{g.max_size} friends{activeGroupId === g.group_id ? " · shopping now" : ""}</div>

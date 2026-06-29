@@ -1672,7 +1672,7 @@ export default function SupplyFlow({ session }) {
             </>
           ) : p.image}
         </motion.div>
-        <motion.div layoutId={`plus-${p.id}`} transition={springMorph}
+        <motion.div layoutId={`plus-${p.id}`} transition={{ duration: 0.34, ease: [0.32, 0.72, 0, 1] }}
           onClick={e => { e.stopPropagation(); setActionProduct(p); }}
           whileTap={{ scale: 0.82 }}
           style={{ position: "absolute", right: 10, bottom: 10, width: 36, height: 36, borderRadius: 18, background: "#FF5C00", display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 4px 14px rgba(255,92,0,0.4)", cursor: "pointer", WebkitTapHighlightColor: "transparent" }}>
@@ -2662,9 +2662,9 @@ export default function SupplyFlow({ session }) {
               onClick={() => setActionProduct(null)}
               style={{ position: "fixed", inset: 0, zIndex: 240, background: "rgba(17,17,17,0.4)", backdropFilter: "blur(5px)" }} />
             <div style={{ position: "fixed", inset: 0, zIndex: 241, display: "flex", alignItems: "center", justifyContent: "center", pointerEvents: "none" }}>
-              <motion.div layoutId={`plus-${actionProduct.id}`} transition={springMorph}
+              <motion.div layoutId={`plus-${actionProduct.id}`} transition={{ duration: 0.34, ease: [0.32, 0.72, 0, 1] }}
                 style={{ width: 248, background: "#FF5C00", borderRadius: 20, overflow: "hidden", pointerEvents: "all", boxShadow: "0 24px 80px rgba(17,17,17,0.3)" }}>
-                <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1, transition: { delay: 0.1, duration: 0.16 } }} exit={{ opacity: 0, transition: { duration: 0.08 } }}>
+                <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1, transition: { delay: 0.22, duration: 0.18 } }} exit={{ opacity: 0, transition: { duration: 0.07 } }}>
                   <div style={{ padding: "13px 16px 11px", display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 10 }}>
                     <div style={{ fontSize: 13.5, fontWeight: 700, color: "#fff", lineHeight: 1.35 }}>{actionProduct.title}</div>
                     <div onClick={() => setActionProduct(null)} style={{ cursor: "pointer", flexShrink: 0, padding: 2 }}>

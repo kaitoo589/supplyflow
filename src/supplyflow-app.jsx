@@ -1842,17 +1842,23 @@ export default function SupplyFlow({ session }) {
         <div ref={ghostRef} aria-hidden style={{
           position: "fixed",
           left: morph.from.left, top: morph.from.top, width: morph.from.width, height: morph.from.height,
-          background: "#ECE8E0", border: "1px solid #E4E1DA",
+          background: "#ECE8E0", boxSizing: "border-box",
+          // Rand + schaduw per richting laten kloppen met het DOEL, anders 'popt' dat bij de
+          // overdracht: de pill heeft een rand + lichte schaduw; het fotogebied van de kaart
+          // heeft géén eigen rand/schaduw (de kaart zelf draagt die al). box-sizing border-box
+          // zodat de gemeten (border-box) maat exact klopt, ook mét rand.
+          border: morph.target === "pill" ? "1px solid #E4E1DA" : "none",
+          boxShadow: morph.target === "pill" ? "0 1px 2px rgba(17,17,17,0.05), 0 4px 12px rgba(17,17,17,0.05)" : "none",
           borderRadius: morph.target === "pill" ? "20px 20px 0px 0px" : "22px",
-          boxShadow: "0 1px 2px rgba(17,17,17,0.06), 0 12px 30px rgba(17,17,17,0.12)",
           overflow: "hidden", zIndex: 60, pointerEvents: "none",
           display: "flex", gap: 2,
           willChange: "left, top, width, height", contain: "layout paint",
         }}>
           {factoryCollage(morph.previews || [], morph.extra || 0, morph.dia || 0)}
           <div ref={overlayRef} style={{
-            position: "absolute", inset: 0, background: "#fff",
-            display: "flex", alignItems: "center", justifyContent: "center", gap: 4,
+            position: "absolute", inset: 0, boxSizing: "border-box", background: "#fff",
+            display: "flex", alignItems: "center", justifyContent: "flex-start", gap: 4,
+            padding: "9px 16px 9px 12px",
             color: "#111", fontSize: 14, fontWeight: 700, whiteSpace: "nowrap",
             opacity: morph.target === "pill" ? 0 : 1,
           }}>

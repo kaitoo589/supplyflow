@@ -1182,9 +1182,10 @@ export default function SupplyFlow({ session }) {
   const [factories, setFactories] = useState([]);
   const [selectedFactory, setSelectedFactory] = useState(null);
   // Scroll-onafhankelijke shape-morph (fabriekskaart ↔ 'All factories'-pill).
-  const [morph, setMorph] = useState(null); // { from:{left,top,width,height}, target:"pill"|"card", id }
+  const [morph, setMorph] = useState(null); // { from:{left,top,width,height}, target:"pill"|"card", id, img }
   const pillRef = useRef(null);
   const ghostRef = useRef(null);
+  const overlayRef = useRef(null);
   const [loadingProducts, setLoadingProducts] = useState(true);
   const [productsError, setProductsError] = useState(null);
   const [search, setSearch] = useState("");
@@ -1286,10 +1287,13 @@ export default function SupplyFlow({ session }) {
     let done = false;
     const finish = () => {
       if (done) return; done = true;
-      ghost.removeEventListener("transitionend", finish);
+      ghost.removeEventListener("transitionend", onEnd);
       destEl.style.visibility = "";
       setMorph(null);
     };
+    // Rond pas af op de breedte-transitie (verandert altijd 390↔125); negeer de
+    // opacity-transitie van de overlay, anders zou die de morph te vroeg afbreken.
+    const onEnd = (e) => { if (e.propertyName === "width") finish(); };
     // FLIP via CSS-transitie: compositor-gedreven (soepel + betrouwbare afronding) en
     // geen border-radius-vervorming zoals bij transform-scale.
     void ghost.offsetWidth; // forceer reflow op de bron-rect vóór we naar het doel zetten
@@ -1300,9 +1304,16 @@ export default function SupplyFlow({ session }) {
     ghost.style.width = `${to.width}px`;
     ghost.style.height = `${to.height}px`;
     ghost.style.borderRadius = `${toR}px`;
-    ghost.addEventListener("transitionend", finish);
-    const t = setTimeout(finish, 520); // vangnet als transitionend uitblijft
-    return () => { clearTimeout(t); ghost.removeEventListener("transitionend", finish); destEl.style.visibility = ""; };
+    // Overlay (witte 'All factories'-pill): heen pas op het eind in, terug meteen uit →
+    // de foto blijft tijdens de beweging zichtbaar.
+    const overlay = overlayRef.current;
+    if (overlay) {
+      overlay.style.transition = morph.target === "pill" ? "opacity .2s ease 0.22s" : "opacity .18s ease";
+      overlay.style.opacity = morph.target === "pill" ? "1" : "0";
+    }
+    ghost.addEventListener("transitionend", onEnd);
+    const t = setTimeout(finish, 560); // vangnet als transitionend uitblijft
+    return () => { clearTimeout(t); ghost.removeEventListener("transitionend", onEnd); destEl.style.visibility = ""; };
   }, [morph]);
   const VABLE_URL = "https://vable.store";
   const VABLE_ITEMS = [
@@ -1758,7 +1769,7 @@ export default function SupplyFlow({ session }) {
         initial={{ opacity: 0, scale: 0.96, y: 14 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
         exit={{ opacity: 0, scale: 0.96, transition: { duration: 0.16, ease: [0.32, 0.72, 0, 1] } }}
-        onClick={(e) => { const r = e.currentTarget.getBoundingClientRect(); feedScrollRef.current = window.scrollY; setMorph({ from: { left: r.left, top: r.top, width: r.width, height: r.height }, target: "pill", id: f.id }); setSelectedFactory(f); setSearch(""); setActiveCategory("All"); setActiveSub(null); window.scrollTo(0, 0); }}
+        onClick={(e) => { const r = e.currentTarget.getBoundingClientRect(); feedScrollRef.current = window.scrollY; setMorph({ from: { left: r.left, top: r.top, width: r.width, height: r.height }, target: "pill", id: f.id, img: (f.previews && f.previews[0]) || f.cover || null }); setSelectedFactory(f); setSearch(""); setActiveCategory("All"); setActiveSub(null); window.scrollTo(0, 0); }}
         whileHover={{ y: -3 }} whileTap={{ scale: 0.99 }}
         transition={springMorph}
         style={{ background: "#fff", borderRadius: 20, overflow: "hidden", boxShadow: "0 1px 2px rgba(17,17,17,0.04), 0 8px 22px rgba(17,17,17,0.06)", cursor: "pointer" }}>
@@ -1807,16 +1818,28 @@ export default function SupplyFlow({ session }) {
     <div style={{ fontFamily: "'Inter', 'Helvetica Neue', sans-serif", background: "#F8F7F4", minHeight: "100vh", maxWidth: 430, margin: "0 auto", width: "100%", position: "relative" }}>
 
       <GroupModeGlow key={activeGroup?.id || "none"} active={activeGroupShopping} dimmed={!!(selectedProduct || showRequestList || showFriends || showNotifs || showVable)} />
-      {/* Shape-morph ghost: scroll-onafhankelijke witte doos die kaart ↔ pill verbindt. */}
+      {/* Shape-morph ghost: scroll-onafhankelijke doos met de FABRIEKSFOTO die kaart ↔ pill
+          verbindt. De 'All factories'-pill ligt als overlay erbovenop en faadt pas op het eind
+          in (heen) / meteen uit (terug), zodat de foto de hele morph zichtbaar blijft. */}
       {morph && (
         <div ref={ghostRef} aria-hidden style={{
           position: "fixed",
           left: morph.from.left, top: morph.from.top, width: morph.from.width, height: morph.from.height,
-          background: "#fff", border: "1px solid #E4E1DA",
+          background: "#ECE8E0", border: "1px solid #E4E1DA",
           borderRadius: morph.target === "pill" ? 20 : 22,
           boxShadow: "0 1px 2px rgba(17,17,17,0.06), 0 12px 30px rgba(17,17,17,0.12)",
-          zIndex: 60, pointerEvents: "none",
-        }} />
+          overflow: "hidden", zIndex: 60, pointerEvents: "none",
+        }}>
+          {morph.img && <img src={morph.img} referrerPolicy="no-referrer" alt="" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />}
+          <div ref={overlayRef} style={{
+            position: "absolute", inset: 0, background: "#fff",
+            display: "flex", alignItems: "center", justifyContent: "center", gap: 4,
+            color: "#111", fontSize: 14, fontWeight: 700, whiteSpace: "nowrap",
+            opacity: morph.target === "pill" ? 0 : 1,
+          }}>
+            <span style={{ fontSize: 19, lineHeight: 1, marginTop: -2 }}>‹</span> All factories
+          </div>
+        </div>
       )}
       {/* Header */}
       <div style={{ padding: "16px 20px 10px", display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8 }}>
@@ -1912,7 +1935,7 @@ export default function SupplyFlow({ session }) {
             <motion.div
               ref={pillRef}
               whileTap={{ scale: 0.96 }}
-              onClick={(e) => { const r = e.currentTarget.getBoundingClientRect(); setMorph({ from: { left: r.left, top: r.top, width: r.width, height: r.height }, target: "card", id: selectedFactory.id }); setSelectedFactory(null); setSearch(""); setActiveCategory("All"); setActiveSub(null); }}
+              onClick={(e) => { const r = e.currentTarget.getBoundingClientRect(); setMorph({ from: { left: r.left, top: r.top, width: r.width, height: r.height }, target: "card", id: selectedFactory.id, img: (selectedFactory.previews && selectedFactory.previews[0]) || selectedFactory.cover || null }); setSelectedFactory(null); setSearch(""); setActiveCategory("All"); setActiveSub(null); }}
               style={{ display: "inline-flex", alignItems: "center", gap: 4, marginBottom: 16, cursor: "pointer", color: "#111", fontSize: 14, fontWeight: 700, background: "#fff", border: "1px solid #E4E1DA", borderRadius: 22, padding: "9px 16px 9px 12px", boxShadow: "0 1px 2px rgba(17,17,17,0.05), 0 4px 12px rgba(17,17,17,0.05)", WebkitTapHighlightColor: "transparent", whiteSpace: "nowrap" }}>
               <span style={{ fontSize: 19, lineHeight: 1, marginTop: -2 }}>‹</span> All factories
             </motion.div>

@@ -286,7 +286,7 @@ function OrderGroupCard({ items, onOpenItem, groupSize }) {
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{ fontSize: 12.5, fontWeight: 600, color: "#111", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{o.product_title || o.product}</div>
                       <div style={{ fontSize: 11, color: "#A8A5A0", marginBottom: 3 }}>{o.qty} pcs{o.kleur ? ` · ${o.kleur}` : ""} · €{(Number(o.price) || 0).toFixed(2)}</div>
-                      <div style={{ display: "inline-block", background: s.bg, color: s.color, fontSize: 10.5, fontWeight: 700, padding: "2px 9px", borderRadius: 20 }}>{statusLabel(o)}{o.problem_type ? " · ⚠️" : ""}</div>
+                      <div style={{ display: "inline-block", background: s.bg, color: s.color, fontSize: 10.5, fontWeight: 700, padding: "2px 9px", borderRadius: 20 }}>{statusLabel(o)}{o.problem_type === "out_of_stock" ? <> · out of stock · <span style={{ color: "#15803D" }}>refunded</span></> : o.problem_type ? " · ⚠️" : ""}</div>
                     </div>
                     <div style={{ color: "#ccc", fontSize: 16, flexShrink: 0 }}>→</div>
                   </motion.div>
@@ -2122,7 +2122,13 @@ export default function SupplyFlow({ session }) {
             );
           })()}
           {/* Probleem gemeld door agent */}
-          {selectedOrder.problem_type && problemTypes[selectedOrder.problem_type] && (
+          {selectedOrder.problem_type === "out_of_stock" ? (
+            <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} transition={springSoft}
+              style={{ background: "#F0FDF4", border: "1.5px solid #34D17B", borderRadius: 14, padding: 16, marginBottom: 16 }}>
+              <div style={{ fontSize: 14, fontWeight: 700, color: "#15803D", marginBottom: 6 }}>📦 Out of stock — refunded</div>
+              <div style={{ fontSize: 13, color: "#166534", lineHeight: 1.5 }}>Unfortunately this item is out of stock. The item price has been <b>automatically refunded</b> to your balance — no action needed.</div>
+            </motion.div>
+          ) : selectedOrder.problem_type && problemTypes[selectedOrder.problem_type] ? (
             <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} transition={springSoft}
               style={{ background: "#FFF7ED", border: "1.5px solid #F59E0B", borderRadius: 14, padding: 16, marginBottom: 16 }}>
               <div style={{ fontSize: 14, fontWeight: 700, color: "#B45309", marginBottom: 6 }}>
@@ -2152,7 +2158,7 @@ export default function SupplyFlow({ session }) {
               )}
               <div style={{ marginTop: 8, fontSize: 11, color: "#B45309" }}>Or send your choice via the chat below 💬</div>
             </motion.div>
-          )}
+          ) : null}
 
           {/* Door BuckyDrop gemeld defect: stuur de klant naar de warehouse om te kiezen (retour/accept). */}
           {selectedOrder.dispute_status === "bucky_flagged" && (
@@ -2257,7 +2263,7 @@ export default function SupplyFlow({ session }) {
               </div>
             </div>
           )}
-          <CustomerChat order={selectedOrder} session={session} />
+          {selectedOrder.problem_type !== "out_of_stock" && <CustomerChat order={selectedOrder} session={session} />}
         </motion.div>
       )}
 

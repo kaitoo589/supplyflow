@@ -1177,7 +1177,7 @@ function PricingSheet({ onClose }) {
 }
 
 export default function SupplyFlow({ session }) {
-  const [tab, setTab] = useState("feed");
+  const [tab, setTab] = useState(() => { try { return new URLSearchParams(window.location.search).get("tab") === "profile" ? "profile" : "feed"; } catch { return "feed"; } });
   const [products, setProducts] = useState([]);
   const [factories, setFactories] = useState([]);
   const [selectedFactory, setSelectedFactory] = useState(null);
@@ -1759,14 +1759,17 @@ export default function SupplyFlow({ session }) {
     ].filter(s => s.v);
     const pv = (f.previews && f.previews.length) ? f.previews : (f.cover ? [f.cover] : []);
     const extra = Math.max(0, (f.count || 0) - 3);
+    // Is dit de kaart waar de morph NU naartoe terugkeert? Zo ja: geen entree-animatie,
+    // zodat de kaart meteen op z'n eind-rect staat (correcte meting + geen na-schok).
+    const isMorphTarget = !!morph && morph.target === "card" && String(morph.id) === String(f.id);
     const imgBox = (src, big) => (
       <div style={{ flex: 1, minHeight: 0, minWidth: 0, background: "#ECE8E0", display: "flex", alignItems: "center", justifyContent: "center", fontSize: big ? 44 : 26, overflow: "hidden" }}>
         {src ? <img src={src} referrerPolicy="no-referrer" alt="" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} /> : "🏭"}
       </div>
     );
     return (
-      <motion.div key={f.id} layout data-factory-id={f.id} className={activeGroup ? "ff-glow" : ""}
-        initial={{ opacity: 0, scale: 0.96, y: 14 }}
+      <motion.div key={f.id} layout={!isMorphTarget} data-factory-id={f.id} className={activeGroup ? "ff-glow" : ""}
+        initial={isMorphTarget ? false : { opacity: 0, scale: 0.96, y: 14 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
         exit={{ opacity: 0, scale: 0.96, transition: { duration: 0.16, ease: [0.32, 0.72, 0, 1] } }}
         onClick={(e) => { const r = e.currentTarget.getBoundingClientRect(); feedScrollRef.current = window.scrollY; setMorph({ from: { left: r.left, top: r.top, width: r.width, height: r.height }, target: "pill", id: f.id, img: (f.previews && f.previews[0]) || f.cover || null }); setSelectedFactory(f); setSearch(""); setActiveCategory("All"); setActiveSub(null); window.scrollTo(0, 0); }}
@@ -1829,8 +1832,9 @@ export default function SupplyFlow({ session }) {
           borderRadius: morph.target === "pill" ? 20 : 22,
           boxShadow: "0 1px 2px rgba(17,17,17,0.06), 0 12px 30px rgba(17,17,17,0.12)",
           overflow: "hidden", zIndex: 60, pointerEvents: "none",
+          willChange: "left, top, width, height", contain: "layout paint",
         }}>
-          {morph.img && <img src={morph.img} referrerPolicy="no-referrer" alt="" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />}
+          {morph.img && <img src={morph.img} referrerPolicy="no-referrer" alt="" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block", willChange: "transform", transform: "translateZ(0)" }} />}
           <div ref={overlayRef} style={{
             position: "absolute", inset: 0, background: "#fff",
             display: "flex", alignItems: "center", justifyContent: "center", gap: 4,

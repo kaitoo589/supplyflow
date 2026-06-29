@@ -15,7 +15,12 @@ const SECTIONS = [
 export default function ReturnsPage() {
   return (
     <div style={{ fontFamily: "'Inter', sans-serif", background: "#F8F7F4", minHeight: "100vh", padding: "32px 16px" }}>
-      <div style={{ maxWidth: 640, margin: "0 auto", background: "#fff", borderRadius: 22, padding: "28px 26px", boxShadow: "0 8px 40px rgba(0,0,0,0.06)" }}>
+      <div style={{ maxWidth: 640, margin: "0 auto" }}>
+        <button onClick={() => { window.location.href = "/?tab=profile"; }}
+          style={{ display: "inline-flex", alignItems: "center", gap: 5, background: "#fff", border: "1px solid #E8E6E0", borderRadius: 999, padding: "9px 16px 9px 12px", fontSize: 13.5, fontWeight: 700, color: "#0F0E0C", cursor: "pointer", marginBottom: 14, boxShadow: "0 1px 2px rgba(0,0,0,0.05)" }}>
+          <span style={{ fontSize: 18, lineHeight: 1, marginTop: -2 }}>‹</span> Back
+        </button>
+      <div style={{ background: "#fff", borderRadius: 22, padding: "28px 26px", boxShadow: "0 8px 40px rgba(0,0,0,0.06)" }}>
         <div style={{ fontSize: 26, fontWeight: 800, color: "#0F0E0C", marginBottom: 4 }}>Returns &amp; withdrawal</div>
         <div style={{ fontSize: 13.5, color: "#8A8780", marginBottom: 22 }}>Your rights and how returns work at Flowva.</div>
         {SECTIONS.map((s) => (
@@ -26,6 +31,7 @@ export default function ReturnsPage() {
         ))}
         <a href="/withdraw" style={{ display: "inline-block", background: "#FF5C00", color: "#fff", borderRadius: 12, padding: "13px 24px", fontSize: 14, fontWeight: 700, textDecoration: "none", marginTop: 8 }}>Withdraw / cancel an order →</a>
         <div style={{ fontSize: 11.5, color: "#A8A5A0", marginTop: 16, lineHeight: 1.5 }}>This policy does not affect your mandatory statutory consumer rights. Governing law: the Netherlands.</div>
+      </div>
       </div>
     </div>
   );

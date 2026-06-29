@@ -27,6 +27,10 @@ export default function WithdrawalPage() {
   return (
     <div style={{ fontFamily: "'Inter', sans-serif", background: "#F8F7F4", minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
       <div style={{ background: "#fff", borderRadius: 22, padding: "28px 24px", maxWidth: 420, width: "100%", boxShadow: "0 8px 40px rgba(0,0,0,0.08)" }}>
+        <button onClick={() => { window.location.href = "/?tab=profile"; }}
+          style={{ display: "inline-flex", alignItems: "center", gap: 5, background: "#F8F7F4", border: "1px solid #E8E6E0", borderRadius: 999, padding: "8px 15px 8px 11px", fontSize: 13, fontWeight: 700, color: "#0F0E0C", cursor: "pointer", marginBottom: 16 }}>
+          <span style={{ fontSize: 17, lineHeight: 1, marginTop: -2 }}>‹</span> Back
+        </button>
         {done ? (
           <div style={{ textAlign: "center" }}>
             <div style={{ fontSize: 44, marginBottom: 10 }}>✅</div>

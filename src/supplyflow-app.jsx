@@ -2133,10 +2133,17 @@ export default function SupplyFlow({ session }) {
                       </div>
                       <div style={{ paddingBottom: last ? 2 : 18, paddingTop: 2, display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
                         <span style={{ fontSize: 13.5, fontWeight: current ? 700 : done ? 600 : 500, color: done || current ? "#111111" : "#B7B4AE" }}>{label}</span>
-                        {current && (
+                        {current && (selectedOrder.problem_type === "out_of_stock" ? (
+                          <>
+                            <motion.span initial={{ scale: 0 }} animate={{ scale: 1 }} transition={springBouncy}
+                              style={{ background: "#FEE2E2", color: "#DC2626", fontSize: 9.5, fontWeight: 800, letterSpacing: 0.6, padding: "3px 8px", borderRadius: 7 }}>OUT OF STOCK</motion.span>
+                            <motion.span initial={{ scale: 0 }} animate={{ scale: 1 }} transition={springBouncy}
+                              style={{ background: "#DCFCE7", color: "#15803D", fontSize: 9.5, fontWeight: 800, letterSpacing: 0.6, padding: "3px 8px", borderRadius: 7 }}>REFUNDED</motion.span>
+                          </>
+                        ) : (
                           <motion.span initial={{ scale: 0 }} animate={{ scale: 1 }} transition={springBouncy}
                             style={{ background: "#FF5C00", color: "#fff", fontSize: 9.5, fontWeight: 800, letterSpacing: 0.6, padding: "3px 8px", borderRadius: 7 }}>IN PROGRESS</motion.span>
-                        )}
+                        ))}
                       </div>
                     </div>
                   );

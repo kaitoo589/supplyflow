@@ -2179,7 +2179,6 @@ export default function SupplyFlow({ session }) {
                   )}
                 </div>
               )}
-              <div style={{ marginTop: 8, fontSize: 11, color: "#B45309" }}>Or send your choice via the chat below 💬</div>
             </motion.div>
           ) : null}
 
@@ -2286,7 +2285,6 @@ export default function SupplyFlow({ session }) {
               </div>
             </div>
           )}
-          {selectedOrder.problem_type !== "out_of_stock" && <CustomerChat order={selectedOrder} session={session} />}
         </motion.div>
       )}
 

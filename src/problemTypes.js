@@ -9,7 +9,7 @@ export const problemTypes = {
   variant_unavailable: {
     icon: "📏",
     label: "Size/variant unavailable",
-    msg: "The chosen size or variant is unfortunately unavailable. Send me your alternative choice via the chat, or cancel your request.",
+    msg: "The chosen size or variant is unfortunately unavailable. You can cancel your request for a full refund and order a different option.",
   },
   price_changed: {
     icon: "💰",
@@ -19,6 +19,6 @@ export const problemTypes = {
   link_broken: {
     icon: "🔗",
     label: "Link not working",
-    msg: "The product link unfortunately no longer works. Send me a new link via the chat, or cancel your request.",
+    msg: "The product link unfortunately no longer works. You can cancel your request for a full refund.",
   },
 };

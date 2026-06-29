@@ -1182,7 +1182,7 @@ export default function SupplyFlow({ session }) {
   const [factories, setFactories] = useState([]);
   const [selectedFactory, setSelectedFactory] = useState(null);
   // Scroll-onafhankelijke shape-morph (fabriekskaart ↔ 'All factories'-pill).
-  const [morph, setMorph] = useState(null); // { from:{left,top,width,height}, target:"pill"|"card", id, img }
+  const [morph, setMorph] = useState(null); // { from:{left,top,width,height}, target:"pill"|"card", id, previews, extra, dia }
   const pillRef = useRef(null);
   const ghostRef = useRef(null);
   const overlayRef = useRef(null);
@@ -1750,6 +1750,40 @@ export default function SupplyFlow({ session }) {
     </motion.div>
   );
 
+  // Gedeelde fabrieks-collage (1 grote + 2 kleine foto's + diamant-badge + "+N more").
+  // Gebruikt in ZOWEL de feed-kaart als de morph-ghost, zodat de morph exact dezelfde
+  // 3 foto's toont en ze nooit uiteen kunnen lopen. De aanroeper levert de flex-container.
+  const factoryCollage = (pv = [], extra = 0, dia = 0) => {
+    const imgBox = (src, big) => (
+      <div style={{ flex: 1, minHeight: 0, minWidth: 0, background: "#ECE8E0", display: "flex", alignItems: "center", justifyContent: "center", fontSize: big ? 44 : 26, overflow: "hidden" }}>
+        {src ? <img src={src} referrerPolicy="no-referrer" alt="" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} /> : "🏭"}
+      </div>
+    );
+    return (
+      <>
+        {imgBox(pv[0], true)}
+        {pv.length >= 2 && (
+          <div style={{ flex: 0.62, minWidth: 0, display: "flex", flexDirection: "column", gap: 2 }}>
+            {imgBox(pv[1])}
+            {pv.length >= 3 && (
+              <div style={{ flex: 1, minHeight: 0, position: "relative", display: "flex" }}>
+                {imgBox(pv[2])}
+                {extra > 0 && (
+                  <div style={{ position: "absolute", right: 6, bottom: 6, background: "rgba(17,17,17,0.74)", color: "#fff", fontSize: 11, fontWeight: 700, padding: "2px 8px", borderRadius: 12 }}>+{extra} more</div>
+                )}
+              </div>
+            )}
+          </div>
+        )}
+        {dia >= 1 && (
+          <div style={{ position: "absolute", top: 11, left: 11, background: "rgba(17,17,17,0.82)", borderRadius: 20, padding: "3px 9px", fontSize: 12, fontWeight: 700, letterSpacing: 1 }}>
+            {"💎".repeat(dia)}
+          </div>
+        )}
+      </>
+    );
+  };
+
   // Fabriek-kaart = volledige telefoon-breedte, één per rij (verticaal scrollen).
   // Etalage-collage: 1 grote + 2 kleine product-foto's → je ziet meteen wat de fabriek maakt.
   const factoryCardEl = (f) => {
@@ -1765,40 +1799,17 @@ export default function SupplyFlow({ session }) {
     // Is dit de kaart waar de morph NU naartoe terugkeert? Zo ja: geen entree-animatie,
     // zodat de kaart meteen op z'n eind-rect staat (correcte meting + geen na-schok).
     const isMorphTarget = !!morph && morph.target === "card" && String(morph.id) === String(f.id);
-    const imgBox = (src, big) => (
-      <div style={{ flex: 1, minHeight: 0, minWidth: 0, background: "#ECE8E0", display: "flex", alignItems: "center", justifyContent: "center", fontSize: big ? 44 : 26, overflow: "hidden" }}>
-        {src ? <img src={src} referrerPolicy="no-referrer" alt="" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} /> : "🏭"}
-      </div>
-    );
     return (
       <motion.div key={f.id} layout={!isMorphTarget} data-factory-id={f.id} className={activeGroup ? "ff-glow" : ""}
         initial={isMorphTarget ? false : { opacity: 0, scale: 0.96, y: 14 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
         exit={{ opacity: 0, scale: 0.96, transition: { duration: 0.16, ease: [0.32, 0.72, 0, 1] } }}
-        onClick={(e) => { const card = e.currentTarget; const ia = card.querySelector('[data-factory-img]'); const r = (ia || card).getBoundingClientRect(); feedScrollRef.current = window.scrollY; setMorph({ from: { left: r.left, top: r.top, width: r.width, height: r.height }, target: "pill", id: f.id, img: (f.previews && f.previews[0]) || f.cover || null }); setSelectedFactory(f); setSearch(""); setActiveCategory("All"); setActiveSub(null); window.scrollTo(0, 0); }}
+        onClick={(e) => { const card = e.currentTarget; const ia = card.querySelector('[data-factory-img]'); const r = (ia || card).getBoundingClientRect(); feedScrollRef.current = window.scrollY; setMorph({ from: { left: r.left, top: r.top, width: r.width, height: r.height }, target: "pill", id: f.id, previews: pv, extra, dia }); setSelectedFactory(f); setSearch(""); setActiveCategory("All"); setActiveSub(null); window.scrollTo(0, 0); }}
         whileHover={{ y: -3 }} whileTap={{ scale: 0.99 }}
         transition={springMorph}
         style={{ background: "#fff", borderRadius: 20, overflow: "hidden", boxShadow: "0 1px 2px rgba(17,17,17,0.04), 0 8px 22px rgba(17,17,17,0.06)", cursor: "pointer" }}>
         <div data-factory-img={f.id} style={{ position: "relative", display: "flex", gap: 2, aspectRatio: "5 / 4", overflow: "hidden" }}>
-          {imgBox(pv[0], true)}
-          {pv.length >= 2 && (
-            <div style={{ flex: 0.62, minWidth: 0, display: "flex", flexDirection: "column", gap: 2 }}>
-              {imgBox(pv[1])}
-              {pv.length >= 3 && (
-                <div style={{ flex: 1, minHeight: 0, position: "relative", display: "flex" }}>
-                  {imgBox(pv[2])}
-                  {extra > 0 && (
-                    <div style={{ position: "absolute", right: 6, bottom: 6, background: "rgba(17,17,17,0.74)", color: "#fff", fontSize: 11, fontWeight: 700, padding: "2px 8px", borderRadius: 12 }}>+{extra} more</div>
-                  )}
-                </div>
-              )}
-            </div>
-          )}
-          {dia >= 1 && (
-            <div style={{ position: "absolute", top: 11, left: 11, background: "rgba(17,17,17,0.82)", borderRadius: 20, padding: "3px 9px", fontSize: 12, fontWeight: 700, letterSpacing: 1 }}>
-              {"💎".repeat(dia)}
-            </div>
-          )}
+          {factoryCollage(pv, extra, dia)}
         </div>
         <div style={{ padding: "13px 15px 14px" }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 8 }}>
@@ -1835,9 +1846,10 @@ export default function SupplyFlow({ session }) {
           borderRadius: morph.target === "pill" ? "20px 20px 0px 0px" : "22px",
           boxShadow: "0 1px 2px rgba(17,17,17,0.06), 0 12px 30px rgba(17,17,17,0.12)",
           overflow: "hidden", zIndex: 60, pointerEvents: "none",
+          display: "flex", gap: 2,
           willChange: "left, top, width, height", contain: "layout paint",
         }}>
-          {morph.img && <img src={morph.img} referrerPolicy="no-referrer" alt="" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block", willChange: "transform", transform: "translateZ(0)" }} />}
+          {factoryCollage(morph.previews || [], morph.extra || 0, morph.dia || 0)}
           <div ref={overlayRef} style={{
             position: "absolute", inset: 0, background: "#fff",
             display: "flex", alignItems: "center", justifyContent: "center", gap: 4,
@@ -1942,7 +1954,7 @@ export default function SupplyFlow({ session }) {
             <motion.div
               ref={pillRef}
               whileTap={{ scale: 0.96 }}
-              onClick={(e) => { const r = e.currentTarget.getBoundingClientRect(); setMorph({ from: { left: r.left, top: r.top, width: r.width, height: r.height }, target: "card", id: selectedFactory.id, img: (selectedFactory.previews && selectedFactory.previews[0]) || selectedFactory.cover || null }); setSelectedFactory(null); setSearch(""); setActiveCategory("All"); setActiveSub(null); }}
+              onClick={(e) => { const r = e.currentTarget.getBoundingClientRect(); const sf = selectedFactory; const spv = (sf.previews && sf.previews.length) ? sf.previews : (sf.cover ? [sf.cover] : []); setMorph({ from: { left: r.left, top: r.top, width: r.width, height: r.height }, target: "card", id: sf.id, previews: spv, extra: Math.max(0, (sf.count || 0) - 3), dia: Math.max(0, Math.min(4, Number(sf.diamonds) || 0)) }); setSelectedFactory(null); setSearch(""); setActiveCategory("All"); setActiveSub(null); }}
               style={{ display: "inline-flex", alignItems: "center", gap: 4, marginBottom: 16, cursor: "pointer", color: "#111", fontSize: 14, fontWeight: 700, background: "#fff", border: "1px solid #E4E1DA", borderRadius: 22, padding: "9px 16px 9px 12px", boxShadow: "0 1px 2px rgba(17,17,17,0.05), 0 4px 12px rgba(17,17,17,0.05)", WebkitTapHighlightColor: "transparent", whiteSpace: "nowrap" }}>
               <span style={{ fontSize: 19, lineHeight: 1, marginTop: -2 }}>‹</span> All factories
             </motion.div>

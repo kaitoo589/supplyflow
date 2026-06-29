@@ -1853,9 +1853,20 @@ export default function SupplyFlow({ session }) {
 
           {/* Terug-knop bij drill-in — duidelijke pill */}
           {selectedFactory && !showFavoritesOnly && (
-            <motion.div whileTap={{ scale: 0.96 }} onClick={() => { setSelectedFactory(null); setSearch(""); setActiveCategory("All"); setActiveSub(null); }}
-              style={{ display: "inline-flex", alignItems: "center", gap: 4, marginBottom: 16, cursor: "pointer", color: "#111", fontSize: 14, fontWeight: 700, background: "#fff", border: "1px solid #E4E1DA", borderRadius: 22, padding: "9px 16px 9px 12px", boxShadow: "0 1px 2px rgba(17,17,17,0.05), 0 4px 12px rgba(17,17,17,0.05)", WebkitTapHighlightColor: "transparent" }}>
-              <span style={{ fontSize: 19, lineHeight: 1, marginTop: -2 }}>‹</span> All factories
+            // Shape-morph: deelt dezelfde layoutId als de aangetikte fabriekskaart, dus
+            // Framer krimpt de grote kaart soepel ineen tot deze pill (en terug bij 'back').
+            // Het label faadt met een mini-delay in zodat je tijdens het krimpen geen
+            // meegeschaalde, vervormde tekst ziet.
+            <motion.div
+              layout
+              layoutId={`factory-${selectedFactory.id}`}
+              transition={springMorph}
+              whileTap={{ scale: 0.96 }}
+              onClick={() => { setSelectedFactory(null); setSearch(""); setActiveCategory("All"); setActiveSub(null); }}
+              style={{ display: "inline-flex", alignItems: "center", gap: 4, marginBottom: 16, cursor: "pointer", color: "#111", fontSize: 14, fontWeight: 700, background: "#fff", border: "1px solid #E4E1DA", borderRadius: 22, padding: "9px 16px 9px 12px", boxShadow: "0 1px 2px rgba(17,17,17,0.05), 0 4px 12px rgba(17,17,17,0.05)", WebkitTapHighlightColor: "transparent", overflow: "hidden", whiteSpace: "nowrap" }}>
+              <motion.span initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.1, duration: 0.2 }} style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
+                <span style={{ fontSize: 19, lineHeight: 1, marginTop: -2 }}>‹</span> All factories
+              </motion.span>
             </motion.div>
           )}
           {/* === BODY: smooth fade+slide bij wisselen feed ↔ fabriek ↔ favorieten === */}

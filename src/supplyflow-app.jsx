@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useLayoutEffect } from "react";
 
 // #12 — idempotentie-token voor pay_cart (module-scope: één cart per tab). Stabiel per
 // poging; pas roteren NA een ontvangen server-antwoord, zodat een reclick na netwerk-
@@ -23,6 +23,12 @@ import { problemTypes } from "./problemTypes";
 import { toChinese, toEnglish, hasChinese } from "./translate";
 import { serviceFee } from "./fees";
 import PushToggle from "./PushToggle";
+
+// Consistente vos overal: de native vos-emoji verschilt per toestel (iPhone, Samsung en
+// PC tonen elk een andere vos). Daarom renderen we 'm als vaste afbeelding (Fluent/Windows-
+// stijl), em-groot zodat 'ie de omringende fontSize volgt — een drop-in vervanger.
+const FOX_SRC = "/fox.svg";
+const Fox = ({ style }) => <img src={FOX_SRC} alt="" aria-hidden="true" draggable={false} style={{ width: "1em", height: "1em", display: "inline-block", verticalAlign: "-0.15em", ...style }} />;
 
 // Overgang tussen tabs/schermen: zacht in-/uitschuiven (Apple-stijl).
 const pageTransition = {
@@ -563,7 +569,7 @@ function RequestListSheet({ items, onRemove, onSetQty, onClose, onSend, sending,
               <div style={{ fontSize: 18, fontWeight: 700, color: "#fff", marginBottom: 14 }}>🛒 Shopping cart ({items.length})</div>
 
               <div style={{ display: "flex", gap: 10, alignItems: "flex-end", marginBottom: 16 }}>
-                <motion.span layoutId="cart-fox" style={{ fontSize: 28, flexShrink: 0 }}>🦊</motion.span>
+                <motion.span layoutId="cart-fox" style={{ fontSize: 28, flexShrink: 0 }}><Fox /></motion.span>
                 <SpeechBubble bg="#1E1D1A" color="#C9C6C1">
                   <span style={{ fontSize: 12.5, lineHeight: 1.55 }}>
                     Smart move! Your whole cart shares <b style={{ color: "#FF5C00" }}>one service fee</b> (8%, min €5), so the more you add, the less it costs <b style={{ color: "#FF5C00" }}>per item</b>. From €62.50 it's just a flat 8% — the lowest it gets. Order things separately and each one carries its own fee.
@@ -622,7 +628,7 @@ function RequestListSheet({ items, onRemove, onSetQty, onClose, onSend, sending,
                     <span style={{ fontSize: 11, color: "#9C9893" }}>that's only</span>
                     <motion.span key={perItem.toFixed(2)} initial={{ scale: 1.3, opacity: 0.3 }} animate={{ scale: 1, opacity: 1 }} transition={{ type: "spring", stiffness: 420, damping: 18 }}
                       style={{ fontSize: 19, fontWeight: 800, color: perItemColor }}>€{perItem.toFixed(2)}</motion.span>
-                    <span style={{ fontSize: 11, fontWeight: 600, color: perItemColor }}>per item {perItem < 2 ? "🎉" : "🦊"}</span>
+                    <span style={{ fontSize: 11, fontWeight: 600, color: perItemColor }}>per item {perItem < 2 ? "🎉" : <Fox />}</span>
                   </div>
                 </motion.div>
               )}
@@ -647,7 +653,7 @@ function RequestListSheet({ items, onRemove, onSetQty, onClose, onSend, sending,
           ) : view === "checkout" ? (
             <motion.div key="checkout">
               <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 16 }}>
-                <motion.span layoutId="cart-fox" style={{ fontSize: 34, flexShrink: 0 }}>🦊</motion.span>
+                <motion.span layoutId="cart-fox" style={{ fontSize: 34, flexShrink: 0 }}><Fox /></motion.span>
                 <div>
                   <div style={{ fontSize: 18, fontWeight: 700, color: "#fff" }}>Checkout</div>
                   <div style={{ fontSize: 12, color: "#9C9893" }}>Just confirm and we'll start sourcing.</div>
@@ -736,7 +742,7 @@ function RequestListSheet({ items, onRemove, onSetQty, onClose, onSend, sending,
           ) : (
             <motion.div key="placed">
               <div style={{ textAlign: "center", marginBottom: 22, marginTop: 4 }}>
-                <motion.span layoutId="cart-fox" style={{ fontSize: 52, display: "inline-block", marginBottom: 12 }}>🦊</motion.span>
+                <motion.span layoutId="cart-fox" style={{ fontSize: 52, display: "inline-block", marginBottom: 12 }}><Fox /></motion.span>
                 <div style={{ fontSize: 22, fontWeight: 700, color: "#FF5C00", marginBottom: 6 }}>Order placed! 🎉</div>
                 <div style={{ fontSize: 13, color: "#888" }}>We're getting it from the factory:</div>
               </div>
@@ -847,10 +853,10 @@ function CustomerChat({ order, session }) {
             <div style={{ color: "#888", fontSize: 11, marginTop: 2 }}>Replies within 24 hours</div>
           </div>
           <div style={{ height: 240, overflowY: "auto", padding: 12, display: "flex", flexDirection: "column", gap: 8 }}>
-            {messages.length === 0 && <div style={{ textAlign: "center", color: "#aaa", fontSize: 13, padding: "20px 0" }}><div style={{ fontSize: 32, marginBottom: 8 }}>🦊</div>Send your agent a message</div>}
+            {messages.length === 0 && <div style={{ textAlign: "center", color: "#aaa", fontSize: 13, padding: "20px 0" }}><div style={{ fontSize: 32, marginBottom: 8 }}><Fox /></div>Send your agent a message</div>}
             {messages.map((m, i) => (
               <div key={i} style={{ display: "flex", justifyContent: m.sender === "customer" ? "flex-end" : "flex-start" }}>
-                {m.sender === "agent" && <div style={{ fontSize: 18, marginRight: 6, alignSelf: "flex-end" }}>🦊</div>}
+                {m.sender === "agent" && <div style={{ fontSize: 18, marginRight: 6, alignSelf: "flex-end" }}><Fox /></div>}
                 <div style={{ background: m.sender === "customer" ? "#0F0E0C" : "#F8F7F4", color: m.sender === "customer" ? "#FF5C00" : "#333", padding: "8px 12px", borderRadius: m.sender === "customer" ? "12px 12px 2px 12px" : "12px 12px 12px 2px", fontSize: 13, maxWidth: "75%", lineHeight: 1.4 }}>
                   <div>{m.message}</div>
                   {m.sender === "agent" && (m.message_translated || displayTx[m.id]) && (
@@ -1009,7 +1015,7 @@ function HowItWorksSheet({ onClose }) {
         style={{ position: "fixed", bottom: 0, left: 0, right: 0, margin: "0 auto", width: "100%", maxWidth: 430, boxSizing: "border-box", background: "#fff", borderRadius: "24px 24px 0 0", zIndex: 301, maxHeight: "92vh", overflowY: "auto", padding: "20px 20px 40px" }}>
         <div style={{ width: 36, height: 4, background: "#E8E6E0", borderRadius: 2, margin: "0 auto 16px" }} />
         <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 3 }}>
-          <span style={{ fontSize: 26 }}>🦊</span>
+          <span style={{ fontSize: 26 }}><Fox /></span>
           <div style={{ fontSize: 20, fontWeight: 800, color: "#0F0E0C" }}>How Flowva works</div>
         </div>
         <div style={{ fontSize: 13, color: "#8A8780", marginBottom: 18 }}>Factory prices, real photos, one parcel — duties included.</div>
@@ -1025,7 +1031,7 @@ function HowItWorksSheet({ onClose }) {
         ))}
 
         <div style={{ background: "#FFF7F2", border: "1px solid rgba(255,92,0,0.25)", borderRadius: 16, padding: "14px 16px", marginBottom: 14 }}>
-          <div style={{ fontSize: 13, fontWeight: 800, color: "#B8430A", marginBottom: 3 }}>🦊 Cheaper with Flowva Friends</div>
+          <div style={{ fontSize: 13, fontWeight: 800, color: "#B8430A", marginBottom: 3 }}><Fox /> Cheaper with Flowva Friends</div>
           <div style={{ fontSize: 13, color: "#6B6862", lineHeight: 1.55 }}>Team up, combine everyone's items into one parcel and split the shipping — the cheapest way to ship, and the service fee drops too.</div>
         </div>
 
@@ -1038,7 +1044,7 @@ function HowItWorksSheet({ onClose }) {
 
         <motion.button whileTap={{ scale: 0.97 }} onClick={onClose}
           style={{ width: "100%", background: "#FF5C00", color: "#fff", border: "none", borderRadius: 12, padding: "14px", fontSize: 15, fontWeight: 700, cursor: "pointer", WebkitTapHighlightColor: "transparent" }}>
-          Got it 🦊
+          Got it <Fox />
         </motion.button>
       </motion.div>
     </>
@@ -1168,7 +1174,7 @@ function PricingSheet({ onClose }) {
 
         <motion.button whileTap={{ scale: 0.97 }} onClick={onClose}
           style={{ width: "100%", marginTop: 14, background: "#FF5C00", color: "#fff", border: "none", borderRadius: 12, padding: "14px", fontSize: 15, fontWeight: 700, cursor: "pointer", WebkitTapHighlightColor: "transparent" }}>
-          Got it 🦊
+          Got it <Fox />
         </motion.button>
       </motion.div>
     </>
@@ -1251,6 +1257,17 @@ export default function SupplyFlow({ session }) {
   // VABLE — eigen merk (borduurdesigns). Knop in de feed-header opent dit blad.
   // Vervang img:null door je echte foto-URL's (en VABLE_URL door je winkel-link).
   const [showVable, setShowVable] = useState(false);
+  // Scroll-behoud: bewaar de scrollpositie van de fabriek-feed bij het inzoomen op een
+  // fabriek, en herstel 'm zodra je teruggaat — i.p.v. weer bovenaan te beginnen.
+  const feedScrollRef = useRef(0);
+  useLayoutEffect(() => {
+    if (tab === "feed" && !selectedFactory && !showFavoritesOnly && feedScrollRef.current) {
+      const y = feedScrollRef.current;
+      window.scrollTo(0, y);
+      requestAnimationFrame(() => window.scrollTo(0, y));
+      feedScrollRef.current = 0;
+    }
+  }, [selectedFactory, showFavoritesOnly, tab]);
   const VABLE_URL = "https://vable.store";
   const VABLE_ITEMS = [
     { name: "Crane Bird Jeans", price: "€79.99", bg: "#1f2937", img: "/vable/crane.jpg", url: "https://vable.store/products/crane-bird-jeans" },
@@ -1705,7 +1722,7 @@ export default function SupplyFlow({ session }) {
         initial={{ opacity: 0, scale: 0.96, y: 14 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
         exit={{ opacity: 0, scale: 0.96, transition: { duration: 0.16, ease: [0.32, 0.72, 0, 1] } }}
-        onClick={() => { setSelectedFactory(f); setSearch(""); setActiveCategory("All"); setActiveSub(null); }}
+        onClick={() => { feedScrollRef.current = window.scrollY; setSelectedFactory(f); setSearch(""); setActiveCategory("All"); setActiveSub(null); window.scrollTo(0, 0); }}
         whileHover={{ y: -3 }} whileTap={{ scale: 0.99 }}
         transition={springMorph}
         style={{ background: "#fff", borderRadius: 20, overflow: "hidden", boxShadow: "0 1px 2px rgba(17,17,17,0.04), 0 8px 22px rgba(17,17,17,0.06)", cursor: "pointer" }}>
@@ -1757,7 +1774,7 @@ export default function SupplyFlow({ session }) {
       {/* Header */}
       <div style={{ padding: "16px 20px 10px", display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 9, minWidth: 0 }}>
-          <div style={{ width: 30, height: 30, borderRadius: "50%", background: "#111111", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 15, boxShadow: activeGroup ? "0 0 0 2px rgba(255,92,0,0.6)" : "none", transition: "box-shadow .3s", flexShrink: 0 }}>🦊</div>
+          <div style={{ width: 30, height: 30, borderRadius: "50%", background: "#111111", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 15, boxShadow: activeGroup ? "0 0 0 2px rgba(255,92,0,0.6)" : "none", transition: "box-shadow .3s", flexShrink: 0 }}><Fox /></div>
           <div style={{ fontSize: 12, fontWeight: 700, letterSpacing: 2.5, color: "#111111", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>FLOWVA{activeGroup && <span style={{ color: "#FF5C00" }}> FRIENDS</span>}</div>
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
@@ -1783,7 +1800,7 @@ export default function SupplyFlow({ session }) {
                   style={{ position: "absolute", top: 46, right: 0, width: 280, background: "#fff", borderRadius: 16, boxShadow: "0 12px 40px rgba(17,17,17,0.18)", zIndex: 150, overflow: "hidden", transformOrigin: "top right", border: "1px solid #ECEAE5" }}>
                   <div style={{ padding: "12px 14px 10px", fontSize: 13, fontWeight: 700, color: "#111111", borderBottom: "1px solid #F0EEE8" }}>Notifications</div>
                   {notifications.length === 0 && warehouseCount === 0 && (
-                    <div style={{ padding: "20px 14px", textAlign: "center", fontSize: 13, color: "#aaa" }}>🦊 No new notifications</div>
+                    <div style={{ padding: "20px 14px", textAlign: "center", fontSize: 13, color: "#aaa" }}><Fox /> No new notifications</div>
                   )}
                   {warehouseCount > 0 && (
                     <div onClick={() => { setShowNotifs(false); setTab("warehouse"); }}
@@ -1846,7 +1863,11 @@ export default function SupplyFlow({ session }) {
               <span style={{ fontSize: 19, lineHeight: 1, marginTop: -2 }}>‹</span> All factories
             </motion.div>
           )}
-          {/* === BODY: favorieten · fabriek-drill-in · fabriek-kaarten === */}
+          {/* === BODY: smooth fade+slide bij wisselen feed ↔ fabriek ↔ favorieten === */}
+          <motion.div
+            key={showFavoritesOnly ? "favs" : selectedFactory ? `fac-${selectedFactory.id}` : "factory-list"}
+            initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.26, ease: [0.32, 0.72, 0, 1] }}>
           {showFavoritesOnly ? (
             <>
               {!loadingProducts && !productsError && visibleProducts.length === 0 && (
@@ -1904,6 +1925,7 @@ export default function SupplyFlow({ session }) {
               )}
             </>
           )}
+          </motion.div>
         </motion.div>
       )}
 
@@ -1973,7 +1995,7 @@ export default function SupplyFlow({ session }) {
             {visibleOrders.filter(matchesFilter).length === 0 && !(activeGroup && groupOrders.some((o) => o.user_id !== session.user.id)) && (
               <div style={{ textAlign: "center", padding: "60px 0", color: "#aaa" }}>
                 <div style={{ position: "relative", display: "inline-block", fontSize: 48, marginBottom: 12, lineHeight: 1 }}>
-                  🦊
+                  <Fox />
                   <motion.div
                     initial={{ opacity: 0, y: 0 }}
                     animate={{ opacity: [0, 1, 1, 0], y: [0, 4, 14, 22] }}
@@ -2108,7 +2130,7 @@ export default function SupplyFlow({ session }) {
               : fm?.msg;
             return fm ? (
               <div style={{ display: "flex", alignItems: "flex-start", gap: 12, background: "#111111", borderRadius: 18, padding: "15px 16px", marginBottom: 16 }}>
-                <div style={{ width: 34, height: 34, borderRadius: "50%", background: "rgba(255,255,255,0.08)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 17, flexShrink: 0 }}>🦊</div>
+                <div style={{ width: 34, height: 34, borderRadius: "50%", background: "rgba(255,255,255,0.08)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 17, flexShrink: 0 }}><Fox /></div>
                 <div style={{ flex: 1 }}>
                   <div style={{ fontSize: 12.5, fontWeight: 700, color: "#FF5C00", marginBottom: 4 }}>{statusLabel(selectedOrder)}</div>
                   <div style={{ fontSize: 13, color: "#C9C6C1", lineHeight: 1.55 }}>
@@ -2207,7 +2229,7 @@ export default function SupplyFlow({ session }) {
             <label style={{ position: "relative", cursor: "pointer", flexShrink: 0 }}>
               <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} transition={springBouncy}
                 style={{ width: 52, height: 52, borderRadius: "50%", overflow: "hidden", background: "#111111", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 24 }}>
-                {avatarUrl ? <img src={avatarUrl} alt="profile photo" style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : "🦊"}
+                {avatarUrl ? <img src={avatarUrl} alt="profile photo" style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : <Fox />}
               </motion.div>
               <div style={{ position: "absolute", bottom: -2, right: -2, width: 19, height: 19, borderRadius: "50%", background: "#FF5C00", border: "2px solid #fff", display: "flex", alignItems: "center", justifyContent: "center" }}>
                 <Plus size={11} color="#fff" strokeWidth={3} />
@@ -2270,7 +2292,7 @@ export default function SupplyFlow({ session }) {
             return (
               <div style={{ background: "#fff", border: `1px solid ${activeGroup ? "rgba(255,92,0,0.5)" : "#E8E6E0"}`, borderRadius: 16, padding: "15px 18px", marginBottom: 12, boxShadow: activeGroup ? "0 0 0 3px rgba(255,92,0,0.08)" : "none", transition: "border-color .25s, box-shadow .25s" }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                  <div style={{ width: 38, height: 38, borderRadius: 11, background: "#FFF0E7", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18, flexShrink: 0 }}>🦊</div>
+                  <div style={{ width: 38, height: 38, borderRadius: 11, background: "#FFF0E7", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18, flexShrink: 0 }}><Fox /></div>
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ fontSize: 14, fontWeight: 700, color: "#0F0E0C" }}>Flowva Friends</div>
                     <div style={{ fontSize: 12, color: "#A8A5A0", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{activeGroup ? ((myGroups.find((g) => g.group_id === activeGroup.id)?.status || "gathering") === "gathering" ? `Shopping for ${activeGroup.name}` : `Following ${activeGroup.name}`) : "Order together — select a group to activate"}</div>
@@ -2295,7 +2317,7 @@ export default function SupplyFlow({ session }) {
                             style={{ display: "flex", alignItems: "center", gap: 10, boxSizing: "border-box", width: "100%", cursor: "pointer", borderRadius: 12, padding: "10px 12px", transition: "border-color .2s, background .2s",
                               background: shakeGroups ? "#FDF1F1" : live ? "#F1FBF4" : sel ? "#FFF7F2" : "#F8F7F4",
                               border: `1.5px solid ${shakeGroups ? "#E24B4A" : live ? "rgba(22,163,74,0.5)" : sel ? "rgba(255,92,0,0.6)" : "#ECEAE5"}` }}>
-                            <div style={{ width: 30, height: 30, borderRadius: 9, background: "#FF5C00", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14, flexShrink: 0 }}>🦊</div>
+                            <div style={{ width: 30, height: 30, borderRadius: 9, background: "#FF5C00", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14, flexShrink: 0 }}><Fox /></div>
                             <div style={{ flex: 1, minWidth: 0 }}>
                               <div style={{ fontSize: 13, fontWeight: 600, color: "#111111", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{g.name}{g.role === "admin" ? " · admin" : ""}</div>
                               <div style={{ fontSize: 11, color: "#A8A5A0" }}>{g.member_count}/{g.max_size} friends{live ? " · live" : ""}</div>
@@ -2322,7 +2344,7 @@ export default function SupplyFlow({ session }) {
                           return (
                           <div key={g.group_id} onClick={() => setActiveGroup(live ? null : { id: g.group_id, name: g.name })}
                             style={{ display: "flex", alignItems: "center", gap: 10, cursor: "pointer", borderRadius: 12, padding: "10px 12px", background: live ? "#F1FBF4" : "#F8F7F4", border: `1.5px solid ${live ? "rgba(22,163,74,0.5)" : "#ECEAE5"}` }}>
-                            <div style={{ width: 30, height: 30, borderRadius: 9, background: "#FF5C00", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14, flexShrink: 0 }}>🦊</div>
+                            <div style={{ width: 30, height: 30, borderRadius: 9, background: "#FF5C00", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14, flexShrink: 0 }}><Fox /></div>
                             <div style={{ flex: 1, minWidth: 0 }}>
                               <div style={{ fontSize: 13, fontWeight: 600, color: "#111111", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{g.name}{g.role === "admin" ? " · admin" : ""}</div>
                               <div style={{ fontSize: 11, color: "#A8A5A0" }}>{g.member_count}/{g.max_size} friends{live ? " · following" : ""}</div>
@@ -2349,7 +2371,7 @@ export default function SupplyFlow({ session }) {
           <PushToggle session={session} />
           <motion.div whileTap={{ scale: 0.98 }} onClick={() => setShowHowItWorks(true)}
             style={{ background: "#fff", border: "1px solid #E8E6E0", borderRadius: 16, padding: "15px 18px", marginBottom: 12, display: "flex", alignItems: "center", gap: 12, cursor: "pointer" }}>
-            <div style={{ width: 38, height: 38, borderRadius: 11, background: "#FFF0E7", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18, flexShrink: 0 }}>🦊</div>
+            <div style={{ width: 38, height: 38, borderRadius: 11, background: "#FFF0E7", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18, flexShrink: 0 }}><Fox /></div>
             <div style={{ flex: 1 }}>
               <div style={{ fontSize: 14, fontWeight: 700, color: "#0F0E0C" }}>How Flowva works</div>
               <div style={{ fontSize: 12, color: "#A8A5A0" }}>Prices, fees, shipping & the haul model</div>
@@ -2501,10 +2523,10 @@ export default function SupplyFlow({ session }) {
             onClick={() => { setFriendsGroupId(activeGroup.id); setShowFriends(true); }}
             style={{ position: "fixed", bottom: 78, left: 0, right: 0, margin: "0 auto", width: "calc(100% - 40px)", maxWidth: 390, background: "#111111", borderRadius: 16, overflow: "hidden", cursor: "pointer", zIndex: 301, boxShadow: "0 12px 40px rgba(255,92,0,0.28)", border: "1px solid rgba(255,92,0,0.4)" }}>
             <div style={{ padding: "12px 16px", display: "flex", alignItems: "center", gap: 12 }}>
-              <span style={{ fontSize: 18 }}>🦊</span>
+              <span style={{ fontSize: 18 }}><Fox /></span>
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ fontSize: 13, fontWeight: 700, color: "#fff", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{activeGroup.name} · group cart</div>
-                <div style={{ fontSize: 11.5, color: "#9C9893" }}>Tap to open your squad 🦊</div>
+                <div style={{ fontSize: 11.5, color: "#9C9893" }}>Tap to open your squad <Fox /></div>
               </div>
               <motion.div animate={{ y: [0, -3, 0] }} transition={{ duration: 1.4, repeat: Infinity, ease: "easeInOut" }}
                 style={{ width: 30, height: 30, borderRadius: "50%", background: "rgba(255,92,0,0.15)", display: "flex", alignItems: "center", justifyContent: "center" }}>
@@ -2524,7 +2546,7 @@ export default function SupplyFlow({ session }) {
               <span style={{ fontSize: 18 }}>📦</span>
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ fontSize: 13, fontWeight: 700, color: "#fff", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{activeGroup.name} · order placed</div>
-                <div style={{ fontSize: 11.5, color: "#9C9893" }}>Group locked — you're shopping on your own now 🦊</div>
+                <div style={{ fontSize: 11.5, color: "#9C9893" }}>Group locked — you're shopping on your own now <Fox /></div>
               </div>
               <button onClick={(e) => { e.stopPropagation(); setActiveGroup(null); }} aria-label="stop following"
                 style={{ background: "rgba(255,255,255,0.08)", border: "none", color: "#9C9893", fontSize: 11, fontWeight: 700, padding: "6px 11px", borderRadius: 999, cursor: "pointer", whiteSpace: "nowrap", flexShrink: 0 }}>Shop solo ✓</button>
@@ -2540,7 +2562,7 @@ export default function SupplyFlow({ session }) {
               <span style={{ fontSize: 18 }}>📋</span>
               <div style={{ flex: 1 }}>
                 <div style={{ fontSize: 13, fontWeight: 700, color: "#fff" }}>Shopping cart · {requestList.length} item{requestList.length > 1 ? "s" : ""}</div>
-                <div style={{ fontSize: 11.5, color: "#9C9893" }}>Tap to open — one service fee 🦊</div>
+                <div style={{ fontSize: 11.5, color: "#9C9893" }}>Tap to open — one service fee <Fox /></div>
               </div>
               <motion.div animate={{ y: [0, -3, 0] }} transition={{ duration: 1.4, repeat: Infinity, ease: "easeInOut" }}
                 style={{ width: 30, height: 30, borderRadius: "50%", background: "rgba(255,92,0,0.15)", display: "flex", alignItems: "center", justifyContent: "center" }}>
@@ -2605,7 +2627,7 @@ export default function SupplyFlow({ session }) {
               style={{ position: "fixed", bottom: 0, left: 0, right: 0, background: "#0F0E0C", borderRadius: "24px 24px 0 0", zIndex: 201, padding: "32px 24px 48px" }}>
               <div style={{ width: 36, height: 4, background: "#333", borderRadius: 2, margin: "0 auto 24px" }} />
               <div style={{ textAlign: "center", marginBottom: 24 }}>
-                <motion.span layoutId="cart-fox" style={{ fontSize: 56, display: "inline-block", marginBottom: 16 }}>🦊</motion.span>
+                <motion.span layoutId="cart-fox" style={{ fontSize: 56, display: "inline-block", marginBottom: 16 }}><Fox /></motion.span>
                 <div style={{ fontSize: 22, fontWeight: 700, color: "#FF5C00", marginBottom: 8 }}>Order placed! 🎉</div>
                 <div style={{ fontSize: 14, color: "#888", lineHeight: 1.6 }}>
                   We're getting it from the factory:
@@ -2728,7 +2750,7 @@ export default function SupplyFlow({ session }) {
                 const pickerCat = activeCategory !== "All" ? activeCategory : (visibleCategories.slice(1).find((c) => subsForCategory(c).length > 0) || visibleCategories[1] || null);
                 const subs = pickerCat ? subsForCategory(pickerCat) : [];
                 if (subs.length === 0) {
-                  return <div style={{ textAlign: "center", padding: "24px 0", color: "#aaa", fontSize: 13 }}>🦊 No subcategories yet — they appear as products are added.</div>;
+                  return <div style={{ textAlign: "center", padding: "24px 0", color: "#aaa", fontSize: 13 }}><Fox /> No subcategories yet — they appear as products are added.</div>;
                 }
                 return (
                   <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>

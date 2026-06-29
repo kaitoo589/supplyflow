@@ -54,7 +54,7 @@ const trackingSteps = [
   "Order placed",
   "Bought",
   "To warehouse",
-  "Quality control",
+  "Arrived in warehouse",
   "Shipped to you",
   "Delivered",
 ];
@@ -2169,6 +2169,9 @@ export default function SupplyFlow({ session }) {
                           <motion.span initial={{ scale: 0 }} animate={{ scale: 1 }} transition={springBouncy}
                             style={{ background: "#FF5C00", color: "#fff", fontSize: 9.5, fontWeight: 800, letterSpacing: 0.6, padding: "3px 8px", borderRadius: 7 }}>IN PROGRESS</motion.span>
                         ))}
+                        {current && label === "Arrived in warehouse" && (
+                          <div style={{ flexBasis: "100%", fontSize: 11.5, color: "#A8A5A0", marginTop: 1, lineHeight: 1.4 }}>Quality-control pictures are being prepared.</div>
+                        )}
                       </div>
                     </div>
                   );

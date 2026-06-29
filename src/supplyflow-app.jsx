@@ -1181,6 +1181,10 @@ export default function SupplyFlow({ session }) {
   const [products, setProducts] = useState([]);
   const [factories, setFactories] = useState([]);
   const [selectedFactory, setSelectedFactory] = useState(null);
+  // Scroll-onafhankelijke shape-morph (fabriekskaart ↔ 'All factories'-pill).
+  const [morph, setMorph] = useState(null); // { from:{left,top,width,height}, target:"pill"|"card", id }
+  const pillRef = useRef(null);
+  const ghostRef = useRef(null);
   const [loadingProducts, setLoadingProducts] = useState(true);
   const [productsError, setProductsError] = useState(null);
   const [search, setSearch] = useState("");
@@ -1263,6 +1267,43 @@ export default function SupplyFlow({ session }) {
       feedScrollRef.current = 0;
     }
   }, [selectedFactory, showFavoritesOnly, tab]);
+  // Shape-morph (scroll-onafhankelijk): een position:fixed "ghost" kruipt van de aangetikte
+  // fabriekskaart naar de 'All factories'-pill (en omgekeerd). Omdat we de VIEWPORT-rect van
+  // het aangetikte element vastleggen i.p.v. Framers pagina-coördinaten, komt de morph voor
+  // ELKE scrollpositie netjes uit de plek waar je tikt. Draait ná het scroll-herstel hierboven,
+  // zodat de terugkerende kaart op z'n herstelde positie wordt gemeten.
+  useLayoutEffect(() => {
+    if (!morph) return;
+    const ghost = ghostRef.current;
+    const destEl = morph.target === "pill"
+      ? pillRef.current
+      : (morph.id != null ? document.querySelector(`[data-factory-id="${morph.id}"]`) : null);
+    if (!ghost || !destEl) { setMorph(null); return; }
+    const to = destEl.getBoundingClientRect();
+    if (!to.width || !to.height) { setMorph(null); return; }
+    const toR = morph.target === "pill" ? 22 : 20; // kaart=20px, pill=22px
+    destEl.style.visibility = "hidden"; // de ghost neemt de morph zichtbaar over
+    let done = false;
+    const finish = () => {
+      if (done) return; done = true;
+      ghost.removeEventListener("transitionend", finish);
+      destEl.style.visibility = "";
+      setMorph(null);
+    };
+    // FLIP via CSS-transitie: compositor-gedreven (soepel + betrouwbare afronding) en
+    // geen border-radius-vervorming zoals bij transform-scale.
+    void ghost.offsetWidth; // forceer reflow op de bron-rect vóór we naar het doel zetten
+    const ease = "cubic-bezier(0.32, 0.72, 0, 1)";
+    ghost.style.transition = `left .44s ${ease}, top .44s ${ease}, width .44s ${ease}, height .44s ${ease}, border-radius .44s ${ease}`;
+    ghost.style.left = `${to.left}px`;
+    ghost.style.top = `${to.top}px`;
+    ghost.style.width = `${to.width}px`;
+    ghost.style.height = `${to.height}px`;
+    ghost.style.borderRadius = `${toR}px`;
+    ghost.addEventListener("transitionend", finish);
+    const t = setTimeout(finish, 520); // vangnet als transitionend uitblijft
+    return () => { clearTimeout(t); ghost.removeEventListener("transitionend", finish); destEl.style.visibility = ""; };
+  }, [morph]);
   const VABLE_URL = "https://vable.store";
   const VABLE_ITEMS = [
     { name: "Crane Bird Jeans", price: "€79.99", bg: "#1f2937", img: "/vable/crane.jpg", url: "https://vable.store/products/crane-bird-jeans" },
@@ -1713,11 +1754,11 @@ export default function SupplyFlow({ session }) {
       </div>
     );
     return (
-      <motion.div key={f.id} layout layoutId={`factory-${f.id}`} className={activeGroup ? "ff-glow" : ""}
+      <motion.div key={f.id} layout data-factory-id={f.id} className={activeGroup ? "ff-glow" : ""}
         initial={{ opacity: 0, scale: 0.96, y: 14 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
         exit={{ opacity: 0, scale: 0.96, transition: { duration: 0.16, ease: [0.32, 0.72, 0, 1] } }}
-        onClick={() => { feedScrollRef.current = window.scrollY; setSelectedFactory(f); setSearch(""); setActiveCategory("All"); setActiveSub(null); window.scrollTo(0, 0); }}
+        onClick={(e) => { const r = e.currentTarget.getBoundingClientRect(); feedScrollRef.current = window.scrollY; setMorph({ from: { left: r.left, top: r.top, width: r.width, height: r.height }, target: "pill", id: f.id }); setSelectedFactory(f); setSearch(""); setActiveCategory("All"); setActiveSub(null); window.scrollTo(0, 0); }}
         whileHover={{ y: -3 }} whileTap={{ scale: 0.99 }}
         transition={springMorph}
         style={{ background: "#fff", borderRadius: 20, overflow: "hidden", boxShadow: "0 1px 2px rgba(17,17,17,0.04), 0 8px 22px rgba(17,17,17,0.06)", cursor: "pointer" }}>
@@ -1766,6 +1807,17 @@ export default function SupplyFlow({ session }) {
     <div style={{ fontFamily: "'Inter', 'Helvetica Neue', sans-serif", background: "#F8F7F4", minHeight: "100vh", maxWidth: 430, margin: "0 auto", width: "100%", position: "relative" }}>
 
       <GroupModeGlow key={activeGroup?.id || "none"} active={activeGroupShopping} dimmed={!!(selectedProduct || showRequestList || showFriends || showNotifs || showVable)} />
+      {/* Shape-morph ghost: scroll-onafhankelijke witte doos die kaart ↔ pill verbindt. */}
+      {morph && (
+        <div ref={ghostRef} aria-hidden style={{
+          position: "fixed",
+          left: morph.from.left, top: morph.from.top, width: morph.from.width, height: morph.from.height,
+          background: "#fff", border: "1px solid #E4E1DA",
+          borderRadius: morph.target === "pill" ? 20 : 22,
+          boxShadow: "0 1px 2px rgba(17,17,17,0.06), 0 12px 30px rgba(17,17,17,0.12)",
+          zIndex: 60, pointerEvents: "none",
+        }} />
+      )}
       {/* Header */}
       <div style={{ padding: "16px 20px 10px", display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 9, minWidth: 0 }}>
@@ -1858,15 +1910,11 @@ export default function SupplyFlow({ session }) {
             // Het label faadt met een mini-delay in zodat je tijdens het krimpen geen
             // meegeschaalde, vervormde tekst ziet.
             <motion.div
-              layout
-              layoutId={`factory-${selectedFactory.id}`}
-              transition={springMorph}
+              ref={pillRef}
               whileTap={{ scale: 0.96 }}
-              onClick={() => { setSelectedFactory(null); setSearch(""); setActiveCategory("All"); setActiveSub(null); }}
-              style={{ display: "inline-flex", alignItems: "center", gap: 4, marginBottom: 16, cursor: "pointer", color: "#111", fontSize: 14, fontWeight: 700, background: "#fff", border: "1px solid #E4E1DA", borderRadius: 22, padding: "9px 16px 9px 12px", boxShadow: "0 1px 2px rgba(17,17,17,0.05), 0 4px 12px rgba(17,17,17,0.05)", WebkitTapHighlightColor: "transparent", overflow: "hidden", whiteSpace: "nowrap" }}>
-              <motion.span initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.1, duration: 0.2 }} style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
-                <span style={{ fontSize: 19, lineHeight: 1, marginTop: -2 }}>‹</span> All factories
-              </motion.span>
+              onClick={(e) => { const r = e.currentTarget.getBoundingClientRect(); setMorph({ from: { left: r.left, top: r.top, width: r.width, height: r.height }, target: "card", id: selectedFactory.id }); setSelectedFactory(null); setSearch(""); setActiveCategory("All"); setActiveSub(null); }}
+              style={{ display: "inline-flex", alignItems: "center", gap: 4, marginBottom: 16, cursor: "pointer", color: "#111", fontSize: 14, fontWeight: 700, background: "#fff", border: "1px solid #E4E1DA", borderRadius: 22, padding: "9px 16px 9px 12px", boxShadow: "0 1px 2px rgba(17,17,17,0.05), 0 4px 12px rgba(17,17,17,0.05)", WebkitTapHighlightColor: "transparent", whiteSpace: "nowrap" }}>
+              <span style={{ fontSize: 19, lineHeight: 1, marginTop: -2 }}>‹</span> All factories
             </motion.div>
           )}
           {/* === BODY: smooth fade+slide bij wisselen feed ↔ fabriek ↔ favorieten === */}

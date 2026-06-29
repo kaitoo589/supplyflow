@@ -25,6 +25,9 @@ export default function OrderRequest({ product, session, onClose, onSuccess, onA
   const [sharedToGroup, setSharedToGroup] = useState(false);
 
   const productVariants = product.sizes?.length > 0 ? product.sizes : null;
+  // Door admin handmatig uitverkocht gemelde varianten (per groep+optie) — klant kan ze niet kiezen.
+  const oosVariants = Array.isArray(product.oos_variants) ? product.oos_variants : [];
+  const isOos = (name, opt) => oosVariants.some(o => o && o.name === name && o.value === opt);
 
   // Foto die hoort bij de laatst gekozen optie (bijv. "Wit" → witte foto),
   // anders de standaard productfoto.
@@ -303,17 +306,21 @@ export default function OrderRequest({ product, session, onClose, onSuccess, onA
                   {missing && <span style={{ color: "#DC2626", fontWeight: 700, marginLeft: 8 }}>· Choose an option</span>}
                 </div>
                 <motion.div animate={missing ? { x: [0, -8, 8, -6, 6, 0] } : { x: 0 }} transition={{ duration: 0.4 }} style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
-                  {variant.options.map(opt => (
+                  {variant.options.map(opt => {
+                    const oos = isOos(variant.name, opt);
+                    return (
                     <motion.button key={opt}
-                      whileHover={{ scale: 1.05 }}
-                      whileTap={{ scale: 0.85 }}
-                      animate={{ scale: selectedVariants[variant.name] === opt ? [1, 1.15, 1] : 1 }}
+                      whileHover={oos ? {} : { scale: 1.05 }}
+                      whileTap={oos ? {} : { scale: 0.85 }}
+                      animate={{ scale: !oos && selectedVariants[variant.name] === opt ? [1, 1.15, 1] : 1 }}
                       transition={{ duration: 0.3, type: "spring", stiffness: 300 }}
-                      onClick={() => { setSelectedVariants({ ...selectedVariants, [variant.name]: opt }); setMissingVariants(m => m.filter(n => n !== variant.name)); }}
-                      style={{ padding: "10px 18px", borderRadius: 12, border: `1.5px solid ${selectedVariants[variant.name] === opt ? "#0F0E0C" : missing ? "#FCA5A5" : "#E8E6E0"}`, background: selectedVariants[variant.name] === opt ? "#0F0E0C" : "#fff", color: selectedVariants[variant.name] === opt ? "#fff" : "#555", fontSize: 13, fontWeight: 600, cursor: "pointer" }}>
-                      {opt}
+                      onClick={() => { if (oos) return; setSelectedVariants({ ...selectedVariants, [variant.name]: opt }); setMissingVariants(m => m.filter(n => n !== variant.name)); }}
+                      style={{ position: "relative", padding: "10px 18px", borderRadius: 12, border: `1.5px solid ${oos ? "#EAE7E0" : selectedVariants[variant.name] === opt ? "#0F0E0C" : missing ? "#FCA5A5" : "#E8E6E0"}`, background: oos ? "#F3F1EC" : selectedVariants[variant.name] === opt ? "#0F0E0C" : "#fff", color: oos ? "#B6B2AB" : selectedVariants[variant.name] === opt ? "#fff" : "#555", fontSize: 13, fontWeight: 600, cursor: oos ? "not-allowed" : "pointer" }}>
+                      <span style={{ textDecoration: oos ? "line-through" : "none" }}>{opt}</span>
+                      {oos && <span style={{ display: "block", fontSize: 9, fontWeight: 700, color: "#DC2626", letterSpacing: 0.3, marginTop: 1 }}>OUT OF STOCK</span>}
                     </motion.button>
-                  ))}
+                    );
+                  })}
                 </motion.div>
               </motion.div>
               );

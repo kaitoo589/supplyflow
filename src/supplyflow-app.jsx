@@ -1289,15 +1289,21 @@ export default function SupplyFlow({ session }) {
     const toR = morph.target === "pill" ? "22px" : "20px 20px 0px 0px";
     destEl.style.visibility = "hidden"; // verberg alleen het doel-fotogebied; de ghost neemt het over
     let done = false;
+    let armTimer = 0;
     const finish = () => {
       if (done) return; done = true;
       ghost.removeEventListener("transitionend", onEnd);
+      window.removeEventListener("scroll", onScroll);
+      clearTimeout(armTimer);
       destEl.style.visibility = "";
       setMorph(null);
     };
     // Rond pas af op de breedte-transitie (verandert altijd 390↔125); negeer de
     // opacity-transitie van de overlay, anders zou die de morph te vroeg afbreken.
     const onEnd = (e) => { if (e.propertyName === "width") finish(); };
+    // Scrollt de gebruiker TIJDENS de morph? Rond dan meteen af, zodat de foto direct bij
+    // de echte kaart hoort i.p.v. dat de fixed ghost in beeld blijft "hangen".
+    const onScroll = () => finish();
     // FLIP via CSS-transitie: compositor-gedreven (soepel + betrouwbare afronding) en
     // geen border-radius-vervorming zoals bij transform-scale.
     void ghost.offsetWidth; // forceer reflow op de bron-rect vóór we naar het doel zetten
@@ -1317,7 +1323,10 @@ export default function SupplyFlow({ session }) {
     }
     ghost.addEventListener("transitionend", onEnd);
     const t = setTimeout(finish, 560); // vangnet als transitionend uitblijft
-    return () => { clearTimeout(t); ghost.removeEventListener("transitionend", onEnd); destEl.style.visibility = ""; };
+    // Scroll-luisteraar pas na ~120ms koppelen: de eerste momenten scrollen we ZELF
+    // programmatisch (scrollTo bij in-/uitzoomen) — die scroll mag de morph niet afbreken.
+    armTimer = setTimeout(() => window.addEventListener("scroll", onScroll, { passive: true, once: true }), 120);
+    return () => { clearTimeout(t); clearTimeout(armTimer); ghost.removeEventListener("transitionend", onEnd); window.removeEventListener("scroll", onScroll); destEl.style.visibility = ""; };
   }, [morph]);
   const VABLE_URL = "https://vable.store";
   const VABLE_ITEMS = [

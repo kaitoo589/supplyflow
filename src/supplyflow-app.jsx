@@ -1630,7 +1630,6 @@ export default function SupplyFlow({ session }) {
   const notifications = [
     ...flaggedInCart.map((it) => ({ icon: "⏸️", text: `On hold: ${it.product_title} — ${flaggedReasons[it.source_url] || "changed at the factory"}`, cart: true })),
     ...orders.filter(o => o.problem_type).map(o => ({ icon: "⚠️", text: `Action needed: issue with ${o.product_title || o.product}`, order: o })),
-    ...orders.filter(o => o.status === "quote_sent").map(o => ({ icon: "📋", text: `Quote received for ${o.product_title || o.product}`, order: o })),
     ...orders.filter(o => o.status === "qc_pending" && o.arrived_at && Math.floor((Date.now() - new Date(o.arrived_at).getTime()) / 86400000) >= 24).map(o => {
       const days = Math.floor((Date.now() - new Date(o.arrived_at).getTime()) / 86400000);
       const name = o.product_title || o.product;
@@ -2175,7 +2174,7 @@ export default function SupplyFlow({ session }) {
               <div style={{ fontSize: 13, color: "#92400E", lineHeight: 1.5, marginBottom: 12 }}>
                 {problemTypes[selectedOrder.problem_type].msg}
               </div>
-              {["requested", "quote_sent", "quote_accepted"].includes(selectedOrder.status) && (
+              {selectedOrder.status === "quote_accepted" && (
                 <div style={{ display: "flex", gap: 8 }}>
                   <motion.button whileTap={{ scale: 0.96 }} onClick={acknowledgeProblem}
                     style={{ flex: 1, background: "#FF5C00", color: "#fff", border: "none", borderRadius: 10, padding: "11px 8px", fontSize: 13, fontWeight: 700, cursor: "pointer", WebkitTapHighlightColor: "transparent" }}>
@@ -2237,9 +2236,6 @@ export default function SupplyFlow({ session }) {
               </div>
             ) : null;
           })()}
-          {selectedOrder.status === "quote_sent" && (
-            <QuoteAcceptance order={selectedOrder} session={session} balance={balance} allOrders={orders} onAccepted={(updated) => { setSelectedOrder(updated); fetchOrders(); fetchBalance(); }} />
-          )}
 
           {selectedOrder.status === "qc_pending" && selectedOrder.qc_images?.length > 0 && (
             <div style={{ marginBottom: 20 }}>

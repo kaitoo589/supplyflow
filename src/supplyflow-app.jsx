@@ -1276,14 +1276,18 @@ export default function SupplyFlow({ session }) {
   useLayoutEffect(() => {
     if (!morph) return;
     const ghost = ghostRef.current;
+    // Bij terug morphen we naar het FOTOGEBIED van de kaart (niet de hele kaart — daar
+    // staan ook de statistieken; die horen niet bij de foto en moeten blijven staan).
     const destEl = morph.target === "pill"
       ? pillRef.current
-      : (morph.id != null ? document.querySelector(`[data-factory-id="${morph.id}"]`) : null);
+      : (morph.id != null ? document.querySelector(`[data-factory-img="${morph.id}"]`) : null);
     if (!ghost || !destEl) { setMorph(null); return; }
     const to = destEl.getBoundingClientRect();
     if (!to.width || !to.height) { setMorph(null); return; }
-    const toR = morph.target === "pill" ? 22 : 20; // kaart=20px, pill=22px
-    destEl.style.visibility = "hidden"; // de ghost neemt de morph zichtbaar over
+    // Eindvorm: pill is rondom rond; het fotogebied is alleen bovenaan rond (de onderkant
+    // sluit naadloos aan op het stats-gedeelte van de kaart).
+    const toR = morph.target === "pill" ? "22px" : "20px 20px 0px 0px";
+    destEl.style.visibility = "hidden"; // verberg alleen het doel-fotogebied; de ghost neemt het over
     let done = false;
     const finish = () => {
       if (done) return; done = true;
@@ -1303,7 +1307,7 @@ export default function SupplyFlow({ session }) {
     ghost.style.top = `${to.top}px`;
     ghost.style.width = `${to.width}px`;
     ghost.style.height = `${to.height}px`;
-    ghost.style.borderRadius = `${toR}px`;
+    ghost.style.borderRadius = toR;
     // Overlay (witte 'All factories'-pill): heen pas op het eind in, terug meteen uit →
     // de foto blijft tijdens de beweging zichtbaar.
     const overlay = overlayRef.current;
@@ -1772,11 +1776,11 @@ export default function SupplyFlow({ session }) {
         initial={isMorphTarget ? false : { opacity: 0, scale: 0.96, y: 14 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
         exit={{ opacity: 0, scale: 0.96, transition: { duration: 0.16, ease: [0.32, 0.72, 0, 1] } }}
-        onClick={(e) => { const r = e.currentTarget.getBoundingClientRect(); feedScrollRef.current = window.scrollY; setMorph({ from: { left: r.left, top: r.top, width: r.width, height: r.height }, target: "pill", id: f.id, img: (f.previews && f.previews[0]) || f.cover || null }); setSelectedFactory(f); setSearch(""); setActiveCategory("All"); setActiveSub(null); window.scrollTo(0, 0); }}
+        onClick={(e) => { const card = e.currentTarget; const ia = card.querySelector('[data-factory-img]'); const r = (ia || card).getBoundingClientRect(); feedScrollRef.current = window.scrollY; setMorph({ from: { left: r.left, top: r.top, width: r.width, height: r.height }, target: "pill", id: f.id, img: (f.previews && f.previews[0]) || f.cover || null }); setSelectedFactory(f); setSearch(""); setActiveCategory("All"); setActiveSub(null); window.scrollTo(0, 0); }}
         whileHover={{ y: -3 }} whileTap={{ scale: 0.99 }}
         transition={springMorph}
         style={{ background: "#fff", borderRadius: 20, overflow: "hidden", boxShadow: "0 1px 2px rgba(17,17,17,0.04), 0 8px 22px rgba(17,17,17,0.06)", cursor: "pointer" }}>
-        <div style={{ position: "relative", display: "flex", gap: 2, aspectRatio: "5 / 4", overflow: "hidden" }}>
+        <div data-factory-img={f.id} style={{ position: "relative", display: "flex", gap: 2, aspectRatio: "5 / 4", overflow: "hidden" }}>
           {imgBox(pv[0], true)}
           {pv.length >= 2 && (
             <div style={{ flex: 0.62, minWidth: 0, display: "flex", flexDirection: "column", gap: 2 }}>
@@ -1829,7 +1833,7 @@ export default function SupplyFlow({ session }) {
           position: "fixed",
           left: morph.from.left, top: morph.from.top, width: morph.from.width, height: morph.from.height,
           background: "#ECE8E0", border: "1px solid #E4E1DA",
-          borderRadius: morph.target === "pill" ? 20 : 22,
+          borderRadius: morph.target === "pill" ? "20px 20px 0px 0px" : "22px",
           boxShadow: "0 1px 2px rgba(17,17,17,0.06), 0 12px 30px rgba(17,17,17,0.12)",
           overflow: "hidden", zIndex: 60, pointerEvents: "none",
           willChange: "left, top, width, height", contain: "layout paint",

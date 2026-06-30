@@ -543,6 +543,30 @@ function QuoteAcceptance({ order, session, balance, allOrders = [], onAccepted }
 
 // Aanvraaglijst: alles in één keer versturen = één service fee over de bundel.
 // De sheet deelt z'n layoutId met het zwevende balkje en morpht ervandaan open.
+// Leidt het kledingtype (≈ één 6-cijferige HS-douanecategorie) af uit de producttitel.
+// Gratis keyword-classificatie, GEEN AI. Elk type ≈ één HS6 → bepaalt straks de €3-douanetelling
+// (EU-regel per 1 juli 2026: €3 per distinct HS6 in een pakket). Volgorde telt: specifiek vóór
+// generiek (t-shirt vóór shirt, hoodie/sweatshirt vóór shirt en vóór top).
+const GARMENT_RULES = [
+  [/(t-?shirt|\btee\b|tank ?top|singlet)/i, "T-shirt"],
+  [/(hoodie|sweatshirt|sweater|jumper|pullover|cardigan|\bknit|gilet)/i, "Sweater / hoodie"],
+  [/(polo|button[- ]?up|dress shirt|overhemd|blouse|\bshirt)/i, "Shirt / blouse"],
+  [/(jeans|denim|trouser|\bpants\b|chino|cargo|legging|jogger|sweatpant)/i, "Trousers / jeans"],
+  [/(shorts|bermuda)/i, "Shorts"],
+  [/(dress|gown|jumpsuit|romper|playsuit)/i, "Dress"],
+  [/(skirt|skort)/i, "Skirt"],
+  [/(jacket|\bcoat\b|blazer|parka|windbreaker|puffer|trench|bomber)/i, "Jacket / coat"],
+  [/(lingerie|underwear|panties|\bpanty\b|\bbra\b|boxer|briefs?|thong)/i, "Underwear"],
+  [/(\bsocks?\b)/i, "Socks"],
+  [/(\bhat\b|\bcap\b|beanie|scarf|glove|\bbelt\b|handbag|\bbag\b|tote|wallet)/i, "Accessory"],
+  [/(camisole|\bcami\b|crop|\btop\b|vest)/i, "Top"],
+];
+function garmentType(title) {
+  const t = (title || "").toLowerCase();
+  for (const [re, name] of GARMENT_RULES) if (re.test(t)) return name;
+  return "Other clothing";
+}
+
 function RequestListSheet({ items, onRemove, onSetQty, onClose, onSend, sending, error, session, onEditAddress, onTopUp, onFinish, flagged, reasons }) {
   const [view, setView] = useState("cart");
   const [agreed, setAgreed] = useState(false);
@@ -623,6 +647,7 @@ function RequestListSheet({ items, onRemove, onSetQty, onClose, onSend, sending,
                   {itemThumb(item)}
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ fontSize: 13, fontWeight: 600, color: "#fff", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", textDecoration: held ? "line-through" : "none" }}>{item.product_title}</div>
+                    <div style={{ display: "inline-block", fontSize: 9.5, color: "#C9C6C1", background: "rgba(255,255,255,0.06)", padding: "1px 7px", borderRadius: 6, marginTop: 3, fontWeight: 600 }}>{garmentType(item.product_title)}</div>
                     {held ? (
                       <div style={{ fontSize: 11, color: "#F59E0B", fontWeight: 600 }}>⏸ {heldReason(item)}</div>
                     ) : (
@@ -671,6 +696,15 @@ function RequestListSheet({ items, onRemove, onSetQty, onClose, onSend, sending,
                   </div>
                 </motion.div>
               )}
+
+              {payable.length > 0 && (() => { const cats = [...new Set(payable.map((it) => garmentType(it.product_title)))]; return (
+                <div style={{ background: "#23201C", border: "1px solid #3A332B", borderRadius: 12, padding: "10px 13px", marginTop: 10, display: "flex", gap: 9, alignItems: "flex-start" }}>
+                  <span style={{ fontSize: 15, marginTop: 1 }}>🛃</span>
+                  <div style={{ fontSize: 11.5, lineHeight: 1.5, color: "#C9C6C1" }}>
+                    Your cart has <b style={{ color: "#fff" }}>{cats.length} product {cats.length === 1 ? "category" : "categories"}</b> ({cats.join(", ")}). A new EU rule adds <b style={{ color: "#fff" }}>€3 customs per category</b> — this is settled inside your <b style={{ color: "#fff" }}>international shipping</b> later, not now. Fewer categories (or shopping with Flowva Friends) means lower customs.
+                  </div>
+                </div>
+              ); })()}
 
               {errorBlock}
 
@@ -1813,7 +1847,10 @@ export default function SupplyFlow({ session }) {
         </motion.div>
       </div>
       <div style={{ padding: "11px 13px 13px" }}>
-        <div style={{ fontSize: 11.5, color: "#A8A5A0", marginBottom: 3 }}>{p.platform}</div>
+        <div style={{ fontSize: 11.5, color: "#A8A5A0", marginBottom: 3, display: "flex", justifyContent: "space-between", alignItems: "center", gap: 6 }}>
+          <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{p.platform}</span>
+          <span style={{ color: "#FF5C00", fontWeight: 600, flexShrink: 0 }}>{garmentType(p.title)}</span>
+        </div>
         <div style={{ fontSize: 13.5, fontWeight: 600, color: "#111111", marginBottom: 7, lineHeight: 1.35 }}>{p.title}</div>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end" }}>
           <div>

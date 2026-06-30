@@ -116,6 +116,34 @@ function FeeInfo({ onClose, members, myTotal, myFee }) {
   );
 }
 
+// "About the admin"-popover (via het admin-icoon). De admin beheert de groep én ontvangt het pakket.
+function AdminInfo({ onClose, adminName }) {
+  return (
+    <div onClick={onClose} style={{ position: "fixed", inset: 0, zIndex: 410, background: "rgba(0,0,0,0.6)", display: "flex", alignItems: "flex-end", justifyContent: "center" }}>
+      <motion.div initial={{ y: "100%" }} animate={{ y: 0 }} exit={{ y: "100%" }} transition={springMorph}
+        onClick={(e) => e.stopPropagation()} style={{ width: "100%", maxWidth: 430, boxSizing: "border-box", background: "#161513", borderRadius: "20px 20px 0 0", padding: "18px 18px 28px", color: "#fff", maxHeight: "86vh", overflowY: "auto" }}>
+        <div style={{ display: "flex", alignItems: "center", marginBottom: 12 }}>
+          <div style={{ flex: 1, fontSize: 16, fontWeight: 800 }}>The group admin</div>
+          <button onClick={onClose} style={{ background: "#1E1D1A", border: "none", color: "#9C9893", width: 30, height: 30, borderRadius: "50%", fontSize: 14, cursor: "pointer" }}>✕</button>
+        </div>
+        <div style={{ background: "linear-gradient(180deg,#2a2118,#1A1917)", border: "1px solid rgba(255,92,0,0.28)", borderRadius: 14, padding: "14px", marginBottom: 14 }}>
+          <div style={{ fontSize: 14.5, fontWeight: 800, color: "#FF8A3D", lineHeight: 1.35 }}>🏠 The admin receives the parcel</div>
+          <div style={{ fontSize: 12.5, color: "#C9C6C1", lineHeight: 1.6, marginTop: 9 }}>
+            Everyone's items ship in <b>one combined parcel</b> to the <b style={{ color: "#fff" }}>admin</b>{adminName ? <> (<b style={{ color: "#fff" }}>{adminName}</b>)</> : null}. The admin collects it and hands everyone their items — so the admin should be someone the group trusts with the delivery address.
+          </div>
+        </div>
+        <div style={{ fontSize: 14, fontWeight: 800, marginBottom: 8 }}>What the admin can do</div>
+        <ul style={{ margin: 0, paddingLeft: 18, fontSize: 12.5, color: "#C9C6C1", lineHeight: 1.75 }}>
+          <li>Change the group's <b style={{ color: "#fff" }}>name</b> and <b style={{ color: "#fff" }}>size</b></li>
+          <li><b style={{ color: "#fff" }}>Nudge</b> or <b style={{ color: "#fff" }}>remove</b> members and hand over admin</li>
+          <li>Is the <b style={{ color: "#fff" }}>host</b> — receives the combined parcel for the whole squad</li>
+        </ul>
+        <div style={{ fontSize: 11.5, color: "#6b6862", marginTop: 14, lineHeight: 1.5 }}>Hand over by tapping a member and choosing "make admin" — the new admin then receives the parcel.</div>
+      </motion.div>
+    </div>
+  );
+}
+
 export default function Friends({ session, onClose, initialJoinCode, initialGroupId, onShopForGroup, onOpenProduct, activeGroupId }) {
   const myUid = session?.user?.id;
   const myAvatar = session?.user?.user_metadata?.avatar_url || null;   // mijn live foto (member-rij kan verouderd zijn)
@@ -156,6 +184,7 @@ export default function Friends({ session, onClose, initialJoinCode, initialGrou
   useEffect(() => () => endPress(), []);                        // timer opruimen bij unmount
   // redesign
   const [showFeeInfo, setShowFeeInfo] = useState(false);
+  const [showAdminInfo, setShowAdminInfo] = useState(false);
   const [chatOpen, setChatOpen] = useState(false);
   const [showInvite, setShowInvite] = useState(false);
   const [shareCopied, setShareCopied] = useState(false);
@@ -468,6 +497,7 @@ export default function Friends({ session, onClose, initialJoinCode, initialGrou
         {header(g ? g.name : "Group", initialGroupId ? onClose : () => { setErr(""); openIdRef.current = null; setView("list"); loadGroups(); },
           g && (
             <>
+              {iconBtn("admin", () => setShowAdminInfo(true), "About the admin", <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#9C9893" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 3l7 3v5c0 4-3 7.5-7 9-4-1.5-7-5-7-9V6l7-3z" /><path d="M9.5 12l1.7 1.7L15 10" /></svg>)}
               {iconBtn("fee", () => setShowFeeInfo(true), "Why it's cheaper", <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#9C9893" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="9" /><path d="M12 11.5v4.5" /><path d="M12 8h.01" /></svg>)}
               {iconBtn("share", () => setShowInvite((v) => !v), "Share invite", <ShareGlyph />)}
               {isAdmin && !isPlaced && iconBtn("settings", () => setEditing((v) => !v), "Group settings", <span style={{ fontSize: 14 }}>⚙️</span>)}
@@ -531,8 +561,7 @@ export default function Friends({ session, onClose, initialJoinCode, initialGrou
                     )}
                     {isAdmin && !self && !isPlaced && (
                       <>
-                        {g.host_id !== m.user_id && <button onClick={async () => { const r = await ffSetHost(g.id, m.user_id); if (r && !r.ok) setErr(r.error); refreshLobby(); }} style={{ background: "#1E1D1A", border: "none", color: "#9C9893", borderRadius: 8, padding: "5px 9px", fontSize: 11, cursor: "pointer" }}>host</button>}
-                        <button onClick={async () => { if (!window.confirm(`Make ${memberLabel(m, false)} the admin? You'll hand over control and can't undo this yourself.`)) return; const r = await ffSetAdmin(g.id, m.user_id); if (r && !r.ok) setErr(r.error); refreshLobby(); }} style={{ background: "rgba(255,92,0,0.12)", border: "none", color: "#FF5C00", borderRadius: 8, padding: "5px 9px", fontSize: 11, cursor: "pointer" }}>make admin</button>
+                        <button onClick={async () => { if (!window.confirm(`Make ${memberLabel(m, false)} the admin? They take over the group and receive the parcel — you can't undo this yourself.`)) return; const r = await ffSetAdmin(g.id, m.user_id); if (r && !r.ok) setErr(r.error); refreshLobby(); }} style={{ background: "rgba(255,92,0,0.12)", border: "none", color: "#FF5C00", borderRadius: 8, padding: "5px 9px", fontSize: 11, cursor: "pointer" }}>make admin</button>
                         <button onClick={async () => { const r = await ffKickMember(g.id, m.user_id); if (r && !r.ok) setErr(r.error); refreshLobby(); }} style={{ background: "rgba(226,75,74,0.14)", border: "none", color: "#E24B4A", borderRadius: 8, padding: "5px 9px", fontSize: 11, cursor: "pointer" }}>remove</button>
                       </>
                     )}
@@ -546,7 +575,7 @@ export default function Friends({ session, onClose, initialJoinCode, initialGrou
               <div style={{ marginTop: 12, background: "linear-gradient(180deg,#26211c,#1A1917)", border: "1px solid rgba(255,92,0,0.2)", borderRadius: 14, padding: "12px 14px", display: "flex", alignItems: "center", gap: 10 }}>
                 <span style={{ fontSize: 22 }}>💸</span>
                 <div style={{ fontSize: 12.5, color: "#C9C6C1", lineHeight: 1.45 }}>
-                  <b style={{ color: "#FF8A3D" }}>You save €{myFeeSavings.toFixed(2)}</b> in fees by ordering in this group instead of solo{members.length >= 2 ? "" : " — it grows as friends join"}.
+                  <b style={{ color: "#FF8A3D" }}>You save €{myFeeSavings.toFixed(2)}</b> in <b style={{ color: "#FF8A3D" }}>fees</b> by ordering in this group instead of solo{members.length >= 2 ? "" : " — it grows as friends join"}.
                 </div>
               </div>
             )}
@@ -559,6 +588,81 @@ export default function Friends({ session, onClose, initialJoinCode, initialGrou
                 <span style={{ fontSize: 13, lineHeight: 1 }}>💬</span>
                 <span style={{ fontSize: 11.5, fontWeight: 700 }}>Chat{messages.length ? ` · ${messages.length}` : ""}</span>
               </motion.button>
+            </div>
+            {/* squad chat — opent direct onder de chat-knop (accordion) */}
+            <div style={{ background: "#161513", borderRadius: 14, overflow: "hidden", marginBottom: chatOpen ? 10 : 0 }}>
+              <AnimatePresence initial={false}>
+                {chatOpen && (
+                  <motion.div key="chatbody" initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }} transition={springMorph} style={{ overflow: "hidden" }}>
+                    <div style={{ padding: "12px 12px 12px" }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
+                      <span style={{ fontSize: 16 }}>💬</span>
+                      <div style={{ flex: 1, fontSize: 13, fontWeight: 700, color: "#fff" }}>Squad chat</div>
+                      <button onClick={() => setChatOpen(false)} aria-label="Close chat" style={{ background: "none", border: "none", color: "#9C9893", fontSize: 15, cursor: "pointer" }}>✕</button>
+                    </div>
+                    <div style={{ maxHeight: 240, overflowY: "auto", display: "flex", flexDirection: "column", gap: 9, marginBottom: 9 }}>
+                {messages.length === 0 ? (
+                  <div style={{ textAlign: "center", color: "#6b6862", fontSize: 12, padding: "12px 0" }}>No messages yet — say hi 👋</div>
+                ) : messages.map((msg) => {
+                  const mine = msg.user_id === myUid;
+                  const author = members.find((m) => m.user_id === msg.user_id);
+                  const name = msg.user_id ? (author ? memberLabel(author, mine) : "Friend") : "Flowva";
+                  const sharedItem = msg.kind === "share" ? ((msg.item_id && (lobby.items || []).find((it) => it.id === msg.item_id)) || msg.product || null) : null;
+                  return (
+                    <div key={msg.id} style={{ display: "flex", flexDirection: "column", alignItems: mine ? "flex-end" : "flex-start", gap: 3 }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 5, padding: "0 4px", flexDirection: mine ? "row-reverse" : "row" }}>
+                        {author && <Avatar name={author.display_name} url={avatarOf(author)} seed={msg.user_id} size={17} />}
+                        <span style={{ fontSize: 10, color: "#6b6862" }}>{name}</span>
+                      </div>
+                      {msg.kind === "share" && sharedItem ? (
+                        <div {...pressProps(msg.id)}
+                          style={{ background: "#221d18", border: "1px solid #2c2b29", borderRadius: 12, padding: 8, maxWidth: "88%", display: "flex", gap: 9, alignItems: "center" }}>
+                          <div style={{ width: 40, height: 40, borderRadius: 8, background: "#26211c", overflow: "hidden", flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                            {sharedItem.variant_image?.startsWith("http") ? <img src={sharedItem.variant_image} referrerPolicy="no-referrer" alt="" style={{ width: "100%", height: "100%", objectFit: "contain" }} /> : <span style={{ fontSize: 17 }}>📦</span>}
+                          </div>
+                          <div style={{ minWidth: 0 }}>
+                            <div style={{ fontSize: 12, color: "#fff", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: 160 }}>{sharedItem.product_title}</div>
+                            <div style={{ fontSize: 10.5, color: "#9C9893" }}>{sharedItem.price != null ? `€${Number(sharedItem.price).toFixed(2)}` : "shared an item"}</div>
+                            <div style={{ display: "flex", gap: 6, marginTop: 5, flexWrap: "wrap" }}>
+                              {sharedItem.source_url && <button onClick={() => onOpenProduct?.(sharedItem)} style={{ background: "#1E1D1A", border: "none", color: "#C9C6C1", borderRadius: 8, padding: "4px 9px", fontSize: 11, fontWeight: 700, cursor: "pointer" }}>↗ View</button>}
+                              {!isPlaced && sharedItem.owner_id !== myUid && <button onClick={() => doAddShared(sharedItem)} style={{ background: "rgba(255,92,0,0.16)", border: "none", color: "#FF5C00", borderRadius: 8, padding: "4px 9px", fontSize: 11, fontWeight: 700, cursor: "pointer" }}>+ Add to my cart</button>}
+                            </div>
+                          </div>
+                        </div>
+                      ) : (
+                        <div {...pressProps(msg.id)}
+                          style={{ background: mine ? "#FF5C00" : "#222", color: mine ? "#fff" : "#eee", borderRadius: 12, padding: "7px 11px", fontSize: 13, maxWidth: "80%", wordBreak: "break-word", WebkitUserSelect: "none", userSelect: "none", cursor: "pointer" }}>{msg.body}</div>
+                      )}
+                      <div style={{ display: "flex", gap: 4, alignItems: "center", flexWrap: "wrap" }}>
+                        {Object.entries(msg.reactions || {}).map(([emoji, uids]) => (
+                          <button key={emoji} onClick={() => doReact(msg.id, emoji)}
+                            style={{ background: (uids || []).includes(myUid) ? "rgba(255,92,0,0.2)" : "#1E1D1A", border: "none", borderRadius: 10, padding: "1px 6px", fontSize: 11, cursor: "pointer", color: "#ddd" }}>{emoji} {(uids || []).length}</button>
+                        ))}
+                        {reactingId === msg.id ? (
+                          <motion.div initial={{ scale: 0.7, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={springMorph}
+                            style={{ display: "flex", alignItems: "center", gap: 1, background: "#2c2c2c", borderRadius: 999, padding: "3px 5px", boxShadow: "0 6px 18px rgba(0,0,0,0.5)" }}>
+                            {REACTIONS.map((e) => (
+                              <motion.button key={e} whileTap={{ scale: 0.8 }} whileHover={{ scale: 1.25 }} onClick={() => { doReact(msg.id, e); setReactingId(null); }}
+                                style={{ background: "none", border: "none", borderRadius: "50%", padding: "2px 3px", fontSize: 18, cursor: "pointer", lineHeight: 1 }}>{e}</motion.button>
+                            ))}
+                            <button onClick={() => setReactingId(null)} aria-label="close" style={{ background: "none", border: "none", color: "#9C9893", fontSize: 12, cursor: "pointer", padding: "0 3px" }}>✕</button>
+                          </motion.div>
+                        ) : (
+                          <button onClick={() => setReactingId(msg.id)} aria-label="React" style={{ background: "#1E1D1A", border: "none", borderRadius: "50%", width: 22, height: 22, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, cursor: "pointer", opacity: 0.8 }}>🙂</button>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+                    </div>
+                    <div style={{ display: "flex", gap: 6 }}>
+                      <input style={{ ...input, padding: "10px 12px" }} value={chatInput} onChange={(e) => setChatInput(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") doPostMessage(); }} placeholder="Message your squad…" maxLength={500} />
+                      <button onClick={doPostMessage} style={{ background: "#FF5C00", border: "none", color: "#fff", borderRadius: 12, padding: "0 16px", fontSize: 13, fontWeight: 700, cursor: "pointer" }}>Send</button>
+                    </div>
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </div>
             {(lobby.items || []).length === 0 ? (
               <div style={{ background: "#1A1917", borderRadius: 14, padding: "16px", textAlign: "center", color: "#777", fontSize: 12.5 }}>Nothing added yet. Tap "Shop for this group" and add products from the feed.</div>
@@ -672,82 +776,8 @@ export default function Friends({ session, onClose, initialJoinCode, initialGrou
               </>
             )}
 
-            {/* squad chat — accordion (vloeiende height-expand) */}
-            <div style={{ marginTop: 22, background: "#161513", borderRadius: 14, overflow: "hidden" }}>
-              <AnimatePresence initial={false}>
-                {chatOpen && (
-                  <motion.div key="chatbody" initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }} transition={springMorph} style={{ overflow: "hidden" }}>
-                    <div style={{ padding: "12px 12px 12px" }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
-                      <span style={{ fontSize: 16 }}>💬</span>
-                      <div style={{ flex: 1, fontSize: 13, fontWeight: 700, color: "#fff" }}>Squad chat</div>
-                      <button onClick={() => setChatOpen(false)} aria-label="Close chat" style={{ background: "none", border: "none", color: "#9C9893", fontSize: 15, cursor: "pointer" }}>✕</button>
-                    </div>
-                    <div style={{ maxHeight: 240, overflowY: "auto", display: "flex", flexDirection: "column", gap: 9, marginBottom: 9 }}>
-                {messages.length === 0 ? (
-                  <div style={{ textAlign: "center", color: "#6b6862", fontSize: 12, padding: "12px 0" }}>No messages yet — say hi 👋</div>
-                ) : messages.map((msg) => {
-                  const mine = msg.user_id === myUid;
-                  const author = members.find((m) => m.user_id === msg.user_id);
-                  const name = msg.user_id ? (author ? memberLabel(author, mine) : "Friend") : "Flowva";
-                  const sharedItem = msg.kind === "share" ? ((msg.item_id && (lobby.items || []).find((it) => it.id === msg.item_id)) || msg.product || null) : null;
-                  return (
-                    <div key={msg.id} style={{ display: "flex", flexDirection: "column", alignItems: mine ? "flex-end" : "flex-start", gap: 3 }}>
-                      <div style={{ display: "flex", alignItems: "center", gap: 5, padding: "0 4px", flexDirection: mine ? "row-reverse" : "row" }}>
-                        {author && <Avatar name={author.display_name} url={avatarOf(author)} seed={msg.user_id} size={17} />}
-                        <span style={{ fontSize: 10, color: "#6b6862" }}>{name}</span>
-                      </div>
-                      {msg.kind === "share" && sharedItem ? (
-                        <div {...pressProps(msg.id)}
-                          style={{ background: "#221d18", border: "1px solid #2c2b29", borderRadius: 12, padding: 8, maxWidth: "88%", display: "flex", gap: 9, alignItems: "center" }}>
-                          <div style={{ width: 40, height: 40, borderRadius: 8, background: "#26211c", overflow: "hidden", flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
-                            {sharedItem.variant_image?.startsWith("http") ? <img src={sharedItem.variant_image} referrerPolicy="no-referrer" alt="" style={{ width: "100%", height: "100%", objectFit: "contain" }} /> : <span style={{ fontSize: 17 }}>📦</span>}
-                          </div>
-                          <div style={{ minWidth: 0 }}>
-                            <div style={{ fontSize: 12, color: "#fff", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: 160 }}>{sharedItem.product_title}</div>
-                            <div style={{ fontSize: 10.5, color: "#9C9893" }}>{sharedItem.price != null ? `€${Number(sharedItem.price).toFixed(2)}` : "shared an item"}</div>
-                            <div style={{ display: "flex", gap: 6, marginTop: 5, flexWrap: "wrap" }}>
-                              {sharedItem.source_url && <button onClick={() => onOpenProduct?.(sharedItem)} style={{ background: "#1E1D1A", border: "none", color: "#C9C6C1", borderRadius: 8, padding: "4px 9px", fontSize: 11, fontWeight: 700, cursor: "pointer" }}>↗ View</button>}
-                              {!isPlaced && sharedItem.owner_id !== myUid && <button onClick={() => doAddShared(sharedItem)} style={{ background: "rgba(255,92,0,0.16)", border: "none", color: "#FF5C00", borderRadius: 8, padding: "4px 9px", fontSize: 11, fontWeight: 700, cursor: "pointer" }}>+ Add to my cart</button>}
-                            </div>
-                          </div>
-                        </div>
-                      ) : (
-                        <div {...pressProps(msg.id)}
-                          style={{ background: mine ? "#FF5C00" : "#222", color: mine ? "#fff" : "#eee", borderRadius: 12, padding: "7px 11px", fontSize: 13, maxWidth: "80%", wordBreak: "break-word", WebkitUserSelect: "none", userSelect: "none", cursor: "pointer" }}>{msg.body}</div>
-                      )}
-                      <div style={{ display: "flex", gap: 4, alignItems: "center", flexWrap: "wrap" }}>
-                        {Object.entries(msg.reactions || {}).map(([emoji, uids]) => (
-                          <button key={emoji} onClick={() => doReact(msg.id, emoji)}
-                            style={{ background: (uids || []).includes(myUid) ? "rgba(255,92,0,0.2)" : "#1E1D1A", border: "none", borderRadius: 10, padding: "1px 6px", fontSize: 11, cursor: "pointer", color: "#ddd" }}>{emoji} {(uids || []).length}</button>
-                        ))}
-                        {reactingId === msg.id ? (
-                          <motion.div initial={{ scale: 0.7, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={springMorph}
-                            style={{ display: "flex", alignItems: "center", gap: 1, background: "#2c2c2c", borderRadius: 999, padding: "3px 5px", boxShadow: "0 6px 18px rgba(0,0,0,0.5)" }}>
-                            {REACTIONS.map((e) => (
-                              <motion.button key={e} whileTap={{ scale: 0.8 }} whileHover={{ scale: 1.25 }} onClick={() => { doReact(msg.id, e); setReactingId(null); }}
-                                style={{ background: "none", border: "none", borderRadius: "50%", padding: "2px 3px", fontSize: 18, cursor: "pointer", lineHeight: 1 }}>{e}</motion.button>
-                            ))}
-                            <button onClick={() => setReactingId(null)} aria-label="close" style={{ background: "none", border: "none", color: "#9C9893", fontSize: 12, cursor: "pointer", padding: "0 3px" }}>✕</button>
-                          </motion.div>
-                        ) : (
-                          <button onClick={() => setReactingId(msg.id)} aria-label="React" style={{ background: "#1E1D1A", border: "none", borderRadius: "50%", width: 22, height: 22, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, cursor: "pointer", opacity: 0.8 }}>🙂</button>
-                        )}
-                      </div>
-                    </div>
-                  );
-                })}
-                    </div>
-                    <div style={{ display: "flex", gap: 6 }}>
-                      <input style={{ ...input, padding: "10px 12px" }} value={chatInput} onChange={(e) => setChatInput(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") doPostMessage(); }} placeholder="Message your squad…" maxLength={500} />
-                      <button onClick={doPostMessage} style={{ background: "#FF5C00", border: "none", color: "#fff", borderRadius: 12, padding: "0 16px", fontSize: 13, fontWeight: 700, cursor: "pointer" }}>Send</button>
-                    </div>
-                    </div>
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            </div>
             <AnimatePresence>{showFeeInfo && <FeeInfo onClose={() => setShowFeeInfo(false)} members={members.length} myTotal={myTotal} myFee={myFee} />}</AnimatePresence>
+            <AnimatePresence>{showAdminInfo && <AdminInfo onClose={() => setShowAdminInfo(false)} adminName={(members.find((m) => m.role === "admin") || {}).display_name} />}</AnimatePresence>
             <AnimatePresence>
               {editing && isAdmin && !isPlaced && (
                 <motion.div key="settings" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.18 }}
@@ -779,7 +809,7 @@ export default function Friends({ session, onClose, initialJoinCode, initialGrou
                       </div>
                     </div>
                     <button style={{ ...primaryBtn }} disabled={busy} onClick={async () => { await doSaveSettings(); }}>Save changes</button>
-                    <div style={{ fontSize: 11, color: "#6b6862", marginTop: 12, lineHeight: 1.5 }}>Hand over <b style={{ color: "#9C9893" }}>admin</b> or <b style={{ color: "#9C9893" }}>host</b> by tapping a member in the lobby. Make someone else admin and these settings move to them.</div>
+                    <div style={{ fontSize: 11, color: "#6b6862", marginTop: 12, lineHeight: 1.5 }}>Hand over <b style={{ color: "#9C9893" }}>admin</b> by tapping a member in the lobby and choosing "make admin". The new admin also becomes the <b style={{ color: "#9C9893" }}>host</b> who receives the parcel, and these settings move to them.</div>
                   </motion.div>
                 </motion.div>
               )}

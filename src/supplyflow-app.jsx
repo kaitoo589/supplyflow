@@ -17,7 +17,7 @@ import { WarehouseTab, TransitTab } from "./WarehouseAndHaul";
 import { motion, AnimatePresence } from "framer-motion";
 import { createPortal } from "react-dom";
 import { springSnappy, springSoft, springBouncy, springMorph } from "./motion";
-import { Search, SlidersHorizontal, Bell, Home, Package, Factory, User, ShoppingBag, Eye, Star, Plus, X, Plane, CreditCard, PackageCheck, Truck, Camera, ChevronUp } from "lucide-react";
+import { Search, SlidersHorizontal, Bell, Home, Package, Factory, User, Users, ShoppingBag, Eye, Star, Plus, X, Plane, CreditCard, PackageCheck, Truck, Camera, ChevronUp } from "lucide-react";
 import { WordReveal, SpeechBubble } from "./MotionBits";
 import ReviewPage from "./ReviewPage";
 import { problemTypes } from "./problemTypes";
@@ -2511,7 +2511,7 @@ export default function SupplyFlow({ session }) {
               const on = isOn(g.group_id);
               return (
                 <div key={g.group_id} onClick={() => setActiveGroup(on ? null : { id: g.group_id, name: g.name })} style={rowStyle(on)}>
-                  <div style={{ width: 30, height: 30, borderRadius: 9, background: "#FF5C00", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14, flexShrink: 0 }}><Fox /></div>
+                  <div style={{ width: 30, height: 30, borderRadius: 9, background: "#FF5C00", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}><Users size={15} color="#fff" strokeWidth={2.2} /></div>
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ fontSize: 13.5, fontWeight: 600, color: "#111111", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{g.name}{g.role === "admin" ? " · admin" : ""}</div>
                     <div style={{ fontSize: 11, color: "#A8A5A0" }}>{g.member_count}/{g.max_size} friends{on ? ` · ${liveLabel}` : ""}</div>

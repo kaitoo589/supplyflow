@@ -675,10 +675,13 @@ function RequestListSheet({ items, onRemove, onSetQty, onClose, onSend, sending,
               )}
 
               {payable.length > 0 && (() => { const cats = [...new Set(payable.map((it) => garmentType(it.product_title)))]; return (
-                <div style={{ background: "#23201C", border: "1px solid #3A332B", borderRadius: 12, padding: "10px 13px", marginTop: 10, display: "flex", gap: 9, alignItems: "flex-start" }}>
-                  <span style={{ fontSize: 15, marginTop: 1 }}>🛃</span>
-                  <div style={{ fontSize: 11.5, lineHeight: 1.5, color: "#C9C6C1" }}>
-                    These items fall under <b style={{ color: "#fff" }}>{cats.length} customs {cats.length === 1 ? "category" : "categories"}</b> ({cats.join(", ")}). A new EU rule means <b style={{ color: "#fff" }}>€3 customs per category</b> (€3 × {cats.length} = €{cats.length * 3}) — already <b style={{ color: "#fff" }}>included in your DDP international shipping</b>, never charged on top. Fewer categories (or Flowva Friends) means less customs.
+                <div style={{ background: "#23201C", border: "1px solid #3A332B", borderRadius: 12, padding: "11px 13px", marginTop: 10 }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 5 }}>
+                    <span style={{ fontSize: 16 }}>🛃</span>
+                    <span style={{ fontSize: 12.5, fontWeight: 700, color: "#fff" }}>{cats.length} product {cats.length === 1 ? "category" : "categories"} · €{cats.length * 3} EU customs</span>
+                  </div>
+                  <div style={{ fontSize: 11.5, lineHeight: 1.5, color: "#9C9893" }}>
+                    {cats.join(", ")}. A new EU rule charges <b style={{ color: "#C9C6C1" }}>€3 per product category</b>, calculated inside your <b style={{ color: "#C9C6C1" }}>international shipping</b> (charged when you ship, not now). Shopping with Flowva Friends splits this across your group.
                   </div>
                 </div>
               ); })()}

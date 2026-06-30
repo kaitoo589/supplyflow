@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { springMorph } from "./motion";
 import Fox from "./Fox";
+import { garmentType } from "./garment";
 import {
   ffMyGroups, ffPreview, ffCreateGroup, ffJoinGroup, ffLeaveGroup,
   ffKickMember, ffSetHost, ffSetAdmin, ffSetPrivate, ffUpdateSettings, ffAddItem, ffRemoveItem, ffFetchGroup,
@@ -451,6 +452,17 @@ export default function Friends({ session, onClose, initialJoinCode, initialGrou
     const someFlagged = myItems.some((it) => flaggedUrls.includes(it.source_url));
     // JOUW fee-besparing: wat je solo aan fee zou betalen vs. in deze groep (exact).
     const myFeeSavings = myTotal > 0 ? Math.round((estimateMemberFee(1, myTotal) - myFee) * 100) / 100 : 0;
+    // EU €3-per-categorie douane, GEDEELD per categorie over de leden die 'm hebben.
+    // Jouw aandeel = som over jouw categorieën van €3 ÷ (aantal leden met die categorie).
+    // Puur transparant: dit zit al in de DDP-verzendprijs, niet bovenop de fee-hold.
+    const memberCatList = {}; // user_id -> [categorieën]
+    members.forEach((m) => { memberCatList[m.user_id] = [...new Set((itemsByOwner[m.user_id] || []).map((it) => garmentType(it.product_title)))]; });
+    const catHolders = {}; // categorie -> aantal leden dat 'm heeft
+    members.forEach((m) => memberCatList[m.user_id].forEach((c) => { catHolders[c] = (catHolders[c] || 0) + 1; }));
+    const groupCatCount = Object.keys(catHolders).length;
+    const memberCustoms = {}; // user_id -> €
+    members.forEach((m) => { memberCustoms[m.user_id] = Math.round(memberCatList[m.user_id].reduce((s, c) => s + 3 / catHolders[c], 0) * 100) / 100; });
+    const groupCustomsTotal = groupCatCount * 3;
     body = (
       <>
         {header(g ? g.name : "Group", initialGroupId ? onClose : () => { setErr(""); openIdRef.current = null; setView("list"); loadGroups(); },
@@ -580,6 +592,40 @@ export default function Friends({ session, onClose, initialJoinCode, initialGrou
                   </div>
                 );
               })
+            )}
+
+            {/* EU €3-per-categorie douane, per persoon gesplitst — de kern van het delen-met-vrienden */}
+            {(lobby.items || []).length > 0 && groupCatCount > 0 && (
+              <div style={{ marginTop: 14, background: "linear-gradient(180deg,#211c18,#1A1917)", border: "1px solid rgba(255,92,0,0.22)", borderRadius: 16, padding: "14px" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
+                  <span style={{ fontSize: 13, fontWeight: 800, color: "#fff" }}>🛃 EU customs · split with your squad</span>
+                  <span style={{ fontSize: 11.5, color: "#9C9893" }}>{groupCatCount} {groupCatCount === 1 ? "category" : "categories"} · €{groupCustomsTotal.toFixed(2)}</span>
+                </div>
+                <div style={{ fontSize: 11, color: "#9C9893", lineHeight: 1.5, marginBottom: 11 }}>
+                  A new EU rule adds <b style={{ color: "#C9C6C1" }}>€3 per product category</b>, paid inside your international shipping. Each category's €3 is split across everyone who ordered it — <b style={{ color: "#FF8A3D" }}>order the same things as your friends and it gets cheaper for all of you.</b>
+                </div>
+                {members.filter((m) => memberCatList[m.user_id].length > 0).map((m) => {
+                  const self = m.user_id === myUid;
+                  return (
+                    <div key={"cust-" + m.id} style={{ display: "flex", alignItems: "flex-start", gap: 9, padding: "8px 0", borderTop: "1px solid #2c2b29" }}>
+                      <Avatar name={m.display_name} url={avatarOf(m)} size={24} seed={m.user_id} />
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ fontSize: 12, color: self ? "#fff" : "#C9C6C1", fontWeight: self ? 700 : 500, marginBottom: 4 }}>{memberLabel(m, self)}</div>
+                        <div style={{ display: "flex", flexWrap: "wrap", gap: 4 }}>
+                          {memberCatList[m.user_id].map((c) => (
+                            <span key={c} style={{ fontSize: 9.5, color: "#C9C6C1", background: "rgba(255,255,255,0.06)", padding: "2px 7px", borderRadius: 6, whiteSpace: "nowrap" }}>
+                              {c} · {catHolders[c] > 1
+                                ? <span style={{ color: "#34D17B", fontWeight: 700 }}>shared ÷{catHolders[c]} = €{(3 / catHolders[c]).toFixed(2)}</span>
+                                : <span style={{ color: "#9C9893" }}>€3.00</span>}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                      <span style={{ fontSize: 14, fontWeight: 800, color: self ? "#FF8A3D" : "#fff", flexShrink: 0 }}>€{memberCustoms[m.user_id].toFixed(2)}</span>
+                    </div>
+                  );
+                })}
+              </div>
             )}
 
 

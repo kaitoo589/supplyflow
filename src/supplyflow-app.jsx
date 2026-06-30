@@ -2661,7 +2661,7 @@ export default function SupplyFlow({ session }) {
             listCount={requestList.length}
             onAddToList={(item) => { setRequestList(list => [...list, item]); setSelectedProduct(null); }}
             isFavorite={isFavorite(selectedProduct)} onToggleFavorite={() => toggleFavorite(selectedProduct)}
-            activeGroup={activeGroupShopping ? activeGroup : null} onActiveGroupGone={() => setActiveGroup(null)} />
+            activeGroup={activeGroupShopping ? activeGroup : null} groupLocked={!!activeGroup && !activeGroupShopping} onActiveGroupGone={() => setActiveGroup(null)} />
         )}
       </AnimatePresence>
 
@@ -2759,7 +2759,7 @@ export default function SupplyFlow({ session }) {
               <span style={{ fontSize: 18 }}>📦</span>
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ fontSize: 13, fontWeight: 700, color: "#fff", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{activeGroup.name} · order placed</div>
-                <div style={{ fontSize: 11.5, color: "#9C9893" }}>Group locked — you're shopping on your own now <Fox /></div>
+                <div style={{ fontSize: 11.5, color: "#9C9893" }}>Group locked — you can't shop in this group anymore</div>
               </div>
               <button onClick={(e) => { e.stopPropagation(); setActiveGroup(null); }} aria-label="stop following"
                 style={{ background: "rgba(255,255,255,0.08)", border: "none", color: "#9C9893", fontSize: 11, fontWeight: 700, padding: "6px 11px", borderRadius: 999, cursor: "pointer", whiteSpace: "nowrap", flexShrink: 0 }}>Shop solo ✓</button>

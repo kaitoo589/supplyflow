@@ -12,7 +12,7 @@ import Fox from "./Fox";
 
 const spring = springMorph;
 
-export default function OrderRequest({ product, session, onClose, onSuccess, onAddToList, listCount = 0, isFavorite = false, onToggleFavorite, activeGroup = null, onActiveGroupGone }) {
+export default function OrderRequest({ product, session, onClose, onSuccess, onAddToList, listCount = 0, isFavorite = false, onToggleFavorite, activeGroup = null, onActiveGroupGone, groupLocked = false }) {
   const [selectedVariants, setSelectedVariants] = useState({});
   const [aantal, setAantal] = useState(1);
   const [opmerking, setOpmerking] = useState("");
@@ -373,7 +373,11 @@ export default function OrderRequest({ product, session, onClose, onSuccess, onA
                 </motion.button>
               </>
             )}
-            {onAddToList && !activeGroup && (
+            {onAddToList && !activeGroup && (groupLocked ? (
+              <div style={{ width: "100%", background: "#F1EFEA", color: "#9C9893", borderRadius: 14, padding: "16px", fontSize: 15, fontWeight: 700, textAlign: "center" }}>
+                🔒 Group locked
+              </div>
+            ) : (
               <motion.button
                 variants={fadeUp}
                 whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.96 }}
@@ -383,7 +387,7 @@ export default function OrderRequest({ product, session, onClose, onSuccess, onA
               >
                 + Add to cart{listCount > 0 ? ` (${listCount})` : ""}
               </motion.button>
-            )}
+            ))}
             <motion.button variants={fadeUp} whileTap={{ scale: 0.95 }}
               onClick={() => onToggleFavorite?.()}
               style={{ width: "100%", marginTop: 8, background: "transparent", color: isFavorite ? "#FF5C00" : "#8A8780", border: "none", padding: "11px", fontSize: 13.5, fontWeight: 700, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}>

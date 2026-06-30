@@ -45,18 +45,19 @@ const statusConfig = {
   bought:               { label: "Item bought successfully",    color: "#065F46", bg: "#D1FAE5", step: 1 },
   shipped_local:        { label: "On its way to our warehouse", color: "#0369A1", bg: "#E0F2FE", step: 2 },
   qc_pending:           { label: "Arrived in warehouse",          color: "#065F46", bg: "#D1FAE5", step: 3 },
-  shipped_international: { label: "Shipped to you",             color: "#0369A1", bg: "#E0F2FE", step: 4 },
-  delivered:            { label: "Delivered",                   color: "#166534", bg: "#DCFCE7", step: 5 },
+  shipped_international: { label: "In transit",                 color: "#0369A1", bg: "#E0F2FE", step: 4 },
+  delivered:            { label: "In transit",                  color: "#0369A1", bg: "#E0F2FE", step: 5 },
 };
 
 // Labels van de tracking-bolletjes — index = statusConfig[...].step.
+// De order-reis stopt bij het magazijn (arrived & quality-control). De internationale
+// verzending + levering wordt op PAKKET-niveau in de In transit-tab gevolgd (hauls/trace_status),
+// niet als order-status — dus 'Shipped to you'/'Delivered' horen hier bewust NIET.
 const trackingSteps = [
   "Order placed",
   "Bought",
   "To warehouse",
   "Arrived in warehouse",
-  "Shipped to you",
-  "Delivered",
 ];
 
 const foxMessages = {
@@ -67,8 +68,8 @@ const foxMessages = {
   bought:               { msg: "Bought! 🎉 Your item is paid for and getting ready to head to our warehouse.", icon: "✅" },
   shipped_local:        { msg: "Your item is on its way to our warehouse in China.", icon: "🚚" },
   qc_pending:           { msg: "Arrived & inspected! View the photos and add it to a parcel to ship.", icon: "🏭" },
-  shipped_international: { msg: "Your parcel is on its international journey — hang tight!", icon: "✈️" },
-  delivered:            { msg: "Delivered — enjoy! 🎉", icon: "🎉" },
+  shipped_international: { msg: "Your item shipped in a parcel — follow its journey in the In transit tab.", icon: "✈️" },
+  delivered:            { msg: "Your item shipped in a parcel — follow its journey in the In transit tab.", icon: "✈️" },
 };
 
 const extraServices = [
@@ -113,9 +114,8 @@ const journeyStops = [
   { key: "purchased", label: "Order placed", Icon: ShoppingBag, statuses: ["requested", "quote_sent", "quote_accepted", "purchased"], x: 11, y: 18 },
   { key: "bought", label: "Bought", Icon: PackageCheck, statuses: ["bought"], x: 36, y: 10 },
   { key: "shipped_local", label: "To warehouse", Icon: Truck, statuses: ["shipped_local"], x: 86, y: 26 },
-  { key: "qc_pending", label: "Quality control", Icon: Camera, statuses: ["qc_pending"], x: 72, y: 50 },
-  { key: "shipped_international", label: "Shipped to you", Icon: Plane, statuses: ["shipped_international"], x: 46, y: 56 },
-  { key: "delivered", label: "Delivered", Icon: Home, statuses: ["delivered"], x: 13, y: 84, home: true },
+  { key: "qc_pending", label: "Arrived in warehouse", Icon: Camera, statuses: ["qc_pending"], x: 72, y: 50 },
+  { key: "in_transit", label: "In transit", Icon: Plane, statuses: ["shipped_international", "delivered"], x: 13, y: 84, dest: true },
 ];
 
 // Ronde voortgangsring (% van de reis afgelegd) rechts op de groepskaart.
@@ -232,6 +232,8 @@ function OrderGroupCard({ items, onOpenItem, groupSize }) {
   const percent = Math.round(items.reduce((s, o) => s + productProgress(o), 0) / items.length);
   const whStep = statusConfig.qc_pending.step;
   const atWarehouse = items.filter(o => (statusConfig[o.status]?.step ?? 0) >= whStep).length;
+  // Hele groep voorbij het magazijn (shipped/delivered) = "In transit" → geen progress-cirkel meer.
+  const allInTransit = items.length > 0 && items.every(o => (statusConfig[o.status]?.step ?? 0) > whStep);
   const anyProblem = items.some(o => o.problem_type);
   const subtotal = items.reduce((s, o) => s + (Number(o.price) || 0), 0);
   // Groep-order = groepstarief (zelfde staffel als de checkout); anders solo 8%/min €5.
@@ -259,12 +261,18 @@ function OrderGroupCard({ items, onOpenItem, groupSize }) {
             <span style={{ fontSize: 10, color: "#A8A5A0" }}>incl. fees</span>
           </div>
           <div style={{ fontSize: 11, color: anyProblem ? "#B45309" : "#8A8780", marginTop: 1 }}>
-            {anyProblem ? "⚠️ Action needed" : `${atWarehouse}/${items.length} at warehouse`}
+            {anyProblem ? "⚠️ Action needed" : allInTransit ? "Shipped — track in In transit" : `${atWarehouse}/${items.length} at warehouse`}
           </div>
         </div>
-        <motion.div whileTap={{ scale: 0.85 }} onClick={(e) => { e.stopPropagation(); setWheel(true); }} title="Tap for progress breakdown" style={{ flexShrink: 0, cursor: "pointer" }}>
-          <ProgressRing percent={percent} />
-        </motion.div>
+        {allInTransit ? (
+          <div style={{ flexShrink: 0, display: "flex", alignItems: "center", gap: 5, background: "#E0F2FE", color: "#0369A1", borderRadius: 999, padding: "6px 11px 6px 9px", fontSize: 11, fontWeight: 800, whiteSpace: "nowrap" }}>
+            <Plane size={13} strokeWidth={2.3} /> In transit
+          </div>
+        ) : (
+          <motion.div whileTap={{ scale: 0.85 }} onClick={(e) => { e.stopPropagation(); setWheel(true); }} title="Tap for progress breakdown" style={{ flexShrink: 0, cursor: "pointer" }}>
+            <ProgressRing percent={percent} />
+          </motion.div>
+        )}
         <motion.div animate={{ rotate: open ? 0 : 180 }} transition={springSnappy} style={{ flexShrink: 0, display: "flex" }}>
           <ChevronUp size={18} color="#C9C6C1" strokeWidth={2.4} />
         </motion.div>
@@ -332,7 +340,7 @@ function TreasureMap({ activeFilter, onSelect, orders }) {
       <div style={{ position: "relative", height: 210 }}>
         <svg viewBox="0 0 100 100" preserveAspectRatio="none" style={{ position: "absolute", inset: 0, width: "100%", height: "100%" }}>
           <motion.path
-            d="M11,18 C19,12 28,10 36,10 C45,10 53,12 62,16 C72,20 84,19 86,26 C88,34 80,44 72,50 C64,56 54,58 46,56 C38,54 27,50 20,52 C14,54 13,70 13,84"
+            d="M11,18 C19,12 28,10 36,10 C45,10 53,12 62,16 C72,20 84,19 86,26 C88,34 80,44 72,50 C60,62 28,70 13,84"
             fill="none" stroke="#FF5C00" strokeWidth="2" strokeDasharray="0.5 3.5" strokeLinecap="round"
             vectorEffect="non-scaling-stroke"
             initial={{ opacity: 0 }} animate={{ opacity: 0.5 }} transition={{ duration: 0.9, delay: 0.2 }} />
@@ -340,8 +348,8 @@ function TreasureMap({ activeFilter, onSelect, orders }) {
         {journeyStops.map((s, i) => {
           const active = activeFilter === s.key;
           const count = countFor(s.statuses);
-          const size = s.home ? 42 : 32;
-          const dark = s.home || s.key === "requested";
+          const size = s.dest ? 42 : 32;
+          const dark = s.dest || s.key === "requested";
           return (
             <motion.div key={s.key}
               initial={{ scale: 0, opacity: 0 }} animate={{ scale: 1, opacity: 1 }}
@@ -357,7 +365,7 @@ function TreasureMap({ activeFilter, onSelect, orders }) {
                   background: active ? "#FFF0E7" : dark ? "#111111" : "#F3F1ED",
                   border: active ? "2px solid #FF5C00" : "none",
                   display: "flex", alignItems: "center", justifyContent: "center" }}>
-                  <s.Icon size={s.home ? 17 : 14} strokeWidth={2.1} color={active ? "#FF5C00" : dark ? "#fff" : "#111111"} />
+                  <s.Icon size={s.dest ? 17 : 14} strokeWidth={2.1} color={active ? "#FF5C00" : dark ? "#fff" : "#111111"} />
                 </div>
                 {count > 0 && (
                   <div style={{ position: "absolute", top: -5, right: -7, minWidth: 15, height: 15, padding: "0 2px", borderRadius: 8, background: "#FF5C00", color: "#fff", fontSize: 9, fontWeight: 700, display: "flex", alignItems: "center", justifyContent: "center", border: "2px solid #fff", boxSizing: "content-box" }}>{count}</div>
@@ -2087,9 +2095,15 @@ export default function SupplyFlow({ session }) {
                                   <div style={{ fontSize: 13, fontWeight: 600, color: "#111111", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{o.product_title}</div>
                                   <div style={{ display: "inline-block", marginTop: 3, background: s.bg || "#F3F1ED", color: s.color || "#6B6862", fontSize: 10.5, fontWeight: 700, padding: "2px 9px", borderRadius: 20 }}>{statusLabel(o)}</div>
                                 </div>
-                                <motion.div whileTap={{ scale: 0.85 }} onClick={() => setSquadWheel(o)} title="Tap for progress" style={{ flexShrink: 0, cursor: "pointer" }}>
-                                  <ProgressRing percent={productProgress(o)} />
-                                </motion.div>
+                                {(statusConfig[o.status]?.step ?? 0) > statusConfig.qc_pending.step ? (
+                                  <div style={{ flexShrink: 0, display: "flex", alignItems: "center", gap: 4, background: "#E0F2FE", color: "#0369A1", borderRadius: 999, padding: "5px 9px 5px 8px", fontSize: 10, fontWeight: 800, whiteSpace: "nowrap" }}>
+                                    <Plane size={11} strokeWidth={2.3} /> In transit
+                                  </div>
+                                ) : (
+                                  <motion.div whileTap={{ scale: 0.85 }} onClick={() => setSquadWheel(o)} title="Tap for progress" style={{ flexShrink: 0, cursor: "pointer" }}>
+                                    <ProgressRing percent={productProgress(o)} />
+                                  </motion.div>
+                                )}
                               </div>
                             );
                           })}
@@ -2134,12 +2148,13 @@ export default function SupplyFlow({ session }) {
             <div style={{ fontSize: 12, color: "#A8A5A0" }}>{selectedOrder.id} · {selectedOrder.qty} pcs{selectedOrder.kleur ? ` · ${selectedOrder.kleur}` : ""}</div>
           </div>
           {(() => {
-            const step = statusConfig[selectedOrder.status]?.step ?? 0;
+            const rawStep = statusConfig[selectedOrder.status]?.step ?? 0;
+            const step = Math.min(rawStep, trackingSteps.length);  // shipped/delivered → alle 4 stappen klaar
             return (
               <div style={{ background: "#fff", borderRadius: 18, padding: "16px 18px", marginBottom: 16, boxShadow: "0 1px 2px rgba(17,17,17,0.04), 0 6px 18px rgba(17,17,17,0.05)" }}>
                 <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 14 }}>
                   <span style={{ fontSize: 13, fontWeight: 700, color: "#111111" }}>Status</span>
-                  <span style={{ fontSize: 12, color: "#A8A5A0" }}>Step {step + 1} of {trackingSteps.length}</span>
+                  <span style={{ fontSize: 12, color: "#A8A5A0" }}>Step {Math.min(step + 1, trackingSteps.length)} of {trackingSteps.length}</span>
                 </div>
                 {trackingSteps.map((label, i) => {
                   const done = i < step;
@@ -2299,12 +2314,15 @@ export default function SupplyFlow({ session }) {
               </button>
             </div>
           )}
-          {selectedOrder.status === "shipped_international" && selectedOrder.tracking_number && (
-            <div style={{ background: "#fff", border: "1px solid #E8E6E0", borderRadius: 14, padding: "16px", marginBottom: 16 }}>
-              <div style={{ fontSize: 13, color: "#aaa", marginBottom: 4 }}>DHL Express</div>
-              <div style={{ fontSize: 16, fontWeight: 700, color: "#0F0E0C", marginBottom: 4 }}>{selectedOrder.tracking_number}</div>
-              <a href={`https://www.dhl.com/nl-nl/home/tracking.html?tracking-id=${selectedOrder.tracking_number}`} target="_blank" rel="noreferrer"
-                style={{ fontSize: 13, color: "#6366F1", fontWeight: 600, textDecoration: "none" }}>Track your parcel →</a>
+          {(selectedOrder.status === "shipped_international" || selectedOrder.status === "delivered") && (
+            <div style={{ background: "#fff", border: "1px solid #E8E6E0", borderRadius: 14, padding: "14px 16px", marginBottom: 16, display: "flex", alignItems: "center", gap: 11 }}>
+              <div style={{ width: 34, height: 34, borderRadius: "50%", background: "#E0F2FE", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                <Plane size={16} color="#0369A1" strokeWidth={2.2} />
+              </div>
+              <div style={{ flex: 1 }}>
+                <div style={{ fontSize: 13, fontWeight: 700, color: "#0F0E0C" }}>In transit</div>
+                <div style={{ fontSize: 12, color: "#8A8780", lineHeight: 1.4 }}>This item shipped in a parcel — track its delivery in the In transit tab.</div>
+              </div>
             </div>
           )}
           {(selectedOrder.status === "shipped_international" || selectedOrder.status === "delivered") && (selectedOrder.qc_images?.length > 0 || selectedOrder.measurement_images?.length > 0) && (

@@ -313,9 +313,12 @@ function OrderGroupCard({ items, onOpenItem, groupSize, onDismiss, parcel, activ
           </motion.div>
         )}
         {!allInTransit && (
-          <motion.div animate={{ rotate: open ? 0 : 180 }} transition={springSnappy} style={{ flexShrink: 0, display: "flex" }}>
-            <ChevronUp size={18} color="#C9C6C1" strokeWidth={2.4} />
-          </motion.div>
+          <div style={{ flexShrink: 0, display: "flex", flexDirection: "column", alignItems: "center", gap: 2 }}>
+            <motion.div animate={{ rotate: open ? 0 : 180 }} transition={springSnappy} style={{ display: "flex" }}>
+              <ChevronUp size={18} color="#C9C6C1" strokeWidth={2.4} />
+            </motion.div>
+            <span style={{ fontSize: 9.5, fontWeight: 700, color: "#A8A5A0", lineHeight: 1, whiteSpace: "nowrap" }}>{shownItems.length} item{shownItems.length > 1 ? "s" : ""}</span>
+          </div>
         )}
       </motion.div>
       <AnimatePresence initial={false}>

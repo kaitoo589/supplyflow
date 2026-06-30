@@ -155,7 +155,7 @@ const PRODUCT_COLORS = ["#FF5C00", "#6366F1", "#16A34A", "#EAB308", "#EC4899"];
 
 // Tik op de ring → groot voortgangswiel: elk product een concentrische boog die
 // zich vult richting QC (= vol). Mijlpaal-streepjes tonen waar het % op slaat.
-function ProgressWheelModal({ items, onClose }) {
+function ProgressWheelModal({ items, onClose, onOpenItem }) {
   const scrollable = items.length > 8;
   const bars = items;
   const listRef = useRef(null);
@@ -203,7 +203,7 @@ function ProgressWheelModal({ items, onClose }) {
               const pct = productProgress(o);
               const color = PRODUCT_COLORS[i % PRODUCT_COLORS.length];
               return (
-                <div key={o.id}>
+                <div key={o.id} onClick={onOpenItem ? () => { onClose(); onOpenItem(o); } : undefined} style={{ cursor: onOpenItem ? "pointer" : "default" }}>
                   <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 5 }}>
                     <div style={{ width: 26, height: 26, borderRadius: 7, background: "#fff", border: "1px solid #F0EEE8", overflow: "hidden", flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
                       {o.variant_image ? <img src={o.variant_image} referrerPolicy="no-referrer" alt="" style={{ width: "100%", height: "100%", objectFit: "contain" }} /> : <span style={{ fontSize: 14 }}>📦</span>}
@@ -348,7 +348,7 @@ function OrderGroupCard({ items, onOpenItem, groupSize, onDismiss }) {
         )}
       </AnimatePresence>
       <AnimatePresence>
-        {wheel && <ProgressWheelModal items={items} onClose={() => setWheel(false)} />}
+        {wheel && <ProgressWheelModal items={items} onClose={() => setWheel(false)} onOpenItem={onOpenItem} />}
       </AnimatePresence>
     </motion.div>
   );
@@ -2191,10 +2191,21 @@ export default function SupplyFlow({ session }) {
               style={{ width: 36, height: 36, borderRadius: "50%", background: "#fff", border: "1px solid #ECEAE5", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", fontSize: 16, color: "#111111", WebkitTapHighlightColor: "transparent" }}>←</motion.button>
             <div style={{ fontSize: 15, fontWeight: 700, color: "#111111" }}>Track order</div>
           </div>
-          <div style={{ background: "#fff", borderRadius: 16, padding: "13px 16px", marginBottom: 12, boxShadow: "0 1px 2px rgba(17,17,17,0.04), 0 6px 18px rgba(17,17,17,0.05)" }}>
-            <div style={{ fontSize: 14, fontWeight: 700, color: "#111111", marginBottom: 2 }}>{selectedOrder.product_title || selectedOrder.product}</div>
-            <div style={{ fontSize: 12, color: "#A8A5A0" }}>{selectedOrder.id} · {selectedOrder.qty} pcs{selectedOrder.kleur ? ` · ${selectedOrder.kleur}` : ""}</div>
-          </div>
+          {(() => {
+            const fp = products.find(p => p.title === (selectedOrder.product_title || selectedOrder.product));
+            const heroImg = selectedOrder.variant_image || (fp?.image?.startsWith("http") ? fp.image : null);
+            return (
+              <div style={{ background: "#fff", borderRadius: 16, padding: "13px 16px", marginBottom: 12, boxShadow: "0 1px 2px rgba(17,17,17,0.04), 0 6px 18px rgba(17,17,17,0.05)", display: "flex", alignItems: "center", gap: 12 }}>
+                <div style={{ width: 52, height: 52, borderRadius: 11, background: "#F3F1ED", border: "1px solid #F0EEE8", overflow: "hidden", flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                  {heroImg ? <img src={heroImg} referrerPolicy="no-referrer" alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : <span style={{ fontSize: 22 }}>📦</span>}
+                </div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: 14, fontWeight: 700, color: "#111111", marginBottom: 2 }}>{selectedOrder.product_title || selectedOrder.product}</div>
+                  <div style={{ fontSize: 12, color: "#A8A5A0" }}>{selectedOrder.id} · {selectedOrder.qty} pcs{selectedOrder.kleur ? ` · ${selectedOrder.kleur}` : ""}</div>
+                </div>
+              </div>
+            );
+          })()}
           {(() => {
             const rawStep = statusConfig[selectedOrder.status]?.step ?? 0;
             const step = Math.min(rawStep, trackingSteps.length);  // shipped/delivered → alle 4 stappen klaar

@@ -245,10 +245,11 @@ function ProgressWheelModal({ items, onClose, onOpenItem }) {
 
 // Eén bestelling (= alle items uit dezelfde aankoop). Klap open → morpht omlaag,
 // toont elk item met z'n eigen status. Statussen mogen per item verschillen.
-function OrderGroupCard({ items, onOpenItem, groupSize, onDismiss, parcel }) {
+function OrderGroupCard({ items, onOpenItem, groupSize, onDismiss, parcel, activeFilter, onClearFilter }) {
   const [open, setOpen] = useState(false);
   const [wheel, setWheel] = useState(false);
-  const date = items[0]?.date || "";
+  // Datum altijd dd/mm/jjjj (uit created_at; valt terug op het tekst-date-veld).
+  const date = (() => { const c = items[0]?.created_at; if (c) { try { return new Date(c).toLocaleDateString("en-GB"); } catch {} } return items[0]?.date || ""; })();
   const percent = Math.round(items.reduce((s, o) => s + productProgress(o), 0) / items.length);
   const whStep = statusConfig.qc_pending.step;
   const atWarehouse = items.filter(o => (statusConfig[o.status]?.step ?? 0) >= whStep).length;
@@ -257,6 +258,9 @@ function OrderGroupCard({ items, onOpenItem, groupSize, onDismiss, parcel }) {
   // Hele groep geleverd = pakket aangekomen → groen "Parcel arrived" + ✕ om het blokje te verwijderen.
   const allDelivered = items.length > 0 && items.every(o => o.status === "delivered");
   const anyProblem = items.some(o => o.problem_type);
+  // Actief checkpoint-filter → in de uitklap alleen de items met die status + een "All orders"-resetknop.
+  const filterStatuses = (activeFilter && activeFilter !== "all") ? (journeyStops.find((j) => j.key === activeFilter)?.statuses || [activeFilter]) : null;
+  const shownItems = filterStatuses ? items.filter((o) => filterStatuses.includes(o.status)) : items;
   const subtotal = items.reduce((s, o) => s + (Number(o.price) || 0), 0);
   // Groep-order = groepstarief (zelfde staffel als de checkout); anders solo 8%/min €5.
   const isGroupOrder = !!items[0]?.ff_group_id;
@@ -317,7 +321,7 @@ function OrderGroupCard({ items, onOpenItem, groupSize, onDismiss, parcel }) {
         {open && (
           <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }} transition={{ type: "spring", stiffness: 260, damping: 30 }} style={{ overflow: "hidden" }}>
             <div style={{ padding: "2px 12px 12px" }}>
-              {items.map(o => {
+              {shownItems.map(o => {
                 const s = statusConfig[o.status] || statusConfig.purchased;
                 return (
                   <motion.div key={o.id} whileTap={{ scale: 0.98 }} onClick={() => onOpenItem(o)}
@@ -334,17 +338,24 @@ function OrderGroupCard({ items, onOpenItem, groupSize, onDismiss, parcel }) {
                   </motion.div>
                 );
               })}
-              <div style={{ marginTop: 4, padding: "10px 12px", background: "#FAF9F6", borderRadius: 12, border: "1px solid #EFEDE7" }}>
-                <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, color: "#6B6862", marginBottom: 5 }}>
-                  <span>Items ({items.length})</span><span>€{subtotal.toFixed(2)}</span>
+              {filterStatuses ? (
+                <motion.button whileTap={{ scale: 0.97 }} onClick={(e) => { e.stopPropagation(); onClearFilter && onClearFilter(); }}
+                  style={{ width: "100%", marginTop: 4, background: "#111", color: "#fff", border: "none", borderRadius: 12, padding: "11px", fontSize: 12.5, fontWeight: 700, cursor: "pointer", WebkitTapHighlightColor: "transparent" }}>
+                  All orders
+                </motion.button>
+              ) : (
+                <div style={{ marginTop: 4, padding: "10px 12px", background: "#FAF9F6", borderRadius: 12, border: "1px solid #EFEDE7" }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, color: "#6B6862", marginBottom: 5 }}>
+                    <span>Items ({items.length})</span><span>€{subtotal.toFixed(2)}</span>
+                  </div>
+                  <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, color: "#6B6862", marginBottom: 7 }}>
+                    <span>{isGroupOrder ? "Group fee" : "Service fee"}</span><span>€{fee.toFixed(2)}</span>
+                  </div>
+                  <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13.5, fontWeight: 800, color: "#111", borderTop: "1px solid #EAE7E0", paddingTop: 7 }}>
+                    <span>Total paid</span><span>€{total.toFixed(2)}</span>
+                  </div>
                 </div>
-                <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, color: "#6B6862", marginBottom: 7 }}>
-                  <span>{isGroupOrder ? "Group fee" : "Service fee"}</span><span>€{fee.toFixed(2)}</span>
-                </div>
-                <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13.5, fontWeight: 800, color: "#111", borderTop: "1px solid #EAE7E0", paddingTop: 7 }}>
-                  <span>Total paid</span><span>€{total.toFixed(2)}</span>
-                </div>
-              </div>
+              )}
             </div>
           </motion.div>
         )}
@@ -2118,16 +2129,17 @@ export default function SupplyFlow({ session }) {
                     .map(items => (
                       <OrderGroupCard key={items[0].request_group_id || items[0].id} items={items}
                         groupSize={items[0]?.ff_group_id ? (myGroups.find((g) => g.group_id === items[0].ff_group_id)?.member_count || null) : null}
-                        onOpenItem={(o) => { setSelectedOrder(o); setConfirmCancel(false); }} onDismiss={dismissOrders} parcel={parcelInfoFor(items)} />
+                        onOpenItem={(o) => { setSelectedOrder(o); setConfirmCancel(false); }} onDismiss={dismissOrders} parcel={parcelInfoFor(items)}
+                        activeFilter={orderFilter} onClearFilter={() => setOrderFilter("all")} />
                     ))}
                 </AnimatePresence>
               );
             })()}
-            {activeGroup && groupOrders.filter((o) => o.user_id !== session.user.id).length > 0 && (
+            {activeGroup && groupOrders.filter((o) => o.user_id !== session.user.id && matchesFilter(o)).length > 0 && (
               <div style={{ marginTop: 18 }}>
                 <div style={{ fontSize: 11, color: "#A8A5A0", fontWeight: 600, letterSpacing: 0.4, margin: "0 2px 8px" }}>SQUAD · {activeGroup.name}</div>
                 {(() => {
-                  const others = groupOrders.filter((o) => o.user_id !== session.user.id);
+                  const others = groupOrders.filter((o) => o.user_id !== session.user.id && matchesFilter(o));
                   const byMember = others.reduce((acc, o) => { (acc[o.user_id] = acc[o.user_id] || []).push(o); return acc; }, {});
                   return Object.values(byMember).map((memberOrders) => {
                     const m0 = memberOrders[0];
@@ -2171,7 +2183,7 @@ export default function SupplyFlow({ session }) {
                 <div style={{ fontSize: 11, color: "#A8A5A0", margin: "2px 2px 0", lineHeight: 1.4 }}>👀 Your squad's order statuses — view only. You're only notified about your own items.</div>
               </div>
             )}
-            {visibleOrders.filter(matchesFilter).length === 0 && !(activeGroup && groupOrders.some((o) => o.user_id !== session.user.id)) && (
+            {visibleOrders.filter(matchesFilter).length === 0 && !(activeGroup && groupOrders.some((o) => o.user_id !== session.user.id && matchesFilter(o))) && (
               <div style={{ textAlign: "center", padding: "60px 0", color: "#aaa" }}>
                 <div style={{ position: "relative", display: "inline-block", fontSize: 48, marginBottom: 12, lineHeight: 1 }}>
                   <Fox />

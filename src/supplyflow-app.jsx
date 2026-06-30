@@ -2495,90 +2495,57 @@ export default function SupplyFlow({ session }) {
               {loadingBalance ? "Loading..." : `+ Add €${topupAmount || "0"} via iDEAL`}
             </button>
           </div>
-          {/* Flowva Friends — activatie-switch: selecteer een groep → de switch zet 'm live */}
+          {/* Flowva Friends — switch-lijst: Solo (standaard aan) + één groep tegelijk live. activeGroup = één waarde → wederzijds uitsluitend. */}
           {(() => {
             const gathering = myGroups.filter((g) => g.status === "gathering");
-            const shake = () => { setShakeGroups(true); setTimeout(() => setShakeGroups(false), 650); };
-            const onToggle = () => {
-              if (activeGroup) { setActiveGroup(null); return; }                       // uit
-              const g = gathering.find((x) => x.group_id === selectedGroupId);
-              if (!g) { shake(); return; }                                              // niets geselecteerd → rode shake
-              setActiveGroup({ id: g.group_id, name: g.name });                         // aan
+            const placed = myGroups.filter((g) => g.status !== "gathering");
+            const isOn = (gid) => !!activeGroup && activeGroup.id === gid;
+            const sw = (on) => (
+              <div role="switch" aria-checked={on} style={{ width: 46, height: 27, borderRadius: 999, background: on ? "#FF5C00" : "#E3E1DC", position: "relative", flexShrink: 0, transition: "background .25s" }}>
+                <motion.div animate={{ x: on ? 19 : 0 }} transition={springBouncy}
+                  style={{ position: "absolute", top: 3, left: 3, width: 21, height: 21, borderRadius: "50%", background: "#fff", boxShadow: "0 1px 3px rgba(0,0,0,0.25)" }} />
+              </div>
+            );
+            const rowStyle = (on) => ({ display: "flex", alignItems: "center", gap: 11, boxSizing: "border-box", width: "100%", cursor: "pointer", borderRadius: 13, padding: "11px 13px", transition: "border-color .2s, background .2s", background: on ? "#FFF7F2" : "#F8F7F4", border: `1.5px solid ${on ? "rgba(255,92,0,0.6)" : "#ECEAE5"}` });
+            const groupRow = (g, liveLabel) => {
+              const on = isOn(g.group_id);
+              return (
+                <div key={g.group_id} onClick={() => setActiveGroup(on ? null : { id: g.group_id, name: g.name })} style={rowStyle(on)}>
+                  <div style={{ width: 30, height: 30, borderRadius: 9, background: "#FF5C00", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14, flexShrink: 0 }}><Fox /></div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: 13.5, fontWeight: 600, color: "#111111", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{g.name}{g.role === "admin" ? " · admin" : ""}</div>
+                    <div style={{ fontSize: 11, color: "#A8A5A0" }}>{g.member_count}/{g.max_size} friends{on ? ` · ${liveLabel}` : ""}</div>
+                  </div>
+                  {sw(on)}
+                </div>
+              );
             };
             return (
               <div style={{ background: "#fff", border: `1px solid ${activeGroup ? "rgba(255,92,0,0.5)" : "#E8E6E0"}`, borderRadius: 16, padding: "15px 18px", marginBottom: 12, boxShadow: activeGroup ? "0 0 0 3px rgba(255,92,0,0.08)" : "none", transition: "border-color .25s, box-shadow .25s" }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 4 }}>
                   <div style={{ width: 38, height: 38, borderRadius: 11, background: "#FFF0E7", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18, flexShrink: 0 }}><Fox /></div>
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ fontSize: 14, fontWeight: 700, color: "#0F0E0C" }}>Flowva Friends</div>
-                    <div style={{ fontSize: 12, color: "#A8A5A0", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{activeGroup ? ((myGroups.find((g) => g.group_id === activeGroup.id)?.status || "gathering") === "gathering" ? `Shopping for ${activeGroup.name}` : `Following ${activeGroup.name}`) : "Order together — select a group to activate"}</div>
-                  </div>
-                  <div onClick={onToggle} role="switch" aria-checked={!!activeGroup}
-                    style={{ width: 48, height: 28, borderRadius: 999, background: activeGroup ? "#FF5C00" : "#E3E1DC", position: "relative", cursor: "pointer", flexShrink: 0, transition: "background .25s" }}>
-                    <motion.div animate={{ x: activeGroup ? 20 : shakeGroups ? 9 : 0 }} transition={springBouncy}
-                      style={{ position: "absolute", top: 3, left: 3, width: 22, height: 22, borderRadius: "50%", background: "#fff", boxShadow: "0 1px 3px rgba(0,0,0,0.25)" }} />
+                    <div style={{ fontSize: 12, color: "#A8A5A0", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{activeGroup ? ((myGroups.find((g) => g.group_id === activeGroup.id)?.status || "gathering") === "gathering" ? `Shopping for ${activeGroup.name}` : `Following ${activeGroup.name}`) : "Shopping solo — flip a group on to team up"}</div>
                   </div>
                 </div>
-                {gathering.length > 0 && (
-                  <>
-                    <div style={{ fontSize: 11, color: "#A8A5A0", fontWeight: 600, letterSpacing: 0.4, margin: "14px 2px 8px" }}>YOUR GROUPS</div>
-                    <motion.div animate={shakeGroups ? { x: [0, -7, 7, -5, 5, 0] } : { x: 0 }} transition={{ duration: 0.45 }}
-                      style={{ display: "flex", flexDirection: "column", gap: 7 }}>
-                      {gathering.map((g) => {
-                        const live = activeGroup && activeGroup.id === g.group_id;
-                        const sel = !activeGroup && selectedGroupId === g.group_id;
-                        return (
-                          <div key={g.group_id}
-                            onClick={() => { if (activeGroup) setActiveGroup({ id: g.group_id, name: g.name }); else setSelectedGroupId(g.group_id); }}
-                            style={{ display: "flex", alignItems: "center", gap: 10, boxSizing: "border-box", width: "100%", cursor: "pointer", borderRadius: 12, padding: "10px 12px", transition: "border-color .2s, background .2s",
-                              background: shakeGroups ? "#FDF1F1" : live ? "#F1FBF4" : sel ? "#FFF7F2" : "#F8F7F4",
-                              border: `1.5px solid ${shakeGroups ? "#E24B4A" : live ? "rgba(22,163,74,0.5)" : sel ? "rgba(255,92,0,0.6)" : "#ECEAE5"}` }}>
-                            <div style={{ width: 30, height: 30, borderRadius: 9, background: "#FF5C00", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14, flexShrink: 0 }}><Fox /></div>
-                            <div style={{ flex: 1, minWidth: 0 }}>
-                              <div style={{ fontSize: 13, fontWeight: 600, color: "#111111", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{g.name}{g.role === "admin" ? " · admin" : ""}</div>
-                              <div style={{ fontSize: 11, color: "#A8A5A0" }}>{g.member_count}/{g.max_size} friends{live ? " · live" : ""}</div>
-                            </div>
-                            <div style={{ width: 18, height: 18, borderRadius: "50%", border: `2px solid ${live ? "#16A34A" : sel ? "#FF5C00" : "#D4D2CC"}`, flexShrink: 0, position: "relative", transition: "border-color .2s" }}>
-                              {(live || sel) && <div style={{ position: "absolute", inset: 3, borderRadius: "50%", background: live ? "#16A34A" : "#FF5C00" }} />}
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </motion.div>
-                  </>
+                <div style={{ display: "flex", flexDirection: "column", gap: 7, marginTop: 10 }}>
+                  {/* Solo shopping — standaard aan zolang er geen groep actief is */}
+                  <div onClick={() => setActiveGroup(null)} style={rowStyle(!activeGroup)}>
+                    <div style={{ width: 30, height: 30, borderRadius: 9, background: "#111111", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}><User size={15} color="#fff" strokeWidth={2.3} /></div>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontSize: 13.5, fontWeight: 600, color: "#111111" }}>Solo shopping</div>
+                      <div style={{ fontSize: 11, color: "#A8A5A0" }}>Just you — the default</div>
+                    </div>
+                    {sw(!activeGroup)}
+                  </div>
+                  {gathering.map((g) => groupRow(g, "live"))}
+                  {placed.map((g) => groupRow(g, "following"))}
+                </div>
+                {activeGroup && placed.some((g) => g.group_id === activeGroup.id) && (
+                  <button onClick={() => { setFriendsGroupId(activeGroup.id); setShowFriends(true); }}
+                    style={{ background: "transparent", border: "none", color: "#16A34A", fontSize: 12, fontWeight: 700, cursor: "pointer", padding: "10px 0 0", textAlign: "left" }}>Open group &amp; see details →</button>
                 )}
-                {(() => {
-                  // Groepen waarin de bestelling al geplaatst is (niet meer 'gathering') —
-                  // niet selecteerbaar om in te shoppen, wél tikbaar om te openen/volgen.
-                  const placed = myGroups.filter((g) => g.status !== "gathering");
-                  if (placed.length === 0) return null;
-                  return (
-                    <>
-                      <div style={{ display: "flex", flexDirection: "column", gap: 7, marginTop: 12 }}>
-                        {placed.map((g) => {
-                          const live = activeGroup && activeGroup.id === g.group_id;
-                          return (
-                          <div key={g.group_id} onClick={() => setActiveGroup(live ? null : { id: g.group_id, name: g.name })}
-                            style={{ display: "flex", alignItems: "center", gap: 10, cursor: "pointer", borderRadius: 12, padding: "10px 12px", background: live ? "#F1FBF4" : "#F8F7F4", border: `1.5px solid ${live ? "rgba(22,163,74,0.5)" : "#ECEAE5"}` }}>
-                            <div style={{ width: 30, height: 30, borderRadius: 9, background: "#FF5C00", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14, flexShrink: 0 }}><Fox /></div>
-                            <div style={{ flex: 1, minWidth: 0 }}>
-                              <div style={{ fontSize: 13, fontWeight: 600, color: "#111111", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{g.name}{g.role === "admin" ? " · admin" : ""}</div>
-                              <div style={{ fontSize: 11, color: "#A8A5A0" }}>{g.member_count}/{g.max_size} friends{live ? " · following" : ""}</div>
-                            </div>
-                            <div style={{ width: 18, height: 18, borderRadius: "50%", border: `2px solid ${live ? "#16A34A" : "#D4D2CC"}`, flexShrink: 0, position: "relative" }}>
-                              {live && <div style={{ position: "absolute", inset: 3, borderRadius: "50%", background: "#16A34A" }} />}
-                            </div>
-                          </div>
-                          );
-                        })}
-                      </div>
-                      {activeGroup && placed.some((g) => g.group_id === activeGroup.id) && (
-                        <button onClick={() => { setFriendsGroupId(activeGroup.id); setShowFriends(true); }}
-                          style={{ background: "transparent", border: "none", color: "#16A34A", fontSize: 12, fontWeight: 700, cursor: "pointer", padding: "8px 0 0", textAlign: "left" }}>Open group &amp; see details →</button>
-                      )}
-                    </>
-                  );
-                })()}
                 <button onClick={() => { setFriendsJoinCode(null); setShowFriends(true); }}
                   style={{ width: "100%", marginTop: 12, background: "#FFF0E7", border: "1px dashed rgba(255,92,0,0.4)", color: "#FF5C00", borderRadius: 12, padding: "12px", fontSize: 13, fontWeight: 700, cursor: "pointer" }}>+ Create, join or manage groups</button>
               </div>

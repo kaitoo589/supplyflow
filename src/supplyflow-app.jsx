@@ -70,7 +70,7 @@ const foxMessages = {
   shipped_local:        { msg: "Your item is on its way to our warehouse in China.", icon: "🚚" },
   qc_pending:           { msg: "Arrived & inspected! View the photos and add it to a parcel to ship.", icon: "🏭" },
   shipped_international: { msg: "Your item shipped in a parcel — follow its journey in the In transit tab.", icon: "✈️" },
-  delivered:            { msg: "Your item shipped in a parcel — follow its journey in the In transit tab.", icon: "✈️" },
+  delivered:            { msg: "Delivered — your parcel arrived! 🎉 See the full timeline in In transit.", icon: "🎉" },
 };
 
 const extraServices = [
@@ -2177,7 +2177,11 @@ export default function SupplyFlow({ session }) {
                                   <div style={{ fontSize: 13, fontWeight: 600, color: "#111111", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{o.product_title}</div>
                                   <div style={{ display: "inline-block", marginTop: 3, background: s.bg || "#F3F1ED", color: s.color || "#6B6862", fontSize: 10.5, fontWeight: 700, padding: "2px 9px", borderRadius: 20 }}>{statusLabel(o)}</div>
                                 </div>
-                                {(statusConfig[o.status]?.step ?? 0) > statusConfig.qc_pending.step ? (
+                                {o.status === "delivered" ? (
+                                  <div style={{ flexShrink: 0, display: "flex", alignItems: "center", gap: 4, background: "#DCFCE7", color: "#15803D", borderRadius: 999, padding: "5px 9px 5px 8px", fontSize: 10, fontWeight: 800, whiteSpace: "nowrap" }}>
+                                    <PackageCheck size={11} strokeWidth={2.4} /> Delivered
+                                  </div>
+                                ) : (statusConfig[o.status]?.step ?? 0) > statusConfig.qc_pending.step ? (
                                   <div style={{ flexShrink: 0, display: "flex", alignItems: "center", gap: 4, background: "#E0F2FE", color: "#0369A1", borderRadius: 999, padding: "5px 9px 5px 8px", fontSize: 10, fontWeight: 800, whiteSpace: "nowrap" }}>
                                     <Plane size={11} strokeWidth={2.3} /> In transit
                                   </div>

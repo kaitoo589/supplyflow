@@ -1361,6 +1361,9 @@ export function TransitTab({ session, orders = [], activeGroupId = null }) {
     return null;
   };
   const modeHauls = hauls.filter(h => activeGroupId ? haulGroupId(h) === activeGroupId : !haulGroupId(h));
+  // Parcels genummerd op volgorde van aanmaak (Parcel 1 = oudste) — zelfde nummering als de Orders-tab.
+  const parcelNo = {};
+  [...hauls].sort((a, b) => new Date(a.created_at) - new Date(b.created_at)).forEach((h, i) => { parcelNo[h.id] = i + 1; });
 
   // Geleverde pakketten (trace_status 3) blijven standaard staan; de knop verbergt ze.
   const deliveredCount = modeHauls.filter(h => h.trace_status === 3).length;
@@ -1408,7 +1411,7 @@ export function TransitTab({ session, orders = [], activeGroupId = null }) {
             style={{ background: "#fff", borderRadius: 18, padding: "15px 16px", marginBottom: 12, boxShadow: "0 1px 2px rgba(17,17,17,0.04), 0 6px 18px rgba(17,17,17,0.05)" }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
               <div>
-                <div style={{ fontSize: 14, fontWeight: 700, color: "#111111" }}>Parcel · {itemCount} item{itemCount !== 1 ? "s" : ""}</div>
+                <div style={{ fontSize: 14, fontWeight: 700, color: "#111111" }}>Parcel {parcelNo[haul.id]} · {itemCount} item{itemCount !== 1 ? "s" : ""}</div>
                 <div style={{ fontSize: 11.5, color: "#A8A5A0" }}>{haul.created_at ? new Date(haul.created_at).toLocaleDateString("en-GB") : ""}{totalWeight ? ` · ${totalWeight}g` : ""}</div>
               </div>
               <div style={{ background: delivered ? "#111111" : ts ? "#FFF0E7" : "#F0EEE8", color: delivered ? "#fff" : ts ? "#FF5C00" : "#8A8780", fontSize: 11, fontWeight: 700, padding: "5px 11px", borderRadius: 16, whiteSpace: "nowrap" }}>

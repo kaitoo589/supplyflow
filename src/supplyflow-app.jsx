@@ -245,7 +245,7 @@ function ProgressWheelModal({ items, onClose, onOpenItem }) {
 
 // Eén bestelling (= alle items uit dezelfde aankoop). Klap open → morpht omlaag,
 // toont elk item met z'n eigen status. Statussen mogen per item verschillen.
-function OrderGroupCard({ items, onOpenItem, groupSize, onDismiss }) {
+function OrderGroupCard({ items, onOpenItem, groupSize, onDismiss, parcel }) {
   const [open, setOpen] = useState(false);
   const [wheel, setWheel] = useState(false);
   const date = items[0]?.date || "";
@@ -280,14 +280,16 @@ function OrderGroupCard({ items, onOpenItem, groupSize, onDismiss }) {
           {items.length > 3 && <div style={{ width: 40, height: 40, borderRadius: 9, background: "#F3F1ED", marginLeft: -14, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, fontWeight: 700, color: "#888" }}>+{items.length - 3}</div>}
         </div>
         <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontSize: 11, color: "#A8A5A0" }}>{date} · {items.length} item{items.length > 1 ? "s" : ""}</div>
+          <div style={{ fontSize: 11, color: "#A8A5A0" }}>{(allInTransit && parcel?.date) ? parcel.date : date} · {items.length} item{items.length > 1 ? "s" : ""}</div>
           <div style={{ fontSize: 13.5, fontWeight: 700, color: "#111", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-            {items[0].product_title || items[0].product}{items.length > 1 ? ` +${items.length - 1} more` : ""}
+            {allInTransit ? (parcel?.label || "Parcel") : `${items[0].product_title || items[0].product}${items.length > 1 ? ` +${items.length - 1} more` : ""}`}
           </div>
-          <div style={{ display: "flex", alignItems: "baseline", gap: 5, marginTop: 2 }}>
-            <span style={{ fontSize: 13, fontWeight: 800, color: "#111" }}>€{total.toFixed(2)}</span>
-            <span style={{ fontSize: 10, color: "#A8A5A0" }}>incl. fees</span>
-          </div>
+          {!allInTransit && (
+            <div style={{ display: "flex", alignItems: "baseline", gap: 5, marginTop: 2 }}>
+              <span style={{ fontSize: 13, fontWeight: 800, color: "#111" }}>€{total.toFixed(2)}</span>
+              <span style={{ fontSize: 10, color: "#A8A5A0" }}>incl. fees</span>
+            </div>
+          )}
           <div style={{ fontSize: 11, color: anyProblem ? "#B45309" : allDelivered ? "#15803D" : "#8A8780", marginTop: 1, fontWeight: allDelivered ? 700 : 400 }}>
             {anyProblem ? "⚠️ Action needed" : allDelivered ? "Delivered to you" : allInTransit ? "Shipped — track in In transit" : `${atWarehouse}/${items.length} at warehouse`}
           </div>
@@ -1286,6 +1288,7 @@ export default function SupplyFlow({ session }) {
     try { localStorage.setItem("flowva_dismissed_orders", JSON.stringify([...next])); } catch {}
     return next;
   });
+  const [hauls, setHauls] = useState([]);   // parcels — voor "Parcel N"-nummering in de Orders-tab
   const [friendsJoinCode, setFriendsJoinCode] = useState(null);
   const [friendsGroupId, setFriendsGroupId] = useState(null);   // direct een lobby openen (vanaf de groeps-cart)
   const [activeGroup, setActiveGroup] = useState(() => {
@@ -1595,11 +1598,16 @@ export default function SupplyFlow({ session }) {
     const { data } = await supabase.from("orders").select("*").eq("user_id", session.user.id).not("status", "in", "(cancelled,forfeited)").order("created_at", { ascending: false });
     setOrders(data || []);
   };
+  // Parcels (oudste eerst) — zelfde set + nummering als de In transit-tab.
+  const fetchHauls = async () => {
+    const { data } = await supabase.from("hauls").select("id, items, created_at, status").eq("user_id", session.user.id).in("status", ["confirmed", "shipped"]).order("created_at", { ascending: true });
+    setHauls(data || []);
+  };
 
   // Ververs orders bij het openen van Orders/Transit — de status kan net
   // gewijzigd zijn (bijv. naar "In transit" na een pakket-betaling).
   useEffect(() => {
-    if (session && (tab === "orders" || tab === "transit")) fetchOrders();
+    if (session && (tab === "orders" || tab === "transit")) { fetchOrders(); fetchHauls(); }
   }, [tab]);
 
   // Reactie van de klant op een gemeld probleem (zie problemTypes.js).
@@ -1701,6 +1709,15 @@ export default function SupplyFlow({ session }) {
   // Solo/standaard-modus toont ALLE orders (ook groep-orders) zodat een geplaatste
   // groep-order altijd zichtbaar/volgbaar is; groep-modus blijft op die groep gefocust.
   const visibleOrders = orders.filter((o) => (activeGroup ? o.ff_group_id === activeGroup.id : true) && !dismissedOrders.has(o.id));
+  // Parcels genummerd op volgorde van aanmaak (Parcel 1 = oudste). order_id → { n, created_at }.
+  const orderToParcel = {};
+  hauls.forEach((h, i) => { (Array.isArray(h.items) ? h.items : []).forEach((id) => { orderToParcel[id] = { n: i + 1, created_at: h.created_at }; }); });
+  const parcelInfoFor = (groupItems) => {
+    const p = groupItems.map((o) => orderToParcel[o.id]).find(Boolean);
+    if (!p) return null;
+    let date = ""; try { date = new Date(p.created_at).toLocaleDateString("en-GB"); } catch {}
+    return { label: `Parcel ${p.n}`, date };
+  };
   // Shop-modus geldt ALLEEN voor een 'gathering'-groep. Een geplaatste groep is "Following"
   // (volgen) — dan gedraagt de feed/cart/glow zich gewoon solo; Orders blijft wel die groep volgen.
   const activeGroupShopping = !!activeGroup && (myGroups.find((g) => g.group_id === activeGroup.id)?.status || "gathering") === "gathering";
@@ -2101,7 +2118,7 @@ export default function SupplyFlow({ session }) {
                     .map(items => (
                       <OrderGroupCard key={items[0].request_group_id || items[0].id} items={items}
                         groupSize={items[0]?.ff_group_id ? (myGroups.find((g) => g.group_id === items[0].ff_group_id)?.member_count || null) : null}
-                        onOpenItem={(o) => { setSelectedOrder(o); setConfirmCancel(false); }} onDismiss={dismissOrders} />
+                        onOpenItem={(o) => { setSelectedOrder(o); setConfirmCancel(false); }} onDismiss={dismissOrders} parcel={parcelInfoFor(items)} />
                     ))}
                 </AnimatePresence>
               );

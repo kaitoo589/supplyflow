@@ -158,7 +158,27 @@ const PRODUCT_COLORS = ["#FF5C00", "#6366F1", "#16A34A", "#EAB308", "#EC4899"];
 function ProgressWheelModal({ items, onClose }) {
   const scrollable = items.length > 8;
   const bars = items;
+  const listRef = useRef(null);
+  const [maxH, setMaxH] = useState(null);
+  const [seen, setSeen] = useState(8); // hoeveel items hun balkje al lieten zien (high-water)
   const overall = Math.round(items.reduce((s, o) => s + productProgress(o), 0) / items.length);
+  // Hoogte = precies 8 volledige items (incl. balkje), zodat het 8ste nooit half afgekapt is.
+  // offsetTop/offsetHeight = layout-maat → niet vervormd door de scale-animatie van de modal.
+  useLayoutEffect(() => {
+    const el = listRef.current;
+    if (!scrollable || !el || el.children.length <= 8) { setMaxH(null); return; }
+    const h = (el.children[7].offsetTop - el.children[0].offsetTop) + el.children[7].offsetHeight + 2;
+    setMaxH(h);
+  }, [scrollable, items.length]);
+  // Bij scrollen: tel hoeveel balkjes al zichtbaar wáren. Bovenste items die wegscrollen
+  // blijven meetellen (we nemen het maximum), dus +X telt alleen nog wat je écht nog niet zag.
+  const onListScroll = () => {
+    const el = listRef.current; if (!el) return;
+    const vb = el.getBoundingClientRect().bottom;
+    let revealed = 0;
+    for (const k of el.children) { if (k.getBoundingClientRect().bottom <= vb + 4) revealed++; }
+    setSeen((s) => Math.max(s, revealed));
+  };
   const milestones = [
     { pct: 25, label: "Order placed" }, { pct: 50, label: "Item bought successfully" },
     { pct: 75, label: "Shipped domestically" },
@@ -178,7 +198,7 @@ function ProgressWheelModal({ items, onClose }) {
           </div>
           <div style={{ height: 14 }} />
           {/* Eén staaf per item — eigen kleur, met foto + titel */}
-          <div style={{ display: "flex", flexDirection: "column", gap: 12, maxHeight: scrollable ? "min(430px, 58vh)" : "none", overflowY: scrollable ? "auto" : "visible", WebkitOverflowScrolling: "touch", paddingRight: scrollable ? 6 : 0 }}>
+          <div ref={listRef} onScroll={onListScroll} style={{ display: "flex", flexDirection: "column", gap: 12, maxHeight: scrollable ? (maxH ? `min(${maxH}px, 72vh)` : "min(444px, 72vh)") : "none", overflowY: scrollable ? "auto" : "visible", WebkitOverflowScrolling: "touch", paddingRight: scrollable ? 6 : 0 }}>
             {bars.map((o, i) => {
               const pct = productProgress(o);
               const color = PRODUCT_COLORS[i % PRODUCT_COLORS.length];
@@ -202,9 +222,9 @@ function ProgressWheelModal({ items, onClose }) {
               );
             })}
           </div>
-          {scrollable && (
+          {scrollable && items.length - seen > 0 && (
             <div style={{ marginTop: 8, textAlign: "center", fontSize: 11.5, fontWeight: 600, color: "#A8A5A0" }}>
-              +{items.length - 8} more · scroll to reveal ↓
+              +{items.length - seen} more · scroll to reveal ↓
             </div>
           )}
           <div style={{ marginTop: 12, paddingTop: 12, borderTop: "1px solid #F1EFE9", display: "flex", flexDirection: "column", gap: 5 }}>

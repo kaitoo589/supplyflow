@@ -44,7 +44,7 @@ const statusConfig = {
   purchased:            { label: "Order placed",                color: "#0369A1", bg: "#E0F2FE", step: 0 },
   bought:               { label: "Item bought successfully",    color: "#065F46", bg: "#D1FAE5", step: 1 },
   shipped_local:        { label: "On its way to our warehouse", color: "#0369A1", bg: "#E0F2FE", step: 2 },
-  qc_pending:           { label: "Quality-control pictures ready", color: "#065F46", bg: "#D1FAE5", step: 3 },
+  qc_pending:           { label: "Arrived in warehouse",          color: "#065F46", bg: "#D1FAE5", step: 3 },
   shipped_international: { label: "Shipped to you",             color: "#0369A1", bg: "#E0F2FE", step: 4 },
   delivered:            { label: "Delivered",                   color: "#166534", bg: "#DCFCE7", step: 5 },
 };
@@ -137,24 +137,17 @@ function ProgressRing({ percent }) {
   );
 }
 
-// Voortgang per product — 5 stappen van 20%:
-// 20 Order placed · 40 Item bought · 60 Shipped domestically · 80 Arrived in warehouse · 100 Quality-control klaar.
-// 80↔100: bij 'qc_pending' is het 80% zolang de quality-control foto's er nog niet zijn, en 100% zodra ze er zijn.
+// Voortgang per product — 4 stappen van 25%:
+// 25 Order placed · 50 Item bought · 75 Shipped domestically · 100 Arrived in warehouse & quality-control klaar.
+// 'aankomst in warehouse' en 'quality-control foto's klaar' vuren samen (één BuckyDrop-event) → samengevoegd tot de laatste mijlpaal.
 const QC_FULL_STEP = statusConfig.qc_pending.step;
 function productProgress(o) {
   const status = typeof o === "string" ? o : o?.status;
   const step = statusConfig[status]?.step ?? 0;
-  if (status === "qc_pending") return (typeof o === "object" && o?.qc_images?.length > 0) ? 100 : 80;
-  if (step > QC_FULL_STEP) return 100;   // shipped_international / delivered
-  return [20, 40, 60][step] ?? 20;        // order placed / bought / shipped_local
-}
-// Bij 'qc_pending' is een item eerst "Arrived in warehouse" (net binnen, nog geen
-// quality-control foto's) en pas "Quality-control pictures ready" zodra de foto's er zijn.
-function qcArrived(o) {
-  return typeof o === "object" && o?.status === "qc_pending" && !(o?.qc_images?.length > 0);
+  if (step >= QC_FULL_STEP) return 100;   // qc_pending (arrived & QC ready) / shipped_international / delivered
+  return [25, 50, 75][step] ?? 25;         // order placed / bought / shipped_local
 }
 function statusLabel(o) {
-  if (qcArrived(o)) return "Arrived in warehouse";
   const status = typeof o === "string" ? o : o?.status;
   return (statusConfig[status] || statusConfig.purchased).label;
 }
@@ -167,9 +160,9 @@ function ProgressWheelModal({ items, onClose }) {
   const bars = expanded ? items : items.slice(0, 8);
   const overall = Math.round(items.reduce((s, o) => s + productProgress(o), 0) / items.length);
   const milestones = [
-    { pct: 20, label: "Order placed" }, { pct: 40, label: "Item bought successfully" },
-    { pct: 60, label: "Shipped domestically" }, { pct: 80, label: "Arrived in warehouse" },
-    { pct: 100, label: "Quality-control pictures ready" },
+    { pct: 25, label: "Order placed" }, { pct: 50, label: "Item bought successfully" },
+    { pct: 75, label: "Shipped domestically" },
+    { pct: 100, label: "Arrived in warehouse & quality-control ready" },
   ];
   return createPortal(
     <>
@@ -199,7 +192,7 @@ function ProgressWheelModal({ items, onClose }) {
                     <span style={{ fontSize: 12.5, fontWeight: 800, color, flexShrink: 0 }}>{pct}%</span>
                   </div>
                   <div style={{ position: "relative", height: 12, background: "#F1EFE9", borderRadius: 6, overflow: "hidden" }}>
-                    {[20, 40, 60, 80].map((g) => (
+                    {[25, 50, 75].map((g) => (
                       <div key={g} style={{ position: "absolute", left: `${g}%`, top: 0, bottom: 0, width: 1, background: "#fff" }} />
                     ))}
                     <motion.div initial={{ width: 0 }} animate={{ width: `${pct}%` }} transition={{ duration: 0.7, delay: 0.06 * i, ease: "easeOut" }}
@@ -2185,7 +2178,7 @@ export default function SupplyFlow({ session }) {
                             style={{ background: "#FF5C00", color: "#fff", fontSize: 9.5, fontWeight: 800, letterSpacing: 0.6, padding: "3px 8px", borderRadius: 7 }}>IN PROGRESS</motion.span>
                         ))}
                         {current && label === "Arrived in warehouse" && (
-                          <div style={{ flexBasis: "100%", fontSize: 11.5, color: "#A8A5A0", marginTop: 1, lineHeight: 1.4 }}>Quality-control pictures are being prepared.</div>
+                          <div style={{ flexBasis: "100%", fontSize: 11.5, color: "#A8A5A0", marginTop: 1, lineHeight: 1.4 }}>Your item arrived and its quality-control photos are ready to view.</div>
                         )}
                       </div>
                     </div>
@@ -2257,9 +2250,7 @@ export default function SupplyFlow({ session }) {
           )}
           {(() => {
             const fm = foxMessages[selectedOrder.status];
-            const fmMsg = qcArrived(selectedOrder)
-              ? "Arrived at our warehouse! The quality-control photos are being prepared."
-              : fm?.msg;
+            const fmMsg = fm?.msg;
             return fm ? (
               <div style={{ display: "flex", alignItems: "flex-start", gap: 12, background: "#111111", borderRadius: 18, padding: "15px 16px", marginBottom: 16 }}>
                 <div style={{ width: 34, height: 34, borderRadius: "50%", background: "rgba(255,255,255,0.08)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 17, flexShrink: 0 }}><Fox /></div>

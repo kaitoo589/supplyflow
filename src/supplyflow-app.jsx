@@ -108,14 +108,14 @@ const extraServices = [
   },
 ];
 
-// Reiskaart: de route van fabriek (China) naar jouw huis, met checkpoints.
-// Tik op een checkpoint om je orders op die fase te filteren.
+// Reis-in-China: de 4 fasen die je order in China doorloopt (bestelling → magazijn).
+// Tik op een checkpoint om je orders op die fase te filteren. De internationale
+// verzending + levering zit bewust NIET hier — dat is de In transit-tab.
 const journeyStops = [
-  { key: "purchased", label: "Order placed", Icon: ShoppingBag, statuses: ["requested", "quote_sent", "quote_accepted", "purchased"], x: 11, y: 18 },
-  { key: "bought", label: "Bought", Icon: PackageCheck, statuses: ["bought"], x: 36, y: 10 },
-  { key: "shipped_local", label: "To warehouse", Icon: Truck, statuses: ["shipped_local"], x: 86, y: 26 },
-  { key: "qc_pending", label: "Arrived in warehouse", Icon: Camera, statuses: ["qc_pending"], x: 72, y: 50 },
-  { key: "in_transit", label: "In transit", Icon: Plane, statuses: ["shipped_international", "delivered"], x: 13, y: 84, dest: true },
+  { key: "purchased", label: "Order placed", Icon: ShoppingBag, statuses: ["requested", "quote_sent", "quote_accepted", "purchased"] },
+  { key: "bought", label: "Bought", Icon: PackageCheck, statuses: ["bought"] },
+  { key: "shipped_local", label: "To warehouse", Icon: Truck, statuses: ["shipped_local"] },
+  { key: "qc_pending", label: "Arrived & quality-control ready", Icon: Camera, statuses: ["qc_pending"] },
 ];
 
 // Ronde voortgangsring (% van de reis afgelegd) rechts op de groepskaart.
@@ -357,10 +357,10 @@ function OrderGroupCard({ items, onOpenItem, groupSize, onDismiss }) {
 function TreasureMap({ activeFilter, onSelect, orders }) {
   const countFor = (statuses) => orders.filter(o => statuses.includes(o.status)).length;
   return (
-    <div style={{ margin: "10px 20px 0", background: "#fff", borderRadius: 18, boxShadow: "0 1px 2px rgba(17,17,17,0.04), 0 6px 18px rgba(17,17,17,0.05)", padding: "14px 16px 8px" }}>
+    <div style={{ margin: "10px 20px 0", background: "#fff", borderRadius: 18, boxShadow: "0 1px 2px rgba(17,17,17,0.04), 0 6px 18px rgba(17,17,17,0.05)", padding: "15px 16px 14px" }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 2 }}>
         <div>
-          <div style={{ fontSize: 13, fontWeight: 700, color: "#111111" }}>Your orders' journey</div>
+          <div style={{ fontSize: 13, fontWeight: 700, color: "#111111" }}>Your orders' journey in China</div>
           <div style={{ fontSize: 10.5, color: "#A8A5A0" }}>Tap a checkpoint to filter</div>
         </div>
         <motion.button whileTap={{ scale: 0.92 }} onClick={() => onSelect("all")}
@@ -371,41 +371,32 @@ function TreasureMap({ activeFilter, onSelect, orders }) {
           )}
         </motion.button>
       </div>
-      <div style={{ position: "relative", height: 210 }}>
-        <svg viewBox="0 0 100 100" preserveAspectRatio="none" style={{ position: "absolute", inset: 0, width: "100%", height: "100%" }}>
-          <motion.path
-            d="M11,18 C19,12 28,10 36,10 C45,10 53,12 62,16 C72,20 84,19 86,26 C88,34 80,44 72,50 C60,62 28,70 13,84"
-            fill="none" stroke="#FF5C00" strokeWidth="2" strokeDasharray="0.5 3.5" strokeLinecap="round"
-            vectorEffect="non-scaling-stroke"
-            initial={{ opacity: 0 }} animate={{ opacity: 0.5 }} transition={{ duration: 0.9, delay: 0.2 }} />
-        </svg>
+      {/* Horizontale route: 4 China-haltes, gelijkmatig verdeeld op één strakke gestippelde reislijn */}
+      <div style={{ position: "relative", display: "flex", justifyContent: "space-between", marginTop: 16, marginBottom: 2 }}>
+        {/* de reislijn loopt op bol-hoogte (21px) van het 1e bol-midden (12.5%) naar het laatste (87.5%) */}
+        <div style={{ position: "absolute", top: 21, left: "12.5%", right: "12.5%", height: 0, borderTop: "2px dashed #FFC4A3", zIndex: 0 }} />
         {journeyStops.map((s, i) => {
           const active = activeFilter === s.key;
           const count = countFor(s.statuses);
-          const size = s.dest ? 42 : 32;
-          const dark = s.dest || s.key === "requested";
           return (
             <motion.div key={s.key}
               initial={{ scale: 0, opacity: 0 }} animate={{ scale: 1, opacity: 1 }}
-              transition={{ ...springBouncy, delay: 0.15 + i * 0.1 }}
+              transition={{ ...springBouncy, delay: 0.1 + i * 0.08 }}
               onClick={() => onSelect(active ? "all" : s.key)}
-              style={{ position: "absolute", left: s.x + "%", top: s.y + "%", x: "-50%", y: "-50%", textAlign: "center", cursor: "pointer", WebkitTapHighlightColor: "transparent", zIndex: 1 }}>
-              <div style={{ position: "relative", width: size, height: size, margin: "0 auto" }}>
+              style={{ position: "relative", zIndex: 1, flex: 1, display: "flex", flexDirection: "column", alignItems: "center", cursor: "pointer", WebkitTapHighlightColor: "transparent" }}>
+              <div style={{ position: "relative", width: 42, height: 42 }}>
                 {active && (
-                  <motion.div animate={{ scale: [0.9, 1.45], opacity: [0.45, 0] }} transition={{ duration: 1.6, repeat: Infinity, ease: "easeOut" }}
+                  <motion.div animate={{ scale: [0.85, 1.4], opacity: [0.5, 0] }} transition={{ duration: 1.6, repeat: Infinity, ease: "easeOut" }}
                     style={{ position: "absolute", inset: 0, borderRadius: "50%", border: "2px solid #FF5C00" }} />
                 )}
-                <div style={{ width: size, height: size, borderRadius: "50%", boxSizing: "border-box",
-                  background: active ? "#FFF0E7" : dark ? "#111111" : "#F3F1ED",
-                  border: active ? "2px solid #FF5C00" : "none",
-                  display: "flex", alignItems: "center", justifyContent: "center" }}>
-                  <s.Icon size={s.dest ? 17 : 14} strokeWidth={2.1} color={active ? "#FF5C00" : dark ? "#fff" : "#111111"} />
+                <div style={{ width: 42, height: 42, borderRadius: "50%", boxSizing: "border-box", background: active ? "#FF5C00" : "#fff", border: active ? "2px solid #FF5C00" : "2px solid #EFEBE3", display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 1px 3px rgba(17,17,17,0.06)" }}>
+                  <s.Icon size={18} strokeWidth={2.1} color={active ? "#fff" : "#111111"} />
                 </div>
                 {count > 0 && (
-                  <div style={{ position: "absolute", top: -5, right: -7, minWidth: 15, height: 15, padding: "0 2px", borderRadius: 8, background: "#FF5C00", color: "#fff", fontSize: 9, fontWeight: 700, display: "flex", alignItems: "center", justifyContent: "center", border: "2px solid #fff", boxSizing: "content-box" }}>{count}</div>
+                  <div style={{ position: "absolute", top: -4, right: -3, minWidth: 16, height: 16, padding: "0 3px", borderRadius: 8, background: "#FF5C00", color: "#fff", fontSize: 9.5, fontWeight: 800, display: "flex", alignItems: "center", justifyContent: "center", border: "2px solid #fff", boxSizing: "content-box", zIndex: 2 }}>{count}</div>
                 )}
               </div>
-              <div style={{ fontSize: 9, fontWeight: active ? 700 : 500, color: active ? "#FF5C00" : "#8A8780", width: 66, lineHeight: 1.15, margin: "4px auto 0" }}>{s.label}</div>
+              <div style={{ marginTop: 7, width: 74, textAlign: "center", fontSize: 9.5, fontWeight: active ? 700 : 500, color: active ? "#FF5C00" : "#8A8780", lineHeight: 1.2 }}>{s.label}</div>
             </motion.div>
           );
         })}

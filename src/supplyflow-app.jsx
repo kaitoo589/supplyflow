@@ -246,7 +246,7 @@ function ProgressWheelModal({ items, onClose, onOpenItem }) {
 
 // Eén bestelling (= alle items uit dezelfde aankoop). Klap open → morpht omlaag,
 // toont elk item met z'n eigen status. Statussen mogen per item verschillen.
-function OrderGroupCard({ items, onOpenItem, groupSize, onDismiss, parcel, activeFilter, onClearFilter }) {
+function OrderGroupCard({ items, onOpenItem, groupSize, onDismiss, parcel, activeFilter, onClearFilter, squad }) {
   const [open, setOpen] = useState(false);
   const [wheel, setWheel] = useState(false);
   // Datum altijd dd/mm/jjjj (uit created_at; valt terug op het tekst-date-veld).
@@ -285,18 +285,18 @@ function OrderGroupCard({ items, onOpenItem, groupSize, onDismiss, parcel, activ
           {items.length > 3 && <div style={{ width: 40, height: 40, borderRadius: 9, background: "#F3F1ED", marginLeft: -14, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, fontWeight: 700, color: "#888" }}>+{items.length - 3}</div>}
         </div>
         <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontSize: 11, color: "#A8A5A0" }}>{(allInTransit && parcel?.date) ? parcel.date : date} · {items.length} item{items.length > 1 ? "s" : ""}</div>
+          <div style={{ fontSize: 11, color: "#A8A5A0" }}>{(() => { const d = (allInTransit && parcel?.date && !squad) ? parcel.date : date; return d ? `${d} · ` : ""; })()}{items.length} item{items.length > 1 ? "s" : ""}</div>
           <div style={{ fontSize: 13.5, fontWeight: 700, color: "#111", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-            {allInTransit ? (parcel?.label || "Parcel") : `${items[0].product_title || items[0].product}${items.length > 1 ? ` +${items.length - 1} more` : ""}`}
+            {(allInTransit && !squad) ? (parcel?.label || "Parcel") : `${items[0].product_title || items[0].product}${items.length > 1 ? ` +${items.length - 1} more` : ""}`}
           </div>
-          {!allInTransit && (
+          {!allInTransit && !squad && (
             <div style={{ display: "flex", alignItems: "baseline", gap: 5, marginTop: 2 }}>
               <span style={{ fontSize: 13, fontWeight: 800, color: "#111" }}>€{total.toFixed(2)}</span>
               <span style={{ fontSize: 10, color: "#A8A5A0" }}>incl. fees</span>
             </div>
           )}
-          <div style={{ fontSize: 11, color: anyProblem ? "#B45309" : allDelivered ? "#15803D" : "#8A8780", marginTop: 1, fontWeight: allDelivered ? 700 : 400 }}>
-            {anyProblem ? "⚠️ Action needed" : allDelivered ? "Delivered to you" : allInTransit ? "Shipped — track in In transit" : `${atWarehouse}/${items.length} at warehouse`}
+          <div style={{ fontSize: 11, color: (!squad && anyProblem) ? "#B45309" : allDelivered ? "#15803D" : "#8A8780", marginTop: 1, fontWeight: allDelivered ? 700 : 400 }}>
+            {squad ? (allDelivered ? "Delivered" : allInTransit ? "In transit" : `${atWarehouse}/${items.length} at warehouse`) : (anyProblem ? "⚠️ Action needed" : allDelivered ? "Delivered to you" : allInTransit ? "Shipped — track in In transit" : `${atWarehouse}/${items.length} at warehouse`)}
           </div>
         </div>
         {allDelivered ? (
@@ -325,17 +325,17 @@ function OrderGroupCard({ items, onOpenItem, groupSize, onDismiss, parcel, activ
               {shownItems.map(o => {
                 const s = statusConfig[o.status] || statusConfig.purchased;
                 return (
-                  <motion.div key={o.id} whileTap={{ scale: 0.98 }} onClick={() => onOpenItem(o)}
-                    style={{ display: "flex", alignItems: "center", gap: 10, background: "#F8F7F4", borderRadius: 12, padding: "9px 11px", marginBottom: 6, cursor: "pointer" }}>
+                  <motion.div key={o.id} whileTap={onOpenItem ? { scale: 0.98 } : undefined} onClick={onOpenItem ? () => onOpenItem(o) : undefined}
+                    style={{ display: "flex", alignItems: "center", gap: 10, background: "#F8F7F4", borderRadius: 12, padding: "9px 11px", marginBottom: 6, cursor: onOpenItem ? "pointer" : "default" }}>
                     <div style={{ width: 38, height: 38, borderRadius: 8, background: "#fff", border: "1px solid #F0EEE8", overflow: "hidden", flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
                       {o.variant_image ? <img src={o.variant_image} referrerPolicy="no-referrer" alt="" style={{ width: "100%", height: "100%", objectFit: "contain" }} /> : <span style={{ fontSize: 17 }}>📦</span>}
                     </div>
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{ fontSize: 12.5, fontWeight: 600, color: "#111", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{o.product_title || o.product}</div>
-                      <div style={{ fontSize: 11, color: "#A8A5A0", marginBottom: 3 }}>{o.qty} pcs{o.kleur ? ` · ${o.kleur}` : ""} · €{(Number(o.price) || 0).toFixed(2)}</div>
+                      <div style={{ fontSize: 11, color: "#A8A5A0", marginBottom: 3 }}>{o.qty} pcs{o.kleur ? ` · ${o.kleur}` : ""}{squad ? "" : ` · €${(Number(o.price) || 0).toFixed(2)}`}</div>
                       <div style={{ display: "inline-block", background: s.bg, color: s.color, fontSize: 10.5, fontWeight: 700, padding: "2px 9px", borderRadius: 20 }}>{statusLabel(o)}{o.problem_type === "out_of_stock" ? <> · out of stock · <span style={{ color: "#15803D" }}>refunded</span></> : o.problem_type ? " · ⚠️" : ""}</div>
                     </div>
-                    <div style={{ color: "#ccc", fontSize: 16, flexShrink: 0 }}>→</div>
+                    {onOpenItem && <div style={{ color: "#ccc", fontSize: 16, flexShrink: 0 }}>→</div>}
                   </motion.div>
                 );
               })}
@@ -344,7 +344,7 @@ function OrderGroupCard({ items, onOpenItem, groupSize, onDismiss, parcel, activ
                   style={{ width: "100%", marginTop: 4, background: "#111", color: "#fff", border: "none", borderRadius: 12, padding: "11px", fontSize: 12.5, fontWeight: 700, cursor: "pointer", WebkitTapHighlightColor: "transparent" }}>
                   All orders
                 </motion.button>
-              ) : (
+              ) : squad ? null : (
                 <div style={{ marginTop: 4, padding: "10px 12px", background: "#FAF9F6", borderRadius: 12, border: "1px solid #EFEDE7" }}>
                   <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, color: "#6B6862", marginBottom: 5 }}>
                     <span>Items ({items.length})</span><span>€{subtotal.toFixed(2)}</span>
@@ -2156,50 +2156,27 @@ export default function SupplyFlow({ session }) {
               <div style={{ marginTop: 18 }}>
                 <div style={{ fontSize: 11, color: "#A8A5A0", fontWeight: 600, letterSpacing: 0.4, margin: "0 2px 8px" }}>SQUAD · {activeGroup.name}</div>
                 {(() => {
-                  const others = groupOrders.filter((o) => o.user_id !== session.user.id && matchesFilter(o));
+                  const others = groupOrders.filter((o) => o.user_id !== session.user.id);
                   const byMember = others.reduce((acc, o) => { (acc[o.user_id] = acc[o.user_id] || []).push(o); return acc; }, {});
-                  return Object.values(byMember).map((memberOrders) => {
-                    const m0 = memberOrders[0];
-                    return (
-                      <div key={m0.user_id} style={{ marginBottom: 12 }}>
-                        <div style={{ display: "flex", alignItems: "center", gap: 8, margin: "0 2px 6px" }}>
-                          <div style={{ width: 22, height: 22, borderRadius: "50%", overflow: "hidden", background: "#0F0E0C", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                            {m0.avatar_url ? <img src={m0.avatar_url} referrerPolicy="no-referrer" alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : <span style={{ fontSize: 11, fontWeight: 700, color: "#fff" }}>{(m0.member || "?").charAt(0).toUpperCase()}</span>}
-                          </div>
-                          <div style={{ fontSize: 12.5, fontWeight: 700, color: "#0F0E0C" }}>{m0.member}</div>
-                        </div>
-                        <div style={{ background: "#fff", borderRadius: 16, padding: "4px 14px", boxShadow: "0 1px 2px rgba(17,17,17,0.04), 0 6px 18px rgba(17,17,17,0.05)" }}>
-                          {memberOrders.map((o, i, arr) => {
-                            const s = statusConfig[o.status] || {};
-                            return (
-                              <div key={o.id} style={{ display: "flex", alignItems: "center", gap: 10, padding: "11px 0", borderBottom: i < arr.length - 1 ? "1px solid #F0EEE8" : "none" }}>
-                                <div style={{ width: 38, height: 38, borderRadius: 9, background: "#F3F1ED", overflow: "hidden", flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
-                                  {o.variant_image ? <img src={o.variant_image} referrerPolicy="no-referrer" alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : <span style={{ fontSize: 17 }}>📦</span>}
-                                </div>
-                                <div style={{ flex: 1, minWidth: 0 }}>
-                                  <div style={{ fontSize: 13, fontWeight: 600, color: "#111111", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{o.product_title}</div>
-                                  <div style={{ display: "inline-block", marginTop: 3, background: s.bg || "#F3F1ED", color: s.color || "#6B6862", fontSize: 10.5, fontWeight: 700, padding: "2px 9px", borderRadius: 20 }}>{statusLabel(o)}</div>
-                                </div>
-                                {o.status === "delivered" ? (
-                                  <div style={{ flexShrink: 0, display: "flex", alignItems: "center", gap: 4, background: "#DCFCE7", color: "#15803D", borderRadius: 999, padding: "5px 9px 5px 8px", fontSize: 10, fontWeight: 800, whiteSpace: "nowrap" }}>
-                                    <PackageCheck size={11} strokeWidth={2.4} /> Delivered
-                                  </div>
-                                ) : (statusConfig[o.status]?.step ?? 0) > statusConfig.qc_pending.step ? (
-                                  <div style={{ flexShrink: 0, display: "flex", alignItems: "center", gap: 4, background: "#E0F2FE", color: "#0369A1", borderRadius: 999, padding: "5px 9px 5px 8px", fontSize: 10, fontWeight: 800, whiteSpace: "nowrap" }}>
-                                    <Plane size={11} strokeWidth={2.3} /> In transit
-                                  </div>
-                                ) : (
-                                  <motion.div whileTap={{ scale: 0.85 }} onClick={() => setSquadWheel(o)} title="Tap for progress" style={{ flexShrink: 0, cursor: "pointer" }}>
-                                    <ProgressRing percent={productProgress(o)} />
-                                  </motion.div>
-                                )}
+                  return (
+                    <AnimatePresence initial={false}>
+                      {Object.values(byMember).filter((mo) => mo.some(matchesFilter)).map((memberOrders) => {
+                        const m0 = memberOrders[0];
+                        return (
+                          <motion.div key={m0.user_id} layout exit={{ opacity: 0, scale: 0.96, transition: { duration: 0.2, ease: [0.4, 0, 1, 1] } }} style={{ marginBottom: 12 }}>
+                            <div style={{ display: "flex", alignItems: "center", gap: 8, margin: "0 2px 6px" }}>
+                              <div style={{ width: 22, height: 22, borderRadius: "50%", overflow: "hidden", background: "#0F0E0C", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                                {m0.avatar_url ? <img src={m0.avatar_url} referrerPolicy="no-referrer" alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : <span style={{ fontSize: 11, fontWeight: 700, color: "#fff" }}>{(m0.member || "?").charAt(0).toUpperCase()}</span>}
                               </div>
-                            );
-                          })}
-                        </div>
-                      </div>
-                    );
-                  });
+                              <div style={{ fontSize: 12.5, fontWeight: 700, color: "#0F0E0C" }}>{m0.member}</div>
+                            </div>
+                            <OrderGroupCard items={memberOrders} groupSize={null} squad
+                              activeFilter={orderFilter} onClearFilter={() => setOrderFilter("all")} />
+                          </motion.div>
+                        );
+                      })}
+                    </AnimatePresence>
+                  );
                 })()}
                 <div style={{ fontSize: 11, color: "#A8A5A0", margin: "2px 2px 0", lineHeight: 1.4 }}>👀 Your squad's order statuses — view only. You're only notified about your own items.</div>
               </div>

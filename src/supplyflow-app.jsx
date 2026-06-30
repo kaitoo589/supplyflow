@@ -245,7 +245,7 @@ function ProgressWheelModal({ items, onClose }) {
 
 // Eén bestelling (= alle items uit dezelfde aankoop). Klap open → morpht omlaag,
 // toont elk item met z'n eigen status. Statussen mogen per item verschillen.
-function OrderGroupCard({ items, onOpenItem, groupSize }) {
+function OrderGroupCard({ items, onOpenItem, groupSize, onDismiss }) {
   const [open, setOpen] = useState(false);
   const [wheel, setWheel] = useState(false);
   const date = items[0]?.date || "";
@@ -254,6 +254,8 @@ function OrderGroupCard({ items, onOpenItem, groupSize }) {
   const atWarehouse = items.filter(o => (statusConfig[o.status]?.step ?? 0) >= whStep).length;
   // Hele groep voorbij het magazijn (shipped/delivered) = "In transit" → geen progress-cirkel meer.
   const allInTransit = items.length > 0 && items.every(o => (statusConfig[o.status]?.step ?? 0) > whStep);
+  // Hele groep geleverd = pakket aangekomen → groen "Parcel arrived" + ✕ om het blokje te verwijderen.
+  const allDelivered = items.length > 0 && items.every(o => o.status === "delivered");
   const anyProblem = items.some(o => o.problem_type);
   const subtotal = items.reduce((s, o) => s + (Number(o.price) || 0), 0);
   // Groep-order = groepstarief (zelfde staffel als de checkout); anders solo 8%/min €5.
@@ -261,8 +263,14 @@ function OrderGroupCard({ items, onOpenItem, groupSize }) {
   const fee = isGroupOrder && groupSize ? estimateMemberFee(groupSize, subtotal) : serviceFee(subtotal);
   const total = subtotal + fee;
   return (
-    <motion.div layout style={{ background: "#fff", border: "1px solid #E8E6E0", borderRadius: 16, marginBottom: 10, overflow: "hidden" }}>
-      <motion.div whileTap={{ scale: 0.99 }} onClick={() => setOpen(o => !o)} style={{ display: "flex", alignItems: "center", gap: 12, padding: "13px 15px", cursor: "pointer" }}>
+    <motion.div layout exit={{ opacity: 0, scale: 0.94, transition: { duration: 0.22, ease: [0.4, 0, 1, 1] } }} style={{ position: "relative", background: "#fff", border: "1px solid #E8E6E0", borderRadius: 16, marginBottom: 10, overflow: "hidden" }}>
+      {allDelivered && onDismiss && (
+        <motion.button whileTap={{ scale: 0.82 }} onClick={(e) => { e.stopPropagation(); onDismiss(items.map(o => o.id)); }} title="Remove from orders"
+          style={{ position: "absolute", top: 8, right: 9, zIndex: 3, width: 23, height: 23, borderRadius: 999, background: "#F1EFE9", border: "none", display: "flex", alignItems: "center", justifyContent: "center", color: "#9A968F", cursor: "pointer", padding: 0, WebkitTapHighlightColor: "transparent" }}>
+          <X size={13} strokeWidth={2.7} />
+        </motion.button>
+      )}
+      <motion.div whileTap={allInTransit ? undefined : { scale: 0.99 }} onClick={() => { if (!allInTransit) setOpen(o => !o); }} style={{ display: "flex", alignItems: "center", gap: 12, padding: allDelivered ? "13px 38px 13px 15px" : "13px 15px", cursor: allInTransit ? "default" : "pointer" }}>
         <div style={{ display: "flex", flexShrink: 0 }}>
           {items.slice(0, 3).map((o, i) => (
             <div key={o.id} style={{ width: 40, height: 40, borderRadius: 9, background: "#fff", boxShadow: "0 0 0 1px #F0EEE8", overflow: "hidden", marginLeft: i ? -14 : 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
@@ -280,11 +288,15 @@ function OrderGroupCard({ items, onOpenItem, groupSize }) {
             <span style={{ fontSize: 13, fontWeight: 800, color: "#111" }}>€{total.toFixed(2)}</span>
             <span style={{ fontSize: 10, color: "#A8A5A0" }}>incl. fees</span>
           </div>
-          <div style={{ fontSize: 11, color: anyProblem ? "#B45309" : "#8A8780", marginTop: 1 }}>
-            {anyProblem ? "⚠️ Action needed" : allInTransit ? "Shipped — track in In transit" : `${atWarehouse}/${items.length} at warehouse`}
+          <div style={{ fontSize: 11, color: anyProblem ? "#B45309" : allDelivered ? "#15803D" : "#8A8780", marginTop: 1, fontWeight: allDelivered ? 700 : 400 }}>
+            {anyProblem ? "⚠️ Action needed" : allDelivered ? "Delivered to you" : allInTransit ? "Shipped — track in In transit" : `${atWarehouse}/${items.length} at warehouse`}
           </div>
         </div>
-        {allInTransit ? (
+        {allDelivered ? (
+          <div style={{ flexShrink: 0, display: "flex", alignItems: "center", gap: 5, background: "#DCFCE7", color: "#15803D", borderRadius: 999, padding: "6px 11px 6px 9px", fontSize: 11, fontWeight: 800, whiteSpace: "nowrap" }}>
+            <PackageCheck size={13} strokeWidth={2.4} /> Parcel arrived
+          </div>
+        ) : allInTransit ? (
           <div style={{ flexShrink: 0, display: "flex", alignItems: "center", gap: 5, background: "#E0F2FE", color: "#0369A1", borderRadius: 999, padding: "6px 11px 6px 9px", fontSize: 11, fontWeight: 800, whiteSpace: "nowrap" }}>
             <Plane size={13} strokeWidth={2.3} /> In transit
           </div>
@@ -293,9 +305,11 @@ function OrderGroupCard({ items, onOpenItem, groupSize }) {
             <ProgressRing percent={percent} />
           </motion.div>
         )}
-        <motion.div animate={{ rotate: open ? 0 : 180 }} transition={springSnappy} style={{ flexShrink: 0, display: "flex" }}>
-          <ChevronUp size={18} color="#C9C6C1" strokeWidth={2.4} />
-        </motion.div>
+        {!allInTransit && (
+          <motion.div animate={{ rotate: open ? 0 : 180 }} transition={springSnappy} style={{ flexShrink: 0, display: "flex" }}>
+            <ChevronUp size={18} color="#C9C6C1" strokeWidth={2.4} />
+          </motion.div>
+        )}
       </motion.div>
       <AnimatePresence initial={false}>
         {open && (
@@ -1271,6 +1285,16 @@ export default function SupplyFlow({ session }) {
   const [showFriends, setShowFriends] = useState(false);
   const [groupOrders, setGroupOrders] = useState([]);   // alle orders van de actieve groep (alleen-lezen)
   const [squadWheel, setSquadWheel] = useState(null);   // squad-item waarvan de voortgangscirkel openstaat
+  // Geleverde orders die de klant zelf uit de lijst heeft weggehaald (✕). Per-device in localStorage —
+  // het is puur een weergave-voorkeur; de order/het pakket blijft gewoon in de In transit-tab vindbaar.
+  const [dismissedOrders, setDismissedOrders] = useState(() => {
+    try { return new Set(JSON.parse(localStorage.getItem("flowva_dismissed_orders") || "[]")); } catch { return new Set(); }
+  });
+  const dismissOrders = (ids) => setDismissedOrders((prev) => {
+    const next = new Set(prev); ids.forEach((id) => next.add(id));
+    try { localStorage.setItem("flowva_dismissed_orders", JSON.stringify([...next])); } catch {}
+    return next;
+  });
   const [friendsJoinCode, setFriendsJoinCode] = useState(null);
   const [friendsGroupId, setFriendsGroupId] = useState(null);   // direct een lobby openen (vanaf de groeps-cart)
   const [activeGroup, setActiveGroup] = useState(() => {
@@ -1685,7 +1709,7 @@ export default function SupplyFlow({ session }) {
   // Zo zijn Orders/Warehouse/Transit twee duidelijk gescheiden modussen.
   // Solo/standaard-modus toont ALLE orders (ook groep-orders) zodat een geplaatste
   // groep-order altijd zichtbaar/volgbaar is; groep-modus blijft op die groep gefocust.
-  const visibleOrders = orders.filter((o) => activeGroup ? o.ff_group_id === activeGroup.id : true);
+  const visibleOrders = orders.filter((o) => (activeGroup ? o.ff_group_id === activeGroup.id : true) && !dismissedOrders.has(o.id));
   // Shop-modus geldt ALLEEN voor een 'gathering'-groep. Een geplaatste groep is "Following"
   // (volgen) — dan gedraagt de feed/cart/glow zich gewoon solo; Orders blijft wel die groep volgen.
   const activeGroupShopping = !!activeGroup && (myGroups.find((g) => g.group_id === activeGroup.id)?.status || "gathering") === "gathering";
@@ -2078,14 +2102,18 @@ export default function SupplyFlow({ session }) {
                 (acc[k] = acc[k] || []).push(o);
                 return acc;
               }, {});
-              return Object.values(grouped)
-                .filter(items => items.some(matchesFilter))         // groep tonen als één item bij het filter past
-                .sort((a, b) => (a[0].id < b[0].id ? 1 : -1))       // nieuwste bovenaan
-                .map(items => (
-                  <OrderGroupCard key={items[0].request_group_id || items[0].id} items={items}
-                    groupSize={items[0]?.ff_group_id ? (myGroups.find((g) => g.group_id === items[0].ff_group_id)?.member_count || null) : null}
-                    onOpenItem={(o) => { setSelectedOrder(o); setConfirmCancel(false); }} />
-                ));
+              return (
+                <AnimatePresence initial={false}>
+                  {Object.values(grouped)
+                    .filter(items => items.some(matchesFilter))         // groep tonen als één item bij het filter past
+                    .sort((a, b) => (a[0].id < b[0].id ? 1 : -1))       // nieuwste bovenaan
+                    .map(items => (
+                      <OrderGroupCard key={items[0].request_group_id || items[0].id} items={items}
+                        groupSize={items[0]?.ff_group_id ? (myGroups.find((g) => g.group_id === items[0].ff_group_id)?.member_count || null) : null}
+                        onOpenItem={(o) => { setSelectedOrder(o); setConfirmCancel(false); }} onDismiss={dismissOrders} />
+                    ))}
+                </AnimatePresence>
+              );
             })()}
             {activeGroup && groupOrders.filter((o) => o.user_id !== session.user.id).length > 0 && (
               <div style={{ marginTop: 18 }}>

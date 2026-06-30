@@ -156,8 +156,8 @@ const PRODUCT_COLORS = ["#FF5C00", "#6366F1", "#16A34A", "#EAB308", "#EC4899"];
 // Tik op de ring → groot voortgangswiel: elk product een concentrische boog die
 // zich vult richting QC (= vol). Mijlpaal-streepjes tonen waar het % op slaat.
 function ProgressWheelModal({ items, onClose }) {
-  const [expanded, setExpanded] = useState(false);
-  const bars = expanded ? items : items.slice(0, 8);
+  const scrollable = items.length > 8;
+  const bars = items;
   const overall = Math.round(items.reduce((s, o) => s + productProgress(o), 0) / items.length);
   const milestones = [
     { pct: 25, label: "Order placed" }, { pct: 50, label: "Item bought successfully" },
@@ -178,7 +178,7 @@ function ProgressWheelModal({ items, onClose }) {
           </div>
           <div style={{ height: 14 }} />
           {/* Eén staaf per item — eigen kleur, met foto + titel */}
-          <div style={{ display: "flex", flexDirection: "column", gap: 12, maxHeight: expanded ? "46vh" : "none", overflowY: expanded ? "auto" : "visible", paddingRight: expanded ? 4 : 0 }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: 12, maxHeight: scrollable ? "min(430px, 58vh)" : "none", overflowY: scrollable ? "auto" : "visible", WebkitOverflowScrolling: "touch", paddingRight: scrollable ? 6 : 0 }}>
             {bars.map((o, i) => {
               const pct = productProgress(o);
               const color = PRODUCT_COLORS[i % PRODUCT_COLORS.length];
@@ -202,11 +202,10 @@ function ProgressWheelModal({ items, onClose }) {
               );
             })}
           </div>
-          {items.length > 8 && (
-            <motion.button whileTap={{ scale: 0.97 }} onClick={() => setExpanded((e) => !e)}
-              style={{ width: "100%", marginTop: 12, background: "#F8F7F4", border: "1px solid #ECEAE5", borderRadius: 12, padding: "10px", fontSize: 12.5, fontWeight: 700, color: "#111", cursor: "pointer", WebkitTapHighlightColor: "transparent" }}>
-              {expanded ? "Show less ▴" : `+${items.length - 8} more · tap to see all ▾`}
-            </motion.button>
+          {scrollable && (
+            <div style={{ marginTop: 8, textAlign: "center", fontSize: 11.5, fontWeight: 600, color: "#A8A5A0" }}>
+              +{items.length - 8} more · scroll to reveal ↓
+            </div>
           )}
           <div style={{ marginTop: 12, paddingTop: 12, borderTop: "1px solid #F1EFE9", display: "flex", flexDirection: "column", gap: 5 }}>
             {milestones.map((m) => (

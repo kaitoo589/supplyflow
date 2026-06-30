@@ -6,6 +6,7 @@ import { springBouncy, springMorph, springSoft } from "./motion";
 import { WordReveal, SpeechBubble } from "./MotionBits";
 import { Plane, MapPin } from "lucide-react";
 import Fox from "./Fox";
+import { garmentType } from "./garment";
 
 // Verzendmodel China → NL: een first-weight-blok (eerste 0,5 kg) + tarief per extra kg,
 // dan een veiligheidsbuffer (verschil komt terug) en 21% invoer-BTW (DDP — wij schieten
@@ -498,6 +499,7 @@ function StorageQuoteFlow({ haulItems, balance, orderIds, onBack, onSuccess }) {
   };
   const activeSent = quote && quote.status === "sent" && quote.valid_date === today;
   const total = Number(quote?.total_eur || 0);
+  const custCats = [...new Set(haulItems.map(o => garmentType(o.product_title || o.product)))]; // alleen weergave; €3 zit al in de DDP-prijs
   const row = (label, value, strong) => (
     <div style={{ display: "flex", justifyContent: "space-between", padding: "6px 0", fontSize: 13, color: strong ? "#fff" : "#C9C6C1", fontWeight: strong ? 700 : 400, borderTop: strong ? "1px solid #333" : "none", marginTop: strong ? 4 : 0 }}>
       <span>{label}</span><span style={{ color: strong ? "#FF5C00" : "#fff", fontWeight: strong ? 700 : 600 }}>{value}</span>
@@ -532,6 +534,7 @@ function StorageQuoteFlow({ haulItems, balance, orderIds, onBack, onSuccess }) {
             <div style={{ fontSize: 10, fontWeight: 700, color: "#0F0E0C", background: "#FF5C00", padding: "3px 9px", borderRadius: 999 }}>VALID TODAY</div>
           </div>
           {row("International shipping", `€${Number(quote.shipping_eur).toFixed(2)}`)}
+          {custCats.length > 0 && row(`↳ incl. EU customs · €3 × ${custCats.length} ${custCats.length === 1 ? "category" : "categories"}`, `€${(custCats.length * 3).toFixed(2)}`)}
           {row(`Storage${quote.storage_days ? ` (${quote.storage_days} days)` : ""}`, `€${Number(quote.storage_eur).toFixed(2)}`)}
           {row("Total", `€${total.toFixed(2)}`, true)}
           <motion.button whileTap={{ scale: 0.98 }} onClick={pay} disabled={busy || balance < total}
@@ -572,6 +575,9 @@ function NormalShippingConfirm({ session, haulItems, balance, onBack, onSuccess 
   const [error, setError] = useState(null);
   const orderIds = haulItems.map(o => o.id);
   const totalWeight = haulItems.reduce((s, o) => s + (o.weight_grams || 0), 0);
+  // Douane-categorieën in dit pakket (HS6-benadering). ALLEEN voor weergave — de €3 zit al
+  // in de DDP-prijs van BuckyDrop, we tellen 'm niet bovenop het totaal.
+  const custCats = [...new Set(haulItems.map(o => garmentType(o.product_title || o.product)))];
 
   const LIVE_BUFFER = 1.25;             // houd gelijk aan pay_shipping_buffered (SQL)
   const FULFIL_EUR = r2(9.9 / 7.8);     // fulfilment ¥9,9 per pakket
@@ -662,6 +668,12 @@ function NormalShippingConfirm({ session, haulItems, balance, onBack, onSuccess 
             <span style={{ fontSize: 13, color: "#888" }}>International shipping <span style={{ color: "#666" }}>· duties included</span></span>
             <span style={{ fontSize: 13, color: "#fff" }}>€{buffered.toFixed(2)}</span>
           </div>
+          {custCats.length > 0 && (
+            <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8, paddingLeft: 12 }}>
+              <span style={{ fontSize: 11.5, color: "#666" }}>↳ incl. EU customs · €3 × {custCats.length} {custCats.length === 1 ? "category" : "categories"}</span>
+              <span style={{ fontSize: 11.5, color: "#777" }}>€{(custCats.length * 3).toFixed(2)}</span>
+            </div>
+          )}
           {vat > 0 && (
             <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8 }}>
               <span style={{ fontSize: 13, color: "#888" }}>Import VAT (21%)</span>

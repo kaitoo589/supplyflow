@@ -12,6 +12,7 @@ import OrderRequest from "./OrderRequest";
 import Friends from "./Friends";
 import GroupModeGlow from "./GroupModeGlow";
 import { ffMyGroups, estimateMemberFee } from "./ffApi";
+import { garmentType } from "./garment";
 import { WarehouseTab, TransitTab } from "./WarehouseAndHaul";
 import { motion, AnimatePresence } from "framer-motion";
 import { createPortal } from "react-dom";
@@ -46,7 +47,7 @@ const statusConfig = {
   shipped_local:        { label: "On its way to our warehouse", color: "#0369A1", bg: "#E0F2FE", step: 2 },
   qc_pending:           { label: "Arrived in warehouse",          color: "#065F46", bg: "#D1FAE5", step: 3 },
   shipped_international: { label: "In transit",                 color: "#0369A1", bg: "#E0F2FE", step: 4 },
-  delivered:            { label: "In transit",                  color: "#0369A1", bg: "#E0F2FE", step: 5 },
+  delivered:            { label: "Delivered",                   color: "#15803D", bg: "#DCFCE7", step: 5 },
 };
 
 // Labels van de tracking-bolletjes — index = statusConfig[...].step.
@@ -543,30 +544,6 @@ function QuoteAcceptance({ order, session, balance, allOrders = [], onAccepted }
 
 // Aanvraaglijst: alles in één keer versturen = één service fee over de bundel.
 // De sheet deelt z'n layoutId met het zwevende balkje en morpht ervandaan open.
-// Leidt het kledingtype (≈ één 6-cijferige HS-douanecategorie) af uit de producttitel.
-// Gratis keyword-classificatie, GEEN AI. Elk type ≈ één HS6 → bepaalt straks de €3-douanetelling
-// (EU-regel per 1 juli 2026: €3 per distinct HS6 in een pakket). Volgorde telt: specifiek vóór
-// generiek (t-shirt vóór shirt, hoodie/sweatshirt vóór shirt en vóór top).
-const GARMENT_RULES = [
-  [/(t-?shirt|\btee\b|tank ?top|singlet)/i, "T-shirt"],
-  [/(hoodie|sweatshirt|sweater|jumper|pullover|cardigan|\bknit|gilet)/i, "Sweater / hoodie"],
-  [/(polo|button[- ]?up|dress shirt|overhemd|blouse|\bshirt)/i, "Shirt / blouse"],
-  [/(jeans|denim|trouser|\bpants\b|chino|cargo|legging|jogger|sweatpant)/i, "Trousers / jeans"],
-  [/(shorts|bermuda)/i, "Shorts"],
-  [/(dress|gown|jumpsuit|romper|playsuit)/i, "Dress"],
-  [/(skirt|skort)/i, "Skirt"],
-  [/(jacket|\bcoat\b|blazer|parka|windbreaker|puffer|trench|bomber)/i, "Jacket / coat"],
-  [/(lingerie|underwear|panties|\bpanty\b|\bbra\b|boxer|briefs?|thong)/i, "Underwear"],
-  [/(\bsocks?\b)/i, "Socks"],
-  [/(\bhat\b|\bcap\b|beanie|scarf|glove|\bbelt\b|handbag|\bbag\b|tote|wallet)/i, "Accessory"],
-  [/(camisole|\bcami\b|crop|\btop\b|vest)/i, "Top"],
-];
-function garmentType(title) {
-  const t = (title || "").toLowerCase();
-  for (const [re, name] of GARMENT_RULES) if (re.test(t)) return name;
-  return "Other clothing";
-}
-
 function RequestListSheet({ items, onRemove, onSetQty, onClose, onSend, sending, error, session, onEditAddress, onTopUp, onFinish, flagged, reasons }) {
   const [view, setView] = useState("cart");
   const [agreed, setAgreed] = useState(false);
@@ -701,7 +678,7 @@ function RequestListSheet({ items, onRemove, onSetQty, onClose, onSend, sending,
                 <div style={{ background: "#23201C", border: "1px solid #3A332B", borderRadius: 12, padding: "10px 13px", marginTop: 10, display: "flex", gap: 9, alignItems: "flex-start" }}>
                   <span style={{ fontSize: 15, marginTop: 1 }}>🛃</span>
                   <div style={{ fontSize: 11.5, lineHeight: 1.5, color: "#C9C6C1" }}>
-                    Your cart has <b style={{ color: "#fff" }}>{cats.length} product {cats.length === 1 ? "category" : "categories"}</b> ({cats.join(", ")}). A new EU rule adds <b style={{ color: "#fff" }}>€3 customs per category</b> — this is settled inside your <b style={{ color: "#fff" }}>international shipping</b> later, not now. Fewer categories (or shopping with Flowva Friends) means lower customs.
+                    These items fall under <b style={{ color: "#fff" }}>{cats.length} customs {cats.length === 1 ? "category" : "categories"}</b> ({cats.join(", ")}). A new EU rule means <b style={{ color: "#fff" }}>€3 customs per category</b> (€3 × {cats.length} = €{cats.length * 3}) — already <b style={{ color: "#fff" }}>included in your DDP international shipping</b>, never charged on top. Fewer categories (or Flowva Friends) means less customs.
                   </div>
                 </div>
               ); })()}

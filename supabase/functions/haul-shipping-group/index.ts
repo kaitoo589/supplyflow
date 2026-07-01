@@ -141,11 +141,19 @@ Deno.serve(async (req) => {
   if (!group) return json({ ok: false, error: "Group not found" }, 404);
   if (group.host_id !== user.id) return json({ ok: false, error: "Only the host can arrange shipping" }, 403);
 
-  // ALLE meetellende groep-orders via service-role (NIET .eq user_id) — gestaged, gewogen, niet-geretourneerd.
-  const { data: orders } = await admin.from("orders")
+  // ALLE levende groep-orders via service-role (NIET .eq user_id): niet-geretourneerd en
+  // niet geannuleerd/gerefund. We gaten op ALLES wat nog niet klaar-in-de-doos is.
+  const { data: allOrders } = await admin.from("orders")
     .select("id,qty,weight_grams,length_cm,width_cm,height_cm,bd_category_code,status,return_status,box_staged_at")
-    .eq("ff_group_id", groupId).eq("status", "qc_pending");
-  const counting = (orders || []).filter((o) => !o.return_status);
+    .eq("ff_group_id", groupId);
+  const alive = (allOrders || []).filter((o) => !o.return_status && o.status !== "cancelled" && o.status !== "refunded");
+  // WATERDICHT: een groep-pakket mag pas verzonden worden als ELK levend item (behalve
+  // retours) in het magazijn is én in de doos zit. Items die nog ONDERWEG zijn blokkeren —
+  // anders vertrekt het pakket zonder dat lid z'n bestelling. Dit gaat vóór quote én lock.
+  const COMING = ["quote_accepted", "purchased", "bought", "shipped_local"];
+  const stillComing = alive.filter((o) => COMING.includes(o.status)).length;
+  if (stillComing) return json({ ok: false, error: `${stillComing} group item${stillComing === 1 ? " is" : "s are"} still on the way — the parcel can ship once everything has arrived in the warehouse.`, needIncoming: true }, 200);
+  const counting = alive.filter((o) => o.status === "qc_pending");
   if (!counting.length) return json({ ok: false, error: "No items ready to ship in this group" }, 400);
   if (counting.some((o) => !o.box_staged_at)) return json({ ok: false, error: "Everyone must add their items to the box first", needStaging: true }, 200);
   if (counting.some((o) => !Number(o.weight_grams))) return json({ ok: false, error: "Some items have no weight yet", needWeight: true }, 200);

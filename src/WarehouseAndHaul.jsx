@@ -103,15 +103,6 @@ function OpenBox({ itemCount, onClick, isDropTarget }) {
           </motion.div>
         )}
 
-        {/* Pijl hint als leeg */}
-        {itemCount === 0 && !isDropTarget && (
-          <motion.div
-            animate={{ y: [0, 5, 0] }}
-            transition={{ repeat: Infinity, duration: 1.5 }}
-            style={{ position: "absolute", bottom: -8, fontSize: 16, opacity: 0.5 }}
-          >↓</motion.div>
-        )}
-
         {/* Drop hint */}
         {isDropTarget && (
           <motion.div
@@ -163,12 +154,22 @@ function Scale({ weightKg }) {
   );
 }
 
-function WarehouseFox({ haulItems, isDropTarget }) {
-  const msg = isDropTarget
-    ? "Drop it in the box! 📦"
-    : haulItems.length > 0
-    ? `Nice! ${haulItems.length} item${haulItems.length > 1 ? "s" : ""} in the box. Drag more or confirm your parcel!`
-    : "Drag your items to the shipping box to add products for international shipping!";
+function WarehouseFox({ haulItems, isDropTarget, activeGroupId, waitingCount = 0, incomingCount = 0 }) {
+  const n = (x, s) => `${x} item${x === 1 ? "" : "s"}${s || ""}`;
+  let msg;
+  if (isDropTarget) {
+    msg = "Drop it in the box! 📦";
+  } else if (activeGroupId && waitingCount > 0) {
+    // Flowva Friends: ALLES moet erin voordat er verzonden kan worden (één gecombineerd pakket).
+    msg = `${n(waitingCount)} still to go before your squad can ship — everyone's items travel in one parcel. 📦`;
+  } else if (!activeGroupId && incomingCount > 0) {
+    // Solo: aanrader om te wachten (goedkoper + service fee per internationale verzending).
+    msg = `${n(incomingCount, " still on the way")}. Worth the wait — sending everything in one parcel is much cheaper, and the service fee applies to each international shipment. 📦`;
+  } else if (haulItems.length > 0) {
+    msg = `Nice! ${n(haulItems.length)} in the box.${activeGroupId ? "" : " Drag more or confirm your parcel!"}`;
+  } else {
+    msg = "Drag your items to the shipping box to add products for international shipping!";
+  }
   return (
     <div style={{ display: "flex", alignItems: "flex-end", gap: 10 }}>
       <motion.div
@@ -423,11 +424,14 @@ function OrderCard({ order, onDragStart, onDragMove, onDragEnd, inHaul, onOpenDe
       onDrag={(e, info) => canDrag && onDragMove && onDragMove(info, e)}
       onDragEnd={(e, info) => canDrag && onDragEnd(order, info, e)}
       whileDrag={canDrag ? { scale: 1.06, zIndex: 50, boxShadow: "0 20px 60px rgba(0,0,0,0.2)", cursor: "grabbing" } : {}}
-      whileHover={{ y: -2 }}
+      whileHover={canDrag ? { y: -2 } : {}}
       style={{
         background: inHaul ? "#F0FDF4" : "#fff",
-        border: `1.5px solid ${inHaul ? "#10B981" : "#E8E6E0"}`,
+        // Klaar-om-te-slepen = zachtgroene rand; in de doos = vol groen; nog niet klaar = grijs.
+        border: `1.5px solid ${inHaul ? "#10B981" : canDrag ? "#86EFAC" : "#E8E6E0"}`,
         borderRadius: 14, padding: "10px 12px", marginBottom: 10,
+        // Wacht nog op quality-control → gedempt, zodat klaar-items er duidelijk uitspringen.
+        opacity: (!hasQc && !flagged && !returning) ? 0.6 : 1,
         cursor: canDrag ? "grab" : "default", userSelect: "none", position: "relative",
       }}
     >
@@ -992,9 +996,14 @@ export function WarehouseTab({ session, haulItems: allHaulItems = [], setHaulIte
   };
 
   const totalWeight = haulItems.reduce((s, o) => s + (o.weight_grams || 0), 0);
-  // Groep-gate: élk groep-item moet in de doos zitten vóór verzending. Een geaccepteerde return telt NIET mee (groep hoeft niet te wachten).
-  const groupPending = (squadOrders || []).filter(o => o.status === "qc_pending" && !o.return_status);
-  const waitingCount = groupPending.filter(o => !o.box_staged_at).length;
+  // Groep-gate (WATERDICHT): élk levend groep-item (behalve retours) moet klaar-in-de-doos zijn
+  // vóór verzending. Dat omvat óók items die nog ONDERWEG zijn (nog niet aangekomen) — anders
+  // vertrekt het pakket zonder die bestelling. De server (haul-shipping-group) dwingt dit óók af.
+  const COMING_STATUSES = ["quote_accepted", "purchased", "bought", "shipped_local"];
+  const groupAlive = (squadOrders || []).filter(o => !o.return_status && o.status !== "cancelled" && o.status !== "refunded");
+  const groupComing = groupAlive.filter(o => COMING_STATUSES.includes(o.status)).length;                  // nog onderweg
+  const groupUnstaged = groupAlive.filter(o => o.status === "qc_pending" && !o.box_staged_at).length;     // aangekomen, niet in doos
+  const waitingCount = groupComing + groupUnstaged;
   const groupReady = !activeGroupId || waitingCount === 0;
   const isHost = !activeGroupId || session.user.id === squadHostId; // alleen de host mag verzenden
   const canShip = groupReady && isHost;
@@ -1091,7 +1100,7 @@ export function WarehouseTab({ session, haulItems: allHaulItems = [], setHaulIte
         }}
       >
         <div style={{ marginBottom: 14 }}>
-          <WarehouseFox haulItems={haulItems} isDropTarget={isDropTarget} />
+          <WarehouseFox haulItems={haulItems} isDropTarget={isDropTarget} activeGroupId={activeGroupId} waitingCount={waitingCount} incomingCount={incomingCount} />
         </div>
 
         {/* Doos op weegschaal */}
@@ -1106,21 +1115,6 @@ export function WarehouseTab({ session, haulItems: allHaulItems = [], setHaulIte
           </div>
         </div>
 
-        {haulItems.length > 0 && (() => {
-          const ship = r2(shippingEstimate(totalWeight / 1000) * BUFFER_MULTIPLIER);
-          const perItem = r2(ship / haulItems.length);
-          const weighed = totalWeight > 0;
-          return (
-            <motion.div initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} style={{ textAlign: "center", marginTop: 10 }}>
-              <div style={{ fontSize: 12, color: "#8B6914", fontWeight: 600 }}>
-                {haulItems.length} item{haulItems.length !== 1 ? "s" : ""}{weighed ? ` · ${totalWeight}g · ~€${ship.toFixed(2)} ship + VAT at checkout` : " · shipping calculated once weighed"}
-              </div>
-              <div style={{ fontSize: 11.5, color: "#5C3D0A", fontWeight: 700, marginTop: 3 }}>
-                {weighed ? `≈ €${perItem.toFixed(2)} per item — add more to lower this 📦` : "Shipping is per parcel — add more to lower the cost per item 📦"}
-              </div>
-            </motion.div>
-          );
-        })()}
       </div>
 
       {activeGroupId ? (
@@ -1312,7 +1306,7 @@ function GroupShippingPanel({ session, groupId, shipment, waitingCount, isHost, 
     if (haulCount === 0 && waitingCount === 0) return null;
     if (waitingCount > 0) {
       return <div style={{ ...wrap, textAlign: "center", color: "#92400E", background: "#FFF7ED", borderColor: "#FCD9B6", fontSize: 13 }}>
-        ⏳ Waiting for your squad — {waitingCount} item{waitingCount === 1 ? "" : "s"} not in the box yet.
+        ⏳ Waiting for your squad — {waitingCount} item{waitingCount === 1 ? "" : "s"} still on the way or not in the box yet. Everything ships in one parcel.
       </div>;
     }
     if (!isHost) {

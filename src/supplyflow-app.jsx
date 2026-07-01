@@ -1120,8 +1120,6 @@ function HowItWorksSheet({ onClose }) {
           <div style={{ fontSize: 13.5, color: "#E8E6E0", lineHeight: 1.55 }}>Build your haul, then ship it as one box. The more you bundle, the less you pay per item — on both the fee and the shipping.</div>
         </div>
 
-        <div style={{ fontSize: 11.5, color: "#A8A5A0", textAlign: "center", marginBottom: 16 }}>Your exact shipping is calculated live at checkout.</div>
-
         <motion.button whileTap={{ scale: 0.97 }} onClick={onClose}
           style={{ width: "100%", background: "#FF5C00", color: "#fff", border: "none", borderRadius: 12, padding: "14px", fontSize: 15, fontWeight: 700, cursor: "pointer", WebkitTapHighlightColor: "transparent" }}>
           Got it <Fox />

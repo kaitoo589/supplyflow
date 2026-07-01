@@ -1056,7 +1056,7 @@ function EditProfileSheet({ session, onClose }) {
 function HowItWorksSheet({ onClose }) {
   const steps = [
     { icon: "🏭", title: "Shop straight from the factory", body: "You see the real 1688 & Taobao factory prices — no inflated retail markup. What it costs in China is what you pay." },
-    { icon: "🛒", title: "A small service fee", body: "We buy it, check it and handle everything for you. The fee is 8% (min €5) per order — and it drops further when you order together with Flowva Friends." },
+    { icon: "🛒", title: "A small service fee", body: <>We buy it, check it and handle everything for you. The fee is 8% (min €5) per order — and it drops further when you order together with <b style={{ color: "#FF5C00" }}>Flowva Friends</b>.</> },
     { icon: "🏬", title: "Your items wait in your China warehouse", body: "Bought items gather safely in your personal warehouse — 30 days free. No rush; keep adding to your haul." },
     { icon: "📸", title: "Quality-control + measurement photos", body: "We photograph and measure your actual item before it ships — so you see exactly what you're getting, no surprises on the doorstep." },
     { icon: "📦", title: "One parcel — duties included (DDP)", body: "International shipping is charged per parcel, not per item — so the more you bundle, the cheaper it gets per item. Sent duty-paid (DDP): nothing extra to pay at your door." },

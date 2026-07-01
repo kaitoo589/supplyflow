@@ -1079,7 +1079,7 @@ function HowItWorksSheet({ onClose }) {
     { icon: "🏬", title: "Your items wait in your China warehouse", body: "Bought items gather safely in your personal warehouse — 30 days free. No rush; keep adding to your haul." },
     { icon: "📸", title: "Quality-control + measurement photos", body: "We photograph and measure your actual item before it ships — so you see exactly what you're getting, no surprises on the doorstep." },
     { icon: "📦", title: "One parcel — duties included (DDP)", body: "International shipping is charged per parcel, not per item — so the more you bundle, the cheaper it gets per item. Sent duty-paid (DDP): nothing extra to pay at your door." },
-    { icon: "💸", title: "You only pay the real shipping", body: "At checkout you pay an estimate with a small safety buffer. About a week after it ships, the carrier's final bill comes in and you get any difference back on your balance." },
+    { icon: "💸", title: "You only pay the real shipping", body: "When you ship your bundle you pay an estimate with a small safety buffer. About a week after it ships, the carrier's final bill comes in and you get any difference back on your balance." },
   ];
   return (
     <>
@@ -1184,9 +1184,9 @@ function PricingSheet({ onClose }) {
         </div>
 
         <div style={card}>
-          <div style={sectionLabel}>PER ORDER — shared, so bigger baskets are cheaper</div>
+          <div style={sectionLabel}>PER PARCEL — charged when you ship, so bigger bundles are cheaper</div>
           <Row icon="📦" name="Fulfillment" who="to our shipping agent" amount="¥9.9 · ≈€1.27"
-            desc="Our shipping agent receives, packs and prepares your whole order, plus 30 days of free storage. Charged once per order."
+            desc="Our shipping agent receives, packs and prepares your parcel, plus 30 days of free storage. Charged once per parcel, when you ship."
             extra={
               <div style={{ background: "#FFF7F2", border: "1px solid #FBE2D2", borderRadius: 10, padding: "9px 11px", margin: "8px 0 0 25px" }}>
                 <div style={{ fontSize: 11, fontWeight: 700, color: "#B8430A", marginBottom: 3 }}>Two surcharges may apply:</div>
@@ -1196,7 +1196,7 @@ function PricingSheet({ onClose }) {
           <Row icon="✈️" name="International shipping" who="to the carrier & customs" amount="by weight"
             desc={<>China → your door, priced by weight. <b style={{ color: "#46443F" }}>Tax-inclusive.</b> A <b style={{ color: "#46443F" }}>€3 customs cost per product category</b> is also settled inside this shipping price.</>} />
           <Row icon="🧾" name="Flowva fee" who="Flowva's fee" whoOrange amount="4–8% · min €3.50–€5"
-            desc={<>Our only earning, calculated <b style={{ color: "#46443F" }}>only on the factory price</b> — never on the agent or shipping costs.</>} />
+            desc={<>Our only earning, calculated <b style={{ color: "#46443F" }}>only on the factory price</b> — never on the agent or shipping costs. Charged once when you ship your bundle.</>} />
         </div>
 
         <div style={card}>
@@ -1205,7 +1205,7 @@ function PricingSheet({ onClose }) {
             <div style={{ fontSize: 15.5, fontWeight: 800, color: "#111" }}>Solo shopping</div>
           </div>
           <div style={{ fontSize: 13, lineHeight: 1.6, color: "#46443F" }}>
-            You shop on your own. The smart move: put <b>everything in one order</b>. Fulfillment, shipping and the Flowva fee are charged once per order — so the more you add, the less each item costs. Your Flowva fee here is <b>8% of the factory price, with a €5 minimum</b> per order.
+            You shop on your own. There's <b>no fee when you buy</b> — you only pay the factory price. Fulfillment, shipping and the Flowva fee are charged once <b>when you ship your bundle</b> — so the more you ship together, the less each item costs. Your Flowva fee is <b>8% of the factory price, min €5</b>.
           </div>
           <div style={{ display: "flex", gap: 8, marginTop: 11, alignItems: "flex-start" }}>
             <span style={{ fontSize: 14, marginTop: 1 }}>ℹ️</span>
@@ -1213,7 +1213,7 @@ function PricingSheet({ onClose }) {
           </div>
           <div style={{ display: "flex", gap: 8, marginTop: 8, alignItems: "flex-start" }}>
             <span style={{ fontSize: 14, marginTop: 1 }}>⚠️</span>
-            <div style={{ fontSize: 11.5, lineHeight: 1.5, color: "#8A8780" }}>Paying twice means two separate orders — those fixed costs apply again. Add to one basket instead.</div>
+            <div style={{ fontSize: 11.5, lineHeight: 1.5, color: "#8A8780" }}>Fulfillment, shipping and the fee are charged once <b style={{ color: "#46443F" }}>per parcel</b> — so ship everything in one bundle, not several separate parcels.</div>
           </div>
         </div>
 
@@ -2869,7 +2869,7 @@ export default function SupplyFlow({ session }) {
               <span style={{ fontSize: 18 }}>📋</span>
               <div style={{ flex: 1 }}>
                 <div style={{ fontSize: 13, fontWeight: 700, color: "#fff" }}>Shopping cart · {requestList.length} item{requestList.length > 1 ? "s" : ""}</div>
-                <div style={{ fontSize: 11.5, color: "#9C9893" }}>Tap to open — one service fee <Fox /></div>
+                <div style={{ fontSize: 11.5, color: "#9C9893" }}>Tap to open — one fee at shipping <Fox /></div>
               </div>
               <motion.div animate={{ y: [0, -3, 0] }} transition={{ duration: 1.4, repeat: Infinity, ease: "easeInOut" }}
                 style={{ width: 30, height: 30, borderRadius: "50%", background: "rgba(255,92,0,0.15)", display: "flex", alignItems: "center", justifyContent: "center" }}>

@@ -84,11 +84,11 @@ In these Terms, the following words have the following meanings:
 
 5.2 **Topping up.** You add to your Balance by paying us, for example by card or another supported payment method, through our payment processor Stripe (see section 5.8). The amount you pay is added to your Balance. Top-ups are payments to Flowva.
 
-5.3 **How the Balance is used.** When you place an Order, the price of the Products, the service fee, taxes and the shipping estimate are deducted from your Balance. If a shipping reconciliation later results in a refund (see section 8), the difference is added back to your Balance.
+5.3 **How the Balance is used.** When you place an Order, the price of the Products and the China-side handling costs (domestic shipping and Quality Control) are deducted from your Balance. The **service fee** and the **international shipping estimate** (plus any import taxes) are deducted later, when you confirm international shipping of your parcel. If a shipping reconciliation later results in a refund (see section 8), the difference is added back to your Balance.
 
 5.4 **No interest.** Your Balance does not earn interest and is not an investment.
 
-5.5 **Sufficient funds.** You can only place an Order if your Balance covers the full amount due, including the shipping estimate. If your Balance is insufficient, you will be asked to top up first.
+5.5 **Sufficient funds.** You can only place an Order if your Balance covers the amount due for that Order (the Product price and the China-side handling costs). The service fee and international shipping are charged separately when you confirm shipping, and also require sufficient Balance at that point. If your Balance is insufficient at either step, you will be asked to top up first.
 
 5.6 **Refund / withdrawal of unused Balance.** Any Balance that you have topped up but not yet spent on an Order remains yours. You can ask us at any time to refund your **unused** Balance to your original payment method (or, where that is not possible, by another reasonable means). We will process such a request without undue delay. We may apply reasonable identity checks and anti-fraud / anti-money-laundering checks before refunding, and we may decline to refund amounts that are subject to an open Order, a dispute, a chargeback, or a legal hold.
 [LEGAL REVIEW: confirm refund handling of unused balance, any reasonable processing fee (if charged at all), AML/KYC thresholds and obligations, and whether refundability strengthens or weakens the e-money analysis.]
@@ -101,7 +101,7 @@ In these Terms, the following words have the following meanings:
 
 ## 6. How ordering works
 
-6.1 **Placing an Order.** You select Products, review the full price breakdown (factory price, service fee, taxes and shipping estimate) and confirm your Order. Your confirmation is an offer to buy. A binding contract of sale is formed when we accept your Order — normally shown by an on-screen and/or email order confirmation.
+6.1 **Placing an Order.** You select Products, review the price breakdown for that Order (factory price plus the China-side handling costs) and confirm your Order. The service fee and international shipping are shown and charged later, when you confirm shipping of your parcel (see sections 7 and 8). Your confirmation is an offer to buy. A binding contract of sale is formed when we accept your Order — normally shown by an on-screen and/or email order confirmation.
 
 6.2 **Factory-direct sourcing.** Once your Order is confirmed and paid from your Balance, Flowva (through BuckyDrop) buys the Product from the Factory on your behalf as part of fulfilling our sale to you.
 
@@ -130,6 +130,8 @@ International shipping starts only after you confirm. Until then your item is he
 
 The total you pay is the sum of these clearly itemised amounts. We do not add hidden margins.
 
+**When each is charged.** The factory price and the China-side handling costs (domestic shipping and Quality Control) are charged when you place an Order. The **service fee** and **international shipping** are charged once per parcel, when you confirm international shipping — so items you bundle into a single parcel share one service fee and one international shipping charge.
+
 7.2 **Currency.** Prices are shown and charged in euro (EUR) unless stated otherwise. Where a source price is in another currency, we convert it transparently at the rate applied at the time.
 
 7.3 **Taxes, duties and DDP.** Prices for delivery into the EU are **tax-inclusive** and shipped **DDP (Delivered Duty Paid)**: import duties and **21% import VAT** are already included in what you pay, so you will **not** face surprise customs charges on delivery. Where a price line is shown as tax-inclusive, there is no separate VAT line added on top — the VAT is already contained in the price.
@@ -141,7 +143,7 @@ The total you pay is the sum of these clearly itemised amounts. We do not add hi
 
 ## 8. Shipping, delivery and reconciliation
 
-8.1 **Shipping estimate and buffer.** International shipping is charged at checkout as an **estimate**, which includes a reasonable buffer, because the exact carrier cost is not known until the parcel is actually shipped and weighed.
+8.1 **Shipping estimate and buffer.** International shipping is charged when you confirm shipping of your parcel, as an **estimate** that includes a reasonable buffer, because the exact carrier cost is not known until the parcel is actually shipped and weighed.
 
 8.2 **Reconciliation and refund of the difference.** Approximately one week after shipping, we reconcile the estimate against the **real** carrier cost. If the real cost is **lower** than the estimate you paid, the difference is **refunded to your Balance**. The estimate plus buffer is set so that, in the normal course, reconciliation results in a refund to you rather than an additional charge.
 [LEGAL REVIEW: confirm whether Flowva may ever charge the customer *more* than the estimate if the real cost exceeds estimate-plus-buffer. Best practice for consumer transparency is to bear any overrun ourselves and never post-charge a consumer beyond the disclosed estimate; if any top-up charge is possible, it must be disclosed clearly before the Order and likely requires the customer's prior express consent.]

@@ -68,9 +68,10 @@ const label = { fontSize: 12, color: "#9C9893", margin: "0 2px 6px", display: "b
 // "Why ordering together is cheaper"-popover (via het info-icoon). Twee kopjes:
 // 1) verzending (de grootste besparing), 2) de groeps-fee + tier-tabel.
 function FeeInfo({ onClose, members, myTotal, myFee }) {
+  // Spiegelt public.ff_member_fee (de ECHTE staffel) — houd in sync met estimateMemberFee in ffApi.
   const tiers = [
-    { n: "Solo", pct: "8%", min: "€5" }, { n: "2", pct: "5%", min: "€4" }, { n: "3", pct: "4%", min: "€3.50" },
-    { n: "4", pct: "3.5%", min: "€3" }, { n: "5", pct: "3%", min: "€3" }, { n: "6", pct: "3%", min: "€2.50" }, { n: "7", pct: "2.5%", min: "€2.50" },
+    { n: "Solo", pct: "8%", min: "€5" }, { n: "2", pct: "7%", min: "€4.50" }, { n: "3", pct: "6%", min: "€4.50" },
+    { n: "4", pct: "5.5%", min: "€4" }, { n: "5", pct: "5%", min: "€4" }, { n: "6", pct: "4.5%", min: "€4" }, { n: "7", pct: "4%", min: "€3.50" },
   ];
   return (
     <div onClick={onClose} style={{ position: "fixed", inset: 0, zIndex: 410, background: "rgba(0,0,0,0.6)", display: "flex", alignItems: "flex-end", justifyContent: "center" }}>

@@ -2745,7 +2745,7 @@ export default function SupplyFlow({ session }) {
             <span style={{ fontSize: 11.5, color: "#D4D1CA" }}>·</span>
             <a href="/returns-policy" style={{ fontSize: 11.5, color: "#A8A5A0", textDecoration: "none" }}>Returns</a>
           </div>
-          <div style={{ textAlign: "center", fontSize: 10.5, color: "#C9C6C1", marginTop: 8 }}>© Flowva</div>
+          <div style={{ textAlign: "center", fontSize: 10.5, color: "#C9C6C1", marginTop: 8 }}>© Flowva · build {typeof __BUILD_ID__ !== "undefined" ? __BUILD_ID__ : "dev"}</div>
         </motion.div>
       )}
 

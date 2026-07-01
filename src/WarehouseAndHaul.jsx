@@ -613,7 +613,14 @@ function NormalShippingConfirm({ session, haulItems, balance, onBack, onSuccess 
   const estFreight = chosen ? chosen.priceEur : 0;
   const buffered = r2(estFreight * LIVE_BUFFER);
   const vat = chosen ? (chosen.taxInclusive ? 0 : r2(estFreight * IMPORT_VAT)) : 0;
-  const toPay = r2(buffered + vat + FULFIL_EUR);
+  // Fulfilment-toeslagen — moet 1:1 kloppen met pay_shipping_buffered (server-side): >5 stuks -> +¥2/extra
+  // stuk; >2 kg -> +¥1,5/kg boven 2 (facturabel gewicht naar boven afgerond op hele kg). ¥->€ via /7,8.
+  const pieces = haulItems.reduce((s, o) => s + (Number(o.qty) || 1), 0);
+  const billableKg = Math.ceil(totalWeight / 1000);
+  const extraItems = Math.max(0, pieces - 5);
+  const extraKg = Math.max(0, billableKg - 2);
+  const surcharge = r2((extraItems * 2 + extraKg * 1.5) / 7.8);
+  const toPay = r2(buffered + vat + FULFIL_EUR + surcharge);
   const canAfford = balance >= toPay;
 
   // Afrekenen: de edge function her-quote't + rekent server-side de buffered schatting af.
@@ -684,6 +691,12 @@ function NormalShippingConfirm({ session, haulItems, balance, onBack, onSuccess 
             <span style={{ fontSize: 13, color: "#888" }}>Fulfillment (¥9.9)</span>
             <span style={{ fontSize: 13, color: "#fff" }}>€{FULFIL_EUR.toFixed(2)}</span>
           </div>
+          {surcharge > 0 && (
+            <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8 }}>
+              <span style={{ fontSize: 13, color: "#888" }}>Handling surcharge <span style={{ color: "#666" }}>· {[extraItems > 0 ? `¥2 × ${extraItems} extra item${extraItems > 1 ? "s" : ""}` : null, extraKg > 0 ? `¥1.5 × ${extraKg}kg over 2kg` : null].filter(Boolean).join(" · ")}</span></span>
+              <span style={{ fontSize: 13, color: "#fff" }}>€{surcharge.toFixed(2)}</span>
+            </div>
+          )}
           <div style={{ borderTop: "1px solid #333", paddingTop: 10, display: "flex", justifyContent: "space-between" }}>
             <span style={{ fontSize: 14, fontWeight: 700, color: "#fff" }}>Pay now <span style={{ fontWeight: 500, color: "#9C9893", fontSize: 12 }}>· estimate</span></span>
             <span style={{ fontSize: 14, fontWeight: 700, color: "#FF5C00" }}>€{toPay.toFixed(2)}</span>

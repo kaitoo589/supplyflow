@@ -620,14 +620,17 @@ function RequestListSheet({ items, onRemove, onSetQty, onClose, onSend, sending,
             <motion.div key="cart">
               <div style={{ fontSize: 18, fontWeight: 700, color: "#fff", marginBottom: 14 }}>🛒 Shopping cart ({items.length})</div>
 
-              <div style={{ display: "flex", gap: 10, alignItems: "flex-end", marginBottom: 16 }}>
-                <motion.span layoutId="cart-fox" style={{ fontSize: 28, flexShrink: 0 }}><Fox /></motion.span>
-                <SpeechBubble bg="#1E1D1A" color="#C9C6C1">
-                  <span style={{ fontSize: 12.5, lineHeight: 1.55 }}>
-                    Smart move! Your whole cart shares <b style={{ color: "#FF5C00" }}>one service fee</b> (8%, min €5), so the more you add, the less it costs <b style={{ color: "#FF5C00" }}>per item</b>. From €62.50 it's just a flat 8% — the lowest it gets. Order things separately and each one carries its own fee.
-                  </span>
-                </SpeechBubble>
-              </div>
+              {payable.length > 0 && totalQty >= 5 && (() => { const cats = [...new Set(payable.map((it) => garmentType(it.product_title)))]; return (
+                <div style={{ background: "#23201C", border: "1px solid #3A332B", borderRadius: 12, padding: "11px 13px", marginBottom: 16 }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 5 }}>
+                    <span style={{ fontSize: 16 }}>🛃</span>
+                    <span style={{ fontSize: 12.5, fontWeight: 700, color: "#fff" }}>{cats.length} product {cats.length === 1 ? "category" : "categories"} · €{cats.length * 3} EU customs</span>
+                  </div>
+                  <div style={{ fontSize: 11.5, lineHeight: 1.5, color: "#9C9893" }}>
+                    A new EU rule charges <b style={{ color: "#C9C6C1" }}>€3 per product category</b>, calculated inside your <b style={{ color: "#C9C6C1" }}>international shipping</b> (charged when you ship, not now). Shopping with <b style={{ color: "#FF5C00" }}>Flowva Friends</b> splits this across your group.
+                  </div>
+                </div>
+              ); })()}
 
               {items.map((item, i) => {
                 const held = isHeld(item);
@@ -681,27 +684,26 @@ function RequestListSheet({ items, onRemove, onSetQty, onClose, onSend, sending,
                     <span style={{ fontSize: 11, color: "#9C9893" }}>that's only</span>
                     <motion.span key={perItem.toFixed(2)} initial={{ scale: 1.3, opacity: 0.3 }} animate={{ scale: 1, opacity: 1 }} transition={{ type: "spring", stiffness: 420, damping: 18 }}
                       style={{ fontSize: 19, fontWeight: 800, color: perItemColor }}>€{perItem.toFixed(2)}</motion.span>
-                    <span style={{ fontSize: 11, fontWeight: 600, color: perItemColor }}>per item {perItem < 2 ? "🎉" : <Fox />}</span>
+                    <span style={{ fontSize: 11, fontWeight: 600, color: perItemColor }}>service fee per item</span>
                   </div>
                 </motion.div>
               )}
 
-              {payable.length > 0 && totalQty >= 5 && (() => { const cats = [...new Set(payable.map((it) => garmentType(it.product_title)))]; return (
-                <div style={{ background: "#23201C", border: "1px solid #3A332B", borderRadius: 12, padding: "11px 13px", marginTop: 10 }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 5 }}>
-                    <span style={{ fontSize: 16 }}>🛃</span>
-                    <span style={{ fontSize: 12.5, fontWeight: 700, color: "#fff" }}>{cats.length} product {cats.length === 1 ? "category" : "categories"} · €{cats.length * 3} EU customs</span>
-                  </div>
-                  <div style={{ fontSize: 11.5, lineHeight: 1.5, color: "#9C9893" }}>
-                    {cats.join(", ")}. A new EU rule charges <b style={{ color: "#C9C6C1" }}>€3 per product category</b>, calculated inside your <b style={{ color: "#C9C6C1" }}>international shipping</b> (charged when you ship, not now). Shopping with Flowva Friends splits this across your group.
-                  </div>
+              {payable.length > 0 && totalQty >= 5 && (
+                <div style={{ display: "flex", gap: 10, alignItems: "flex-start", marginTop: 12 }}>
+                  <motion.span layoutId="cart-fox" style={{ fontSize: 28, flexShrink: 0 }}><Fox /></motion.span>
+                  <SpeechBubble bg="#1E1D1A" color="#C9C6C1">
+                    <span style={{ fontSize: 12.5, lineHeight: 1.6 }}>
+                      Your entire cart shares a <b style={{ color: "#FF5C00" }}>single service fee</b>: 8% of the total item value, with a minimum charge of €5. For smaller orders, the €5 minimum applies, which can make the fee seem higher per item. Once your cart reaches <b style={{ color: "#C9C6C1" }}>€62.50</b>, 8% equals €5, so the minimum no longer applies and you simply pay a flat 8% — the lowest possible rate. Ordering items separately means each order carries its own €5 minimum fee. By creating a <b style={{ color: "#FF5C00" }}>group order with friends</b>, you can split both the service fee and shipping costs, making it even more affordable.
+                    </span>
+                  </SpeechBubble>
                 </div>
-              ); })()}
+              )}
 
               {payable.length > 0 && totalQty < 5 && (
                 <motion.div layout style={{ background: "#1E1D1A", borderRadius: 14, padding: "14px 16px", marginTop: 12 }}>
-                  <div style={{ fontSize: 13.5, fontWeight: 700, color: "#fff", marginBottom: 4 }}>Add {5 - totalQty} more for the best price</div>
-                  <div style={{ fontSize: 11.5, color: "#9C9893", lineHeight: 1.5, marginBottom: 12 }}>You can order fewer than 5 items, but it's not recommended — fees are shared across your whole order, so 5+ keeps the price per item low.</div>
+                  <div style={{ fontSize: 13.5, fontWeight: 700, color: "#fff", marginBottom: 4 }}>Add {5 - totalQty} more to check out</div>
+                  <div style={{ fontSize: 11.5, color: "#9C9893", lineHeight: 1.5, marginBottom: 12 }}>You can't order fewer than 5 items — with fewer, the fixed fees make each item too expensive.</div>
                   <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                     <div style={{ flex: 1, height: 8, background: "rgba(255,255,255,0.1)", borderRadius: 6, overflow: "hidden" }}>
                       <motion.div animate={{ width: `${Math.min(100, (totalQty / 5) * 100)}%` }} transition={springSnappy} style={{ height: "100%", background: "#FF5C00", borderRadius: 6 }} />
@@ -718,9 +720,9 @@ function RequestListSheet({ items, onRemove, onSetQty, onClose, onSend, sending,
                   ⏸ {heldCount === 1 ? "1 item is" : `${heldCount} items are`} on hold and won't be charged{payable.length ? " — you can still check out the rest" : ""}. Keep {heldCount === 1 ? "it" : "them"} and check back soon, or remove {heldCount === 1 ? "it" : "them"}. You haven't been charged.
                 </div>
               )}
-              <motion.button whileTap={payable.length ? { scale: 0.97 } : undefined} onClick={() => payable.length && setView("checkout")} disabled={payable.length === 0}
-                style={{ width: "100%", marginTop: 12, background: payable.length ? "#FF5C00" : "#333", color: "#fff", border: "none", borderRadius: 14, padding: "16px", fontSize: 15, fontWeight: 700, cursor: payable.length ? "pointer" : "default", WebkitTapHighlightColor: "transparent" }}>
-                {payable.length === 0 ? "All items are on hold" : heldCount > 0 ? `Check out the ${payable.length} available item${payable.length > 1 ? "s" : ""} →` : "Go to checkout →"}
+              <motion.button whileTap={payable.length && totalQty >= 5 ? { scale: 0.97 } : undefined} onClick={() => payable.length && totalQty >= 5 && setView("checkout")} disabled={payable.length === 0 || totalQty < 5}
+                style={{ width: "100%", marginTop: 12, background: (payable.length && totalQty >= 5) ? "#FF5C00" : "#333", color: (payable.length && totalQty >= 5) ? "#fff" : "#777", border: "none", borderRadius: 14, padding: "16px", fontSize: 15, fontWeight: 700, cursor: (payable.length && totalQty >= 5) ? "pointer" : "default", WebkitTapHighlightColor: "transparent" }}>
+                {payable.length === 0 ? "All items are on hold" : totalQty < 5 ? `Add ${5 - totalQty} more item${5 - totalQty === 1 ? "" : "s"} to check out` : heldCount > 0 ? `Check out the ${payable.length} available item${payable.length > 1 ? "s" : ""} →` : "Go to checkout →"}
               </motion.button>
 
               <motion.button whileTap={{ scale: 0.97 }} onClick={onClose}

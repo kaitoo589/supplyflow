@@ -26,6 +26,14 @@ import { serviceFee } from "./fees";
 import PushToggle from "./PushToggle";
 import Fox from "./Fox";
 
+// —— PREVIEW / LAUNCH-GATE —————————————————————————————————————————————
+// Tot de officiële launch (Stripe live) kan er nog niet betaald worden. Zolang
+// PRELAUNCH=true wordt de iDEAL-opwaardeerknop vervangen door een launch-datum-
+// melding, zodat bezoekers wél kunnen browsen/hun mand vullen maar niet tegen een
+// dode betaalflow lopen. Zet PRELAUNCH op false zodra betalingen live zijn.
+const PRELAUNCH = true;
+const LAUNCH_DATE_LABEL = "July 3rd";
+
 // Overgang tussen tabs/schermen: zacht in-/uitschuiven (Apple-stijl).
 const pageTransition = {
   initial: { opacity: 0, x: 24 },
@@ -589,7 +597,7 @@ function RequestListSheet({ items, onRemove, onSetQty, onClose, onSend, sending,
       {error}
       {lowBalance && onTopUp && (
         <button onClick={onTopUp} style={{ display: "block", width: "100%", marginTop: 8, background: "#DC2626", color: "#fff", border: "none", borderRadius: 8, padding: "8px", fontSize: 12.5, fontWeight: 700, cursor: "pointer" }}>
-          Top up your balance →
+          {PRELAUNCH ? `Flowva launches ${LAUNCH_DATE_LABEL} →` : "Top up your balance →"}
         </button>
       )}
     </div>
@@ -2490,10 +2498,17 @@ export default function SupplyFlow({ session }) {
               <input type="checkbox" checked={topupAgreed} onChange={e => setTopupAgreed(e.target.checked)} style={{ marginTop: 1, accentColor: "#FF5C00", width: 16, height: 16, flexShrink: 0 }} />
               <span>I agree to the <a href="/terms" target="_blank" rel="noreferrer" style={{ color: "#FF5C00" }}>Terms</a>, and that my balance is prepayment for Flowva orders and that any refunds are credited back to my balance.</span>
             </label>
-            <button onClick={handleTopup} disabled={loadingBalance || !topupAmount || !topupAgreed}
-              style={{ width: "100%", background: loadingBalance || !topupAmount || !topupAgreed ? "#E8E6E0" : "#FF5C00", color: "#fff", border: "none", borderRadius: 10, padding: "12px", fontSize: 14, fontWeight: 700, cursor: loadingBalance || !topupAmount || !topupAgreed ? "default" : "pointer" }}>
-              {loadingBalance ? "Loading..." : `+ Add €${topupAmount || "0"} via iDEAL`}
-            </button>
+            {PRELAUNCH ? (
+              <div style={{ width: "100%", background: "#111111", color: "#fff", borderRadius: 10, padding: "13px 14px", textAlign: "center", lineHeight: 1.4 }}>
+                <div style={{ fontSize: 13.5, fontWeight: 700 }}>🚀 Flowva launches {LAUNCH_DATE_LABEL}</div>
+                <div style={{ fontSize: 11.5, fontWeight: 500, color: "#B7B3AD", marginTop: 3 }}>Top-ups &amp; ordering open on launch day — you can already browse and build your cart.</div>
+              </div>
+            ) : (
+              <button onClick={handleTopup} disabled={loadingBalance || !topupAmount || !topupAgreed}
+                style={{ width: "100%", background: loadingBalance || !topupAmount || !topupAgreed ? "#E8E6E0" : "#FF5C00", color: "#fff", border: "none", borderRadius: 10, padding: "12px", fontSize: 14, fontWeight: 700, cursor: loadingBalance || !topupAmount || !topupAgreed ? "default" : "pointer" }}>
+                {loadingBalance ? "Loading..." : `+ Add €${topupAmount || "0"} via iDEAL`}
+              </button>
+            )}
           </div>
           {/* Flowva Friends — switch-lijst: Solo (standaard aan) + één groep tegelijk live. activeGroup = één waarde → wederzijds uitsluitend. */}
           {(() => {

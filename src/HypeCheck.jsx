@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence, useDragControls } from "framer-motion";
 import { castVote, getVoteStats } from "./votes";
 import { garmentType } from "./garment";
 import PhotoZoom from "./PhotoZoom";
@@ -78,6 +78,39 @@ export default function HypeCheckSheet({ product, session, onClose, onRequireAut
     );
   }, [product.id]);
 
+  // Live uitslag: peil elke 4s de stemmen zodat je andermans stemmen vrijwel direct ziet
+  // binnenkomen — met een "+N"-floatje per nieuwe reactie (gebundeld, dus geen spam bij
+  // een golf). Je eigen stem update sowieso meteen.
+  const dragControls = useDragControls();
+  const [floats, setFloats] = useState([]);
+  const statsRef = useRef(null);
+  useEffect(() => { statsRef.current = stats; }, [stats]);
+  useEffect(() => {
+    const iv = setInterval(async () => {
+      const m = await getVoteStats([product.id]);
+      const next = m[product.id];
+      if (!next) return;
+      const prev = statsRef.current;
+      if (prev && prev.total != null) {
+        const diffs = [
+          { emoji: "🔥", n: next.yes - prev.yes },
+          { emoji: "🤍", n: next.nice - prev.nice },
+          { emoji: "👎", n: next.no - prev.no },
+          { emoji: "🔔", n: next.notify - prev.notify },
+        ].filter((d) => d.n > 0);
+        if (diffs.length) {
+          const base = Date.now();
+          const items = diffs.map((d, i) => ({ id: base + i, off: 6 + i * 34 + Math.random() * 12, ...d }));
+          setFloats((f) => [...f, ...items]);
+          const ids = items.map((x) => x.id);
+          setTimeout(() => setFloats((f) => f.filter((x) => !ids.includes(x.id))), 1500);
+        }
+      }
+      setStats(next);
+    }, 4000);
+    return () => clearInterval(iv);
+  }, [product.id]);
+
   const photos = [...new Set([...(product.gallery || []), product.image].filter((u) => typeof u === "string" && u.startsWith("http")))];
   const photo = photos[0] || null;
   const optSummary = (product.sizes || [])
@@ -125,8 +158,11 @@ export default function HypeCheckSheet({ product, session, onClose, onRequireAut
       <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={onClose}
         style={{ position: "fixed", inset: 0, zIndex: 300, background: "rgba(0,0,0,0.5)", backdropFilter: "blur(6px)" }} />
       <motion.div initial={{ y: "100%" }} animate={{ y: 0 }} exit={{ y: "100%" }} transition={{ type: "spring", stiffness: 320, damping: 34 }}
+        drag="y" dragControls={dragControls} dragListener={false}
+        dragConstraints={{ top: 0, bottom: 0 }} dragElastic={{ top: 0, bottom: 0.55 }}
+        onDragEnd={(e, info) => { if (info.offset.y > 110 || info.velocity.y > 650) onClose(); }}
         style={{ position: "fixed", bottom: 0, left: 0, right: 0, margin: "0 auto", width: "100%", maxWidth: 430, boxSizing: "border-box", background: "#0F0E0C", borderRadius: "24px 24px 0 0", zIndex: 301, maxHeight: "92vh", overflowY: "auto", padding: "16px 18px 32px" }}>
-        <div onClick={onClose} style={{ padding: "0 0 12px", cursor: "pointer" }}>
+        <div onClick={onClose} onPointerDown={(e) => dragControls.start(e)} style={{ padding: "0 0 12px", cursor: "grab", touchAction: "none" }}>
           <div style={{ width: 36, height: 4, background: "rgba(255,255,255,0.2)", borderRadius: 2, margin: "0 auto" }} />
         </div>
 
@@ -194,7 +230,14 @@ export default function HypeCheckSheet({ product, session, onClose, onRequireAut
         {s.total === 0 ? (
           <div style={{ fontSize: 11.5, color: "#9C9893", textAlign: "center" }}>Be the first to vote <span ref={statFireRef} style={{ display: "inline-block" }}>🔥</span></div>
         ) : (
-          <>
+          <div style={{ position: "relative" }}>
+            {floats.map((f) => (
+              <motion.span key={f.id} initial={{ opacity: 0, y: 8, scale: 0.8 }} animate={{ opacity: [0, 1, 1, 0], y: -30, scale: 1 }}
+                transition={{ duration: 1.35, ease: "easeOut" }}
+                style={{ position: "absolute", right: f.off, top: -10, fontSize: 12, fontWeight: 800, color: "#FF8A3D", pointerEvents: "none", zIndex: 2 }}>
+                +{f.n} {f.emoji}
+              </motion.span>
+            ))}
             <div style={{ height: 9, borderRadius: 6, overflow: "hidden", display: "flex", marginBottom: 7, background: "#1A1917" }}>
               <motion.div animate={{ width: `${pctYes}%` }} transition={springSoft} style={{ background: "#FF5C00", position: "relative", overflow: "hidden" }}>
                 {barShine > 0 && (
@@ -214,7 +257,7 @@ export default function HypeCheckSheet({ product, session, onClose, onRequireAut
             {s.notify > 0 && (
               <div style={{ fontSize: 11, color: "#9C9893", marginTop: 6 }}>🔔 {s.notify} {s.notify === 1 ? "person wants" : "people want"} a heads-up when it drops</div>
             )}
-          </>
+          </div>
         )}
       </motion.div>
 

@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import { supabase } from "./supabase";
 import SupplyFlowApp from "./supplyflow-app";
 import Auth, { ResetPassword } from "./Auth";
@@ -105,6 +106,14 @@ export default function App() {
   const [session, setSession] = useState(null);
   const [role, setRole] = useState(null);
   const [loading, setLoading] = useState(true);
+  // Boot-moment: het vos-logo staat even groot in beeld en zoomt dan weg zodra de app
+  // klaar is — de app "start" i.p.v. dat er een website laadt. Min. ~0,4s zichtbaar.
+  const [bootSplash, setBootSplash] = useState(true);
+  useEffect(() => {
+    if (loading) return;
+    const t = setTimeout(() => setBootSplash(false), 400);
+    return () => clearTimeout(t);
+  }, [loading]);
   // Zichtbaarheid van de support-chat is een GLOBALE instelling (app_settings),
   // bestuurd vanuit de admin (OPS-tab). Standaard verborgen tot de admin 'm aanzet.
   const [supportBotVisible, setSupportBotVisible] = useState(false);
@@ -159,15 +168,30 @@ export default function App() {
   if (window.location.pathname === "/terms") return <LegalPage source={termsSrc} />;
   if (window.location.pathname === "/returns-policy") return <LegalPage source={returnsPolicySrc} />;
 
+  // De splash-overlay: groot vos-logo veert binnen; bij het wegzoomen (exit) is de app
+  // eronder al zichtbaar → voelt als een echte app-start.
+  const bootOverlay = (
+    <AnimatePresence>
+      {bootSplash && (
+        <motion.div key="boot" exit={{ opacity: 0 }} transition={{ duration: 0.28, ease: "easeOut" }}
+          style={{ position: "fixed", inset: 0, zIndex: 9990, background: "#F8F7F4", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center" }}>
+          <motion.div initial={{ scale: 0.55, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 1.3, opacity: 0 }}
+            transition={{ type: "spring", stiffness: 320, damping: 22 }}
+            style={{ fontSize: 72, lineHeight: 1 }}>
+            <Fox still />
+          </motion.div>
+          <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
+            transition={{ delay: 0.12, duration: 0.3 }}
+            style={{ marginTop: 14, color: "#FF5C00", fontSize: 13, fontWeight: 700, letterSpacing: 4, textTransform: "uppercase", fontFamily: "'Inter', sans-serif" }}>
+            Flowva
+          </motion.div>
+        </motion.div>
+      )}
+    </AnimatePresence>
+  );
+
   if (loading) {
-    return (
-      <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: "#F8F7F4" }}>
-        <div style={{ textAlign: "center" }}>
-          <div style={{ fontSize: 32, marginBottom: 12 }}><Fox /></div>
-          <div style={{ fontSize: 14, color: "#888" }}>Loading...</div>
-        </div>
-      </div>
-    );
+    return bootOverlay;
   }
 
   // Wachtwoord-reset pagina (via maillink)
@@ -191,6 +215,7 @@ export default function App() {
       <SupplyFlowApp session={session} />
       {supportBotVisible && <SupportWidget session={session} />}
       <InstallPrompt />
+      {bootOverlay}
     </>
   );
 }

@@ -14,7 +14,7 @@ import GroupModeGlow from "./GroupModeGlow";
 import { ffMyGroups, estimateMemberFee } from "./ffApi";
 import { garmentType } from "./garment";
 import { WarehouseTab, TransitTab } from "./WarehouseAndHaul";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence, useDragControls } from "framer-motion";
 import { createPortal } from "react-dom";
 import { springSnappy, springSoft, springBouncy, springMorph } from "./motion";
 import { Search, SlidersHorizontal, Bell, Home, Package, Factory, User, Users, ShoppingBag, Eye, Star, Plus, X, Plane, CreditCard, PackageCheck, Truck, Camera, ChevronUp } from "lucide-react";
@@ -28,6 +28,7 @@ import Fox from "./Fox";
 import Auth from "./Auth";
 import HypeCheckSheet from "./HypeCheck";
 import { getVoteStats, getMyVotes } from "./votes";
+import { CountUp, ConfettiBurst, FlyingImage } from "./DelightBits";
 
 // —— PREVIEW / LAUNCH-GATE —————————————————————————————————————————————
 // Tot de officiële launch (Stripe live) kan er nog niet betaald worden. Zolang
@@ -404,6 +405,20 @@ function TreasureMap({ activeFilter, onSelect, orders }) {
       <div style={{ position: "relative", display: "flex", justifyContent: "space-between", marginTop: 16, marginBottom: 2 }}>
         {/* de reislijn loopt op bol-hoogte (21px) van het 1e bol-midden (12.5%) naar het laatste (87.5%) */}
         <div style={{ position: "absolute", top: 21, left: "12.5%", right: "12.5%", height: 0, borderTop: "2px dashed #FFC4A3", zIndex: 0 }} />
+        {/* ✈️ vliegt bij het openen langs de route tot het verste checkpoint met orders */}
+        {(() => {
+          const idx = journeyStops.reduce((a, s, i) => (countFor(s.statuses) > 0 ? i : a), -1);
+          if (idx < 0) return null;
+          return (
+            <motion.span
+              initial={{ left: "12.5%", opacity: 0, y: 0 }}
+              animate={{ left: `${12.5 + idx * 25}%`, opacity: [0, 1, 1, 0], y: [0, -4, 0, -3, 0] }}
+              transition={{ duration: 1.5, delay: 0.45, ease: "easeInOut" }}
+              style={{ position: "absolute", top: 4, marginLeft: -9, fontSize: 15, zIndex: 2, pointerEvents: "none" }}>
+              ✈️
+            </motion.span>
+          );
+        })()}
         {journeyStops.map((s, i) => {
           const active = activeFilter === s.key;
           const count = countFor(s.statuses);
@@ -562,6 +577,9 @@ function QuoteAcceptance({ order, session, balance, allOrders = [], onAccepted }
 function RequestListSheet({ items, onRemove, onSetQty, onClose, onSend, sending, error, session, onEditAddress, onTopUp, onFinish, flagged, reasons }) {
   const [view, setView] = useState("cart");
   const [agreed, setAgreed] = useState(false);
+  const dragControls = useDragControls();           // rubber-band: sheet omlaag trekken om te sluiten
+  const [paying, setPaying] = useState("idle");     // "idle" | "check" — betaal-morph (knop → cirkel → vinkje)
+  const [unlockKey, setUnlockKey] = useState(0);    // 5/5 bereikt → checkout-knop veert open + vos-toast
   const isHeld = (item) => !!flagged && flagged.has(item.source_url);
   const heldReason = (item) => reasons?.[item.source_url] || "On hold — changed at the factory";
   const heldCount = items.filter(isHeld).length;
@@ -582,11 +600,30 @@ function RequestListSheet({ items, onRemove, onSetQty, onClose, onSend, sending,
   const hasAddress = !!(m.adres && m.stad);
   const lowBalance = /balance|saldo/i.test(error || "");
 
-  // Bevestig & betaal → bij succes morpht de sheet naar de "placed"-weergave.
+  // Bevestig & betaal → bij succes eerst de knop-morph (cirkel + vinkje dat tekent),
+  // dán pas de "placed"-weergave met confetti.
   const confirmAndPay = async () => {
     const ok = await onSend();
-    if (ok) setView("placed");
+    if (ok) {
+      setPaying("check");
+      setTimeout(() => { setPaying("idle"); setView("placed"); }, 950);
+    }
   };
+
+  // Het 5/5-unlock-moment: zodra de mand van <5 naar ≥5 stuks gaat, veert de checkout-
+  // knop open en popt de vos kort met "Let's go 🚀" — je minimum voelt als een beloning.
+  const prevQtyRef = useRef(totalQty);
+  useEffect(() => {
+    if (prevQtyRef.current < 5 && totalQty >= 5) setUnlockKey(Date.now());
+    prevQtyRef.current = totalQty;
+  }, [totalQty]);
+  const [showGo, setShowGo] = useState(false);
+  useEffect(() => {
+    if (!unlockKey) return;
+    setShowGo(true);
+    const t = setTimeout(() => setShowGo(false), 1700);
+    return () => clearTimeout(t);
+  }, [unlockKey]);
 
   const itemThumb = (item) => (
     <div style={{ width: 46, height: 46, borderRadius: 10, background: "#fff", overflow: "hidden", flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
@@ -610,10 +647,15 @@ function RequestListSheet({ items, onRemove, onSetQty, onClose, onSend, sending,
       <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={view === "placed" ? () => onFinish?.(false) : onClose}
         style={{ position: "fixed", inset: 0, zIndex: 300, background: "rgba(0,0,0,0.5)", backdropFilter: "blur(6px)" }} />
       <motion.div initial={{ y: "100%" }} animate={{ y: 0 }} exit={{ y: "100%" }} transition={{ type: "spring", stiffness: 320, damping: 34 }}
+        drag="y" dragControls={dragControls} dragListener={false}
+        dragConstraints={{ top: 0, bottom: 0 }} dragElastic={{ top: 0, bottom: 0.55 }}
+        onDragEnd={(e, info) => { if (info.offset.y > 110 || info.velocity.y > 650) (view === "placed" ? onFinish?.(false) : onClose()); }}
         style={{ position: "fixed", bottom: 0, left: 0, right: 0, margin: "0 auto", width: "100%", maxWidth: 430, boxSizing: "border-box", background: "#111111", borderRadius: "24px 24px 0 0", zIndex: 301, maxHeight: "88vh", overflowY: "auto" }}>
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1, transition: { delay: 0.12, duration: 0.18 } }} exit={{ opacity: 0, transition: { duration: 0.08 } }}
           style={{ padding: "20px 20px 40px" }}>
-          <div onClick={view === "checkout" ? () => setView("cart") : view === "placed" ? () => onFinish?.(false) : onClose} style={{ padding: "0 0 12px", cursor: "pointer" }}>
+          <div onClick={view === "checkout" ? () => setView("cart") : view === "placed" ? () => onFinish?.(false) : onClose}
+            onPointerDown={(e) => dragControls.start(e)}
+            style={{ padding: "0 0 12px", cursor: "grab", touchAction: "none" }}>
             <div style={{ width: 36, height: 4, background: "rgba(255,255,255,0.2)", borderRadius: 2, margin: "0 auto" }} />
           </div>
 
@@ -703,7 +745,8 @@ function RequestListSheet({ items, onRemove, onSetQty, onClose, onSend, sending,
                     <div style={{ flex: 1, height: 8, background: "rgba(255,255,255,0.1)", borderRadius: 6, overflow: "hidden" }}>
                       <motion.div animate={{ width: `${Math.min(100, (totalQty / 5) * 100)}%` }} transition={springSnappy} style={{ height: "100%", background: "#FF5C00", borderRadius: 6 }} />
                     </div>
-                    <span style={{ fontSize: 14, fontWeight: 800, color: "#FF5C00", minWidth: 34, textAlign: "right" }}>{totalQty}/5</span>
+                    <motion.span key={totalQty} initial={{ scale: 1.45, opacity: 0.4 }} animate={{ scale: 1, opacity: 1 }} transition={springSnappy}
+                      style={{ display: "inline-block", fontSize: 14, fontWeight: 800, color: "#FF5C00", minWidth: 34, textAlign: "right" }}>{totalQty}/5</motion.span>
                   </div>
                 </motion.div>
               )}
@@ -715,10 +758,23 @@ function RequestListSheet({ items, onRemove, onSetQty, onClose, onSend, sending,
                   ⏸ {heldCount === 1 ? "1 item is" : `${heldCount} items are`} on hold and won't be charged{payable.length ? " — you can still check out the rest" : ""}. Keep {heldCount === 1 ? "it" : "them"} and check back soon, or remove {heldCount === 1 ? "it" : "them"}. You haven't been charged.
                 </div>
               )}
-              <motion.button whileTap={payable.length && totalQty >= 5 ? { scale: 0.97 } : undefined} onClick={() => payable.length && totalQty >= 5 && setView("checkout")} disabled={payable.length === 0 || totalQty < 5}
-                style={{ width: "100%", marginTop: 12, background: (payable.length && totalQty >= 5) ? "#FF5C00" : "#333", color: (payable.length && totalQty >= 5) ? "#fff" : "#777", border: "none", borderRadius: 14, padding: "16px", fontSize: 15, fontWeight: 700, cursor: (payable.length && totalQty >= 5) ? "pointer" : "default", WebkitTapHighlightColor: "transparent" }}>
-                {payable.length === 0 ? "All items are on hold" : totalQty < 5 ? `Add ${5 - totalQty} more item${5 - totalQty === 1 ? "" : "s"} to check out` : heldCount > 0 ? `Check out the ${payable.length} available item${payable.length > 1 ? "s" : ""} →` : "Go to checkout →"}
-              </motion.button>
+              <div style={{ position: "relative" }}>
+                {/* 5/5 bereikt → vos-toast "Let's go 🚀" boven de knop */}
+                <AnimatePresence>
+                  {showGo && (
+                    <motion.div initial={{ opacity: 0, y: 12, scale: 0.75 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 6, scale: 0.85 }} transition={springBouncy}
+                      style={{ position: "absolute", top: -34, left: "50%", transform: "translateX(-50%)", display: "flex", gap: 6, alignItems: "center", background: "#1E1D1A", border: "1px solid rgba(255,92,0,0.4)", borderRadius: 999, padding: "6px 13px", zIndex: 3, pointerEvents: "none", whiteSpace: "nowrap" }}>
+                      <span style={{ fontSize: 15, lineHeight: 1 }}><Fox /></span>
+                      <span style={{ fontSize: 12, fontWeight: 800, color: "#FF8A3D" }}>Let's go 🚀</span>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+                <motion.button key={`co-${unlockKey}`} initial={unlockKey ? { scale: 0.86 } : false} animate={{ scale: 1 }} transition={springBouncy}
+                  whileTap={payable.length && totalQty >= 5 ? { scale: 0.97 } : undefined} onClick={() => payable.length && totalQty >= 5 && setView("checkout")} disabled={payable.length === 0 || totalQty < 5}
+                  style={{ width: "100%", marginTop: 12, background: (payable.length && totalQty >= 5) ? "#FF5C00" : "#333", color: (payable.length && totalQty >= 5) ? "#fff" : "#777", border: "none", borderRadius: 14, padding: "16px", fontSize: 15, fontWeight: 700, cursor: (payable.length && totalQty >= 5) ? "pointer" : "default", WebkitTapHighlightColor: "transparent" }}>
+                  {payable.length === 0 ? "All items are on hold" : totalQty < 5 ? `Add ${5 - totalQty} more item${5 - totalQty === 1 ? "" : "s"} to check out` : heldCount > 0 ? `Check out the ${payable.length} available item${payable.length > 1 ? "s" : ""} →` : "Go to checkout →"}
+                </motion.button>
+              </div>
 
               <motion.button whileTap={{ scale: 0.97 }} onClick={onClose}
                 style={{ width: "100%", marginTop: 8, background: "transparent", color: "#C9C6C1", border: "1px solid rgba(255,255,255,0.15)", borderRadius: 14, padding: "13px", fontSize: 13, fontWeight: 600, cursor: "pointer", WebkitTapHighlightColor: "transparent" }}>
@@ -804,18 +860,34 @@ function RequestListSheet({ items, onRemove, onSetQty, onClose, onSend, sending,
                 <input type="checkbox" checked={agreed} onChange={(e) => setAgreed(e.target.checked)} style={{ marginTop: 2, accentColor: "#FF5C00", width: 16, height: 16, flexShrink: 0 }} />
                 <span>I agree to the <a href="/terms" target="_blank" rel="noreferrer" style={{ color: "#A5B4FC" }}>Terms</a> and the <a href="/returns-policy" target="_blank" rel="noreferrer" style={{ color: "#A5B4FC" }}>Returns &amp; withdrawal policy</a>, and that any refunds are credited to my Flowva balance. I have a <b style={{ color: "#C9C6C1" }}>14-day right of withdrawal</b>; for a change of mind I pay the return shipping (EU return address), faulty items are on Flowva.</span>
               </label>
-              <motion.button whileTap={sending || !hasAddress || !payable.length || !agreed ? undefined : { scale: 0.97 }} onClick={confirmAndPay} disabled={sending || !hasAddress || payable.length === 0 || !agreed}
-                style={{ width: "100%", marginTop: 10, background: sending ? "#333" : (!hasAddress || !payable.length || !agreed) ? "#444" : "#FF5C00", color: "#fff", border: "none", borderRadius: 14, padding: "16px", fontSize: 15, fontWeight: 700, cursor: sending || !hasAddress || !payable.length || !agreed ? "default" : "pointer", WebkitTapHighlightColor: "transparent" }}>
-                {sending ? "Processing payment…" : !hasAddress ? "Add an address to continue" : payable.length === 0 ? "All items are on hold" : !agreed ? "Tick the box to continue" : heldCount > 0 ? `Order & pay €${charge.toFixed(2)} for the rest →` : `Order & pay €${charge.toFixed(2)} →`}
-              </motion.button>
+              {paying === "check" ? (
+                /* Betaald → de knop wordt een cirkel waarin het vinkje zichzelf tekent */
+                <div style={{ display: "flex", justifyContent: "center", marginTop: 14, marginBottom: 6 }}>
+                  <motion.div initial={{ scale: 0.4, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ type: "spring", stiffness: 420, damping: 20 }}
+                    style={{ width: 58, height: 58, borderRadius: 29, background: "#FF5C00", display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 8px 26px rgba(255,92,0,0.45)" }}>
+                    <motion.svg width="26" height="26" viewBox="0 0 24 24" fill="none">
+                      <motion.path d="M4 12.5L9.5 18L20 6.5" stroke="#fff" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"
+                        initial={{ pathLength: 0 }} animate={{ pathLength: 1 }} transition={{ duration: 0.35, delay: 0.18, ease: "easeOut" }} />
+                    </motion.svg>
+                  </motion.div>
+                </div>
+              ) : (
+                <>
+                  <motion.button whileTap={sending || !hasAddress || !payable.length || !agreed ? undefined : { scale: 0.97 }} onClick={confirmAndPay} disabled={sending || !hasAddress || payable.length === 0 || !agreed}
+                    style={{ width: "100%", marginTop: 10, background: sending ? "#333" : (!hasAddress || !payable.length || !agreed) ? "#444" : "#FF5C00", color: "#fff", border: "none", borderRadius: 14, padding: "16px", fontSize: 15, fontWeight: 700, cursor: sending || !hasAddress || !payable.length || !agreed ? "default" : "pointer", WebkitTapHighlightColor: "transparent" }}>
+                    {sending ? "Processing payment…" : !hasAddress ? "Add an address to continue" : payable.length === 0 ? "All items are on hold" : !agreed ? "Tick the box to continue" : heldCount > 0 ? `Order & pay €${charge.toFixed(2)} for the rest →` : `Order & pay €${charge.toFixed(2)} →`}
+                  </motion.button>
 
-              <motion.button whileTap={{ scale: 0.97 }} onClick={() => setView("cart")}
-                style={{ width: "100%", marginTop: 8, background: "transparent", color: "#C9C6C1", border: "1px solid rgba(255,255,255,0.15)", borderRadius: 14, padding: "13px", fontSize: 13, fontWeight: 600, cursor: "pointer", WebkitTapHighlightColor: "transparent" }}>
-                ← Back to cart
-              </motion.button>
+                  <motion.button whileTap={{ scale: 0.97 }} onClick={() => setView("cart")}
+                    style={{ width: "100%", marginTop: 8, background: "transparent", color: "#C9C6C1", border: "1px solid rgba(255,255,255,0.15)", borderRadius: 14, padding: "13px", fontSize: 13, fontWeight: 600, cursor: "pointer", WebkitTapHighlightColor: "transparent" }}>
+                    ← Back to cart
+                  </motion.button>
+                </>
+              )}
             </motion.div>
           ) : (
             <motion.div key="placed">
+              <ConfettiBurst />
               <div style={{ textAlign: "center", marginBottom: 22, marginTop: 4 }}>
                 <motion.span layoutId="cart-fox" style={{ fontSize: 52, display: "inline-block", marginBottom: 12 }}><Fox /></motion.span>
                 <div style={{ fontSize: 22, fontWeight: 700, color: "#FF5C00", marginBottom: 6 }}>Order placed! 🎉</div>
@@ -1274,6 +1346,8 @@ export default function SupplyFlow({ session }) {
   const [actionProduct, setActionProduct] = useState(null);
   // Coming soon / demo — hype-check-stemsheet + tellingen (id -> stats) + mijn stem (id -> reaction)
   const [hypeProduct, setHypeProduct] = useState(null);
+  // "Foto vliegt naar de mand": bron-rect + doelpunt voor de FlyingImage-ghost.
+  const [cartFlight, setCartFlight] = useState(null);
   const [voteStats, setVoteStats] = useState({});
   const [myVotes, setMyVotes] = useState({});
   const [showEditProfile, setShowEditProfile] = useState(false);
@@ -1626,14 +1700,77 @@ export default function SupplyFlow({ session }) {
     return true;
   };
 
+  // Catalogus (producten + fabrieken) — óók aangeroepen door de vos-pull-to-refresh.
+  const refreshCatalog = async (initial = false) => {
+    if (initial) { setLoadingProducts(true); setProductsError(null); }
+    const [p, f] = await Promise.all([
+      supabase.from("products").select("*").order("id"),
+      supabase.from("factories").select("*"),
+    ]);
+    if (p.error) { if (initial) setProductsError(p.error.message); }
+    else setProducts((p.data ?? []).filter((x) => !x.hidden));
+    setFactories(f.data ?? []);
+    if (initial) setLoadingProducts(false);
+  };
+  useEffect(() => { refreshCatalog(true); // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // 🦊 Pull-to-refresh op de feed: trek omlaag → drie pootafdrukken lichten één voor
+  // één op; ver genoeg loslaten → de vos huppelt terwijl de catalogus ververst.
+  const [pull, setPull] = useState(0);
+  const [ptrBusy, setPtrBusy] = useState(false);
+  const ptrRef = useRef({ startY: 0, active: false });
+  const uiRef = useRef({});
+  uiRef.current = { tab, blocked: !!(selectedProduct || showRequestList || showFriends || showVable || hypeProduct || showNotifs || authOpen || morph || selectedOrder) };
   useEffect(() => {
-    async function fetchProducts() {
-      setLoadingProducts(true); setProductsError(null);
-      const { data, error } = await supabase.from("products").select("*").order("id");
-      if (error) { setProductsError(error.message); } else { setProducts((data ?? []).filter(p => !p.hidden)); }
-      setLoadingProducts(false);
-    }
-    fetchProducts();
+    const onStart = (e) => {
+      const u = uiRef.current;
+      if (u.tab !== "feed" || u.blocked || window.scrollY > 0) return;
+      ptrRef.current = { startY: e.touches[0].clientY, active: true };
+    };
+    const onMove = (e) => {
+      if (!ptrRef.current.active) return;
+      const dy = e.touches[0].clientY - ptrRef.current.startY;
+      if (dy <= 0 || window.scrollY > 0) { setPull(0); return; }
+      if (e.cancelable) e.preventDefault();   // native overscroll uit zolang wij trekken
+      setPull(Math.min(110, dy * 0.5));
+    };
+    const onEnd = () => {
+      if (!ptrRef.current.active) return;
+      ptrRef.current.active = false;
+      setPull((p) => {
+        if (p >= 62) {
+          setPtrBusy(true);
+          Promise.resolve(refreshCatalog(false)).finally(() => { setPtrBusy(false); setPull(0); });
+          return 62;   // blijf op "refresh"-hoogte hangen terwijl we laden
+        }
+        return 0;
+      });
+    };
+    window.addEventListener("touchstart", onStart, { passive: true });
+    window.addEventListener("touchmove", onMove, { passive: false });
+    window.addEventListener("touchend", onEnd);
+    return () => { window.removeEventListener("touchstart", onStart); window.removeEventListener("touchmove", onMove); window.removeEventListener("touchend", onEnd); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Micro-parallax op de grote collage-foto's ([data-plx]) — rAF-throttled, geclamped ±12px.
+  useEffect(() => {
+    let raf = 0;
+    const apply = () => {
+      raf = 0;
+      const vh = window.innerHeight;
+      document.querySelectorAll("img[data-plx]").forEach((el) => {
+        const r = el.getBoundingClientRect();
+        if (r.bottom < -40 || r.top > vh + 40) return;
+        const off = Math.max(-12, Math.min(12, ((r.top + r.height / 2) - vh / 2) * 0.05));
+        el.style.transform = `translateY(${off.toFixed(1)}px) scale(1.12)`;
+      });
+    };
+    const onScroll = () => { if (!raf) raf = requestAnimationFrame(apply); };
+    window.addEventListener("scroll", onScroll, { passive: true });
+    apply();
+    return () => { window.removeEventListener("scroll", onScroll); if (raf) cancelAnimationFrame(raf); };
   }, []);
 
   // Hype-check: laad de stem-tellingen + mijn eigen stem voor alle demo/"Coming soon"-producten.
@@ -1644,13 +1781,6 @@ export default function SupplyFlow({ session }) {
     getMyVotes(demoIds, !!session).then(setMyVotes);
   }, [products, session]);
 
-  useEffect(() => {
-    async function fetchFactories() {
-      const { data } = await supabase.from("factories").select("*");
-      setFactories(data ?? []);
-    }
-    fetchFactories();
-  }, []);
 
   useEffect(() => {
     if (!session) return;
@@ -1913,9 +2043,11 @@ export default function SupplyFlow({ session }) {
   // Gebruikt in ZOWEL de feed-kaart als de morph-ghost, zodat de morph exact dezelfde
   // 3 foto's toont en ze nooit uiteen kunnen lopen. De aanroeper levert de flex-container.
   const factoryCollage = (pv = [], extra = 0, dia = 0) => {
+    // De grote foto krijgt [data-plx]: een scroll-listener geeft 'm een micro-parallax
+    // (±10px meeschuiven, iets ingezoomd zodat er geen randen ontstaan).
     const imgBox = (src, big) => (
       <div style={{ flex: 1, minHeight: 0, minWidth: 0, background: "#ECE8E0", display: "flex", alignItems: "center", justifyContent: "center", fontSize: big ? 44 : 26, overflow: "hidden" }}>
-        {src ? <img src={src} referrerPolicy="no-referrer" alt="" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} /> : "🏭"}
+        {src ? <img src={src} referrerPolicy="no-referrer" alt="" {...(big ? { "data-plx": "1" } : {})} style={{ width: "100%", height: "100%", objectFit: "cover", display: "block", ...(big ? { transform: "scale(1.12)", willChange: "transform" } : {}) }} /> : "🏭"}
       </div>
     );
     return (
@@ -1928,15 +2060,20 @@ export default function SupplyFlow({ session }) {
               <div style={{ flex: 1, minHeight: 0, position: "relative", display: "flex" }}>
                 {imgBox(pv[2])}
                 {extra > 0 && (
-                  <div style={{ position: "absolute", right: 6, bottom: 6, background: "rgba(17,17,17,0.74)", color: "#fff", fontSize: 11, fontWeight: 700, padding: "2px 8px", borderRadius: 12 }}>+{extra} more</div>
+                  <div style={{ position: "absolute", right: 6, bottom: 6, background: "rgba(17,17,17,0.74)", color: "#fff", fontSize: 11, fontWeight: 700, padding: "2px 8px", borderRadius: 12 }}>+<CountUp to={extra} duration={0.7} /> more</div>
                 )}
               </div>
             )}
           </div>
         )}
         {dia >= 1 && (
-          <div style={{ position: "absolute", top: 11, left: 11, background: "rgba(17,17,17,0.82)", borderRadius: 20, padding: "3px 9px", fontSize: 12, fontWeight: 700, letterSpacing: 1 }}>
-            {"💎".repeat(dia)}
+          <div style={{ position: "absolute", top: 11, left: 11, background: "rgba(17,17,17,0.82)", borderRadius: 20, padding: "3px 9px", fontSize: 12, fontWeight: 700, letterSpacing: 1, overflow: "hidden" }}>
+            <span style={{ position: "relative", display: "inline-block" }}>
+              {"💎".repeat(dia)}
+              {/* zeldzame glans-sweep over de diamanten — premium, bijna onzichtbaar */}
+              <motion.span initial={{ x: "-130%" }} animate={{ x: "330%" }} transition={{ duration: 0.9, delay: 1.1 + Math.random() * 1.2, ease: "easeInOut" }}
+                style={{ position: "absolute", top: 0, bottom: 0, left: 0, width: "45%", background: "linear-gradient(105deg, transparent, rgba(255,255,255,0.55), transparent)", pointerEvents: "none" }} />
+            </span>
           </div>
         )}
       </>
@@ -1994,6 +2131,18 @@ export default function SupplyFlow({ session }) {
     <div style={{ fontFamily: "'Inter', 'Helvetica Neue', sans-serif", background: "#F8F7F4", minHeight: "100vh", maxWidth: 430, margin: "0 auto", width: "100%", position: "relative" }}>
 
       <GroupModeGlow key={activeGroup?.id || "none"} active={activeGroupShopping} dimmed={!!(selectedProduct || showRequestList || showFriends || showNotifs || showVable)} />
+
+      {/* 🦊 Pull-to-refresh indicator: pootafdrukken lichten op met de trek-afstand; bij
+          verversen huppelt de vos. In-flow → duwt de feed zachtjes mee omlaag. */}
+      {(pull > 0 || ptrBusy) && (
+        <div style={{ height: pull, overflow: "hidden", display: "flex", alignItems: "flex-end", justifyContent: "center", gap: 13, paddingBottom: 9, boxSizing: "border-box" }}>
+          {[0.3, 0.55, 0.85].map((t, i) => (
+            <span key={i} style={{ fontSize: 14, opacity: ptrBusy || pull / 110 >= t ? 1 : 0.18, transition: "opacity .15s", transform: `rotate(${i % 2 ? 14 : -10}deg)` }}>🐾</span>
+          ))}
+          <motion.span animate={ptrBusy ? { y: [0, -9, 0] } : { y: 0, rotate: Math.min(20, pull / 5) }} transition={ptrBusy ? { duration: 0.5, repeat: Infinity, ease: "easeInOut" } : { duration: 0.1 }}
+            style={{ fontSize: 21, lineHeight: 1, marginLeft: 3, display: "inline-block" }}><Fox /></motion.span>
+        </div>
+      )}
       {/* Shape-morph ghost: scroll-onafhankelijke doos met de FABRIEKSFOTO die kaart ↔ pill
           verbindt. De 'All factories'-pill ligt als overlay erbovenop en faadt pas op het eind
           in (heen) / meteen uit (terug), zodat de foto de hele morph zichtbaar blijft. */}
@@ -2583,7 +2732,7 @@ export default function SupplyFlow({ session }) {
           </div>
           <div style={{ background: "#111111", borderRadius: 18, padding: "18px 20px", marginBottom: 12 }}>
             <div style={{ fontSize: 12, color: "#9C9893", fontWeight: 600, marginBottom: 8 }}>Available balance</div>
-            <div style={{ fontSize: 34, fontWeight: 800, color: "#fff", letterSpacing: -0.5, marginBottom: 4 }}>€{parseFloat(balance).toFixed(2)}</div>
+            <div style={{ fontSize: 34, fontWeight: 800, color: "#fff", letterSpacing: -0.5, marginBottom: 4 }}><CountUp to={parseFloat(balance) || 0} decimals={2} prefix="€" duration={0.9} /></div>
             <div style={{ fontSize: 12, color: "#9C9893" }}>For orders and shipping</div>
           </div>
           <div style={{ background: "#fff", borderRadius: 18, padding: "16px 18px", marginBottom: 12, boxShadow: "0 1px 2px rgba(17,17,17,0.04), 0 6px 18px rgba(17,17,17,0.05)" }}>
@@ -2759,11 +2908,21 @@ export default function SupplyFlow({ session }) {
             onClose={() => setSelectedProduct(null)}
             onSuccess={() => { setSuccessProduct(selectedProduct); setSelectedProduct(null); fetchOrders(); }}
             listCount={requestList.length}
-            onAddToList={(item) => { setRequestList(list => [...list, item]); setSelectedProduct(null); }}
+            onAddToList={(item, rect) => {
+              setRequestList(list => [...list, item]);
+              setSelectedProduct(null);
+              // Foto vliegt in een boog naar de mand-balk (onder in beeld, gecentreerd).
+              if (rect && item.variant_image) {
+                setCartFlight({ src: item.variant_image, fx: rect.left, fy: rect.top, fw: rect.width, fh: rect.height, tx: window.innerWidth / 2 - 21, ty: window.innerHeight - 132 });
+              }
+            }}
             isFavorite={isFavorite(selectedProduct)} onToggleFavorite={() => toggleFavorite(selectedProduct)}
             activeGroup={activeGroupShopping ? activeGroup : null} groupLocked={!!activeGroup && !activeGroupShopping} onActiveGroupGone={() => setActiveGroup(null)} />
         )}
       </AnimatePresence>
+
+      {/* Productfoto onderweg naar de mand-balk */}
+      {cartFlight && <FlyingImage flight={cartFlight} onDone={() => setCartFlight(null)} />}
 
       {/* Hype check — stemsheet voor een Coming soon/demo-product (niet koopbaar) */}
       <AnimatePresence>
@@ -2868,7 +3027,7 @@ export default function SupplyFlow({ session }) {
             <div style={{ padding: "12px 16px", display: "flex", alignItems: "center", gap: 12 }}>
               <span style={{ fontSize: 18 }}>📋</span>
               <div style={{ flex: 1 }}>
-                <div style={{ fontSize: 13, fontWeight: 700, color: "#fff" }}>Shopping cart · {requestList.length} item{requestList.length > 1 ? "s" : ""}</div>
+                <div style={{ fontSize: 13, fontWeight: 700, color: "#fff" }}>Shopping cart · <motion.span key={requestList.length} initial={{ scale: 1.6, color: "#FF8A3D" }} animate={{ scale: 1, color: "#FFFFFF" }} transition={springSnappy} style={{ display: "inline-block" }}>{requestList.length}</motion.span> item{requestList.length > 1 ? "s" : ""}</div>
                 <div style={{ fontSize: 11.5, color: "#9C9893" }}>Tap to open — one fee at shipping <Fox /></div>
               </div>
               <motion.div animate={{ y: [0, -3, 0] }} transition={{ duration: 1.4, repeat: Infinity, ease: "easeInOut" }}
@@ -2932,6 +3091,7 @@ export default function SupplyFlow({ session }) {
               style={{ position: "fixed", inset: 0, zIndex: 200, background: "rgba(0,0,0,0.8)", backdropFilter: "blur(8px)" }} />
             <motion.div layout initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
               style={{ position: "fixed", bottom: 0, left: 0, right: 0, background: "#0F0E0C", borderRadius: "24px 24px 0 0", zIndex: 201, padding: "32px 24px 48px" }}>
+              <ConfettiBurst />
               <div style={{ width: 36, height: 4, background: "#333", borderRadius: 2, margin: "0 auto 24px" }} />
               <div style={{ textAlign: "center", marginBottom: 24 }}>
                 <motion.span layoutId="cart-fox" style={{ fontSize: 56, display: "inline-block", marginBottom: 16 }}><Fox /></motion.span>

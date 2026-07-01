@@ -1,11 +1,11 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 
 // #12 — idempotentie-token voor de instant-buy pay_cart (module-scope). Zie supplyflow-app.jsx.
 let _buyPayToken = null;
 const buyPayToken = () => (_buyPayToken ||= (globalThis.crypto?.randomUUID?.() || `bp-${Date.now()}-${Math.random().toString(36).slice(2)}`));
 const rotateBuyPayToken = () => { _buyPayToken = null; };
 import { supabase } from "./supabase";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence, useDragControls } from "framer-motion";
 import { springMorph } from "./motion";
 import { ffAddItem, ffShareProduct } from "./ffApi";
 import Fox from "./Fox";
@@ -25,6 +25,8 @@ export default function OrderRequest({ product, session, onRequireAuth, onClose,
   const [addedToGroup, setAddedToGroup] = useState(false);
   const [sharedToGroup, setSharedToGroup] = useState(false);
   const [zoomOpen, setZoomOpen] = useState(false);
+  const imgRef = useRef(null);            // bron-rect voor de "foto vliegt naar de mand"-animatie
+  const dragControls = useDragControls(); // rubber-band: sheet omlaag trekken om te sluiten
 
   const productVariants = product.sizes?.length > 0 ? product.sizes : null;
   // Door admin handmatig uitverkocht gemelde varianten (per groep+optie) — klant kan ze niet kiezen.
@@ -98,7 +100,9 @@ export default function OrderRequest({ product, session, onRequireAuth, onClose,
   const handleAddToList = () => {
     const item = buildItem();
     if (!item) return;
-    onAddToList(item);
+    // Bron-rect van de productfoto meemeten → de app laat 'm naar de mand-balk vliegen.
+    const rect = imgRef.current?.getBoundingClientRect() || null;
+    onAddToList(item, rect);
   };
 
   // Flowva Friends: koop dit item DIRECT in de actieve groep (fee valt pas bij verzenden).
@@ -172,6 +176,9 @@ export default function OrderRequest({ product, session, onRequireAuth, onClose,
           key="card"
           layoutId={`card-${product.id}`}
           transition={spring}
+          drag="y" dragControls={dragControls} dragListener={false}
+          dragConstraints={{ top: 0, bottom: 0 }} dragElastic={{ top: 0, bottom: 0.55 }}
+          onDragEnd={(e, info) => { if (info.offset.y > 110 || info.velocity.y > 650) onClose(); }}
           style={{
             width: "100%", maxWidth: 430,
             background: "#fff",
@@ -186,7 +193,9 @@ export default function OrderRequest({ product, session, onRequireAuth, onClose,
             transition={spring}
             style={{ background: "#0F0E0C", padding: "20px 20px 24px", borderRadius: "24px 24px 0 0" }}
           >
-            <motion.div style={{ width: 36, height: 4, background: "rgba(255,255,255,0.2)", borderRadius: 2, margin: "0 auto 16px" }} />
+            <div onPointerDown={(e) => dragControls.start(e)} style={{ padding: "6px 0 12px", margin: "-6px 0 4px", cursor: "grab", touchAction: "none" }}>
+              <div style={{ width: 36, height: 4, background: "rgba(255,255,255,0.2)", borderRadius: 2, margin: "0 auto" }} />
+            </div>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
               <div>
                 <motion.div layoutId={`title-${product.id}`} transition={spring}
@@ -213,7 +222,7 @@ export default function OrderRequest({ product, session, onRequireAuth, onClose,
               <motion.div layoutId={`pimg-${product.id}`} transition={spring} onClick={() => photos.length && setZoomOpen(true)} style={{ marginBottom: product.description ? 16 : 24, borderRadius: 16, overflow: "hidden", aspectRatio: "1", background: "#fff", position: "relative", cursor: photos.length ? "zoom-in" : "default" }}>
                 {photos.length > 0 && <div style={{ position: "absolute", bottom: 10, right: 10, zIndex: 2, background: "rgba(0,0,0,0.5)", color: "#fff", fontSize: 10.5, padding: "3px 8px", borderRadius: 8, pointerEvents: "none" }}>tap to zoom</div>}
                 <AnimatePresence mode="popLayout" initial={false}>
-                  <motion.img key={displayImage} src={displayImage} alt={product.title}
+                  <motion.img key={displayImage} ref={imgRef} src={displayImage} alt={product.title}
                     initial={{ opacity: 0, scale: 1.04 }}
                     animate={{ opacity: 1, scale: 1 }}
                     exit={{ opacity: 0 }}
@@ -267,7 +276,13 @@ export default function OrderRequest({ product, session, onRequireAuth, onClose,
                 <motion.div variants={fadeUp} style={{ background: "#F8F7F4", borderRadius: 14, padding: "14px 16px", marginBottom: 24 }}>
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
                     <span style={{ fontSize: 13, color: "#6B6862", fontWeight: 600 }}>Factory price</span>
-                    <span style={{ fontSize: 18, fontWeight: 800, color: "#111" }}>€{priceEur.toFixed(2)} <span style={{ fontSize: 13, color: "#A8A5A0", fontWeight: 600 }}>· ¥{(priceEur * KOERS).toFixed(2)}</span></span>
+                    <span style={{ fontSize: 18, fontWeight: 800, color: "#111" }}>
+                      {/* prijs-stempel: de échte fabrieksprijs wordt "gestempeld" */}
+                      <motion.span initial={{ scale: 1.7, opacity: 0, rotate: -8 }} animate={{ scale: 1, opacity: 1, rotate: 0 }}
+                        transition={{ type: "spring", stiffness: 480, damping: 20, delay: 0.18 }}
+                        style={{ display: "inline-block" }}>€{priceEur.toFixed(2)}</motion.span>
+                      {" "}<span style={{ fontSize: 13, color: "#A8A5A0", fontWeight: 600 }}>· ¥{(priceEur * KOERS).toFixed(2)}</span>
+                    </span>
                   </div>
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginTop: 7 }}>
                     <span style={{ fontSize: 12.5, color: "#8A8780" }}>China shipping</span>
@@ -322,6 +337,12 @@ export default function OrderRequest({ product, session, onRequireAuth, onClose,
                       transition={{ duration: 0.3, type: "spring", stiffness: 300 }}
                       onClick={() => { if (oos) return; setSelectedVariants({ ...selectedVariants, [variant.name]: opt }); setMissingVariants(m => m.filter(n => n !== variant.name)); }}
                       style={{ position: "relative", padding: "10px 18px", borderRadius: 12, border: `1.5px solid ${oos ? "#EAE7E0" : selectedVariants[variant.name] === opt ? "#0F0E0C" : missing ? "#FCA5A5" : "#E8E6E0"}`, background: oos ? "#F3F1EC" : selectedVariants[variant.name] === opt ? "#0F0E0C" : "#fff", color: oos ? "#B6B2AB" : selectedVariants[variant.name] === opt ? "#fff" : "#555", fontSize: 13, fontWeight: 600, cursor: oos ? "not-allowed" : "pointer" }}>
+                      {!oos && selectedVariants[variant.name] === opt && (
+                        <motion.svg width="11" height="11" viewBox="0 0 24 24" fill="none" style={{ marginRight: 6, verticalAlign: "-1px" }}>
+                          <motion.path d="M4 12.5L9.5 18L20 6.5" stroke="#FF5C00" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round"
+                            initial={{ pathLength: 0 }} animate={{ pathLength: 1 }} transition={{ duration: 0.22, ease: "easeOut" }} />
+                        </motion.svg>
+                      )}
                       <span style={{ textDecoration: oos ? "line-through" : "none" }}>{opt}</span>
                       {oos && <span style={{ display: "block", fontSize: 9, fontWeight: 700, color: "#DC2626", letterSpacing: 0.3, marginTop: 1 }}>OUT OF STOCK</span>}
                     </motion.button>

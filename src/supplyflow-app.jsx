@@ -1202,6 +1202,7 @@ function PricingSheet({ onClose }) {
           <div style={{ background: "#FFF7F2", border: "1px solid #FBE2D2", borderRadius: 12, padding: "11px 13px", marginTop: 11 }}>
             <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12.5, padding: "3px 0", color: "#46443F" }}><span>1 item · factory price €3</span><span style={{ fontWeight: 700, color: "#111" }}>≈ €15 total</span></div>
             <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12.5, padding: "3px 0", color: "#46443F" }}><span>5 items in one order</span><span style={{ fontWeight: 700, color: "#FF5C00" }}>≈ €7 each</span></div>
+            <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12.5, padding: "3px 0", color: "#46443F" }}><span>20 items in one order</span><span style={{ fontWeight: 700, color: "#FF5C00" }}>≈ €5.50 each</span></div>
           </div>
           <div style={{ display: "flex", gap: 8, marginTop: 10, alignItems: "flex-start" }}>
             <span style={{ fontSize: 14, marginTop: 1 }}>ℹ️</span>

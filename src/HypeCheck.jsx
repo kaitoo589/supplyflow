@@ -1,8 +1,11 @@
 import { useState, useEffect } from "react";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { castVote, getVoteStats } from "./votes";
 import { garmentType } from "./garment";
 import PhotoZoom from "./PhotoZoom";
+import Fox from "./Fox";
+import { WordReveal, SpeechBubble } from "./MotionBits";
+import { springSnappy, springSoft, springBouncy } from "./motion";
 
 const OPTIONS = [
   { key: "no", emoji: "👎", label: "Not for me" },
@@ -20,6 +23,18 @@ export default function HypeCheckSheet({ product, session, onClose, onRequireAut
   const [busy, setBusy] = useState(false);
   const [zoomIdx, setZoomIdx] = useState(null);
   const [galIdx, setGalIdx] = useState(0);
+  // Gast tikt 🔔 → geen kaal inlogscherm, maar een moment: de bel morpht (draaiend) naar het
+  // midden, de vos verschijnt met een woord-voor-woord spraakwolk, en de bel landt precies op
+  // het belletje aan het eind van de zin. Daarna pas de (optionele) registreer-knop.
+  const [notifyPrompt, setNotifyPrompt] = useState(false);
+  const [bellLanded, setBellLanded] = useState(false);
+  const [showCta, setShowCta] = useState(false);
+  useEffect(() => {
+    if (!notifyPrompt) { setBellLanded(false); setShowCta(false); return; }
+    const t1 = setTimeout(() => setBellLanded(true), 1650);   // ná de WordReveal → bel landt op de zin
+    const t2 = setTimeout(() => setShowCta(true), 2100);
+    return () => { clearTimeout(t1); clearTimeout(t2); };
+  }, [notifyPrompt]);
 
   useEffect(() => {
     getVoteStats([product.id]).then((m) =>
@@ -37,7 +52,8 @@ export default function HypeCheckSheet({ product, session, onClose, onRequireAut
   const vote = async (key) => {
     if (busy) return;
     // Gast + "notify" → we hebben een account nodig om 'm te kunnen pingen zodra 't live gaat.
-    if (!hasSession && key === "notify") { onRequireAuth?.(); return; }
+    // Geen kaal inlogscherm: de bel vliegt naar het midden en de vos legt het uit.
+    if (!hasSession && key === "notify") { setNotifyPrompt(true); return; }
     setBusy(true);
     const prev = myVote;
     setMyVote(key); // optimistisch
@@ -99,10 +115,20 @@ export default function HypeCheckSheet({ product, session, onClose, onRequireAut
           {OPTIONS.map((o) => {
             const sel = myVote === o.key;
             const accent = o.key === "yes";
+            const isBell = o.key === "notify";
             return (
-              <motion.button key={o.key} whileTap={busy ? undefined : { scale: 0.95 }} disabled={busy} onClick={() => vote(o.key)}
+              <motion.button key={o.key} disabled={busy} onClick={() => vote(o.key)}
+                whileHover={{ y: -2 }} whileTap={busy ? undefined : { scale: 0.88 }}
+                animate={sel ? { scale: [1, 1.07, 1] } : { scale: 1 }}
+                transition={springSnappy}
                 style={{ background: sel ? "#2a1c0f" : "#1A1917", border: `1px solid ${sel ? "#FF5C00" : "#2c2b29"}`, borderRadius: 12, padding: "12px 8px", textAlign: "center", color: sel || accent ? "#FF8A3D" : "#C9C6C1", fontSize: 12.5, fontWeight: 700, cursor: busy ? "default" : "pointer", WebkitTapHighlightColor: "transparent" }}>
-                {o.emoji} {o.label}{sel ? " ✓" : ""}
+                {isBell && notifyPrompt
+                  ? <span style={{ opacity: 0, display: "inline-block" }}>{o.emoji}</span>
+                  : <motion.span layoutId={isBell ? "hype-bell" : undefined}
+                      animate={sel ? { rotate: [0, -18, 14, -6, 0], scale: [1, 1.35, 1] } : { rotate: 0, scale: 1 }}
+                      transition={{ duration: 0.5, ease: [0.32, 0.72, 0, 1] }}
+                      style={{ display: "inline-block" }}>{o.emoji}</motion.span>}
+                {" "}{o.label}{sel ? " ✓" : ""}
               </motion.button>
             );
           })}
@@ -113,11 +139,14 @@ export default function HypeCheckSheet({ product, session, onClose, onRequireAut
         ) : (
           <>
             <div style={{ height: 9, borderRadius: 6, overflow: "hidden", display: "flex", marginBottom: 7, background: "#1A1917" }}>
-              <div style={{ width: `${pctYes}%`, background: "#FF5C00" }} />
-              <div style={{ width: `${pctNice}%`, background: "#5a5852" }} />
+              <motion.div animate={{ width: `${pctYes}%` }} transition={springSoft} style={{ background: "#FF5C00" }} />
+              <motion.div animate={{ width: `${pctNice}%` }} transition={springSoft} style={{ background: "#5a5852" }} />
             </div>
             <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11, color: "#9C9893" }}>
-              <span><span style={{ color: "#FF8A3D", fontWeight: 700 }}>🔥 {pctYes}% would buy</span> · 🤍 {pctNice}% · 👎 {pctNo}%</span>
+              <span>
+                <motion.span key={`${pctYes}-${s.total}`} initial={{ scale: 1.25, opacity: 0.4 }} animate={{ scale: 1, opacity: 1 }} transition={springSnappy}
+                  style={{ display: "inline-block", color: "#FF8A3D", fontWeight: 700 }}>🔥 {pctYes}% would buy</motion.span> · 🤍 {pctNice}% · 👎 {pctNo}%
+              </span>
               <span>{s.total} vote{s.total === 1 ? "" : "s"}</span>
             </div>
             {s.notify > 0 && (
@@ -126,6 +155,58 @@ export default function HypeCheckSheet({ product, session, onClose, onRequireAut
           </>
         )}
       </motion.div>
+
+      {/* 🔔-moment voor gasten: de bel vliegt draaiend uit de knop naar het midden (shared
+          layoutId), de vos verschijnt met een woord-voor-woord wolk, en de bel landt exact op
+          het belletje aan het eind van de zin. Backdrop-tik = terug (bel morpht netjes terug). */}
+      <AnimatePresence>
+        {notifyPrompt && (
+          <>
+            <motion.div key="np-bg" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              onClick={() => setNotifyPrompt(false)}
+              style={{ position: "fixed", inset: 0, zIndex: 320, background: "rgba(0,0,0,0.78)", backdropFilter: "blur(10px)" }} />
+            <motion.div key="np-fg" initial={{ opacity: 1 }} exit={{ opacity: 0 }}
+              style={{ position: "fixed", inset: 0, zIndex: 321, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "0 26px", pointerEvents: "none" }}>
+              <div style={{ height: 92, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                {!bellLanded && (
+                  <motion.span layoutId="hype-bell"
+                    animate={{ rotate: [0, -28, 20, -10, 0] }}
+                    transition={{ layout: { type: "spring", stiffness: 260, damping: 24 }, rotate: { duration: 0.8, ease: [0.32, 0.72, 0, 1] } }}
+                    style={{ display: "inline-block", fontSize: 56, filter: "drop-shadow(0 10px 28px rgba(245,197,24,0.4))" }}>🔔</motion.span>
+                )}
+              </div>
+              <motion.div initial={{ opacity: 0, y: 22, scale: 0.9 }} animate={{ opacity: 1, y: 0, scale: 1 }}
+                transition={{ delay: 0.42, ...springBouncy }}
+                style={{ display: "flex", gap: 10, alignItems: "flex-end", width: "100%", maxWidth: 340, pointerEvents: "auto" }}>
+                <span style={{ fontSize: 34, flexShrink: 0, lineHeight: 1 }}><Fox /></span>
+                <SpeechBubble bg="#1E1D1A" color="#fff">
+                  <span style={{ fontSize: 13.5, lineHeight: 1.6, fontWeight: 600 }}>
+                    <WordReveal text="Register or log in if you want to get notified" delay={0.75} stagger={0.07} />{" "}
+                    {bellLanded
+                      ? <motion.span layoutId="hype-bell"
+                          animate={{ rotate: [0, -22, 16, -8, 0] }}
+                          transition={{ layout: { type: "spring", stiffness: 300, damping: 24 }, rotate: { delay: 0.4, duration: 0.55, ease: [0.32, 0.72, 0, 1] } }}
+                          style={{ display: "inline-block" }}>🔔</motion.span>
+                      : <span style={{ opacity: 0, display: "inline-block" }}>🔔</span>}
+                  </span>
+                </SpeechBubble>
+              </motion.div>
+              <motion.div initial={{ opacity: 0, y: 14 }} animate={showCta ? { opacity: 1, y: 0 } : { opacity: 0, y: 14 }} transition={springSoft}
+                style={{ marginTop: 24, width: "100%", maxWidth: 320, pointerEvents: showCta ? "auto" : "none" }}>
+                <motion.button whileTap={{ scale: 0.97 }} onClick={() => onRequireAuth?.()}
+                  style={{ width: "100%", background: "#FF5C00", color: "#fff", border: "none", borderRadius: 13, padding: "14px", fontSize: 14, fontWeight: 700, cursor: "pointer" }}>
+                  Create a free account · Log in →
+                </motion.button>
+                <motion.button whileTap={{ scale: 0.97 }} onClick={() => setNotifyPrompt(false)}
+                  style={{ width: "100%", marginTop: 8, background: "transparent", color: "#C9C6C1", border: "1px solid rgba(255,255,255,0.18)", borderRadius: 13, padding: "12px", fontSize: 13, fontWeight: 600, cursor: "pointer" }}>
+                  Maybe later
+                </motion.button>
+              </motion.div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
+
       {zoomIdx != null && <PhotoZoom photos={photos} index={zoomIdx} onClose={() => setZoomIdx(null)} />}
     </>
   );

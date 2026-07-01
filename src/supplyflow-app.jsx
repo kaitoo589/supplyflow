@@ -2694,6 +2694,7 @@ export default function SupplyFlow({ session }) {
                 <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to bottom, rgba(0,0,0,0.34) 0%, rgba(0,0,0,0) 16%)" }} />
                 <div style={{ position: "absolute", top: 10, left: "50%", transform: "translateX(-50%)", width: 38, height: 4, background: "rgba(255,255,255,0.6)", borderRadius: 2, zIndex: 3 }} />
                 <button onClick={() => setShowVable(false)} aria-label="close" style={{ position: "absolute", top: 12, right: 12, background: "rgba(0,0,0,0.4)", border: "none", borderRadius: 999, width: 30, height: 30, fontSize: 14, color: "#fff", cursor: "pointer", zIndex: 3 }}>✕</button>
+                <div style={{ position: "absolute", top: 16, left: 16, zIndex: 3, fontSize: 11, letterSpacing: 2, textTransform: "uppercase", color: "rgba(255,255,255,0.9)", textShadow: "0 1px 8px rgba(0,0,0,0.6)" }}>Shop our brand</div>
                 <div style={{ position: "absolute", top: "34%", left: 18, right: 18, textAlign: "center", zIndex: 2 }}>
                   <img src="/vable-logo.svg" alt="VABLE" style={{ height: 116, width: "auto", maxWidth: "90%", filter: "brightness(0) invert(1) drop-shadow(0 2px 16px rgba(0,0,0,0.5))", marginBottom: 18 }} />
                   <div style={{ fontSize: 11.5, letterSpacing: 3, textTransform: "uppercase", color: "rgba(255,255,255,0.85)", textShadow: "0 1px 8px rgba(0,0,0,0.55)", marginBottom: 10 }}>First drop coming soon</div>

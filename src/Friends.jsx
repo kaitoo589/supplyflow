@@ -166,6 +166,7 @@ export default function Friends({ session, onClose, initialJoinCode, initialGrou
   const [editing, setEditing] = useState(false);
   const [editName, setEditName] = useState("");
   const [editMax, setEditMax] = useState(5);
+  const [editWindow, setEditWindow] = useState(15);
   // ready-up (Fase 3)
   const [readyBusy, setReadyBusy] = useState(false);
   const [flaggedUrls, setFlaggedUrls] = useState([]);
@@ -221,7 +222,7 @@ export default function Friends({ session, onClose, initialJoinCode, initialGrou
       return;
     }
     setLobby(r);
-    setEditName(r.group?.name || ""); setEditMax(r.group?.max_size || 5);
+    setEditName(r.group?.name || ""); setEditMax(r.group?.max_size || 5); setEditWindow(r.group?.order_window_days || 15);
     loadMessages(id);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [loadMessages, initialGroupId]);
@@ -301,7 +302,7 @@ export default function Friends({ session, onClose, initialJoinCode, initialGrou
   async function doSaveSettings() {
     if (!lobby?.group) return;
     setBusy(true);
-    const r = await ffUpdateSettings(lobby.group.id, { name: editName.trim(), maxSize: Number(editMax) });
+    const r = await ffUpdateSettings(lobby.group.id, { name: editName.trim(), maxSize: Number(editMax), orderWindowDays: Number(editWindow) });
     setBusy(false);
     if (!r.ok) { setErr(r.error || "Could not save"); return; }
     setEditing(false); refreshLobby();
@@ -473,6 +474,12 @@ export default function Friends({ session, onClose, initialJoinCode, initialGrou
     const isAdmin = g && g.admin_id === myUid;
     const itemsByOwner = (lobby?.items || []).reduce((acc, it) => { (acc[it.owner_id] ||= []).push(it); return acc; }, {});
     const isPlaced = g && g.status !== "gathering";
+    // Bestel-venster-klok (Fase 3): vanaf de eerste groep-aankoop. Waarschuwing op dag = venster,
+    // opslag begint na +5 dagen marge (informatief; de kosten-berekening bij verzenden komt later).
+    const winDays = g?.order_window_days || 15;
+    const daysSinceFirst = g?.first_purchase_at ? Math.floor((Date.now() - new Date(g.first_purchase_at).getTime()) / 86400000) : null;
+    const daysToOrder = daysSinceFirst != null ? (winDays + 5) - daysSinceFirst : null;
+    const showWinWarn = daysSinceFirst != null && daysSinceFirst >= winDays;
     const members = lobby?.members || [];
     const readyCount = members.filter((m) => m.ready).length;
     const myItems = (lobby?.items || []).filter((it) => it.owner_id === myUid);
@@ -569,6 +576,15 @@ export default function Friends({ session, onClose, initialJoinCode, initialGrou
                 </div>
               );
             })}
+
+            {/* bestel-venster-waarschuwing (Fase 3) */}
+            {showWinWarn && (
+              <div style={{ marginTop: 12, background: daysToOrder > 0 ? "rgba(224,165,0,0.12)" : "rgba(226,75,74,0.12)", border: `1px solid ${daysToOrder > 0 ? "rgba(224,165,0,0.4)" : "rgba(226,75,74,0.4)"}`, borderRadius: 14, padding: "12px 14px", fontSize: 12, color: daysToOrder > 0 ? "#E0A500" : "#F0997B", lineHeight: 1.5 }}>
+                ⏳ Your group's first order was {daysSinceFirst} days ago. {daysToOrder > 0
+                  ? <>Buy anything else within <b>{daysToOrder} day{daysToOrder === 1 ? "" : "s"}</b> to avoid extra storage costs on the items already waiting.</>
+                  : <>Storage is now adding up on the items already waiting — the host should ship the parcel soon.</>}
+              </div>
+            )}
 
             {/* personal fee savings (exact) */}
             {myFeeSavings > 0 && (
@@ -732,6 +748,14 @@ export default function Friends({ session, onClose, initialJoinCode, initialGrou
                           style={{ flex: 1, background: editMax === n ? "#FF5C00" : "#26211c", color: n < lobby.members.length ? "#555" : editMax === n ? "#fff" : "#9C9893", border: "none", borderRadius: 8, padding: "10px 0", fontSize: 13, fontWeight: 700, cursor: n < lobby.members.length ? "default" : "pointer" }}>{n}</button>
                       ))}
                     </div>
+                    <label style={{ ...label, marginTop: 14 }}>Ordering window · {editWindow} day{editWindow === 1 ? "" : "s"}</label>
+                    <div style={{ display: "flex", gap: 6 }}>
+                      {[5, 7, 10, 14, 15].map((n) => (
+                        <button key={n} onClick={() => setEditWindow(n)}
+                          style={{ flex: 1, background: editWindow === n ? "#FF5C00" : "#26211c", color: editWindow === n ? "#fff" : "#9C9893", border: "none", borderRadius: 8, padding: "10px 0", fontSize: 13, fontWeight: 700, cursor: "pointer" }}>{n}</button>
+                      ))}
+                    </div>
+                    <div style={{ fontSize: 11, color: "#6b6862", marginTop: 6, lineHeight: 1.5 }}>From the group's first purchase, your squad has this many days to buy items into the same parcel. After that (plus a 5-day grace) storage starts adding up on items already waiting.</div>
                     <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "16px 0", borderTop: "1px solid #2c2b29", marginTop: 16 }}>
                       <div style={{ flex: 1 }}>
                         <div style={{ fontSize: 13.5, fontWeight: 600, color: "#fff" }}>Private group</div>
@@ -777,7 +801,7 @@ export default function Friends({ session, onClose, initialJoinCode, initialGrou
               style={{ background: "#1A1917", borderRadius: 20, padding: "22px 20px", width: "100%", maxWidth: 320, boxSizing: "border-box", textAlign: "center", color: "#fff" }}>
               <div style={{ fontSize: 30 }}>👋</div>
               <div style={{ fontSize: 16, fontWeight: 800, marginTop: 6 }}>Leave {lobby?.group?.name || "this group"}?</div>
-              <div style={{ fontSize: 12.5, color: "#9C9893", marginTop: 8, lineHeight: 1.5 }}>You'll lose your spot and your items in this group order. Any held money comes straight back to your balance.</div>
+              <div style={{ fontSize: 12.5, color: "#9C9893", marginTop: 8, lineHeight: 1.5 }}>You'll leave the group. If you've already bought items into it, cancel those first (you get refunded) — you can't leave while items are still in progress.</div>
               <div style={{ display: "flex", gap: 8, marginTop: 18 }}>
                 <button onClick={() => setShowLeaveConfirm(false)} style={{ ...ghostBtn, padding: "12px" }}>Stay</button>
                 <button onClick={async () => { setShowLeaveConfirm(false); await doLeave(); }} style={{ flex: 1, background: "#E24B4A", color: "#fff", border: "none", borderRadius: 14, padding: "12px", fontSize: 14, fontWeight: 700, cursor: "pointer" }}>Leave</button>

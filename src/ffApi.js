@@ -17,8 +17,8 @@ export const ffJoinGroup      = (code) => rpc("ff_join_group", { p_invite_code: 
 export const ffLeaveGroup     = (id) => rpc("ff_leave_group", { p_group_id: id });
 export const ffKickMember     = (id, uid) => rpc("ff_kick_member", { p_group_id: id, p_user_id: uid });
 export const ffSetHost        = (id, uid) => rpc("ff_set_host", { p_group_id: id, p_user_id: uid });
-export const ffUpdateSettings = (id, { name, maxSize }) =>
-  rpc("ff_update_settings", { p_group_id: id, p_name: name ?? null, p_max_size: maxSize ?? null, p_join_mode: null });
+export const ffUpdateSettings = (id, { name, maxSize, orderWindowDays }) =>
+  rpc("ff_update_settings", { p_group_id: id, p_name: name ?? null, p_max_size: maxSize ?? null, p_join_mode: null, p_order_window_days: orderWindowDays ?? null });
 export const ffAddItem        = (id, item) => rpc("ff_add_item", { p_group_id: id, p_item: item });
 export const ffRemoveItem     = (itemId) => rpc("ff_remove_item", { p_item_id: itemId });
 export const ffSyncProfile    = () => rpc("ff_sync_profile");

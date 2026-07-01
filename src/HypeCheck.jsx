@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { castVote, getVoteStats } from "./votes";
 import { garmentType } from "./garment";
+import PhotoZoom from "./PhotoZoom";
 
 const OPTIONS = [
   { key: "no", emoji: "👎", label: "Not for me" },
@@ -17,6 +18,8 @@ export default function HypeCheckSheet({ product, session, onClose, onRequireAut
   const [stats, setStats] = useState(initialStats || null);
   const [myVote, setMyVote] = useState(initialMyVote || null);
   const [busy, setBusy] = useState(false);
+  const [zoomIdx, setZoomIdx] = useState(null);
+  const [galIdx, setGalIdx] = useState(0);
 
   useEffect(() => {
     getVoteStats([product.id]).then((m) =>
@@ -62,10 +65,23 @@ export default function HypeCheckSheet({ product, session, onClose, onRequireAut
           <div style={{ width: 36, height: 4, background: "rgba(255,255,255,0.2)", borderRadius: 2, margin: "0 auto" }} />
         </div>
 
-        {photo && (
-          <div style={{ position: "relative", height: 190, background: "#1a1a1a", borderRadius: 16, overflow: "hidden", marginBottom: 12, display: "flex", alignItems: "center", justifyContent: "center" }}>
-            <img src={photo} referrerPolicy="no-referrer" alt={product.title} style={{ width: "100%", height: "100%", objectFit: "contain" }} />
-            <span style={{ position: "absolute", top: 10, right: 10, background: "#F5C518", color: "#4a3800", fontSize: 11.5, fontWeight: 700, padding: "3px 10px", borderRadius: 9 }}>Coming soon</span>
+        {photos.length > 0 && (
+          <div style={{ position: "relative", marginBottom: 12 }}>
+            <div onScroll={(e) => { const w = e.currentTarget.clientWidth || 1; setGalIdx(Math.round(e.currentTarget.scrollLeft / w)); }}
+              style={{ display: "flex", overflowX: "auto", scrollSnapType: "x mandatory", borderRadius: 16, background: "#1a1a1a", WebkitOverflowScrolling: "touch", scrollbarWidth: "none" }}>
+              {photos.map((url, i) => (
+                <div key={url} onClick={() => setZoomIdx(i)} style={{ flex: "0 0 100%", scrollSnapAlign: "center", height: 220, display: "flex", alignItems: "center", justifyContent: "center", cursor: "zoom-in" }}>
+                  <img src={url} referrerPolicy="no-referrer" alt={product.title} style={{ maxWidth: "100%", maxHeight: "100%", objectFit: "contain" }} />
+                </div>
+              ))}
+            </div>
+            <span style={{ position: "absolute", top: 10, right: 10, background: "#F5C518", color: "#4a3800", fontSize: 11.5, fontWeight: 700, padding: "3px 10px", borderRadius: 9, pointerEvents: "none" }}>Coming soon</span>
+            {photos.length > 1 && (
+              <div style={{ position: "absolute", bottom: 8, left: "50%", transform: "translateX(-50%)", display: "flex", gap: 6, pointerEvents: "none" }}>
+                {photos.map((_, i) => <div key={i} style={{ width: 6, height: 6, borderRadius: "50%", background: i === galIdx ? "#fff" : "rgba(255,255,255,0.45)" }} />)}
+              </div>
+            )}
+            <div style={{ position: "absolute", bottom: 8, right: 10, background: "rgba(0,0,0,0.5)", color: "#fff", fontSize: 10, padding: "2px 7px", borderRadius: 7, pointerEvents: "none" }}>tap to zoom</div>
           </div>
         )}
 
@@ -110,6 +126,7 @@ export default function HypeCheckSheet({ product, session, onClose, onRequireAut
           </>
         )}
       </motion.div>
+      {zoomIdx != null && <PhotoZoom photos={photos} index={zoomIdx} onClose={() => setZoomIdx(null)} />}
     </>
   );
 }

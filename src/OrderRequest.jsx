@@ -9,6 +9,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { springMorph } from "./motion";
 import { ffAddItem, ffShareProduct } from "./ffApi";
 import Fox from "./Fox";
+import PhotoZoom from "./PhotoZoom";
 
 const spring = springMorph;
 
@@ -23,6 +24,7 @@ export default function OrderRequest({ product, session, onRequireAuth, onClose,
   const [showSizeGuide, setShowSizeGuide] = useState(false);
   const [addedToGroup, setAddedToGroup] = useState(false);
   const [sharedToGroup, setSharedToGroup] = useState(false);
+  const [zoomOpen, setZoomOpen] = useState(false);
 
   const productVariants = product.sizes?.length > 0 ? product.sizes : null;
   // Door admin handmatig uitverkocht gemelde varianten (per groep+optie) — klant kan ze niet kiezen.
@@ -208,7 +210,8 @@ export default function OrderRequest({ product, session, onRequireAuth, onClose,
 
             {/* Productafbeelding — morpht vanuit de feed-kaart, wisselt mee met de gekozen optie */}
             {displayImage && (
-              <motion.div layoutId={`pimg-${product.id}`} transition={spring} style={{ marginBottom: product.description ? 16 : 24, borderRadius: 16, overflow: "hidden", aspectRatio: "1", background: "#fff", position: "relative" }}>
+              <motion.div layoutId={`pimg-${product.id}`} transition={spring} onClick={() => photos.length && setZoomOpen(true)} style={{ marginBottom: product.description ? 16 : 24, borderRadius: 16, overflow: "hidden", aspectRatio: "1", background: "#fff", position: "relative", cursor: photos.length ? "zoom-in" : "default" }}>
+                {photos.length > 0 && <div style={{ position: "absolute", bottom: 10, right: 10, zIndex: 2, background: "rgba(0,0,0,0.5)", color: "#fff", fontSize: 10.5, padding: "3px 8px", borderRadius: 8, pointerEvents: "none" }}>tap to zoom</div>}
                 <AnimatePresence mode="popLayout" initial={false}>
                   <motion.img key={displayImage} src={displayImage} alt={product.title}
                     initial={{ opacity: 0, scale: 1.04 }}
@@ -446,6 +449,7 @@ export default function OrderRequest({ product, session, onRequireAuth, onClose,
         </>
       );
     })()}
+    {zoomOpen && <PhotoZoom photos={photos} index={Math.max(0, photos.indexOf(displayImage))} onClose={() => setZoomOpen(false)} />}
     </>
   );
 }

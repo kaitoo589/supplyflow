@@ -30,6 +30,12 @@ const cors = { "Access-Control-Allow-Origin": "*", "Access-Control-Allow-Headers
 const json = (o: unknown, s = 200) => new Response(JSON.stringify(o), { status: s, headers: { ...cors, "Content-Type": "application/json" } });
 const round2 = (x: number) => Math.round(x * 100) / 100;
 
+// Gewicht-schatting — TERUGVAL als BuckyDrop geen live vrachttarief teruggeeft
+// (permissie op channel-carriage-list nog niet aan / sandbox / geen route voor dit land).
+// Houd IDENTIEK aan WarehouseAndHaul.jsx (SHIP_FIRST_KG/EUR + SHIP_PER_KG). DDP = duties in de prijs.
+const SHIP_FIRST_KG = 0.5, SHIP_FIRST_EUR = 9.0, SHIP_PER_KG = 8.5;
+const shippingEstimateEur = (kg: number) => round2(SHIP_FIRST_EUR + Math.max(0, kg - SHIP_FIRST_KG) * SHIP_PER_KG);
+
 async function buckyPost(path: string, bodyObj: unknown) {
   const body = JSON.stringify(bodyObj ?? {});
   const ts = Date.now().toString();
@@ -162,10 +168,25 @@ Deno.serve(async (req) => {
   const totalWeightG = orders.reduce((s, o) => s + (Number(o.weight_grams) || 0), 0);
 
   if (action === "quote") {
+    // De client toont live-kanalen indien beschikbaar; anders valt 'ie terug op de
+    // gewicht-schatting (isSandbox / lege channels). De ECHTE afrekening gebeurt server-side in "pay".
     return json({ ok: true, isSandbox: IS_SANDBOX, channels, totalWeightG, raw: res?.success ? undefined : res });
   }
 
   if (action === "pay") {
+    // TERUGVAL: geen live vrachttarief (permissie nog niet aan / sandbox / geen route) →
+    // reken af op de gewicht-schatting (DDP, duties in de prijs → p_vat 0). De prijs komt
+    // 100% SERVER-SIDE uit het gewicht dat we net uit de DB laadden — nooit van de client.
+    if (IS_SANDBOX || channels.length === 0) {
+      const estFreight = shippingEstimateEur(totalWeightG / 1000);
+      if (estFreight <= 0) return json({ ok: false, error: "Could not estimate shipping" }, 400);
+      const { data, error } = await admin.rpc("pay_shipping_buffered", {
+        p_uid: user.id, p_order_ids: orderIds, p_estimate: estFreight,
+        p_vat: 0, p_service_code: "ESTIMATE", p_service_name: "Estimated shipping (weight-based)",
+      });
+      if (error) return json({ ok: false, error: error.message }, 500);
+      return json(data);
+    }
     const serviceCode = String(payload?.serviceCode ?? "");
     const ch = channels.find((c: any) => c.serviceCode === serviceCode);
     if (!ch) return json({ ok: false, error: "Chosen shipping option is no longer available" }, 400);

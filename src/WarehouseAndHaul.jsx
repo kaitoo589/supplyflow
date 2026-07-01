@@ -18,7 +18,9 @@ const BUFFER_MULTIPLIER = 1.3;   // schatting kan ~30% afwijken → buffer, rest
 const IMPORT_VAT = 0.21;         // NL invoer-BTW op (goederen + verzending)
 const r2 = (x) => Math.round(x * 100) / 100;
 function shippingEstimate(weightKg) {
-  return SHIP_FIRST_EUR + Math.max(0, weightKg - SHIP_FIRST_KG) * SHIP_PER_KG;
+  // r2 over de basis — IDENTIEK aan server shippingEstimateEur (rondt af vóór de ×1,25-buffer),
+  // zodat het getoonde bedrag exact gelijk is aan wat de server afschrijft (geen 1-cent-drift).
+  return r2(SHIP_FIRST_EUR + Math.max(0, weightKg - SHIP_FIRST_KG) * SHIP_PER_KG);
 }
 
 function Confetti({ active }) {
@@ -586,8 +588,10 @@ function NormalShippingConfirm({ session, haulItems, balance, onBack, onSuccess 
   const LIVE_BUFFER = 1.25;             // houd gelijk aan pay_shipping_buffered (SQL)
   const FULFIL_EUR = r2(9.9 / 7.8);     // fulfilment ¥9,9 per pakket
 
-  // Live tarief ophalen bij openen. GEEN schatting-fallback meer: lukt de quote niet,
-  // dan tonen we een nette melding (de echte prijs komt later sowieso via de admin-refund).
+  // Live tarief ophalen bij openen. Is er een live DDP-route → daarop baseren we de schatting.
+  // Geeft BuckyDrop (nog) geen live vrachttarief (permissie op channel-carriage-list nog niet
+  // aan / sandbox / geen route) → TERUGVAL op de gewicht-schatting, zodat verzenden altijd kan.
+  // De ECHTE afrekening + prijs komen server-side; dit is puur voor de weergave.
   useEffect(() => {
     let on = true;
     (async () => {
@@ -596,17 +600,24 @@ function NormalShippingConfirm({ session, haulItems, balance, onBack, onSuccess 
           body: { action: "quote", orderIds },
         });
         if (!on) return;
-        if (!e && data?.ok && !data.isSandbox && Array.isArray(data.channels) && data.channels.length) {
-          // BuckyDrop kiest de route zelf (dashboard-prioriteit); wij baseren de schatting
-          // op de DDP-route die het meest waarschijnlijk gebruikt wordt (DHL Duty-Free).
-          // ALLEEN DDP/duty-paid — anders klopt de "duties included"-belofte niet. Geen non-DDP fallback.
-          const ddp = data.channels.filter(c => c.taxInclusive);
-          if (ddp.length) setChosen(ddp.find(c => /dhl/i.test(c.name)) || ddp[0]);
-          else setError("No duty-paid shipping option is available right now. Please try again in a little while.");
-        } else if (!e && data?.needWeight) {
+        if (!e && data?.needWeight) {
           setError("We're still weighing your parcel — shipping will be available shortly.");
-        } else {
+        } else if (e || !data?.ok) {
           setError("Shipping isn't available right now. Please try again in a little while.");
+        } else {
+          const channels = Array.isArray(data.channels) ? data.channels : [];
+          const ddp = channels.filter(c => c.taxInclusive);
+          if (!data.isSandbox && ddp.length) {
+            // BuckyDrop kiest de route zelf (dashboard-prioriteit); wij baseren de schatting op de
+            // DDP-route die 't meest waarschijnlijk gebruikt wordt (DHL Duty-Free). Alleen DDP.
+            setChosen(ddp.find(c => /dhl/i.test(c.name)) || ddp[0]);
+          } else if (!data.isSandbox && channels.length) {
+            // Wél live routes, maar geen enkele DDP → we kunnen de "duties included"-belofte niet live waarmaken.
+            setError("No duty-paid shipping option is available right now. Please try again in a little while.");
+          } else {
+            // Geen live tarief → gewicht-schatting (DDP, duties inbegrepen). Server rekent 't echte bedrag.
+            setChosen({ serviceCode: "ESTIMATE", name: "Estimated shipping", priceEur: shippingEstimate(totalWeight / 1000), taxInclusive: true });
+          }
         }
       } catch { if (on) setError("Shipping isn't available right now. Please try again in a little while."); }
       finally { if (on) setQuoting(false); }

@@ -29,6 +29,12 @@ const cors = { "Access-Control-Allow-Origin": "*", "Access-Control-Allow-Headers
 const json = (o: unknown, s = 200) => new Response(JSON.stringify(o), { status: s, headers: { ...cors, "Content-Type": "application/json" } });
 const round2 = (x: number) => Math.round(x * 100) / 100;
 
+// Gewicht-schatting — TERUGVAL als BuckyDrop geen live vrachttarief geeft (permissie op
+// channel-carriage-list nog niet aan / sandbox / geen route). IDENTIEK aan solo haul-shipping
+// + WarehouseAndHaul.jsx. DDP = duties in de prijs. ff_pay_group_shipping zet ×1,25 + split erop.
+const SHIP_FIRST_KG = 0.5, SHIP_FIRST_EUR = 9.0, SHIP_PER_KG = 8.5;
+const shippingEstimateEur = (kg: number) => round2(SHIP_FIRST_EUR + Math.max(0, kg - SHIP_FIRST_KG) * SHIP_PER_KG);
+
 async function buckyPost(path: string, bodyObj: unknown) {
   const body = JSON.stringify(bodyObj ?? {});
   const ts = Date.now().toString();
@@ -159,15 +165,32 @@ Deno.serve(async (req) => {
 
   if (action === "quote") {
     if (!channels.length) {
-      const diag = res?.success === false
-        ? `BuckyDrop: ${res?.code ?? ""} ${res?.message ?? res?.info ?? "request failed"}`.trim()
-        : "BuckyDrop returned no channels for this route";
-      return json({ ok: false, error: `No shipping options — ${diag}`, raw: res });
+      // Geen live vrachttarief (permissie nog niet aan / sandbox / geen route) → TERUGVAL:
+      // bied de host één synthetische DDP-schatting aan zodat de groep tóch kan verzenden.
+      // De ECHTE prijs bevriest server-side in "lock"; ff_pay_group_shipping splitst per gewicht.
+      const estFreight = shippingEstimateEur(totalWeightG / 1000);
+      if (estFreight <= 0) return json({ ok: false, error: "Could not estimate shipping" }, 400);
+      return json({
+        ok: true, isSandbox: IS_SANDBOX, totalWeightG, isEstimate: true,
+        channels: [{ serviceCode: "ESTIMATE", name: "Estimated shipping", priceEur: estFreight, minDays: 0, maxDays: 0, taxInclusive: true, available: true }],
+      });
     }
     return json({ ok: true, isSandbox: IS_SANDBOX, channels, totalWeightG });
   }
 
   if (action === "lock") {
+    // TERUGVAL: geen live vrachttarief → bevries de gewicht-schatting (DDP). Prijs komt
+    // 100% SERVER-SIDE uit het groep-gewicht; de host stuurt nooit een bedrag mee.
+    if (IS_SANDBOX || channels.length === 0) {
+      const estFreight = shippingEstimateEur(totalWeightG / 1000);
+      if (estFreight <= 0) return json({ ok: false, error: "Could not estimate shipping" }, 400);
+      const { data, error } = await admin.rpc("ff_lock_group_shipping_quote", {
+        p_group_id: groupId, p_estimate: estFreight, p_total_weight_g: totalWeightG,
+        p_service_code: "ESTIMATE", p_service_name: "Estimated shipping (weight-based)", p_tax_inclusive: true,
+      });
+      if (error) return json({ ok: false, error: error.message }, 500);
+      return json(data);
+    }
     const serviceCode = String(payload?.serviceCode ?? "");
     const ch = channels.find((c: any) => c.serviceCode === serviceCode);
     if (!ch) return json({ ok: false, error: "Chosen shipping option is no longer available" }, 400);

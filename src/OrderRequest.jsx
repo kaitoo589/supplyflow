@@ -12,7 +12,7 @@ import Fox from "./Fox";
 
 const spring = springMorph;
 
-export default function OrderRequest({ product, session, onClose, onSuccess, onAddToList, listCount = 0, isFavorite = false, onToggleFavorite, activeGroup = null, onActiveGroupGone, groupLocked = false }) {
+export default function OrderRequest({ product, session, onRequireAuth, onClose, onSuccess, onAddToList, listCount = 0, isFavorite = false, onToggleFavorite, activeGroup = null, onActiveGroupGone, groupLocked = false }) {
   const [selectedVariants, setSelectedVariants] = useState({});
   const [aantal, setAantal] = useState(1);
   const [opmerking, setOpmerking] = useState("");
@@ -61,6 +61,7 @@ export default function OrderRequest({ product, session, onClose, onSuccess, onA
   };
 
   const handleSubmit = async () => {
+    if (!session) { onRequireAuth?.(); return; }   // gast → auth-overlay i.p.v. "Not logged in"
     const item = buildItem();
     if (!item) return;
     setLoading(true);

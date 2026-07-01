@@ -181,9 +181,11 @@ export default function App() {
     return <PaymentSuccess session={session} />;
   }
 
-  if (!session) return (<><Auth /><InstallPrompt /></>);
-  if (role === "agent") return <AgentPanel />;
-  if (role === "admin") return <AdminGate />;
+  // Browse-first: gasten (geen sessie) mogen de etalage in; acties die identiteit/geld raken
+  // vragen in-app om een account (zie SupplyFlow → requireAuth). Alleen ingelogde admins/agents
+  // krijgen hun eigen paneel.
+  if (session && role === "agent") return <AgentPanel />;
+  if (session && role === "admin") return <AdminGate />;
   return (
     <>
       <SupplyFlowApp session={session} />

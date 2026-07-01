@@ -25,6 +25,7 @@ import { toChinese, toEnglish, hasChinese } from "./translate";
 import { serviceFee } from "./fees";
 import PushToggle from "./PushToggle";
 import Fox from "./Fox";
+import Auth from "./Auth";
 
 // —— PREVIEW / LAUNCH-GATE —————————————————————————————————————————————
 // Tot de officiële launch (Stripe live) kan er nog niet betaald worden. Zolang
@@ -1246,7 +1247,7 @@ function PricingSheet({ onClose }) {
 }
 
 export default function SupplyFlow({ session }) {
-  const [tab, setTab] = useState(() => { try { return new URLSearchParams(window.location.search).get("tab") === "profile" ? "profile" : "feed"; } catch { return "feed"; } });
+  const [tab, setTab] = useState(() => { try { return (new URLSearchParams(window.location.search).get("tab") === "profile" && session) ? "profile" : "feed"; } catch { return "feed"; } });
   const [products, setProducts] = useState([]);
   const [factories, setFactories] = useState([]);
   const [selectedFactory, setSelectedFactory] = useState(null);
@@ -1284,6 +1285,17 @@ export default function SupplyFlow({ session }) {
   // toestel nooit de mand/favorieten/haul van de vorige ziet — ook zonder uitloggen.
   const uid = session?.user?.id || "anon";
   const lsKey = (base) => `${base}_${uid}`;
+
+  // —— BROWSE-FIRST GUEST-GATE ——————————————————————————————————————————
+  // Zonder sessie mag je vrij rondkijken (etalage). Acties die je identiteit of geld raken
+  // (afrekenen, koop-nu, opwaarderen, adres, orders/warehouse/transit/profiel, Friends) roepen
+  // requireAuth() aan → dat opent een inlog/registreer-overlay i.p.v. de actie uit te voeren.
+  const isGuest = !session;
+  const [authOpen, setAuthOpen] = useState(false);
+  const requireAuth = () => { if (isGuest) { setAuthOpen(true); return false; } return true; };
+  // Zodra er een sessie is (na inloggen) de overlay sluiten — SupplyFlow blijft dezelfde
+  // instance (App remount niet), dus dit doen we expliciet i.p.v. via unmount.
+  useEffect(() => { if (session) setAuthOpen(false); }, [session]);
 
   const [haulItems, setHaulItems] = useState(() => {
     try {
@@ -1496,11 +1508,23 @@ export default function SupplyFlow({ session }) {
       const code = new URLSearchParams(window.location.search).get("join");
       if (code) {
         setFriendsJoinCode(code.toUpperCase());
-        setShowFriends(true);
-        window.history.replaceState({}, "", window.location.pathname);
+        if (session) {
+          setShowFriends(true);
+          window.history.replaceState({}, "", window.location.pathname);
+        } else {
+          setAuthOpen(true);   // gast met invite-link → eerst inloggen; de effect hieronder opent de lobby ná login
+        }
       }
     } catch { /* ignore */ }
   }, []);
+  // Gast die met een ?join-code net inlogt: alsnog de Friends-lobby openen.
+  useEffect(() => {
+    if (session && friendsJoinCode) {
+      setShowFriends(true);
+      try { window.history.replaceState({}, "", window.location.pathname); } catch { /* ignore */ }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [session]);
 
   // Bij openen van de winkelwagen: lees de price_alert-vlag voor de cart-items, zodat
   // een door iemand anders getriggerde prijswijziging hier proactief "on hold" toont.
@@ -1539,6 +1563,7 @@ export default function SupplyFlow({ session }) {
   // Geeft true terug bij succes → de sheet morpht dan naar de "placed"-weergave.
   const submitRequestList = async () => {
     if (!requestList.length || sendingList) return false;
+    if (isGuest) { setAuthOpen(true); return false; }   // gast → eerst een account
     setSendingList(true);
     setListError(null);
 
@@ -1815,7 +1840,7 @@ export default function SupplyFlow({ session }) {
       initial={{ opacity: 0, scale: 0.92, y: 14 }}
       animate={{ opacity: 1, scale: 1, y: 0 }}
       exit={{ opacity: 0, scale: 0.92, transition: { duration: 0.16, ease: [0.32, 0.72, 0, 1] } }}
-      onClick={() => { if (!session) { alert("Log in to order!"); return; } setSelectedProduct(p); }}
+      onClick={() => setSelectedProduct(p)}
       whileHover={{ y: -4 }} whileTap={{ scale: 0.98 }}
       transition={springMorph}
       style={{ background: "#fff", borderRadius: 18, overflow: "hidden", boxShadow: "0 1px 2px rgba(17,17,17,0.04), 0 6px 18px rgba(17,17,17,0.05)", cursor: "pointer" }}>
@@ -2502,7 +2527,7 @@ export default function SupplyFlow({ session }) {
               <div style={{ width: "100%", boxSizing: "border-box", background: "#111111", color: "#fff", borderRadius: 10, padding: "13px 14px", textAlign: "center", lineHeight: 1.4 }}>
                 <div style={{ fontSize: 13.5, fontWeight: 700 }}>🚀 Flowva launches {LAUNCH_DATE_LABEL}</div>
                 <div style={{ fontSize: 11.5, fontWeight: 500, color: "#B7B3AD", marginTop: 3 }}>Top-ups &amp; ordering open on launch day — you can already browse and build your cart.</div>
-                <div style={{ fontSize: 11.5, fontWeight: 500, color: "#B7B3AD", marginTop: 6 }}>Follow <span style={{ color: "#fff", fontWeight: 700 }}>flowva.app</span> to stay updated.</div>
+                <div style={{ fontSize: 11.5, fontWeight: 500, color: "#B7B3AD", marginTop: 6 }}>Follow <span style={{ color: "#fff", fontWeight: 700 }}>flowva.app</span> on TikTok to stay updated.</div>
               </div>
             ) : (
               <button onClick={handleTopup} disabled={loadingBalance || !topupAmount || !topupAgreed}
@@ -2562,7 +2587,7 @@ export default function SupplyFlow({ session }) {
                   <button onClick={() => { setFriendsGroupId(activeGroup.id); setShowFriends(true); }}
                     style={{ background: "transparent", border: "none", color: "#16A34A", fontSize: 12, fontWeight: 700, cursor: "pointer", padding: "10px 0 0", textAlign: "left" }}>Open group &amp; see details →</button>
                 )}
-                <button onClick={() => { setFriendsJoinCode(null); setShowFriends(true); }}
+                <button onClick={() => { if (!requireAuth()) return; setFriendsJoinCode(null); setShowFriends(true); }}
                   style={{ width: "100%", marginTop: 12, background: "#FFF0E7", border: "1px dashed rgba(255,92,0,0.4)", color: "#FF5C00", borderRadius: 12, padding: "12px", fontSize: 13, fontWeight: 700, cursor: "pointer" }}>+ Create, join or manage groups</button>
               </div>
             );
@@ -2642,6 +2667,7 @@ export default function SupplyFlow({ session }) {
       <AnimatePresence>
         {selectedProduct && (
           <OrderRequest product={selectedProduct} session={session}
+            onRequireAuth={() => setAuthOpen(true)}
             onClose={() => setSelectedProduct(null)}
             onSuccess={() => { setSuccessProduct(selectedProduct); setSelectedProduct(null); fetchOrders(); }}
             listCount={requestList.length}
@@ -2654,7 +2680,7 @@ export default function SupplyFlow({ session }) {
       {/* Zwevende aanvraaglijst-balk: morpht open naar de zwarte lijst-sheet
           (zelfde layoutId — het balkje IS de dichtgevouwen lijst) */}
       <AnimatePresence>
-        {showFriends && (
+        {showFriends && !isGuest && (
           <Friends session={session} initialJoinCode={friendsJoinCode} initialGroupId={friendsGroupId}
             activeGroupId={activeGroup?.id}
             onShopForGroup={(g) => setActiveGroup(g)} onOpenProduct={openProductByUrl}
@@ -2970,6 +2996,19 @@ export default function SupplyFlow({ session }) {
         )}
       </AnimatePresence>
 
+      {/* Gast → inlog/registreer-overlay. Browse-first: de etalage blijft open; alleen acties
+          die identiteit/geld raken leiden hierheen. Sluit vanzelf zodra er een sessie is. */}
+      <AnimatePresence>
+        {authOpen && isGuest && (
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.2 }}
+            style={{ position: "fixed", inset: 0, zIndex: 9000, background: "#F8F7F4", overflowY: "auto", WebkitOverflowScrolling: "touch" }}>
+            <motion.button onClick={() => setAuthOpen(false)} whileTap={{ scale: 0.88 }} aria-label="Close"
+              style={{ position: "fixed", top: 14, right: 14, zIndex: 9001, width: 38, height: 38, borderRadius: 19, border: "none", background: "rgba(255,255,255,0.92)", boxShadow: "0 2px 10px rgba(17,17,17,0.14)", fontSize: 17, cursor: "pointer", color: "#111", display: "flex", alignItems: "center", justifyContent: "center" }}>✕</motion.button>
+            <Auth />
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* Bottom nav */}
       <div style={{ position: "fixed", zIndex: 100, bottom: 0, left: "50%", transform: "translateX(-50%)", width: "100%", maxWidth: 430, background: "#fff", borderTop: "1px solid #ECEAE5", display: "flex", padding: "9px 0 15px" }}>
         {[
@@ -2981,7 +3020,7 @@ export default function SupplyFlow({ session }) {
         ].map(t => {
           const active = tab === t.id;
           return (
-            <motion.button key={t.id} onClick={() => { setTab(t.id); setSelectedOrder(null); }}
+            <motion.button key={t.id} onClick={() => { if (t.id !== "feed" && !requireAuth()) return; setTab(t.id); setSelectedOrder(null); }}
               whileTap={{ scale: 0.85 }} transition={springSnappy}
               style={{ position: "relative", flex: 1, background: "none", border: "none", display: "flex", flexDirection: "column", alignItems: "center", gap: 4, cursor: "pointer", WebkitTapHighlightColor: "transparent" }}>
               {active && (

@@ -1,4 +1,5 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
+import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { castVote, getVoteStats } from "./votes";
 import { garmentType } from "./garment";
@@ -13,6 +14,23 @@ const OPTIONS = [
   { key: "yes", emoji: "🔥", label: "I'd buy this" },
   { key: "notify", emoji: "🔔", label: "Notify me" },
 ];
+
+// 🔥-stem: het vuurtje vliegt (draaiend, met een boogje in schaal) van de knop naar het
+// vuurtje bij de uitslag en "ontsteekt" daar de balk. Via een portal met viewport-coördinaten,
+// zodat transforms/scroll van de sheet de vlucht niet kunnen verstoren.
+function FlyingFire({ flight, onDone }) {
+  return createPortal(
+    <motion.span
+      initial={{ x: 0, y: 0, rotate: 0, scale: 1, opacity: 1 }}
+      animate={{ x: flight.tx - flight.fx, y: flight.ty - flight.fy, rotate: [0, -28, 16, 0], scale: [1, 1.4, 0.9], opacity: [1, 1, 0.85] }}
+      transition={{ x: { duration: 0.55, ease: [0.32, 0.72, 0, 1] }, y: { duration: 0.55, ease: [0.32, 0.72, 0, 1] }, rotate: { duration: 0.55 }, scale: { duration: 0.55, times: [0, 0.55, 1] }, opacity: { duration: 0.55, times: [0, 0.85, 1] } }}
+      onAnimationComplete={onDone}
+      style={{ position: "fixed", left: flight.fx, top: flight.fy, zIndex: 9600, fontSize: 15, lineHeight: 1, pointerEvents: "none", display: "inline-block" }}>
+      🔥
+    </motion.span>,
+    document.body,
+  );
+}
 
 // Hype check: de stem-sheet voor een "Coming soon"-demo-product. Niet koopbaar — je laat
 // alleen weten hoe tof je 't vindt. Uitslag (percentage + aantal stemmen) staat er altijd.
@@ -35,6 +53,24 @@ export default function HypeCheckSheet({ product, session, onClose, onRequireAut
     const t2 = setTimeout(() => setShowCta(true), 2100);
     return () => { clearTimeout(t1); clearTimeout(t2); };
   }, [notifyPrompt]);
+  // Per-knop micro-momenten: 🔥 vliegt naar de uitslag-balk (+ glans-sweep bij landing),
+  // 🤍 flipt even naar 🧡, 👎 krijgt een sportieve vos-reactie.
+  const fireEmojiRef = useRef(null);
+  const statFireRef = useRef(null);
+  const [fireFlight, setFireFlight] = useState(null);   // {fx,fy,tx,ty}
+  const [barShine, setBarShine] = useState(0);          // teller → glans-sweep + vuur-pop bij de uitslag
+  const [heartOrange, setHeartOrange] = useState(false);
+  const [foxNope, setFoxNope] = useState(0);
+  useEffect(() => {
+    if (!heartOrange) return;
+    const t = setTimeout(() => setHeartOrange(false), 950);
+    return () => clearTimeout(t);
+  }, [heartOrange]);
+  useEffect(() => {
+    if (!foxNope) return;
+    const t = setTimeout(() => setFoxNope(0), 1900);
+    return () => clearTimeout(t);
+  }, [foxNope]);
 
   useEffect(() => {
     getVoteStats([product.id]).then((m) =>
@@ -54,6 +90,16 @@ export default function HypeCheckSheet({ product, session, onClose, onRequireAut
     // Gast + "notify" → we hebben een account nodig om 'm te kunnen pingen zodra 't live gaat.
     // Geen kaal inlogscherm: de bel vliegt naar het midden en de vos legt het uit.
     if (!hasSession && key === "notify") { setNotifyPrompt(true); return; }
+    // Micro-momenten meteen bij de tik (voelt instant, los van de server-roundtrip).
+    if (key === "yes") {
+      const f = fireEmojiRef.current?.getBoundingClientRect();
+      const t = statFireRef.current?.getBoundingClientRect();
+      if (f && t) setFireFlight({ fx: f.left, fy: f.top, tx: t.left, ty: t.top });
+    } else if (key === "nice") {
+      setHeartOrange(true);
+    } else if (key === "no") {
+      setFoxNope((n) => n + 1);
+    }
     setBusy(true);
     const prev = myVote;
     setMyVote(key); // optimistisch
@@ -124,10 +170,18 @@ export default function HypeCheckSheet({ product, session, onClose, onRequireAut
                 style={{ background: sel ? "#2a1c0f" : "#1A1917", border: `1px solid ${sel ? "#FF5C00" : "#2c2b29"}`, borderRadius: 12, padding: "12px 8px", textAlign: "center", color: sel || accent ? "#FF8A3D" : "#C9C6C1", fontSize: 12.5, fontWeight: 700, cursor: busy ? "default" : "pointer", WebkitTapHighlightColor: "transparent" }}>
                 {isBell && notifyPrompt
                   ? <span style={{ opacity: 0, display: "inline-block" }}>{o.emoji}</span>
-                  : <motion.span layoutId={isBell ? "hype-bell" : undefined}
+                  : o.key === "nice"
+                  ? <motion.span animate={sel ? { rotate: [0, -14, 10, 0] } : { rotate: 0 }} transition={{ duration: 0.45 }} style={{ display: "inline-block" }}>
+                      {/* kaart-flip: 🤍 → 🧡 en (na ~1s) weer terug */}
+                      <motion.span animate={{ rotateY: heartOrange ? 180 : 0 }} transition={springSnappy} style={{ display: "inline-block", transformStyle: "preserve-3d", position: "relative" }}>
+                        <span style={{ display: "inline-block", backfaceVisibility: "hidden" }}>🤍</span>
+                        <span aria-hidden style={{ position: "absolute", inset: 0, display: "inline-block", transform: "rotateY(180deg)", backfaceVisibility: "hidden" }}>🧡</span>
+                      </motion.span>
+                    </motion.span>
+                  : <motion.span ref={o.key === "yes" ? fireEmojiRef : undefined} layoutId={isBell ? "hype-bell" : undefined}
                       animate={sel ? { rotate: [0, -18, 14, -6, 0], scale: [1, 1.35, 1] } : { rotate: 0, scale: 1 }}
                       transition={{ duration: 0.5, ease: [0.32, 0.72, 0, 1] }}
-                      style={{ display: "inline-block" }}>{o.emoji}</motion.span>}
+                      style={{ display: "inline-block", opacity: o.key === "yes" && fireFlight ? 0 : 1 }}>{o.emoji}</motion.span>}
                 {" "}{o.label}{sel ? " ✓" : ""}
               </motion.button>
             );
@@ -135,17 +189,22 @@ export default function HypeCheckSheet({ product, session, onClose, onRequireAut
         </div>
 
         {s.total === 0 ? (
-          <div style={{ fontSize: 11.5, color: "#9C9893", textAlign: "center" }}>Be the first to vote 🔥</div>
+          <div style={{ fontSize: 11.5, color: "#9C9893", textAlign: "center" }}>Be the first to vote <span ref={statFireRef} style={{ display: "inline-block" }}>🔥</span></div>
         ) : (
           <>
             <div style={{ height: 9, borderRadius: 6, overflow: "hidden", display: "flex", marginBottom: 7, background: "#1A1917" }}>
-              <motion.div animate={{ width: `${pctYes}%` }} transition={springSoft} style={{ background: "#FF5C00" }} />
+              <motion.div animate={{ width: `${pctYes}%` }} transition={springSoft} style={{ background: "#FF5C00", position: "relative", overflow: "hidden" }}>
+                {barShine > 0 && (
+                  <motion.div key={barShine} initial={{ x: "-130%" }} animate={{ x: "340%" }} transition={{ duration: 0.55, ease: "easeOut" }}
+                    style={{ position: "absolute", top: 0, bottom: 0, width: "45%", background: "linear-gradient(90deg, transparent, rgba(255,255,255,0.6), transparent)" }} />
+                )}
+              </motion.div>
               <motion.div animate={{ width: `${pctNice}%` }} transition={springSoft} style={{ background: "#5a5852" }} />
             </div>
             <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11, color: "#9C9893" }}>
               <span>
-                <motion.span key={`${pctYes}-${s.total}`} initial={{ scale: 1.25, opacity: 0.4 }} animate={{ scale: 1, opacity: 1 }} transition={springSnappy}
-                  style={{ display: "inline-block", color: "#FF8A3D", fontWeight: 700 }}>🔥 {pctYes}% would buy</motion.span> · 🤍 {pctNice}% · 👎 {pctNo}%
+                <motion.span key={`${pctYes}-${s.total}-${barShine}`} initial={{ scale: 1.25, opacity: 0.4 }} animate={{ scale: 1, opacity: 1 }} transition={springSnappy}
+                  style={{ display: "inline-block", color: "#FF8A3D", fontWeight: 700 }}><span ref={statFireRef} style={{ display: "inline-block" }}>🔥</span> {pctYes}% would buy</motion.span> · 🤍 {pctNice}% · 👎 {pctNo}%
               </span>
               <span>{s.total} vote{s.total === 1 ? "" : "s"}</span>
             </div>
@@ -206,6 +265,25 @@ export default function HypeCheckSheet({ product, session, onClose, onRequireAut
           </>
         )}
       </AnimatePresence>
+
+      {/* 🔥 onderweg van knop → uitslag; bij landing volgt de glans-sweep + vuur-pop. */}
+      {fireFlight && <FlyingFire flight={fireFlight} onDone={() => { setFireFlight(null); setBarShine((k) => k + 1); }} />}
+
+      {/* 👎 → sportieve vos-reactie (toast onderaan, verdwijnt vanzelf). */}
+      {createPortal(
+        <AnimatePresence>
+          {foxNope > 0 && (
+            <motion.div key={foxNope} initial={{ opacity: 0, y: 16, scale: 0.7 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 10, scale: 0.85 }} transition={springBouncy}
+              style={{ position: "fixed", bottom: 20, left: 0, right: 0, margin: "0 auto", width: "fit-content", zIndex: 9600, display: "flex", gap: 8, alignItems: "flex-end", pointerEvents: "none" }}>
+              <span style={{ fontSize: 27, lineHeight: 1 }}><Fox /></span>
+              <SpeechBubble bg="#1E1D1A" color="#fff" style={{ padding: "9px 13px" }}>
+                <span style={{ fontSize: 12.5, fontWeight: 700, whiteSpace: "nowrap" }}>Fair enough! 👊</span>
+              </SpeechBubble>
+            </motion.div>
+          )}
+        </AnimatePresence>,
+        document.body,
+      )}
 
       {zoomIdx != null && <PhotoZoom photos={photos} index={zoomIdx} onClose={() => setZoomIdx(null)} />}
     </>

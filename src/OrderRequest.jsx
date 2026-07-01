@@ -99,7 +99,7 @@ export default function OrderRequest({ product, session, onRequireAuth, onClose,
     onAddToList(item);
   };
 
-  // Flowva Friends: voeg dit item toe aan de gedeelde mand van de actieve groep.
+  // Flowva Friends: koop dit item DIRECT in de actieve groep (fee valt pas bij verzenden).
   const handleAddToGroup = async () => {
     if (!activeGroup) return;
     const item = buildItem();
@@ -108,7 +108,9 @@ export default function OrderRequest({ product, session, onRequireAuth, onClose,
     const r = await ffAddItem(activeGroup.id, item);
     setLoading(false);
     if (!r.ok) {
-      setError(r.error || "Could not add to the group");
+      setError(r.error === "Insufficient balance"
+        ? `Insufficient balance — you need €${Number(r.needed || 0).toFixed(2)}. Top up first.`
+        : (r.error || "Could not buy for the group"));
       // Groep bestaat niet meer / geen lid / gesloten → stop met "voor deze groep shoppen".
       if (/not a member|not found|closed|full/i.test(r.error || "")) onActiveGroupGone?.();
       return;
@@ -360,12 +362,12 @@ export default function OrderRequest({ product, session, onRequireAuth, onClose,
             {activeGroup && (
               <>
                 <motion.div variants={fadeUp} style={{ display: "flex", alignItems: "center", gap: 6, background: "rgba(255,92,0,0.1)", border: "1px solid rgba(255,92,0,0.3)", borderRadius: 12, padding: "10px 13px", marginBottom: 10, fontSize: 12.5, color: "#B45309" }}>
-                  <Fox /> Shopping for <b style={{ marginLeft: 2 }}>{activeGroup.name}</b>
+                  <Fox /> Shopping for <b style={{ marginLeft: 2 }}>{activeGroup.name}</b> · bought into the group now, one fee at shipping
                 </motion.div>
                 <motion.button variants={fadeUp} whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.96 }}
                   onClick={handleAddToGroup} disabled={loading || addedToGroup}
                   style={{ width: "100%", marginBottom: 8, background: addedToGroup ? "#16A34A" : "#FF5C00", color: "#fff", border: "none", borderRadius: 14, padding: "16px", fontSize: 15, fontWeight: 700, cursor: loading ? "default" : "pointer" }}>
-                  {addedToGroup ? `✓ Added to ${activeGroup.name}` : loading ? "Adding…" : `+ Add to ${activeGroup.name}`}
+                  {addedToGroup ? `✓ Bought for ${activeGroup.name}` : loading ? "Buying…" : `+ Buy for ${activeGroup.name}`}
                 </motion.button>
                 <motion.button variants={fadeUp} whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.96 }}
                   onClick={handleShareToGroup} disabled={loading}

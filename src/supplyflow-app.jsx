@@ -1199,12 +1199,7 @@ function PricingSheet({ onClose }) {
           <div style={{ fontSize: 13, lineHeight: 1.6, color: "#46443F" }}>
             You shop on your own. The smart move: put <b>everything in one order</b>. Fulfillment, shipping and the Flowva fee are charged once per order — so the more you add, the less each item costs. Your Flowva fee here is <b>8% of the factory price, with a €5 minimum</b> per order.
           </div>
-          <div style={{ background: "#FFF7F2", border: "1px solid #FBE2D2", borderRadius: 12, padding: "11px 13px", marginTop: 11 }}>
-            <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12.5, padding: "3px 0", color: "#46443F" }}><span>1 item · factory price €3</span><span style={{ fontWeight: 700, color: "#111" }}>≈ €15 total</span></div>
-            <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12.5, padding: "3px 0", color: "#46443F" }}><span>5 items in one order</span><span style={{ fontWeight: 700, color: "#FF5C00" }}>≈ €7 each</span></div>
-            <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12.5, padding: "3px 0", color: "#46443F" }}><span>20 items in one order</span><span style={{ fontWeight: 700, color: "#FF5C00" }}>≈ €5.50 each</span></div>
-          </div>
-          <div style={{ display: "flex", gap: 8, marginTop: 10, alignItems: "flex-start" }}>
+          <div style={{ display: "flex", gap: 8, marginTop: 11, alignItems: "flex-start" }}>
             <span style={{ fontSize: 14, marginTop: 1 }}>ℹ️</span>
             <div style={{ fontSize: 11.5, lineHeight: 1.5, color: "#8A8780" }}><b style={{ color: "#46443F" }}>Note:</b> this €3 per product category is a customs charge, introduced by a new EU rule from 1 July 2026. It's included in the shipping price. Want to lower it? Shopping with friends is recommended.</div>
           </div>

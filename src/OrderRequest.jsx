@@ -103,8 +103,10 @@ export default function OrderRequest({ product, session, onRequireAuth, onClose,
     const item = buildItem();
     if (!item) return;
     // Bron-rect van de productfoto meemeten → de app laat 'm naar de mand-balk vliegen.
+    // product.id gaat mee zodat de app de FEED-KAART van dit item kan vinden: de vlucht
+    // start ná het dichtklappen van de sheet vanaf de kaart zelf (leest veel duidelijker).
     const rect = imgRef.current?.getBoundingClientRect() || null;
-    onAddToList(item, rect);
+    onAddToList(item, rect, product.id);
   };
 
   // Flowva Friends: koop dit item DIRECT in de actieve groep (fee valt pas bij verzenden).

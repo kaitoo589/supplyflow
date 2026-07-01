@@ -413,7 +413,8 @@ function TreasureMap({ activeFilter, onSelect, orders }) {
               animate={{ left: `${12.5 + idx * 25}%`, opacity: [0, 1, 1, 0], y: [0, -2, 0, -1.5, 0] }}
               transition={{ duration: 1.5, delay: 0.45, ease: "easeInOut" }}
               style={{ position: "absolute", top: 5, marginLeft: -9, fontSize: 15, zIndex: 2, pointerEvents: "none" }}>
-              🚚
+              {/* emoji kijkt standaard naar links; hij rijdt naar rechts → spiegelen */}
+              <span style={{ display: "inline-block", transform: "scaleX(-1)" }}>🚚</span>
             </motion.span>
           );
         })()}
@@ -638,13 +639,17 @@ function RequestListSheet({ items, onRemove, onSetQty, onClose, onSend, sending,
     <>
       <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={view === "placed" ? () => onFinish?.(false) : onClose}
         style={{ position: "fixed", inset: 0, zIndex: 300, background: "rgba(0,0,0,0.5)", backdropFilter: "blur(6px)" }} />
-      <motion.div initial={{ y: "100%" }} animate={{ y: 0 }} exit={{ y: "100%" }} transition={{ type: "spring", stiffness: 320, damping: 34 }}
+      {/* Zwevende mand-kaart: raakt de schermranden nergens (minimalistisch, "duur") en
+          klapt via de gedeelde layoutId ("cart-pop") uit de mand-balk omhoog — geen paneel
+          meer dat aan de onderkant vastzit. */}
+      <motion.div layoutId="cart-pop" transition={springMorph}
+        initial={{ opacity: 0, y: 26, scale: 0.96 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 20, scale: 0.97 }}
         drag="y" dragControls={dragControls} dragListener={false}
         dragConstraints={{ top: 0, bottom: 0 }} dragElastic={{ top: 0, bottom: 0.55 }}
         onDragEnd={(e, info) => { if (info.offset.y > 110 || info.velocity.y > 650) (view === "placed" ? onFinish?.(false) : onClose()); }}
-        style={{ position: "fixed", bottom: 0, left: 0, right: 0, margin: "0 auto", width: "100%", maxWidth: 430, boxSizing: "border-box", background: "#111111", borderRadius: "24px 24px 0 0", zIndex: 301, maxHeight: "88vh", overflowY: "auto" }}>
-        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1, transition: { delay: 0.12, duration: 0.18 } }} exit={{ opacity: 0, transition: { duration: 0.08 } }}
-          style={{ padding: "20px 20px 40px" }}>
+        style={{ position: "fixed", bottom: 86, left: 0, right: 0, margin: "0 auto", width: "calc(100% - 24px)", maxWidth: 404, boxSizing: "border-box", background: "#111111", borderRadius: 28, zIndex: 301, maxHeight: "74vh", overflowY: "auto", overscrollBehavior: "contain", boxShadow: "0 30px 80px rgba(0,0,0,0.5)" }}>
+        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1, transition: { delay: 0.16, duration: 0.2 } }} exit={{ opacity: 0, transition: { duration: 0.08 } }}
+          style={{ padding: "18px 18px 26px" }}>
           <div onClick={view === "checkout" ? () => setView("cart") : view === "placed" ? () => onFinish?.(false) : onClose}
             onPointerDown={(e) => dragControls.start(e)}
             style={{ padding: "0 0 12px", cursor: "grab", touchAction: "none" }}>
@@ -1982,7 +1987,7 @@ export default function SupplyFlow({ session }) {
       transition={springMorph}
       style={{ background: "#fff", borderRadius: 18, overflow: "hidden", boxShadow: "0 1px 2px rgba(17,17,17,0.04), 0 6px 18px rgba(17,17,17,0.05)", cursor: "pointer" }}>
       <div style={{ position: "relative" }}>
-        <motion.div layoutId={`pimg-${p.id}`} transition={springMorph} style={{ background: "#fff", height: 160, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 48, overflow: "hidden" }}>
+        <motion.div layoutId={`pimg-${p.id}`} data-pcard-img={p.id} transition={springMorph} style={{ background: "#fff", height: 160, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 48, overflow: "hidden" }}>
           {p.image?.startsWith("http") ? (
             <>
               <img src={p.image} referrerPolicy="no-referrer" alt={p.title}
@@ -2121,13 +2126,15 @@ export default function SupplyFlow({ session }) {
 
       {/* 🦊 Pull-to-refresh indicator: pootafdrukken lichten op met de trek-afstand; bij
           verversen huppelt de vos. In-flow → duwt de feed zachtjes mee omlaag. */}
+      {/* Zwevende overlay (géén layout-push: de feed en de 'All factories'-pill blijven
+          gewoon staan terwijl je trekt — dat verspringen was de bug). */}
       {(pull > 0 || ptrBusy) && (
-        <div style={{ height: pull, overflow: "hidden", display: "flex", alignItems: "flex-end", justifyContent: "center", gap: 14, paddingBottom: 9, boxSizing: "border-box" }}>
+        <div style={{ position: "fixed", top: 0, left: 0, right: 0, zIndex: 90, display: "flex", justifyContent: "center", gap: 14, paddingTop: Math.min(30, 8 + pull * 0.2), pointerEvents: "none", opacity: ptrBusy ? 1 : Math.min(1, pull / 45) }}>
           {[0.3, 0.55, 0.85].map((t, i) => (
             <motion.span key={i}
               animate={ptrBusy ? { y: [0, -7, 0] } : { y: 0 }}
               transition={ptrBusy ? { duration: 0.55, repeat: Infinity, ease: "easeInOut", delay: i * 0.14 } : { duration: 0.1 }}
-              style={{ fontSize: 15, display: "inline-block", opacity: ptrBusy || pull / 110 >= t ? 1 : 0.18, transition: "opacity .15s", transform: `rotate(${i % 2 ? 14 : -10}deg)` }}>🐾</motion.span>
+              style={{ fontSize: 15, display: "inline-block", opacity: ptrBusy || pull / 110 >= t ? 1 : 0.2, transition: "opacity .15s", transform: `rotate(${i % 2 ? 14 : -10}deg)` }}>🐾</motion.span>
           ))}
         </div>
       )}
@@ -2896,18 +2903,23 @@ export default function SupplyFlow({ session }) {
             onClose={() => setSelectedProduct(null)}
             onSuccess={() => { setSuccessProduct(selectedProduct); setSelectedProduct(null); fetchOrders(); }}
             listCount={requestList.length}
-            onAddToList={(item, rect) => {
+            onAddToList={(item, rect, pid) => {
               setRequestList(list => [...list, item]);
               setSelectedProduct(null);
-              // Foto vliegt van de plek van het item naar het 📋-icoon van de mand-balk.
-              // De balk mount nét na het sluiten van de sheet → even wachten en dan meten.
+              // Foto vliegt van de FEED-KAART van het item naar het 📋-icoon van de mand-balk.
+              // We wachten tot de sheet-dichtklap-morph klaar is (anders vechten twee animaties
+              // om je aandacht), meten dan de kaart (fallback: de sheet-foto-rect van de tik).
               if (rect && item.variant_image) {
                 setTimeout(() => {
+                  let f = rect;
+                  const card = pid != null ? document.querySelector(`[data-pcard-img="${pid}"]`) : null;
+                  const cr = card?.getBoundingClientRect();
+                  if (cr && cr.width > 0 && cr.bottom > 0 && cr.top < window.innerHeight) f = cr;
                   const t = document.querySelector("[data-cart-emoji]")?.getBoundingClientRect();
                   const tx = t ? t.left + t.width / 2 - 21 : window.innerWidth / 2 - 170;
                   const ty = t ? t.top + t.height / 2 - 21 : window.innerHeight - 132;
-                  setCartFlight({ src: item.variant_image, fx: rect.left, fy: rect.top, fw: rect.width, fh: rect.height, tx, ty });
-                }, 70);
+                  setCartFlight({ src: item.variant_image, fx: f.left, fy: f.top, fw: f.width, fh: f.height, tx, ty });
+                }, 480);
               }
             }}
             isFavorite={isFavorite(selectedProduct)} onToggleFavorite={() => toggleFavorite(selectedProduct)}
@@ -3016,7 +3028,7 @@ export default function SupplyFlow({ session }) {
           </motion.div>
         )}
         {requestList.length > 0 && tab === "feed" && !showRequestList && !selectedProduct && !showFriends && !activeGroupShopping && !showVable && !hypeProduct && (
-          <motion.div initial={{ y: 24, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 30, opacity: 0, scale: 0.96 }} whileTap={{ scale: 0.97 }} transition={springMorph}
+          <motion.div layoutId="cart-pop" initial={{ y: 24, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 30, opacity: 0, scale: 0.96 }} whileTap={{ scale: 0.97 }} transition={springMorph}
             onClick={() => { setListError(null); setShowRequestList(true); }}
             style={{ position: "fixed", bottom: 78, left: 0, right: 0, margin: "0 auto", width: "calc(100% - 40px)", maxWidth: 390, background: "#111111", borderRadius: 16, overflow: "hidden", cursor: "pointer", zIndex: 301, boxShadow: "0 12px 40px rgba(17,17,17,0.35)" }}>
             <div style={{ padding: "12px 16px", display: "flex", alignItems: "center", gap: 12 }}>

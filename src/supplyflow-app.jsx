@@ -2694,32 +2694,11 @@ export default function SupplyFlow({ session }) {
                 <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to bottom, rgba(0,0,0,0.34) 0%, rgba(0,0,0,0) 16%)" }} />
                 <div style={{ position: "absolute", top: 10, left: "50%", transform: "translateX(-50%)", width: 38, height: 4, background: "rgba(255,255,255,0.6)", borderRadius: 2, zIndex: 3 }} />
                 <button onClick={() => setShowVable(false)} aria-label="close" style={{ position: "absolute", top: 12, right: 12, background: "rgba(0,0,0,0.4)", border: "none", borderRadius: 999, width: 30, height: 30, fontSize: 14, color: "#fff", cursor: "pointer", zIndex: 3 }}>✕</button>
-                <div style={{ position: "absolute", top: "24%", left: 18, right: 18, textAlign: "center", zIndex: 2 }}>
-                  <img src="/vable-logo.svg" alt="VABLE" style={{ height: 64, width: "auto", maxWidth: "82%", filter: "brightness(0) invert(1)", marginBottom: 10 }} />
-                  <div style={{ fontSize: 11, letterSpacing: 3, color: "rgba(255,255,255,0.8)", textShadow: "0 1px 8px rgba(0,0,0,0.55)", marginBottom: 14 }}>FIRST DROP 2026</div>
-                  <div style={{ fontSize: 40, fontWeight: 800, color: "#fff", lineHeight: 1.0, letterSpacing: -1, textShadow: "0 2px 16px rgba(0,0,0,0.5)" }}>Wearable Art.</div>
-                  <div style={{ fontSize: 14, color: "rgba(255,255,255,0.88)", marginTop: 12, textShadow: "0 1px 10px rgba(0,0,0,0.55)" }}>Embroidery elevated — inspired by Japan.</div>
+                <div style={{ position: "absolute", top: "34%", left: 18, right: 18, textAlign: "center", zIndex: 2 }}>
+                  <img src="/vable-logo.svg" alt="VABLE" style={{ height: 116, width: "auto", maxWidth: "90%", filter: "brightness(0) invert(1) drop-shadow(0 2px 16px rgba(0,0,0,0.5))", marginBottom: 18 }} />
+                  <div style={{ fontSize: 11.5, letterSpacing: 3, textTransform: "uppercase", color: "rgba(255,255,255,0.85)", textShadow: "0 1px 8px rgba(0,0,0,0.55)", marginBottom: 10 }}>First drop coming soon</div>
+                  <div style={{ fontSize: 15, fontWeight: 500, color: "rgba(255,255,255,0.9)", textShadow: "0 1px 10px rgba(0,0,0,0.55)" }}>Wearable art</div>
                 </div>
-              </div>
-              <div style={{ padding: "14px 20px 40px" }}>
-              <div style={{ fontSize: 13, fontWeight: 700, color: "#0F0E0C", marginBottom: 2 }}>Shop the First Drop</div>
-              <div style={{ fontSize: 12, color: "#8A8780", marginBottom: 14 }}>Japanese-embroidered denim — our own brand.</div>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-                {VABLE_ITEMS.map((it, i) => (
-                  <a key={i} href={it.url || VABLE_URL} target="_blank" rel="noreferrer" style={{ textDecoration: "none", borderRadius: 16, overflow: "hidden", background: "#fff", border: "1px solid #F0EEE8", display: "block" }}>
-                    <div style={{ aspectRatio: "4 / 5", background: it.bg, overflow: "hidden" }}>
-                      <img src={it.img} alt={it.name} style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
-                    </div>
-                    <div style={{ padding: "10px 11px 12px" }}>
-                      <div style={{ fontSize: 12.5, fontWeight: 700, color: "#111" }}>{it.name}</div>
-                      <div style={{ fontSize: 12, color: "#6B6863", marginTop: 2 }}>{it.price}</div>
-                    </div>
-                  </a>
-                ))}
-              </div>
-              <a href={VABLE_URL} target="_blank" rel="noreferrer"
-                style={{ display: "block", marginTop: 16, background: "#111", color: "#fff", borderRadius: 24, padding: "13px", textAlign: "center", fontSize: 13.5, fontWeight: 700, textDecoration: "none" }}>Shop the collection ↗</a>
-              <div style={{ textAlign: "center", fontSize: 10.5, color: "#B6B2AB", marginTop: 7 }}>opens vable.store</div>
               </div>
             </motion.div>
           </>

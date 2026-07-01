@@ -87,9 +87,12 @@ export default function HypeCheckSheet({ product, session, onClose, onRequireAut
 
   const vote = async (key) => {
     if (busy) return;
-    // Gast + "notify" → we hebben een account nodig om 'm te kunnen pingen zodra 't live gaat.
-    // Geen kaal inlogscherm: de bel vliegt naar het midden en de vos legt het uit.
-    if (!hasSession && key === "notify") { setNotifyPrompt(true); return; }
+    // 🔔 → altijd het bel-vos-moment. Gast: uitleg dat een account nodig is (stemmen kan
+    // dan nog niet). Ingelogd: "you're on the list" — de stem registreert op de achtergrond.
+    if (key === "notify") {
+      setNotifyPrompt(hasSession ? "user" : "guest");
+      if (!hasSession) return;
+    }
     // Micro-momenten meteen bij de tik (voelt instant, los van de server-roundtrip).
     if (key === "yes") {
       const f = fireEmojiRef.current?.getBoundingClientRect();
@@ -240,7 +243,7 @@ export default function HypeCheckSheet({ product, session, onClose, onRequireAut
                 <span style={{ fontSize: 34, flexShrink: 0, lineHeight: 1 }}><Fox /></span>
                 <SpeechBubble bg="#1E1D1A" color="#fff">
                   <span style={{ fontSize: 13.5, lineHeight: 1.6, fontWeight: 600 }}>
-                    <WordReveal text="Register or log in if you want to get notified" delay={0.75} stagger={0.07} />{" "}
+                    <WordReveal text={notifyPrompt === "user" ? "You're on the list — we'll ping you when it drops" : "Register or log in if you want to get notified"} delay={0.75} stagger={0.07} />{" "}
                     {bellLanded
                       ? <motion.span layoutId="hype-bell"
                           animate={{ rotate: [0, -22, 16, -8, 0] }}
@@ -252,14 +255,23 @@ export default function HypeCheckSheet({ product, session, onClose, onRequireAut
               </motion.div>
               <motion.div initial={{ opacity: 0, y: 14 }} animate={showCta ? { opacity: 1, y: 0 } : { opacity: 0, y: 14 }} transition={springSoft}
                 style={{ marginTop: 24, width: "100%", maxWidth: 320, pointerEvents: showCta ? "auto" : "none" }}>
-                <motion.button whileTap={{ scale: 0.97 }} onClick={() => onRequireAuth?.()}
-                  style={{ width: "100%", background: "#FF5C00", color: "#fff", border: "none", borderRadius: 13, padding: "14px", fontSize: 14, fontWeight: 700, cursor: "pointer" }}>
-                  Create a free account · Log in →
-                </motion.button>
-                <motion.button whileTap={{ scale: 0.97 }} onClick={() => setNotifyPrompt(false)}
-                  style={{ width: "100%", marginTop: 8, background: "transparent", color: "#C9C6C1", border: "1px solid rgba(255,255,255,0.18)", borderRadius: 13, padding: "12px", fontSize: 13, fontWeight: 600, cursor: "pointer" }}>
-                  Maybe later
-                </motion.button>
+                {notifyPrompt === "guest" ? (
+                  <>
+                    <motion.button whileTap={{ scale: 0.97 }} onClick={() => onRequireAuth?.()}
+                      style={{ width: "100%", background: "#FF5C00", color: "#fff", border: "none", borderRadius: 13, padding: "14px", fontSize: 14, fontWeight: 700, cursor: "pointer" }}>
+                      Create a free account · Log in →
+                    </motion.button>
+                    <motion.button whileTap={{ scale: 0.97 }} onClick={() => setNotifyPrompt(false)}
+                      style={{ width: "100%", marginTop: 8, background: "transparent", color: "#C9C6C1", border: "1px solid rgba(255,255,255,0.18)", borderRadius: 13, padding: "12px", fontSize: 13, fontWeight: 600, cursor: "pointer" }}>
+                      Maybe later
+                    </motion.button>
+                  </>
+                ) : (
+                  <motion.button whileTap={{ scale: 0.97 }} onClick={() => setNotifyPrompt(false)}
+                    style={{ width: "100%", background: "#FF5C00", color: "#fff", border: "none", borderRadius: 13, padding: "14px", fontSize: 14, fontWeight: 700, cursor: "pointer" }}>
+                    Got it ✓
+                  </motion.button>
+                )}
               </motion.div>
             </motion.div>
           </>

@@ -32,7 +32,7 @@ import Fox from "./Fox";
 // melding, zodat bezoekers wél kunnen browsen/hun mand vullen maar niet tegen een
 // dode betaalflow lopen. Zet PRELAUNCH op false zodra betalingen live zijn.
 const PRELAUNCH = true;
-const LAUNCH_DATE_LABEL = "July 3rd";
+const LAUNCH_DATE_LABEL = "soon";
 
 // Overgang tussen tabs/schermen: zacht in-/uitschuiven (Apple-stijl).
 const pageTransition = {
@@ -2499,9 +2499,10 @@ export default function SupplyFlow({ session }) {
               <span>I agree to the <a href="/terms" target="_blank" rel="noreferrer" style={{ color: "#FF5C00" }}>Terms</a>, and that my balance is prepayment for Flowva orders and that any refunds are credited back to my balance.</span>
             </label>
             {PRELAUNCH ? (
-              <div style={{ width: "100%", background: "#111111", color: "#fff", borderRadius: 10, padding: "13px 14px", textAlign: "center", lineHeight: 1.4 }}>
+              <div style={{ width: "100%", boxSizing: "border-box", background: "#111111", color: "#fff", borderRadius: 10, padding: "13px 14px", textAlign: "center", lineHeight: 1.4 }}>
                 <div style={{ fontSize: 13.5, fontWeight: 700 }}>🚀 Flowva launches {LAUNCH_DATE_LABEL}</div>
                 <div style={{ fontSize: 11.5, fontWeight: 500, color: "#B7B3AD", marginTop: 3 }}>Top-ups &amp; ordering open on launch day — you can already browse and build your cart.</div>
+                <div style={{ fontSize: 11.5, fontWeight: 500, color: "#B7B3AD", marginTop: 6 }}>Follow <span style={{ color: "#fff", fontWeight: 700 }}>flowva.app</span> to stay updated.</div>
               </div>
             ) : (
               <button onClick={handleTopup} disabled={loadingBalance || !topupAmount || !topupAgreed}

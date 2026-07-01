@@ -84,6 +84,7 @@ export default function Auth() {
 
   const handleLogin = async () => {
     setError(null);
+    setSuccess(null);
     setLoading(true);
     const { error } = await supabase.auth.signInWithPassword({
       email: form.email,
@@ -107,6 +108,7 @@ export default function Auth() {
 
   const handleRegister = async () => {
     setError(null);
+    setSuccess(null);
     setLoading(true);
 
     const { data, error: signUpError } = await supabase.auth.signUp({
@@ -120,12 +122,29 @@ export default function Auth() {
       },
     });
 
-    if (signUpError) {
-      setError(signUpError.message);
-    } else {
-      setSuccess("Account created! Check your email to confirm.");
-    }
     setLoading(false);
+
+    // 1) Expliciete fout van Supabase (bv. wachtwoord te kort, of soms "User already registered").
+    if (signUpError) {
+      if (/already registered|already exists|user already/i.test(signUpError.message)) {
+        setError("This email already has an account. Switch to the “Log in” tab above — or use “Forgot password?”.");
+      } else {
+        setError(signUpError.message);
+      }
+      return;
+    }
+
+    // 2) Anti-enumeratie: bij een AL bestaand (bevestigd) adres geeft Supabase géén fout, maar
+    //    een "lege" gebruiker terug (identities = []). Zo vangen we "account bestaat al" af i.p.v.
+    //    misleidend "Account created!" te tonen.
+    const alreadyExists =
+      data?.user && Array.isArray(data.user.identities) && data.user.identities.length === 0;
+    if (alreadyExists) {
+      setError("This email already has an account. Switch to the “Log in” tab above — or use “Forgot password?”.");
+      return;
+    }
+
+    setSuccess("Account created! Check your email to confirm.");
   };
 
   const inputStyle = {

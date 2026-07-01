@@ -345,7 +345,7 @@ export default function OrderRequest({ product, session, onRequireAuth, onClose,
 
             <motion.div variants={fadeUp}
               style={{ background: "#F8F7F4", borderRadius: 10, padding: "10px 14px", marginBottom: 10, fontSize: 12, color: "#888" }}>
-              💡 A service fee (8%, min €5) is added at checkout — shared across your whole cart, so bundling makes it cheaper per item. International shipping is paid later, per parcel — so bundling keeps that cheap too.
+              💡 No service fee now — today you only pay the factory price. A single service fee (8%, min €5) and international shipping are paid later, when you ship your bundle — so bundling keeps everything cheap per item.
             </motion.div>
 
             {/* Vos-tip: aanvragen bundelen = één service fee i.p.v. één per aanvraag */}
@@ -353,7 +353,7 @@ export default function OrderRequest({ product, session, onRequireAuth, onClose,
               style={{ display: "flex", alignItems: "center", gap: 10, background: "#111111", borderRadius: 12, padding: "10px 14px", marginBottom: 16 }}>
               <span style={{ fontSize: 20, flexShrink: 0 }}><Fox /></span>
               <span style={{ fontSize: 12, color: "#C9C6C1", lineHeight: 1.5 }}>
-                <b style={{ color: "#FF5C00" }}>Tip:</b> want more items? Add them to your cart and buy everything at once — separate orders each get their own service fee.
+                <b style={{ color: "#FF5C00" }}>Tip:</b> keep adding items — one single service fee covers your whole bundle when you ship, so more items means a lower fee per item.
               </span>
             </motion.div>
 

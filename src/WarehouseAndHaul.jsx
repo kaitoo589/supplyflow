@@ -635,7 +635,11 @@ function NormalShippingConfirm({ session, haulItems, balance, onBack, onSuccess 
   const extraItems = Math.max(0, pieces - 5);
   const extraKg = Math.max(0, billableKg - 2);
   const surcharge = r2((extraItems * 2 + extraKg * 1.5) / 7.8);
-  const toPay = r2(buffered + vat + FULFIL_EUR + surcharge);
+  // Service fee (Flowva-marge) — verhuisd van checkout naar hier. 8% van de bundel-productwaarde, min €5.
+  // Houd 1:1 gelijk aan pay_shipping_buffered (server): greatest(round(0.08 * sum(price), 2), 5).
+  const productValue = haulItems.reduce((s, o) => s + (Number(o.price) || 0), 0);
+  const svcFee = Math.max(5, r2(productValue * 0.08));
+  const toPay = r2(buffered + vat + FULFIL_EUR + surcharge + svcFee);
   const canAfford = balance >= toPay;
 
   // Afrekenen: de edge function her-quote't + rekent server-side de buffered schatting af.
@@ -712,6 +716,10 @@ function NormalShippingConfirm({ session, haulItems, balance, onBack, onSuccess 
               <span style={{ fontSize: 13, color: "#fff" }}>€{surcharge.toFixed(2)}</span>
             </div>
           )}
+          <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8 }}>
+            <span style={{ fontSize: 13, color: "#888" }}>Service fee <span style={{ color: "#666" }}>· 8% · min €5</span></span>
+            <span style={{ fontSize: 13, color: "#fff" }}>€{svcFee.toFixed(2)}</span>
+          </div>
           <div style={{ borderTop: "1px solid #333", paddingTop: 10, display: "flex", justifyContent: "space-between" }}>
             <span style={{ fontSize: 14, fontWeight: 700, color: "#fff" }}>Pay now <span style={{ fontWeight: 500, color: "#9C9893", fontSize: 12 }}>· estimate</span></span>
             <span style={{ fontSize: 14, fontWeight: 700, color: "#FF5C00" }}>€{toPay.toFixed(2)}</span>

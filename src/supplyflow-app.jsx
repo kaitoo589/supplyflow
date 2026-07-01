@@ -274,7 +274,8 @@ function OrderGroupCard({ items, onOpenItem, groupSize, onDismiss, parcel, activ
   const subtotal = items.reduce((s, o) => s + (Number(o.price) || 0), 0);
   // Groep-order = groepstarief (zelfde staffel als de checkout); anders solo 8%/min €5.
   const isGroupOrder = !!items[0]?.ff_group_id;
-  const fee = isGroupOrder && groupSize ? estimateMemberFee(groupSize, subtotal) : serviceFee(subtotal);
+  // Solo service fee valt nu bij VERZENDEN (niet meer bij de order); groep-fee blijft voorlopig (Fase 2).
+  const fee = isGroupOrder && groupSize ? estimateMemberFee(groupSize, subtotal) : 0;
   const total = subtotal + fee;
   return (
     <motion.div layout exit={{ opacity: 0, scale: 0.94, transition: { duration: 0.22, ease: [0.4, 0, 1, 1] } }} style={{ position: "relative", background: "#fff", border: "1px solid #E8E6E0", borderRadius: 16, marginBottom: 10, overflow: "hidden" }}>
@@ -301,7 +302,7 @@ function OrderGroupCard({ items, onOpenItem, groupSize, onDismiss, parcel, activ
           {!allInTransit && !squad && (
             <div style={{ display: "flex", alignItems: "baseline", gap: 5, marginTop: 2 }}>
               <span style={{ fontSize: 13, fontWeight: 800, color: "#111" }}>€{total.toFixed(2)}</span>
-              <span style={{ fontSize: 10, color: "#A8A5A0" }}>incl. fees</span>
+              <span style={{ fontSize: 10, color: "#A8A5A0" }}>{isGroupOrder ? "incl. fees" : "+ fee at shipping"}</span>
             </div>
           )}
           <div style={{ fontSize: 11, color: (!squad && anyProblem) ? "#B45309" : allDelivered ? "#15803D" : "#8A8780", marginTop: 1, fontWeight: allDelivered ? 700 : 400 }}>
@@ -362,7 +363,7 @@ function OrderGroupCard({ items, onOpenItem, groupSize, onDismiss, parcel, activ
                     <span>Items ({items.length})</span><span>€{subtotal.toFixed(2)}</span>
                   </div>
                   <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, color: "#6B6862", marginBottom: 7 }}>
-                    <span>{isGroupOrder ? "Group fee" : "Service fee"}</span><span>€{fee.toFixed(2)}</span>
+                    <span>{isGroupOrder ? "Group fee" : "Service fee"}</span><span>{isGroupOrder ? `€${fee.toFixed(2)}` : "at shipping"}</span>
                   </div>
                   <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13.5, fontWeight: 800, color: "#111", borderTop: "1px solid #EAE7E0", paddingTop: 7 }}>
                     <span>Total paid</span><span>€{total.toFixed(2)}</span>
@@ -565,16 +566,14 @@ function RequestListSheet({ items, onRemove, onSetQty, onClose, onSend, sending,
   // Held-items doen NIET mee met betalen → totaal/fee/per-item alleen over de betaalbare items.
   const payable = items.filter((it) => !isHeld(it));
   const total = payable.reduce((s, it) => s + Number(it.price || 0) * (it.qty || 1), 0);
-  const fee = payable.length ? serviceFee(total) : 0;
   const KOERS = 7.8;
   const totalQty = payable.reduce((s, it) => s + (it.qty || 1), 0);
   const domesticCny = 5 * totalQty;
   const domestic = Math.round((domesticCny / KOERS) * 100) / 100;
   const qcCny = 6 * totalQty;
   const qc = Math.round((qcCny / KOERS) * 100) / 100;
-  const charge = total + domestic + qc + fee;
-  const perItem = totalQty ? fee / totalQty : fee;
-  const perItemColor = perItem >= 4 ? "#C9C6C1" : perItem >= 2 ? "#FF5C00" : "#16A34A";
+  // Service fee is VERHUISD naar verzenden (pay_shipping_buffered) → niet meer bij checkout.
+  const charge = total + domestic + qc;
   const m = session?.user?.user_metadata || {};
   const addrName = `${m.voornaam || ""} ${m.achternaam || ""}`.trim();
   const cityLine = [m.postcode, m.stad].filter(Boolean).join(" ");
@@ -677,14 +676,8 @@ function RequestListSheet({ items, onRemove, onSetQty, onClose, onSend, sending,
                     <span style={{ fontSize: 12.5, color: "#fff", fontWeight: 600 }}>€{qc.toFixed(2)} <span style={{ color: "#9C9893", fontWeight: 400 }}>· ¥{qcCny}</span></span>
                   </div>
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                    <span style={{ fontSize: 12.5, color: "#9C9893" }}>Service fee (8%, min €5)</span>
-                    <span style={{ fontSize: 12.5, color: "#fff", fontWeight: 600 }}>€{fee.toFixed(2)}</span>
-                  </div>
-                  <div style={{ display: "flex", justifyContent: "flex-end", alignItems: "baseline", gap: 6, marginTop: 5 }}>
-                    <span style={{ fontSize: 11, color: "#9C9893" }}>that's only</span>
-                    <motion.span key={perItem.toFixed(2)} initial={{ scale: 1.3, opacity: 0.3 }} animate={{ scale: 1, opacity: 1 }} transition={{ type: "spring", stiffness: 420, damping: 18 }}
-                      style={{ fontSize: 19, fontWeight: 800, color: perItemColor }}>€{perItem.toFixed(2)}</motion.span>
-                    <span style={{ fontSize: 11, fontWeight: 600, color: perItemColor }}>service fee per item</span>
+                    <span style={{ fontSize: 12.5, color: "#9C9893" }}>Service fee</span>
+                    <span style={{ fontSize: 11.5, color: "#9C9893", fontStyle: "italic" }}>later, when you ship</span>
                   </div>
                 </motion.div>
               )}
@@ -694,7 +687,7 @@ function RequestListSheet({ items, onRemove, onSetQty, onClose, onSend, sending,
                   <motion.span layoutId="cart-fox" style={{ fontSize: 28, flexShrink: 0 }}><Fox /></motion.span>
                   <SpeechBubble bg="#1E1D1A" color="#C9C6C1">
                     <span style={{ fontSize: 12.5, lineHeight: 1.6 }}>
-                      Your entire cart shares a <b style={{ color: "#FF5C00" }}>single service fee</b>: 8% of the total item value, with a minimum charge of €5. For smaller orders, the €5 minimum applies, which can make the fee seem higher per item. Once your cart reaches <b style={{ color: "#C9C6C1" }}>€62.50</b>, 8% equals €5, so the minimum no longer applies and you simply pay a flat 8% — the lowest possible rate. Ordering items separately means each order carries its own €5 minimum fee. By creating a <b style={{ color: "#FF5C00" }}>group order with friends</b>, you can split both the service fee and shipping costs, making it even more affordable.
+                      Good news: there's <b style={{ color: "#FF5C00" }}>no service fee now</b> — today you only pay the factory price. A single service fee (8% of item value, min €5) is charged <b style={{ color: "#C9C6C1" }}>once, later</b>, when you ship your bundle. The more you bundle into one parcel, the lower it works out per item — and a <b style={{ color: "#FF5C00" }}>group order with friends</b> splits it even further.
                     </span>
                   </SpeechBubble>
                 </div>
@@ -785,8 +778,8 @@ function RequestListSheet({ items, onRemove, onSetQty, onClose, onSend, sending,
                   <span style={{ fontSize: 12.5, color: "#fff" }}>€{qc.toFixed(2)} <span style={{ color: "#9C9893" }}>· ¥{qcCny}</span></span>
                 </div>
                 <div style={{ display: "flex", justifyContent: "space-between" }}>
-                  <span style={{ fontSize: 12.5, color: "#9C9893" }}>Service fee (8%, min €5)</span>
-                  <span style={{ fontSize: 12.5, color: "#fff" }}>€{fee.toFixed(2)}</span>
+                  <span style={{ fontSize: 12.5, color: "#9C9893" }}>Service fee</span>
+                  <span style={{ fontSize: 11.5, color: "#9C9893", fontStyle: "italic" }}>later, when you ship</span>
                 </div>
               </motion.div>
               <motion.div style={{ background: "#1E1D1A", borderRadius: "0 0 14px 14px", padding: "12px 14px", marginBottom: 12, borderTop: "1px solid rgba(255,255,255,0.1)", display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
@@ -795,7 +788,7 @@ function RequestListSheet({ items, onRemove, onSetQty, onClose, onSend, sending,
               </motion.div>
 
               <motion.div style={{ background: "rgba(99,102,241,0.12)", borderRadius: 12, padding: "10px 13px", marginBottom: 12, fontSize: 11.5, color: "#A5B4FC", lineHeight: 1.5 }}>
-                🚢 International shipping is billed <b>later, by weight</b>, once your items reach the warehouse — so you only pay for what you actually ship.
+                🚢 International shipping <b>and a single service fee</b> are billed <b>later</b>, once your items reach the warehouse and you ship your bundle — so today you only pay the factory price.
               </motion.div>
 
               {errorBlock}
@@ -1080,7 +1073,7 @@ function EditProfileSheet({ session, onClose }) {
 function HowItWorksSheet({ onClose }) {
   const steps = [
     { icon: "🏭", title: "Shop straight from the factory", body: "You see the real 1688 & Taobao factory prices — no inflated retail markup. What it costs in China is what you pay." },
-    { icon: "🛒", title: "A small service fee", body: <>We buy it, check it and handle everything for you. The fee is 8% (min €5) per order — and it drops further when you order together with <b style={{ color: "#FF5C00" }}>Flowva Friends</b>.</> },
+    { icon: "🛒", title: "A small service fee", body: <>We buy it, check it and handle everything for you. There's no fee when you order — a single 8% (min €5) service fee is charged once when you ship your bundle, and it drops further with <b style={{ color: "#FF5C00" }}>Flowva Friends</b>.</> },
     { icon: "🏬", title: "Your items wait in your China warehouse", body: "Bought items gather safely in your personal warehouse — 30 days free. No rush; keep adding to your haul." },
     { icon: "📸", title: "Quality-control + measurement photos", body: "We photograph and measure your actual item before it ships — so you see exactly what you're getting, no surprises on the doorstep." },
     { icon: "📦", title: "One parcel — duties included (DDP)", body: "International shipping is charged per parcel, not per item — so the more you bundle, the cheaper it gets per item. Sent duty-paid (DDP): nothing extra to pay at your door." },

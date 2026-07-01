@@ -659,7 +659,7 @@ function RequestListSheet({ items, onRemove, onSetQty, onClose, onSend, sending,
                 );
               })}
 
-              {payable.length > 0 && (
+              {payable.length > 0 && totalQty >= 5 && (
                 <motion.div layout style={{ background: "#1E1D1A", borderRadius: 14, padding: "12px 14px", marginTop: 12 }}>
                   <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
                     <span style={{ fontSize: 12.5, color: "#9C9893" }}>Items</span>
@@ -686,7 +686,7 @@ function RequestListSheet({ items, onRemove, onSetQty, onClose, onSend, sending,
                 </motion.div>
               )}
 
-              {payable.length > 0 && (() => { const cats = [...new Set(payable.map((it) => garmentType(it.product_title)))]; return (
+              {payable.length > 0 && totalQty >= 5 && (() => { const cats = [...new Set(payable.map((it) => garmentType(it.product_title)))]; return (
                 <div style={{ background: "#23201C", border: "1px solid #3A332B", borderRadius: 12, padding: "11px 13px", marginTop: 10 }}>
                   <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 5 }}>
                     <span style={{ fontSize: 16 }}>🛃</span>
@@ -697,6 +697,19 @@ function RequestListSheet({ items, onRemove, onSetQty, onClose, onSend, sending,
                   </div>
                 </div>
               ); })()}
+
+              {payable.length > 0 && totalQty < 5 && (
+                <motion.div layout style={{ background: "#1E1D1A", borderRadius: 14, padding: "14px 16px", marginTop: 12 }}>
+                  <div style={{ fontSize: 13.5, fontWeight: 700, color: "#fff", marginBottom: 4 }}>Add {5 - totalQty} more for the best price</div>
+                  <div style={{ fontSize: 11.5, color: "#9C9893", lineHeight: 1.5, marginBottom: 12 }}>You can order fewer than 5 items, but it's not recommended — fees are shared across your whole order, so 5+ keeps the price per item low.</div>
+                  <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                    <div style={{ flex: 1, height: 8, background: "rgba(255,255,255,0.1)", borderRadius: 6, overflow: "hidden" }}>
+                      <motion.div animate={{ width: `${Math.min(100, (totalQty / 5) * 100)}%` }} transition={springSnappy} style={{ height: "100%", background: "#FF5C00", borderRadius: 6 }} />
+                    </div>
+                    <span style={{ fontSize: 14, fontWeight: 800, color: "#FF5C00", minWidth: 34, textAlign: "right" }}>{totalQty}/5</span>
+                  </div>
+                </motion.div>
+              )}
 
               {errorBlock}
 
@@ -1243,7 +1256,7 @@ function PricingSheet({ onClose }) {
 }
 
 export default function SupplyFlow({ session }) {
-  const [tab, setTab] = useState(() => { try { return (new URLSearchParams(window.location.search).get("tab") === "profile" && session) ? "profile" : "feed"; } catch { return "feed"; } });
+  const [tab, setTab] = useState(() => { try { return new URLSearchParams(window.location.search).get("tab") === "profile" ? "profile" : "feed"; } catch { return "feed"; } });
   const [products, setProducts] = useState([]);
   const [factories, setFactories] = useState([]);
   const [selectedFactory, setSelectedFactory] = useState(null);
@@ -2455,14 +2468,30 @@ export default function SupplyFlow({ session }) {
       {/* WAREHOUSE TAB */}
       {tab === "warehouse" && (
         <motion.div key="warehouse" {...pageTransition}>
-          <WarehouseTab session={session} haulItems={haulItems} setHaulItems={setHaulItems} activeGroupId={activeGroup?.id || null} groupOrders={groupOrders} />
+          {isGuest ? (
+            <div style={{ padding: "60px 30px", textAlign: "center" }}>
+              <div style={{ fontSize: 40, marginBottom: 12 }}>📦</div>
+              <div style={{ fontSize: 16, fontWeight: 700, color: "#0F0E0C", marginBottom: 6 }}>Your warehouse</div>
+              <div style={{ fontSize: 13, color: "#8A8780", lineHeight: 1.55, maxWidth: 270, margin: "0 auto" }}>Items you order arrive here for quality-control photos before they ship. You'll see them here once you've ordered.</div>
+            </div>
+          ) : (
+            <WarehouseTab session={session} haulItems={haulItems} setHaulItems={setHaulItems} activeGroupId={activeGroup?.id || null} groupOrders={groupOrders} />
+          )}
         </motion.div>
       )}
 
       {/* TRANSIT TAB */}
       {tab === "transit" && (
         <motion.div key="transit" {...pageTransition}>
-          <TransitTab session={session} orders={orders} activeGroupId={activeGroup?.id || null} />
+          {isGuest ? (
+            <div style={{ padding: "60px 30px", textAlign: "center" }}>
+              <div style={{ fontSize: 40, marginBottom: 12 }}>✈️</div>
+              <div style={{ fontSize: 16, fontWeight: 700, color: "#0F0E0C", marginBottom: 6 }}>In transit</div>
+              <div style={{ fontSize: 13, color: "#8A8780", lineHeight: 1.55, maxWidth: 270, margin: "0 auto" }}>Track your parcels on their way from the warehouse to your door here — once you've placed an order.</div>
+            </div>
+          ) : (
+            <TransitTab session={session} orders={orders} activeGroupId={activeGroup?.id || null} />
+          )}
         </motion.div>
       )}
 
@@ -2470,6 +2499,49 @@ export default function SupplyFlow({ session }) {
       {tab === "profile" && (
         <motion.div key="profile" {...pageTransition} style={{ padding: "16px 20px", paddingBottom: 80 }}>
           <div style={{ fontSize: 30, fontWeight: 800, letterSpacing: -0.6, color: "#111111", marginBottom: 14 }}>Profile</div>
+          {isGuest ? (
+            <>
+              {/* GUEST-PROFIEL — browse-first: alleen Flowva Friends + verzendadres vragen een account. */}
+              <div style={{ background: "#111111", borderRadius: 18, padding: "20px", marginBottom: 12, textAlign: "center" }}>
+                <div style={{ width: 48, height: 48, borderRadius: 14, background: "#1E1D1A", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 22, margin: "0 auto 10px" }}><Fox /></div>
+                <div style={{ fontSize: 16, fontWeight: 800, color: "#fff", marginBottom: 4 }}>Browse freely 👋</div>
+                <div style={{ fontSize: 12.5, color: "#B7B3AD", lineHeight: 1.5, marginBottom: 14 }}>Explore everything without an account. You only need one to order or to team up with friends.</div>
+                <button onClick={() => setAuthOpen(true)} style={{ width: "100%", background: "#FF5C00", color: "#fff", border: "none", borderRadius: 12, padding: "13px", fontSize: 14, fontWeight: 700, cursor: "pointer" }}>Create a free account · Log in →</button>
+              </div>
+              {/* S1 — Flowva Friends gate */}
+              <div style={{ background: "#fff", border: "1px solid #E8E6E0", borderRadius: 16, padding: "18px", marginBottom: 12, textAlign: "center" }}>
+                <div style={{ width: 40, height: 40, borderRadius: 12, background: "#FFF0E7", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18, margin: "0 auto 10px" }}><Fox /></div>
+                <div style={{ fontSize: 14, fontWeight: 700, color: "#0F0E0C", marginBottom: 4 }}>Flowva Friends</div>
+                <div style={{ fontSize: 12.5, color: "#8A8780", lineHeight: 1.5, marginBottom: 12 }}>Team up and split the fees with your squad.</div>
+                <button onClick={() => setAuthOpen(true)} style={{ width: "100%", background: "#FFF0E7", border: "1px dashed rgba(255,92,0,0.4)", color: "#FF5C00", borderRadius: 12, padding: "12px", fontSize: 13, fontWeight: 700, cursor: "pointer" }}>Create an account to unlock Flowva Friends</button>
+              </div>
+              {/* Publieke info — ook voor gasten */}
+              <motion.div whileTap={{ scale: 0.98 }} onClick={() => setShowHowItWorks(true)}
+                style={{ background: "#fff", border: "1px solid #E8E6E0", borderRadius: 16, padding: "15px 18px", marginBottom: 12, display: "flex", alignItems: "center", gap: 12, cursor: "pointer" }}>
+                <div style={{ width: 38, height: 38, borderRadius: 11, background: "#FFF0E7", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18, flexShrink: 0 }}><Fox /></div>
+                <div style={{ flex: 1 }}><div style={{ fontSize: 14, fontWeight: 700, color: "#0F0E0C" }}>How Flowva works</div><div style={{ fontSize: 12, color: "#A8A5A0" }}>Prices, fees, shipping &amp; the haul model</div></div>
+                <div style={{ color: "#C9C6C1", fontSize: 18 }}>→</div>
+              </motion.div>
+              <motion.div whileTap={{ scale: 0.98 }} onClick={() => setShowPricing(true)}
+                style={{ background: "#fff", border: "1px solid #E8E6E0", borderRadius: 16, padding: "15px 18px", marginBottom: 12, display: "flex", alignItems: "center", gap: 12, cursor: "pointer" }}>
+                <div style={{ width: 38, height: 38, borderRadius: 11, background: "#FFF0E7", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18, flexShrink: 0 }}>💸</div>
+                <div style={{ flex: 1 }}><div style={{ fontSize: 14, fontWeight: 700, color: "#0F0E0C" }}>How pricing works</div><div style={{ fontSize: 12, color: "#A8A5A0" }}>Every fee, and exactly who gets paid</div></div>
+                <div style={{ color: "#C9C6C1", fontSize: 18 }}>→</div>
+              </motion.div>
+              <a href="/returns-policy" style={{ textDecoration: "none", background: "#fff", border: "1px solid #E8E6E0", borderRadius: 16, padding: "15px 18px", marginBottom: 12, display: "flex", alignItems: "center", gap: 12 }}>
+                <div style={{ width: 38, height: 38, borderRadius: 11, background: "#F3F1ED", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18, flexShrink: 0 }}>↩️</div>
+                <div style={{ flex: 1 }}><div style={{ fontSize: 14, fontWeight: 700, color: "#0F0E0C" }}>Returns &amp; withdrawal</div><div style={{ fontSize: 12, color: "#A8A5A0" }}>Read the policy</div></div>
+                <div style={{ color: "#C9C6C1", fontSize: 18 }}>→</div>
+              </a>
+              {/* S2 — Shipping address gate */}
+              <div style={{ background: "#fff", border: "1px solid #E8E6E0", borderRadius: 16, padding: "18px", marginBottom: 12, textAlign: "center" }}>
+                <div style={{ fontSize: 24, marginBottom: 8 }}>📦</div>
+                <div style={{ fontSize: 14, fontWeight: 700, color: "#0F0E0C", marginBottom: 4 }}>Shipping address</div>
+                <div style={{ fontSize: 12.5, color: "#8A8780", lineHeight: 1.5, marginBottom: 12 }}>You'll add this when you're ready to place your first order.</div>
+                <button onClick={() => setAuthOpen(true)} style={{ width: "100%", background: "#FF5C00", color: "#fff", border: "none", borderRadius: 12, padding: "12px", fontSize: 13, fontWeight: 700, cursor: "pointer" }}>Create an account to write your shipping address</button>
+              </div>
+            </>
+          ) : (<>
           <div style={{ background: "#fff", borderRadius: 18, padding: "14px 16px", marginBottom: 12, display: "flex", alignItems: "center", gap: 12, boxShadow: "0 1px 2px rgba(17,17,17,0.04), 0 6px 18px rgba(17,17,17,0.05)" }}>
             <label style={{ position: "relative", cursor: "pointer", flexShrink: 0 }}>
               <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} transition={springBouncy}
@@ -2645,6 +2717,7 @@ export default function SupplyFlow({ session }) {
             } catch { /* ignore */ }
             supabase.auth.signOut();
           }} style={{ width: "100%", background: "#FEE2E2", color: "#DC2626", border: "none", borderRadius: 12, padding: "14px", fontSize: 14, fontWeight: 700, cursor: "pointer" }}>Log out</button>
+          </>)}
 
           <div style={{ display: "flex", justifyContent: "center", gap: 14, flexWrap: "wrap", marginTop: 20 }}>
             <a href="/terms" style={{ fontSize: 11.5, color: "#A8A5A0", textDecoration: "none" }}>Terms</a>
@@ -2785,7 +2858,7 @@ export default function SupplyFlow({ session }) {
             sending={sendingList}
             error={listError}
             session={session}
-            onEditAddress={() => { setShowRequestList(false); setTab("profile"); setShowEditProfile(true); }}
+            onEditAddress={() => { setShowRequestList(false); if (isGuest) { setAuthOpen(true); return; } setTab("profile"); setShowEditProfile(true); }}
             onTopUp={() => { setShowRequestList(false); setTab("profile"); }}
             onFinish={(goOrders) => { setShowRequestList(false); if (goOrders) { setTab("orders"); setSelectedOrder(null); } }}
             flagged={new Set(flaggedUrls)}
@@ -2996,7 +3069,7 @@ export default function SupplyFlow({ session }) {
         ].map(t => {
           const active = tab === t.id;
           return (
-            <motion.button key={t.id} onClick={() => { if (t.id !== "feed" && !requireAuth()) return; setTab(t.id); setSelectedOrder(null); }}
+            <motion.button key={t.id} onClick={() => { setTab(t.id); setSelectedOrder(null); }}
               whileTap={{ scale: 0.85 }} transition={springSnappy}
               style={{ position: "relative", flex: 1, background: "none", border: "none", display: "flex", flexDirection: "column", alignItems: "center", gap: 4, cursor: "pointer", WebkitTapHighlightColor: "transparent" }}>
               {active && (

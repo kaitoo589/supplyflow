@@ -541,6 +541,7 @@ function StorageQuoteFlow({ haulItems, balance, orderIds, onBack, onSuccess }) {
           </div>
           {row("International shipping", `€${Number(quote.shipping_eur).toFixed(2)}`)}
           {custCats.length > 0 && row(`↳ incl. EU customs · €3 × ${custCats.length} ${custCats.length === 1 ? "category" : "categories"}`, `€${(custCats.length * 3).toFixed(2)}`)}
+          {Number(quote.service_fee_eur) > 0 && row("Service fee (8% · min €5)", `€${Number(quote.service_fee_eur).toFixed(2)}`)}
           {row(`Storage${quote.storage_days ? ` (${quote.storage_days} days)` : ""}`, `€${Number(quote.storage_eur).toFixed(2)}`)}
           {row("Total", `€${total.toFixed(2)}`, true)}
           <motion.button whileTap={{ scale: 0.98 }} onClick={pay} disabled={busy || balance < total}

@@ -579,7 +579,6 @@ function RequestListSheet({ items, onRemove, onSetQty, onClose, onSend, sending,
   const dragControls = useDragControls();           // rubber-band: sheet omlaag trekken om te sluiten
   useBodyScrollLock(true);                          // feed erachter niet mee laten scrollen
   const [paying, setPaying] = useState("idle");     // "idle" | "check" — betaal-morph (knop → cirkel → vinkje)
-  const [unlockKey, setUnlockKey] = useState(0);    // 5/5 bereikt → checkout-knop veert open + vos-toast
   const isHeld = (item) => !!flagged && flagged.has(item.source_url);
   const heldReason = (item) => reasons?.[item.source_url] || "On hold — changed at the factory";
   const heldCount = items.filter(isHeld).length;
@@ -609,14 +608,6 @@ function RequestListSheet({ items, onRemove, onSetQty, onClose, onSend, sending,
       setTimeout(() => { setPaying("idle"); setView("placed"); }, 950);
     }
   };
-
-  // Het 5/5-unlock-moment: zodra de mand van <5 naar ≥5 stuks gaat, veert de checkout-
-  // knop open en popt de vos kort met "Let's go 🚀" — je minimum voelt als een beloning.
-  const prevQtyRef = useRef(totalQty);
-  useEffect(() => {
-    if (prevQtyRef.current < 5 && totalQty >= 5) setUnlockKey(Date.now());
-    prevQtyRef.current = totalQty;
-  }, [totalQty]);
 
   const itemThumb = (item) => (
     <div style={{ width: 46, height: 46, borderRadius: 10, background: "#fff", overflow: "hidden", flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
@@ -660,7 +651,7 @@ function RequestListSheet({ items, onRemove, onSetQty, onClose, onSend, sending,
             <motion.div key="cart">
               <div style={{ fontSize: 18, fontWeight: 700, color: "#fff", marginBottom: 14 }}>🛒 Shopping cart ({items.length})</div>
 
-              {payable.length > 0 && totalQty >= 5 && (() => { const cats = [...new Set(payable.map((it) => garmentType(it.product_title)))]; return (
+              {payable.length > 0 && (() => { const cats = [...new Set(payable.map((it) => garmentType(it.product_title)))]; return (
                 <div style={{ background: "#23201C", border: "1px solid #3A332B", borderRadius: 12, padding: "11px 13px", marginBottom: 16 }}>
                   <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 5 }}>
                     <span style={{ fontSize: 16 }}>🛃</span>
@@ -702,7 +693,7 @@ function RequestListSheet({ items, onRemove, onSetQty, onClose, onSend, sending,
                 );
               })}
 
-              {payable.length > 0 && totalQty >= 5 && (
+              {payable.length > 0 && (
                 <motion.div layout style={{ background: "#1E1D1A", borderRadius: 14, padding: "12px 14px", marginTop: 12 }}>
                   <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
                     <span style={{ fontSize: 12.5, color: "#9C9893" }}>Items</span>
@@ -723,7 +714,7 @@ function RequestListSheet({ items, onRemove, onSetQty, onClose, onSend, sending,
                 </motion.div>
               )}
 
-              {payable.length > 0 && totalQty >= 5 && (
+              {payable.length > 0 && (
                 <div style={{ display: "flex", gap: 10, alignItems: "flex-start", marginTop: 12 }}>
                   <motion.span layoutId="cart-fox" style={{ fontSize: 28, flexShrink: 0 }}><Fox /></motion.span>
                   <SpeechBubble bg="#1E1D1A" color="#C9C6C1">
@@ -734,20 +725,6 @@ function RequestListSheet({ items, onRemove, onSetQty, onClose, onSend, sending,
                 </div>
               )}
 
-              {payable.length > 0 && totalQty < 5 && (
-                <motion.div layout style={{ background: "#1E1D1A", borderRadius: 14, padding: "14px 16px", marginTop: 12 }}>
-                  <div style={{ fontSize: 13.5, fontWeight: 700, color: "#fff", marginBottom: 4 }}>Add {5 - totalQty} more to check out</div>
-                  <div style={{ fontSize: 11.5, color: "#9C9893", lineHeight: 1.5, marginBottom: 12 }}>You can't order fewer than 5 items — with fewer, the fixed fees make each item too expensive.</div>
-                  <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                    <div style={{ flex: 1, height: 8, background: "rgba(255,255,255,0.1)", borderRadius: 6, overflow: "hidden" }}>
-                      <motion.div animate={{ width: `${Math.min(100, (totalQty / 5) * 100)}%` }} transition={springSnappy} style={{ height: "100%", background: "#FF5C00", borderRadius: 6 }} />
-                    </div>
-                    <motion.span key={totalQty} initial={{ scale: 1.45, opacity: 0.4 }} animate={{ scale: 1, opacity: 1 }} transition={springSnappy}
-                      style={{ display: "inline-block", fontSize: 14, fontWeight: 800, color: "#FF5C00", minWidth: 34, textAlign: "right" }}>{totalQty}/5</motion.span>
-                  </div>
-                </motion.div>
-              )}
-
               {errorBlock}
 
               {heldCount > 0 && (
@@ -756,10 +733,10 @@ function RequestListSheet({ items, onRemove, onSetQty, onClose, onSend, sending,
                 </div>
               )}
               <div style={{ position: "relative" }}>
-                <motion.button key={`co-${unlockKey}`} initial={unlockKey ? { scale: 0.86 } : false} animate={{ scale: 1 }} transition={springBouncy}
-                  whileTap={payable.length && totalQty >= 5 ? { scale: 0.97 } : undefined} onClick={() => payable.length && totalQty >= 5 && setView("checkout")} disabled={payable.length === 0 || totalQty < 5}
-                  style={{ width: "100%", marginTop: 12, background: (payable.length && totalQty >= 5) ? "#FF5C00" : "#333", color: (payable.length && totalQty >= 5) ? "#fff" : "#777", border: "none", borderRadius: 14, padding: "16px", fontSize: 15, fontWeight: 700, cursor: (payable.length && totalQty >= 5) ? "pointer" : "default", WebkitTapHighlightColor: "transparent" }}>
-                  {payable.length === 0 ? "All items are on hold" : totalQty < 5 ? `Add ${5 - totalQty} more item${5 - totalQty === 1 ? "" : "s"} to check out` : heldCount > 0 ? `Check out the ${payable.length} available item${payable.length > 1 ? "s" : ""} →` : "Go to checkout →"}
+                <motion.button animate={{ scale: 1 }} transition={springBouncy}
+                  whileTap={payable.length ? { scale: 0.97 } : undefined} onClick={() => payable.length && setView("checkout")} disabled={payable.length === 0}
+                  style={{ width: "100%", marginTop: 12, background: payable.length ? "#FF5C00" : "#333", color: payable.length ? "#fff" : "#777", border: "none", borderRadius: 14, padding: "16px", fontSize: 15, fontWeight: 700, cursor: payable.length ? "pointer" : "default", WebkitTapHighlightColor: "transparent" }}>
+                  {payable.length === 0 ? "All items are on hold" : heldCount > 0 ? `Check out the ${payable.length} available item${payable.length > 1 ? "s" : ""} →` : "Go to checkout →"}
                 </motion.button>
               </div>
 

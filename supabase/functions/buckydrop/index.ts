@@ -3,7 +3,14 @@
 // Alleen ingelogde admins mogen deze function aanroepen.
 //
 // Secrets (via `npx supabase secrets set …`):
-//   BUCKY_APP_CODE, BUCKY_APP_SECRET, BUCKY_DOMAIN
+//   BUCKY_APP_CODE, BUCKY_APP_SECRET, BUCKY_DOMAIN  (productie — gedeeld met place-bucky-order)
+// OPTIONEEL apart FETCH-account voor het OPHALEN (product/detail):
+//   BUCKY_FETCH_APP_CODE, BUCKY_FETCH_APP_SECRET, BUCKY_FETCH_DOMAIN
+//   Reden: het `openapi/product/detail`-endpoint wordt op het productie-account
+//   geweigerd ("Permission denied"), maar werkt op het sandbox/dev-account. Zet deze
+//   drie op je dev-credentials → ophalen gebruikt het dev-account, bestellen blijft
+//   productie (place-bucky-order). Zet je ze NIET, dan valt alles terug op de
+//   productie-secrets (= huidig gedrag, geen wijziging).
 // (SUPABASE_URL en SUPABASE_ANON_KEY worden automatisch geïnjecteerd.)
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { createHash } from "node:crypto";
@@ -11,9 +18,9 @@ import { createHash } from "node:crypto";
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY")!;
 const SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-const APP_CODE = Deno.env.get("BUCKY_APP_CODE")!;
-const APP_SECRET = Deno.env.get("BUCKY_APP_SECRET")!;
-const BUCKY_DOMAIN = Deno.env.get("BUCKY_DOMAIN") ?? "https://dev.buckydrop.com";
+const APP_CODE = Deno.env.get("BUCKY_FETCH_APP_CODE") ?? Deno.env.get("BUCKY_APP_CODE")!;
+const APP_SECRET = Deno.env.get("BUCKY_FETCH_APP_SECRET") ?? Deno.env.get("BUCKY_APP_SECRET")!;
+const BUCKY_DOMAIN = Deno.env.get("BUCKY_FETCH_DOMAIN") ?? Deno.env.get("BUCKY_DOMAIN") ?? "https://dev.buckydrop.com";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",

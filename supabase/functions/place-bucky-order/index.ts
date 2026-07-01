@@ -237,9 +237,13 @@ Deno.serve(async (req) => {
   // Gelukt: ordernummer opslaan en status → purchased (triggert ook de "Gekocht"-push).
   // NIET fire-and-forget: de fabrieksbestelling bestaat nu echt (shopOrderNo), dus als deze
   // schrijf faalt moeten we shop_order_no tóch vastleggen (anti dubbele plaatsing) + flaggen.
+  // We leggen ook de ¥-kost vast (inkoop × aantal + ¥9,9 fulfilment) zodat de admin-wallet
+  // automatisch kan aftellen wat er van de BuckyDrop-wallet af ging.
+  const costCny = (Number(price) || 0) * (order.qty || 1) + 9.9;
+  const chargedAt = new Date().toISOString();
   const { error: finalErr } = await admin
     .from("orders")
-    .update({ shop_order_no: res.data.shopOrderNo, bd_error: null, status: "purchased" })
+    .update({ shop_order_no: res.data.shopOrderNo, bd_error: null, status: "purchased", cost_cny: costCny, cost_charged_at: chargedAt })
     .eq("id", order.id);
   if (finalErr) {
     // bd_claimed_at NIET resetten (de order is al ingekocht — nooit opnieuw plaatsen). Wel
@@ -250,6 +254,8 @@ Deno.serve(async (req) => {
       .update({
         shop_order_no: res.data.shopOrderNo,
         bd_error: `Geplaatst (${res.data.shopOrderNo}) maar status-update faalde: ${finalErr.message} — admin nakijken`,
+        cost_cny: costCny,
+        cost_charged_at: chargedAt,
       })
       .eq("id", order.id);
     console.error(`place-bucky-order: status-update faalde voor ${order.id} (al geplaatst ${res.data.shopOrderNo}): ${finalErr.message}`);

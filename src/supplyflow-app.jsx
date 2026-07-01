@@ -26,6 +26,8 @@ import { serviceFee } from "./fees";
 import PushToggle from "./PushToggle";
 import Fox from "./Fox";
 import Auth from "./Auth";
+import HypeCheckSheet from "./HypeCheck";
+import { getVoteStats, getMyVotes } from "./votes";
 
 // —— PREVIEW / LAUNCH-GATE —————————————————————————————————————————————
 // Tot de officiële launch (Stripe live) kan er nog niet betaald worden. Zolang
@@ -1270,6 +1272,10 @@ export default function SupplyFlow({ session }) {
   const [previewProduct, setPreviewProduct] = useState(null);
   const [reviewProduct, setReviewProduct] = useState(null);
   const [actionProduct, setActionProduct] = useState(null);
+  // Coming soon / demo — hype-check-stemsheet + tellingen (id -> stats) + mijn stem (id -> reaction)
+  const [hypeProduct, setHypeProduct] = useState(null);
+  const [voteStats, setVoteStats] = useState({});
+  const [myVotes, setMyVotes] = useState({});
   const [showEditProfile, setShowEditProfile] = useState(false);
   const [showHowItWorks, setShowHowItWorks] = useState(false);
   const [showPricing, setShowPricing] = useState(false);
@@ -1630,6 +1636,14 @@ export default function SupplyFlow({ session }) {
     fetchProducts();
   }, []);
 
+  // Hype-check: laad de stem-tellingen + mijn eigen stem voor alle demo/"Coming soon"-producten.
+  useEffect(() => {
+    const demoIds = products.filter((p) => p.demo).map((p) => p.id);
+    if (!demoIds.length) { setVoteStats({}); setMyVotes({}); return; }
+    getVoteStats(demoIds).then(setVoteStats);
+    getMyVotes(demoIds, !!session).then(setMyVotes);
+  }, [products, session]);
+
   useEffect(() => {
     async function fetchFactories() {
       const { data } = await supabase.from("factories").select("*");
@@ -1800,7 +1814,7 @@ export default function SupplyFlow({ session }) {
     const matchSearch = !q || (p.title || "").toLowerCase().includes(q);
     const matchFav = !showFavoritesOnly || isFavorite(p);
     return matchCat && matchSearch && matchFav;
-  });
+  }).sort((a, b) => (a.demo ? 1 : 0) - (b.demo ? 1 : 0));
 
   // ── Fabriek-first feed ──────────────────────────────────────────────────
   // Hoort een product bij deze fabriek? Echte koppeling (factory_id), met
@@ -1837,12 +1851,17 @@ export default function SupplyFlow({ session }) {
     : [];
 
   // Herbruikbare productkaart (zelfde stijl als voorheen) — voor drill-in + favorieten.
-  const productCardEl = (p) => (
-    <motion.div key={p.id} layout layoutId={`card-${p.id}`} className={activeGroup ? "ff-glow" : ""}
+  const productCardEl = (p) => {
+    const isDemo = !!p.demo;
+    const st = voteStats[p.id];
+    const pref = st ? (st.no + st.nice + st.yes) : 0;
+    const pctYes = pref > 0 ? Math.round((100 * st.yes) / pref) : null;
+    return (
+    <motion.div key={p.id} layout layoutId={`card-${p.id}`} className={activeGroup && !isDemo ? "ff-glow" : ""}
       initial={{ opacity: 0, scale: 0.92, y: 14 }}
       animate={{ opacity: 1, scale: 1, y: 0 }}
       exit={{ opacity: 0, scale: 0.92, transition: { duration: 0.16, ease: [0.32, 0.72, 0, 1] } }}
-      onClick={() => setSelectedProduct(p)}
+      onClick={() => isDemo ? setHypeProduct(p) : setSelectedProduct(p)}
       whileHover={{ y: -4 }} whileTap={{ scale: 0.98 }}
       transition={springMorph}
       style={{ background: "#fff", borderRadius: 18, overflow: "hidden", boxShadow: "0 1px 2px rgba(17,17,17,0.04), 0 6px 18px rgba(17,17,17,0.05)", cursor: "pointer" }}>
@@ -1857,12 +1876,16 @@ export default function SupplyFlow({ session }) {
             </>
           ) : p.image}
         </motion.div>
-        <motion.div layoutId={`plus-${p.id}`} transition={{ duration: 0.34, ease: [0.32, 0.72, 0, 1] }}
-          onClick={e => { e.stopPropagation(); setActionProduct(p); }}
-          whileTap={{ scale: 0.82 }}
-          style={{ position: "absolute", right: 10, bottom: 10, width: 36, height: 36, borderRadius: 18, background: "#FF5C00", display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 4px 14px rgba(255,92,0,0.4)", cursor: "pointer", WebkitTapHighlightColor: "transparent" }}>
-          <Plus size={19} color="#fff" strokeWidth={2.6} />
-        </motion.div>
+        {isDemo ? (
+          <span style={{ position: "absolute", top: 10, right: 10, background: "#F5C518", color: "#4a3800", fontSize: 10.5, fontWeight: 700, padding: "3px 8px", borderRadius: 8 }}>Coming soon</span>
+        ) : (
+          <motion.div layoutId={`plus-${p.id}`} transition={{ duration: 0.34, ease: [0.32, 0.72, 0, 1] }}
+            onClick={e => { e.stopPropagation(); setActionProduct(p); }}
+            whileTap={{ scale: 0.82 }}
+            style={{ position: "absolute", right: 10, bottom: 10, width: 36, height: 36, borderRadius: 18, background: "#FF5C00", display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 4px 14px rgba(255,92,0,0.4)", cursor: "pointer", WebkitTapHighlightColor: "transparent" }}>
+            <Plus size={19} color="#fff" strokeWidth={2.6} />
+          </motion.div>
+        )}
       </div>
       <div style={{ padding: "11px 13px 13px" }}>
         <div style={{ fontSize: 11.5, color: "#A8A5A0", marginBottom: 3, display: "flex", justifyContent: "space-between", alignItems: "center", gap: 6 }}>
@@ -1873,15 +1896,18 @@ export default function SupplyFlow({ session }) {
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end" }}>
           <div>
             <div style={{ fontSize: 15, fontWeight: 700, color: "#111111" }}>€{Number(p.price).toFixed(2)}</div>
-            <div style={{ fontSize: 9.5, color: "#A8A5A0", marginTop: 1, lineHeight: 1.2 }}>factory price · +fees &amp; shipping</div>
+            <div style={{ fontSize: 9.5, color: "#A8A5A0", marginTop: 1, lineHeight: 1.2 }}>{isDemo ? "factory price · not live yet" : "factory price · +fees & shipping"}</div>
           </div>
-          {Number(p.rating) > 0
-            ? <div style={{ fontSize: 11.5, fontWeight: 600, color: "#111111" }}>★ {Number(p.rating).toFixed(1)}</div>
-            : <div style={{ fontSize: 11, color: "#A8A5A0" }}>MOQ {p.moq}</div>}
+          {isDemo
+            ? <div style={{ fontSize: 10.5, fontWeight: 700, color: "#C98A00", background: "#FFF6E0", padding: "3px 7px", borderRadius: 8, whiteSpace: "nowrap" }}>{pctYes != null ? `🔥 ${pctYes}%` : "Vote"}</div>
+            : Number(p.rating) > 0
+              ? <div style={{ fontSize: 11.5, fontWeight: 600, color: "#111111" }}>★ {Number(p.rating).toFixed(1)}</div>
+              : <div style={{ fontSize: 11, color: "#A8A5A0" }}>MOQ {p.moq}</div>}
         </div>
       </div>
     </motion.div>
-  );
+    );
+  };
 
   // Gedeelde fabrieks-collage (1 grote + 2 kleine foto's + diamant-badge + "+N more").
   // Gebruikt in ZOWEL de feed-kaart als de morph-ghost, zodat de morph exact dezelfde
@@ -2736,6 +2762,21 @@ export default function SupplyFlow({ session }) {
             onAddToList={(item) => { setRequestList(list => [...list, item]); setSelectedProduct(null); }}
             isFavorite={isFavorite(selectedProduct)} onToggleFavorite={() => toggleFavorite(selectedProduct)}
             activeGroup={activeGroupShopping ? activeGroup : null} groupLocked={!!activeGroup && !activeGroupShopping} onActiveGroupGone={() => setActiveGroup(null)} />
+        )}
+      </AnimatePresence>
+
+      {/* Hype check — stemsheet voor een Coming soon/demo-product (niet koopbaar) */}
+      <AnimatePresence>
+        {hypeProduct && (
+          <HypeCheckSheet
+            product={hypeProduct}
+            session={session}
+            onClose={() => setHypeProduct(null)}
+            onRequireAuth={() => { setHypeProduct(null); setAuthOpen(true); }}
+            initialStats={voteStats[hypeProduct.id]}
+            initialMyVote={myVotes[hypeProduct.id]}
+            onVoted={(id, st, r) => { if (st) setVoteStats((v) => ({ ...v, [id]: st })); setMyVotes((v) => ({ ...v, [id]: r })); }}
+          />
         )}
       </AnimatePresence>
 

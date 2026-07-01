@@ -11,7 +11,7 @@ import { EU_COUNTRIES } from "./countries";
 import OrderRequest from "./OrderRequest";
 import Friends from "./Friends";
 import GroupModeGlow from "./GroupModeGlow";
-import { ffMyGroups, estimateMemberFee } from "./ffApi";
+import { ffMyGroups } from "./ffApi";
 import { garmentType } from "./garment";
 import { WarehouseTab, TransitTab } from "./WarehouseAndHaul";
 import { motion, AnimatePresence, useDragControls } from "framer-motion";
@@ -275,11 +275,9 @@ function OrderGroupCard({ items, onOpenItem, groupSize, onDismiss, parcel, activ
   const filterStatuses = (activeFilter && activeFilter !== "all") ? (journeyStops.find((j) => j.key === activeFilter)?.statuses || [activeFilter]) : null;
   const shownItems = filterStatuses ? items.filter((o) => filterStatuses.includes(o.status)) : items;
   const subtotal = items.reduce((s, o) => s + (Number(o.price) || 0), 0);
-  // Groep-order = groepstarief (zelfde staffel als de checkout); anders solo 8%/min €5.
+  // Service fee (solo én groep) valt nu bij VERZENDEN (per pakket) — de kaart toont alleen de itemwaarde.
   const isGroupOrder = !!items[0]?.ff_group_id;
-  // Solo service fee valt nu bij VERZENDEN (niet meer bij de order); groep-fee blijft voorlopig (Fase 2).
-  const fee = isGroupOrder && groupSize ? estimateMemberFee(groupSize, subtotal) : 0;
-  const total = subtotal + fee;
+  const total = subtotal;
   return (
     <motion.div layout exit={{ opacity: 0, scale: 0.94, transition: { duration: 0.22, ease: [0.4, 0, 1, 1] } }} style={{ position: "relative", background: "#fff", border: "1px solid #E8E6E0", borderRadius: 16, marginBottom: 10, overflow: "hidden" }}>
       {allDelivered && onDismiss && (
@@ -305,7 +303,7 @@ function OrderGroupCard({ items, onOpenItem, groupSize, onDismiss, parcel, activ
           {!allInTransit && !squad && (
             <div style={{ display: "flex", alignItems: "baseline", gap: 5, marginTop: 2 }}>
               <span style={{ fontSize: 13, fontWeight: 800, color: "#111" }}>€{total.toFixed(2)}</span>
-              <span style={{ fontSize: 10, color: "#A8A5A0" }}>{isGroupOrder ? "incl. fees" : "+ fee at shipping"}</span>
+              <span style={{ fontSize: 10, color: "#A8A5A0" }}>+ fee at shipping</span>
             </div>
           )}
           <div style={{ fontSize: 11, color: (!squad && anyProblem) ? "#B45309" : allDelivered ? "#15803D" : "#8A8780", marginTop: 1, fontWeight: allDelivered ? 700 : 400 }}>
@@ -366,7 +364,7 @@ function OrderGroupCard({ items, onOpenItem, groupSize, onDismiss, parcel, activ
                     <span>Items ({items.length})</span><span>€{subtotal.toFixed(2)}</span>
                   </div>
                   <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, color: "#6B6862", marginBottom: 7 }}>
-                    <span>{isGroupOrder ? "Group fee" : "Service fee"}</span><span>{isGroupOrder ? `€${fee.toFixed(2)}` : "at shipping"}</span>
+                    <span>{isGroupOrder ? "Group fee" : "Service fee"}</span><span>at shipping</span>
                   </div>
                   <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13.5, fontWeight: 800, color: "#111", borderTop: "1px solid #EAE7E0", paddingTop: 7 }}>
                     <span>Total paid</span><span>€{total.toFixed(2)}</span>

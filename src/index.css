@@ -21,6 +21,10 @@ body {
   padding: 0;
   /* Geen dubbel-tik-zoom + snellere taps (app-gevoel) */
   touch-action: manipulation;
+  /* Chrome (Android/PWA) heeft een eigen pull-to-refresh die de pagina herlaadt —
+     die kaapte het omlaag-trekken, waardoor onze 🐾-refresh op de telefoon nooit
+     verscheen. Uitzetten: wij regelen de pull zelf. */
+  overscroll-behavior-y: none;
 }
 
 body {

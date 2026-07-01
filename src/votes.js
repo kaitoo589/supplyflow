@@ -15,10 +15,16 @@ export function guestVoteToken() {
   }
 }
 
-// Stem uitbrengen/wijzigen op een demo-product. reaction ∈ no | nice | yes | notify.
+// Stem uitbrengen/wijzigen op een demo-product. reaction ∈ no | nice | yes.
 export async function castVote(productId, reaction, hasSession) {
   const token = hasSession ? null : guestVoteToken();
   return supabase.rpc("cast_vote", { p_product_id: productId, p_reaction: reaction, p_guest_token: token });
+}
+
+// 🔔 "Notify me" aan/uit — losse vlag naast je stem (zelfde rij per account/gast).
+export async function toggleNotify(productId, on, hasSession) {
+  const token = hasSession ? null : guestVoteToken();
+  return supabase.rpc("toggle_notify", { p_product_id: productId, p_on: !!on, p_guest_token: token });
 }
 
 // Geaggregeerde tellingen per product (id -> {total,yes,nice,no,notify,accounts,guests}).
@@ -31,13 +37,13 @@ export async function getVoteStats(ids) {
   return map;
 }
 
-// Mijn eigen stem per product (voor de gekozen-staat in de UI).
+// Mijn eigen stem + notify-vlag per product (id -> {reaction, notify}).
 export async function getMyVotes(ids, hasSession) {
   const list = (ids || []).filter((x) => x != null);
   if (!list.length) return {};
   const token = hasSession ? null : guestVoteToken();
   const { data } = await supabase.rpc("get_my_votes", { p_product_ids: list, p_guest_token: token });
   const map = {};
-  (data || []).forEach((r) => { map[r.product_id] = r.reaction; });
+  (data || []).forEach((r) => { map[r.product_id] = { reaction: r.reaction, notify: !!r.notify }; });
   return map;
 }

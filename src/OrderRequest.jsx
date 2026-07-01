@@ -10,6 +10,7 @@ import { springMorph } from "./motion";
 import { ffAddItem, ffShareProduct } from "./ffApi";
 import Fox from "./Fox";
 import PhotoZoom from "./PhotoZoom";
+import { useBodyScrollLock } from "./DelightBits";
 
 const spring = springMorph;
 
@@ -27,6 +28,7 @@ export default function OrderRequest({ product, session, onRequireAuth, onClose,
   const [zoomOpen, setZoomOpen] = useState(false);
   const imgRef = useRef(null);            // bron-rect voor de "foto vliegt naar de mand"-animatie
   const dragControls = useDragControls(); // rubber-band: sheet omlaag trekken om te sluiten
+  useBodyScrollLock(true);                // feed erachter niet mee laten scrollen
 
   const productVariants = product.sizes?.length > 0 ? product.sizes : null;
   // Door admin handmatig uitverkocht gemelde varianten (per groep+optie) — klant kan ze niet kiezen.

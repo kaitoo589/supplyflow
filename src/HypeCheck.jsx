@@ -1,8 +1,9 @@
 import { useState, useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 import { motion, AnimatePresence, useDragControls } from "framer-motion";
-import { castVote, getVoteStats } from "./votes";
+import { castVote, toggleNotify, getVoteStats } from "./votes";
 import { garmentType } from "./garment";
+import { useBodyScrollLock } from "./DelightBits";
 import PhotoZoom from "./PhotoZoom";
 import Fox from "./Fox";
 import { WordReveal, SpeechBubble } from "./MotionBits";
@@ -12,7 +13,6 @@ const OPTIONS = [
   { key: "no", emoji: "👎", label: "Not for me" },
   { key: "nice", emoji: "🤍", label: "It's nice" },
   { key: "yes", emoji: "🔥", label: "I'd buy this" },
-  { key: "notify", emoji: "🔔", label: "Notify me" },
 ];
 
 // 🔥-stem: het vuurtje vliegt (draaiend, met een boogje in schaal) van de knop naar het
@@ -34,10 +34,13 @@ function FlyingFire({ flight, onDone }) {
 
 // Hype check: de stem-sheet voor een "Coming soon"-demo-product. Niet koopbaar — je laat
 // alleen weten hoe tof je 't vindt. Uitslag (percentage + aantal stemmen) staat er altijd.
-export default function HypeCheckSheet({ product, session, onClose, onRequireAuth, initialStats, initialMyVote, onVoted }) {
+export default function HypeCheckSheet({ product, session, onClose, onRequireAuth, initialStats, initialMyVote, onVoted, onNotify }) {
   const hasSession = !!session;
   const [stats, setStats] = useState(initialStats || null);
-  const [myVote, setMyVote] = useState(initialMyVote || null);
+  // initialMyVote = { reaction, notify } — de stem (1 van 3) en de 🔔-vlag staan LOS van elkaar.
+  const [myVote, setMyVote] = useState(initialMyVote?.reaction || null);
+  const [myNotify, setMyNotify] = useState(!!initialMyVote?.notify);
+  useBodyScrollLock(true);   // feed erachter niet mee laten scrollen
   const [busy, setBusy] = useState(false);
   const [zoomIdx, setZoomIdx] = useState(null);
   const [galIdx, setGalIdx] = useState(0);
@@ -120,12 +123,6 @@ export default function HypeCheckSheet({ product, session, onClose, onRequireAut
 
   const vote = async (key) => {
     if (busy) return;
-    // 🔔 → altijd het bel-vos-moment. Gast: uitleg dat een account nodig is (stemmen kan
-    // dan nog niet). Ingelogd: "you're on the list" — de stem registreert op de achtergrond.
-    if (key === "notify") {
-      setNotifyPrompt(hasSession ? "user" : "guest");
-      if (!hasSession) return;
-    }
     // Micro-momenten meteen bij de tik (voelt instant, los van de server-roundtrip).
     if (key === "yes") {
       const f = fireEmojiRef.current?.getBoundingClientRect();
@@ -147,6 +144,21 @@ export default function HypeCheckSheet({ product, session, onClose, onRequireAut
     onVoted?.(product.id, m[product.id], key);
   };
 
+  // 🔔 los van je stem: toggle de notify-vlag. Gast → eerst een account (bel-vos-moment);
+  // ingelogd → aanzetten speelt "you're on the list", uitzetten is stil.
+  const bellTap = async () => {
+    if (busy) return;
+    if (!hasSession) { setNotifyPrompt("guest"); return; }
+    const next = !myNotify;
+    setMyNotify(next);   // optimistisch
+    if (next) setNotifyPrompt("user");
+    const { data, error } = await toggleNotify(product.id, next, hasSession);
+    if (error || !data?.ok) { setMyNotify(!next); setNotifyPrompt(false); return; }
+    const m = await getVoteStats([product.id]);
+    if (m[product.id]) setStats(m[product.id]);
+    onNotify?.(product.id, next, m[product.id]);
+  };
+
   const s = stats || { total: 0, yes: 0, nice: 0, no: 0, notify: 0 };
   const pref = s.no + s.nice + s.yes;
   const pctYes = pref > 0 ? Math.round((100 * s.yes) / pref) : 0;
@@ -161,7 +173,7 @@ export default function HypeCheckSheet({ product, session, onClose, onRequireAut
         drag="y" dragControls={dragControls} dragListener={false}
         dragConstraints={{ top: 0, bottom: 0 }} dragElastic={{ top: 0, bottom: 0.55 }}
         onDragEnd={(e, info) => { if (info.offset.y > 110 || info.velocity.y > 650) onClose(); }}
-        style={{ position: "fixed", bottom: 0, left: 0, right: 0, margin: "0 auto", width: "100%", maxWidth: 430, boxSizing: "border-box", background: "#0F0E0C", borderRadius: "24px 24px 0 0", zIndex: 301, maxHeight: "92vh", overflowY: "auto", padding: "16px 18px 32px" }}>
+        style={{ position: "fixed", bottom: 0, left: 0, right: 0, margin: "0 auto", width: "100%", maxWidth: 430, boxSizing: "border-box", background: "#0F0E0C", borderRadius: "24px 24px 0 0", zIndex: 301, maxHeight: "92vh", overflowY: "auto", overscrollBehavior: "contain", padding: "16px 18px 32px" }}>
         <div onClick={onClose} onPointerDown={(e) => dragControls.start(e)} style={{ padding: "0 0 12px", cursor: "grab", touchAction: "none" }}>
           <div style={{ width: 36, height: 4, background: "rgba(255,255,255,0.2)", borderRadius: 2, margin: "0 auto" }} />
         </div>
@@ -196,20 +208,17 @@ export default function HypeCheckSheet({ product, session, onClose, onRequireAut
         </div>
 
         <div style={{ fontSize: 12.5, color: "#fff", fontWeight: 700, marginBottom: 9 }}>Hype check — would you buy this?</div>
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 14 }}>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 7, marginBottom: 8 }}>
           {OPTIONS.map((o) => {
             const sel = myVote === o.key;
             const accent = o.key === "yes";
-            const isBell = o.key === "notify";
             return (
               <motion.button key={o.key} disabled={busy} onClick={() => vote(o.key)}
                 whileHover={{ y: -2 }} whileTap={busy ? undefined : { scale: 0.88 }}
                 animate={sel ? { scale: [1, 1.07, 1] } : { scale: 1 }}
                 transition={springSnappy}
-                style={{ background: sel ? "#2a1c0f" : "#1A1917", border: `1px solid ${sel ? "#FF5C00" : "#2c2b29"}`, borderRadius: 12, padding: "12px 8px", textAlign: "center", color: sel || accent ? "#FF8A3D" : "#C9C6C1", fontSize: 12.5, fontWeight: 700, cursor: busy ? "default" : "pointer", WebkitTapHighlightColor: "transparent" }}>
-                {isBell && notifyPrompt
-                  ? <span style={{ opacity: 0, display: "inline-block" }}>{o.emoji}</span>
-                  : o.key === "nice"
+                style={{ background: sel ? "#2a1c0f" : "#1A1917", border: `1px solid ${sel ? "#FF5C00" : "#2c2b29"}`, borderRadius: 12, padding: "11px 4px", textAlign: "center", color: sel || accent ? "#FF8A3D" : "#C9C6C1", fontSize: 11.5, fontWeight: 700, cursor: busy ? "default" : "pointer", WebkitTapHighlightColor: "transparent" }}>
+                {o.key === "nice"
                   ? <motion.span animate={sel ? { rotate: [0, -14, 10, 0] } : { rotate: 0 }} transition={{ duration: 0.45 }} style={{ display: "inline-block" }}>
                       {/* kaart-flip: 🤍 → 🧡 en (na ~1s) weer terug */}
                       <motion.span animate={{ rotateY: heartOrange ? 180 : 0 }} transition={springSnappy} style={{ display: "inline-block", transformStyle: "preserve-3d", position: "relative" }}>
@@ -217,7 +226,7 @@ export default function HypeCheckSheet({ product, session, onClose, onRequireAut
                         <span aria-hidden style={{ position: "absolute", inset: 0, display: "inline-block", transform: "rotateY(180deg)", backfaceVisibility: "hidden" }}>🧡</span>
                       </motion.span>
                     </motion.span>
-                  : <motion.span ref={o.key === "yes" ? fireEmojiRef : undefined} layoutId={isBell ? "hype-bell" : undefined}
+                  : <motion.span ref={o.key === "yes" ? fireEmojiRef : undefined}
                       animate={sel ? { rotate: [0, -18, 14, -6, 0], scale: [1, 1.35, 1] } : { rotate: 0, scale: 1 }}
                       transition={{ duration: 0.5, ease: [0.32, 0.72, 0, 1] }}
                       style={{ display: "inline-block", opacity: o.key === "yes" && fireFlight ? 0 : 1 }}>{o.emoji}</motion.span>}
@@ -226,6 +235,15 @@ export default function HypeCheckSheet({ product, session, onClose, onRequireAut
             );
           })}
         </div>
+
+        {/* 🔔 staat LOS van je stem: altijd beschikbaar, toggle aan/uit. */}
+        <motion.button whileTap={{ scale: 0.97 }} onClick={bellTap} disabled={busy}
+          style={{ width: "100%", marginBottom: 14, display: "flex", alignItems: "center", justifyContent: "center", gap: 8, background: myNotify ? "#2a1c0f" : "#1A1917", border: `1px solid ${myNotify ? "#FF5C00" : "#2c2b29"}`, borderRadius: 12, padding: "12px 10px", color: myNotify ? "#FF8A3D" : "#C9C6C1", fontSize: 12.5, fontWeight: 700, cursor: "pointer", WebkitTapHighlightColor: "transparent" }}>
+          {notifyPrompt
+            ? <span style={{ opacity: 0, display: "inline-block" }}>🔔</span>
+            : <motion.span layoutId="hype-bell" style={{ display: "inline-block" }}>🔔</motion.span>}
+          {myNotify ? "You're on the list — we'll ping you when it drops ✓" : "Notify me when it drops"}
+        </motion.button>
 
         {s.total === 0 ? (
           <div style={{ fontSize: 11.5, color: "#9C9893", textAlign: "center" }}>Be the first to vote <span ref={statFireRef} style={{ display: "inline-block" }}>🔥</span></div>

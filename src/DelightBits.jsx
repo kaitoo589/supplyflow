@@ -4,6 +4,17 @@ import { createPortal } from "react-dom";
 import { motion } from "framer-motion";
 import Fox from "./Fox";
 
+// Zet de body-scroll op slot zolang een sheet open is — anders scrollt de feed
+// erachter mee als de sheet zelf niks (meer) te scrollen heeft (scroll chaining).
+export function useBodyScrollLock(active = true) {
+  useEffect(() => {
+    if (!active) return;
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => { document.body.style.overflow = prev; };
+  }, [active]);
+}
+
 // Telt een getal soepel op naar z'n doelwaarde (ease-out). Telt bij een wijziging
 // verder vanaf de vorige waarde — voor saldo's, badges en tellers.
 export function CountUp({ to = 0, decimals = 0, duration = 0.6, prefix = "", suffix = "", style }) {
@@ -66,12 +77,12 @@ export function ConfettiBurst({ count = 16, emojis = ["📦", "🦊", "🧡", "�
 
 // Vliegende mini-afbeelding: van een bron-rect naar een doelpunt (bv. productfoto →
 // mand-balk), krimpend tot een rond thumbnail'tje. Zelfde familie als FlyingFire.
-export function FlyingImage({ flight, onDone }) {
+export function FlyingImage({ flight, duration = 0.95, onDone }) {
   return createPortal(
     <motion.img src={flight.src} referrerPolicy="no-referrer" alt="" draggable={false}
       initial={{ x: 0, y: 0, width: flight.fw, height: flight.fh, opacity: 1, borderRadius: 16 }}
       animate={{ x: flight.tx - flight.fx, y: flight.ty - flight.fy, width: 42, height: 42, opacity: [1, 1, 0.85], borderRadius: 21 }}
-      transition={{ duration: 0.65, ease: [0.32, 0.72, 0, 1] }}
+      transition={{ duration, ease: [0.32, 0.72, 0, 1] }}
       onAnimationComplete={onDone}
       style={{ position: "fixed", left: flight.fx, top: flight.fy, zIndex: 9600, objectFit: "cover", background: "#fff", pointerEvents: "none", boxShadow: "0 10px 30px rgba(0,0,0,0.28)" }}
     />,

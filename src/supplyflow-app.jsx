@@ -28,7 +28,7 @@ import Fox from "./Fox";
 import Auth from "./Auth";
 import HypeCheckSheet from "./HypeCheck";
 import { getVoteStats, getMyVotes } from "./votes";
-import { CountUp, ConfettiBurst, FlyingImage } from "./DelightBits";
+import { CountUp, ConfettiBurst, FlyingImage, useBodyScrollLock } from "./DelightBits";
 
 // —— PREVIEW / LAUNCH-GATE —————————————————————————————————————————————
 // Tot de officiële launch (Stripe live) kan er nog niet betaald worden. Zolang
@@ -403,17 +403,17 @@ function TreasureMap({ activeFilter, onSelect, orders }) {
       <div style={{ position: "relative", display: "flex", justifyContent: "space-between", marginTop: 16, marginBottom: 2 }}>
         {/* de reislijn loopt op bol-hoogte (21px) van het 1e bol-midden (12.5%) naar het laatste (87.5%) */}
         <div style={{ position: "absolute", top: 21, left: "12.5%", right: "12.5%", height: 0, borderTop: "2px dashed #FFC4A3", zIndex: 0 }} />
-        {/* ✈️ vliegt bij het openen langs de route tot het verste checkpoint met orders */}
+        {/* 🚚 rijdt bij het openen langs de route tot het verste checkpoint met orders */}
         {(() => {
           const idx = journeyStops.reduce((a, s, i) => (countFor(s.statuses) > 0 ? i : a), -1);
           if (idx < 0) return null;
           return (
             <motion.span
               initial={{ left: "12.5%", opacity: 0, y: 0 }}
-              animate={{ left: `${12.5 + idx * 25}%`, opacity: [0, 1, 1, 0], y: [0, -4, 0, -3, 0] }}
+              animate={{ left: `${12.5 + idx * 25}%`, opacity: [0, 1, 1, 0], y: [0, -2, 0, -1.5, 0] }}
               transition={{ duration: 1.5, delay: 0.45, ease: "easeInOut" }}
-              style={{ position: "absolute", top: 4, marginLeft: -9, fontSize: 15, zIndex: 2, pointerEvents: "none" }}>
-              ✈️
+              style={{ position: "absolute", top: 5, marginLeft: -9, fontSize: 15, zIndex: 2, pointerEvents: "none" }}>
+              🚚
             </motion.span>
           );
         })()}
@@ -576,6 +576,7 @@ function RequestListSheet({ items, onRemove, onSetQty, onClose, onSend, sending,
   const [view, setView] = useState("cart");
   const [agreed, setAgreed] = useState(false);
   const dragControls = useDragControls();           // rubber-band: sheet omlaag trekken om te sluiten
+  useBodyScrollLock(true);                          // feed erachter niet mee laten scrollen
   const [paying, setPaying] = useState("idle");     // "idle" | "check" — betaal-morph (knop → cirkel → vinkje)
   const [unlockKey, setUnlockKey] = useState(0);    // 5/5 bereikt → checkout-knop veert open + vos-toast
   const isHeld = (item) => !!flagged && flagged.has(item.source_url);
@@ -615,13 +616,6 @@ function RequestListSheet({ items, onRemove, onSetQty, onClose, onSend, sending,
     if (prevQtyRef.current < 5 && totalQty >= 5) setUnlockKey(Date.now());
     prevQtyRef.current = totalQty;
   }, [totalQty]);
-  const [showGo, setShowGo] = useState(false);
-  useEffect(() => {
-    if (!unlockKey) return;
-    setShowGo(true);
-    const t = setTimeout(() => setShowGo(false), 1700);
-    return () => clearTimeout(t);
-  }, [unlockKey]);
 
   const itemThumb = (item) => (
     <div style={{ width: 46, height: 46, borderRadius: 10, background: "#fff", overflow: "hidden", flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
@@ -757,16 +751,6 @@ function RequestListSheet({ items, onRemove, onSetQty, onClose, onSend, sending,
                 </div>
               )}
               <div style={{ position: "relative" }}>
-                {/* 5/5 bereikt → vos-toast "Let's go 🚀" boven de knop */}
-                <AnimatePresence>
-                  {showGo && (
-                    <motion.div initial={{ opacity: 0, y: 12, scale: 0.75 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 6, scale: 0.85 }} transition={springBouncy}
-                      style={{ position: "absolute", top: -34, left: "50%", transform: "translateX(-50%)", display: "flex", gap: 6, alignItems: "center", background: "#1E1D1A", border: "1px solid rgba(255,92,0,0.4)", borderRadius: 999, padding: "6px 13px", zIndex: 3, pointerEvents: "none", whiteSpace: "nowrap" }}>
-                      <span style={{ fontSize: 15, lineHeight: 1 }}><Fox /></span>
-                      <span style={{ fontSize: 12, fontWeight: 800, color: "#FF8A3D" }}>Let's go 🚀</span>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
                 <motion.button key={`co-${unlockKey}`} initial={unlockKey ? { scale: 0.86 } : false} animate={{ scale: 1 }} transition={springBouncy}
                   whileTap={payable.length && totalQty >= 5 ? { scale: 0.97 } : undefined} onClick={() => payable.length && totalQty >= 5 && setView("checkout")} disabled={payable.length === 0 || totalQty < 5}
                   style={{ width: "100%", marginTop: 12, background: (payable.length && totalQty >= 5) ? "#FF5C00" : "#333", color: (payable.length && totalQty >= 5) ? "#fff" : "#777", border: "none", borderRadius: 14, padding: "16px", fontSize: 15, fontWeight: 700, cursor: (payable.length && totalQty >= 5) ? "pointer" : "default", WebkitTapHighlightColor: "transparent" }}>
@@ -1752,7 +1736,9 @@ export default function SupplyFlow({ session }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Micro-parallax op de grote collage-foto's ([data-plx]) — rAF-throttled, geclamped ±12px.
+  // Micro-parallax op álle collage-foto's ([data-plx] = factor; groot 0.05, klein 0.035) —
+  // rAF-throttled, geclamped ±12px. De trage interval vangt net-gemounte foto's én de
+  // morph-ghost (die dezelfde collage rendert), zodat de kaart↔ghost-handoff blijft kloppen.
   useEffect(() => {
     let raf = 0;
     const apply = () => {
@@ -1761,14 +1747,16 @@ export default function SupplyFlow({ session }) {
       document.querySelectorAll("img[data-plx]").forEach((el) => {
         const r = el.getBoundingClientRect();
         if (r.bottom < -40 || r.top > vh + 40) return;
-        const off = Math.max(-12, Math.min(12, ((r.top + r.height / 2) - vh / 2) * 0.05));
+        const k = parseFloat(el.dataset.plx) || 0.05;
+        const off = Math.max(-12, Math.min(12, ((r.top + r.height / 2) - vh / 2) * k));
         el.style.transform = `translateY(${off.toFixed(1)}px) scale(1.12)`;
       });
     };
     const onScroll = () => { if (!raf) raf = requestAnimationFrame(apply); };
     window.addEventListener("scroll", onScroll, { passive: true });
+    const iv = setInterval(apply, 350);
     apply();
-    return () => { window.removeEventListener("scroll", onScroll); if (raf) cancelAnimationFrame(raf); };
+    return () => { window.removeEventListener("scroll", onScroll); clearInterval(iv); if (raf) cancelAnimationFrame(raf); };
   }, []);
 
   // Hype-check: laad de stem-tellingen + mijn eigen stem voor alle demo/"Coming soon"-producten.
@@ -2045,7 +2033,7 @@ export default function SupplyFlow({ session }) {
     // (±10px meeschuiven, iets ingezoomd zodat er geen randen ontstaan).
     const imgBox = (src, big) => (
       <div style={{ flex: 1, minHeight: 0, minWidth: 0, background: "#ECE8E0", display: "flex", alignItems: "center", justifyContent: "center", fontSize: big ? 44 : 26, overflow: "hidden" }}>
-        {src ? <img src={src} referrerPolicy="no-referrer" alt="" {...(big ? { "data-plx": "1" } : {})} style={{ width: "100%", height: "100%", objectFit: "cover", display: "block", ...(big ? { transform: "scale(1.12)", willChange: "transform" } : {}) }} /> : "🏭"}
+        {src ? <img src={src} referrerPolicy="no-referrer" alt="" data-plx={big ? "0.05" : "0.035"} style={{ width: "100%", height: "100%", objectFit: "cover", display: "block", transform: "scale(1.12)", willChange: "transform" }} /> : "🏭"}
       </div>
     );
     return (
@@ -2068,8 +2056,9 @@ export default function SupplyFlow({ session }) {
           <div style={{ position: "absolute", top: 11, left: 11, background: "rgba(17,17,17,0.82)", borderRadius: 20, padding: "3px 9px", fontSize: 12, fontWeight: 700, letterSpacing: 1, overflow: "hidden" }}>
             <span style={{ position: "relative", display: "inline-block" }}>
               {"💎".repeat(dia)}
-              {/* zeldzame glans-sweep over de diamanten — premium, bijna onzichtbaar */}
-              <motion.span initial={{ x: "-130%" }} animate={{ x: "330%" }} transition={{ duration: 0.9, delay: 1.1 + Math.random() * 1.2, ease: "easeInOut" }}
+              {/* glans-sweep over de diamanten — vuurt pas als de kaart IN BEELD scrollt */}
+              <motion.span initial={{ x: "-130%" }} whileInView={{ x: "330%" }} viewport={{ once: true, amount: 0.9 }}
+                transition={{ duration: 1.0, delay: 0.5, ease: "easeInOut" }}
                 style={{ position: "absolute", top: 0, bottom: 0, left: 0, width: "45%", background: "linear-gradient(105deg, transparent, rgba(255,255,255,0.55), transparent)", pointerEvents: "none" }} />
             </span>
           </div>
@@ -2133,12 +2122,13 @@ export default function SupplyFlow({ session }) {
       {/* 🦊 Pull-to-refresh indicator: pootafdrukken lichten op met de trek-afstand; bij
           verversen huppelt de vos. In-flow → duwt de feed zachtjes mee omlaag. */}
       {(pull > 0 || ptrBusy) && (
-        <div style={{ height: pull, overflow: "hidden", display: "flex", alignItems: "flex-end", justifyContent: "center", gap: 13, paddingBottom: 9, boxSizing: "border-box" }}>
+        <div style={{ height: pull, overflow: "hidden", display: "flex", alignItems: "flex-end", justifyContent: "center", gap: 14, paddingBottom: 9, boxSizing: "border-box" }}>
           {[0.3, 0.55, 0.85].map((t, i) => (
-            <span key={i} style={{ fontSize: 14, opacity: ptrBusy || pull / 110 >= t ? 1 : 0.18, transition: "opacity .15s", transform: `rotate(${i % 2 ? 14 : -10}deg)` }}>🐾</span>
+            <motion.span key={i}
+              animate={ptrBusy ? { y: [0, -7, 0] } : { y: 0 }}
+              transition={ptrBusy ? { duration: 0.55, repeat: Infinity, ease: "easeInOut", delay: i * 0.14 } : { duration: 0.1 }}
+              style={{ fontSize: 15, display: "inline-block", opacity: ptrBusy || pull / 110 >= t ? 1 : 0.18, transition: "opacity .15s", transform: `rotate(${i % 2 ? 14 : -10}deg)` }}>🐾</motion.span>
           ))}
-          <motion.span animate={ptrBusy ? { y: [0, -9, 0] } : { y: 0, rotate: Math.min(20, pull / 5) }} transition={ptrBusy ? { duration: 0.5, repeat: Infinity, ease: "easeInOut" } : { duration: 0.1 }}
-            style={{ fontSize: 21, lineHeight: 1, marginLeft: 3, display: "inline-block" }}><Fox /></motion.span>
         </div>
       )}
       {/* Shape-morph ghost: scroll-onafhankelijke doos met de FABRIEKSFOTO die kaart ↔ pill
@@ -2909,9 +2899,15 @@ export default function SupplyFlow({ session }) {
             onAddToList={(item, rect) => {
               setRequestList(list => [...list, item]);
               setSelectedProduct(null);
-              // Foto vliegt in een boog naar de mand-balk (onder in beeld, gecentreerd).
+              // Foto vliegt van de plek van het item naar het 📋-icoon van de mand-balk.
+              // De balk mount nét na het sluiten van de sheet → even wachten en dan meten.
               if (rect && item.variant_image) {
-                setCartFlight({ src: item.variant_image, fx: rect.left, fy: rect.top, fw: rect.width, fh: rect.height, tx: window.innerWidth / 2 - 21, ty: window.innerHeight - 132 });
+                setTimeout(() => {
+                  const t = document.querySelector("[data-cart-emoji]")?.getBoundingClientRect();
+                  const tx = t ? t.left + t.width / 2 - 21 : window.innerWidth / 2 - 170;
+                  const ty = t ? t.top + t.height / 2 - 21 : window.innerHeight - 132;
+                  setCartFlight({ src: item.variant_image, fx: rect.left, fy: rect.top, fw: rect.width, fh: rect.height, tx, ty });
+                }, 70);
               }
             }}
             isFavorite={isFavorite(selectedProduct)} onToggleFavorite={() => toggleFavorite(selectedProduct)}
@@ -2932,7 +2928,8 @@ export default function SupplyFlow({ session }) {
             onRequireAuth={() => { setHypeProduct(null); setAuthOpen(true); }}
             initialStats={voteStats[hypeProduct.id]}
             initialMyVote={myVotes[hypeProduct.id]}
-            onVoted={(id, st, r) => { if (st) setVoteStats((v) => ({ ...v, [id]: st })); setMyVotes((v) => ({ ...v, [id]: r })); }}
+            onVoted={(id, st, r) => { if (st) setVoteStats((v) => ({ ...v, [id]: st })); setMyVotes((v) => ({ ...v, [id]: { ...(v[id] || {}), reaction: r } })); }}
+            onNotify={(id, on, st) => { if (st) setVoteStats((v) => ({ ...v, [id]: st })); setMyVotes((v) => ({ ...v, [id]: { ...(v[id] || {}), notify: on } })); }}
           />
         )}
       </AnimatePresence>
@@ -3023,7 +3020,7 @@ export default function SupplyFlow({ session }) {
             onClick={() => { setListError(null); setShowRequestList(true); }}
             style={{ position: "fixed", bottom: 78, left: 0, right: 0, margin: "0 auto", width: "calc(100% - 40px)", maxWidth: 390, background: "#111111", borderRadius: 16, overflow: "hidden", cursor: "pointer", zIndex: 301, boxShadow: "0 12px 40px rgba(17,17,17,0.35)" }}>
             <div style={{ padding: "12px 16px", display: "flex", alignItems: "center", gap: 12 }}>
-              <span style={{ fontSize: 18 }}>📋</span>
+              <span data-cart-emoji style={{ fontSize: 18 }}>📋</span>
               <div style={{ flex: 1 }}>
                 <div style={{ fontSize: 13, fontWeight: 700, color: "#fff" }}>Shopping cart · <motion.span key={requestList.length} initial={{ scale: 1.6, color: "#FF8A3D" }} animate={{ scale: 1, color: "#FFFFFF" }} transition={springSnappy} style={{ display: "inline-block" }}>{requestList.length}</motion.span> item{requestList.length > 1 ? "s" : ""}</div>
                 <div style={{ fontSize: 11.5, color: "#9C9893" }}>Tap to open — one fee at shipping <Fox /></div>

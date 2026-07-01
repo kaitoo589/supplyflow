@@ -11,7 +11,9 @@ export const springBouncy = { type: "spring", stiffness: 500, damping: 18, mass:
 // Voor morphing (gedeelde elementen die van scherm wisselen):
 // vlot en strak, zonder na-wiebelen. Overal dezelfde gebruiken,
 // zodat kaart, foto en titel synchroon bewegen.
-export const springMorph = { type: "spring", stiffness: 300, damping: 30, mass: 0.9 };
+// damping 30→33: dempt de laatste na-wiebel die als "stotteren" voelde bij de
+// kaart↔pagina-morphs, zonder de morph merkbaar trager te maken.
+export const springMorph = { type: "spring", stiffness: 300, damping: 33, mass: 0.9 };
 
 // Tik-feedback: een knop "geeft mee" als je 'm indrukt, zoals op iOS.
 export const pressable = {

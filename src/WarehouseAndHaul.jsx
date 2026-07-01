@@ -62,46 +62,7 @@ function OpenBox({ itemCount, onClick, isDropTarget }) {
             style={{ fontSize: 86, lineHeight: 1, filter: isDropTarget ? "drop-shadow(0 0 14px #FF5C00)" : "drop-shadow(0 4px 10px rgba(0,0,0,0.15))", transition: "filter 0.2s" }}>
             📦
           </motion.div>
-          {/* Open deksel animatie als isDropTarget */}
-          <AnimatePresence>
-            {isDropTarget && (
-              <motion.div
-                initial={{ rotateX: 0, opacity: 0, y: 0 }}
-                animate={{ rotateX: -45, opacity: 1, y: -18 }}
-                exit={{ rotateX: 0, opacity: 0, y: 0 }}
-                transition={{ type: "spring", stiffness: 200, damping: 18 }}
-                style={{
-                  position: "absolute",
-                  top: -10,
-                  left: "50%",
-                  transform: "translateX(-50%)",
-                  fontSize: 36,
-                  transformOrigin: "bottom center",
-                  filter: "drop-shadow(0 -4px 8px rgba(255,92,0,0.6))",
-                }}
-              >
-                🟫
-              </motion.div>
-            )}
-          </AnimatePresence>
         </div>
-
-        {/* Item count badge */}
-        {itemCount > 0 && (
-          <motion.div
-            initial={{ scale: 0 }}
-            animate={{ scale: 1 }}
-            style={{
-              position: "absolute", top: 0, right: 0,
-              background: "#0F0E0C", color: "#FF5C00",
-              borderRadius: "50%", width: 26, height: 26,
-              display: "flex", alignItems: "center", justifyContent: "center",
-              fontSize: 12, fontWeight: 700,
-            }}
-          >
-            {itemCount}
-          </motion.div>
-        )}
 
         {/* Drop hint */}
         {isDropTarget && (

@@ -491,6 +491,10 @@ function StorageQuoteFlow({ haulItems, balance, orderIds, onBack, onSuccess }) {
     setBusy(false);
     if (data?.ok) load(); else alert(data?.error || "Something went wrong");
   };
+  // "Refresh" leest ALLEEN de bestaande quote opnieuw uit — NIET opnieuw aanvragen.
+  // (request_storage_quote maakte telkens een nieuwe 'requested' aan en liet de zojuist
+  // verstuurde quote verlopen → herhaald refreshen wiste de admin-quote steeds.)
+  const refresh = async () => { setBusy(true); await load(); setBusy(false); };
   const pay = async () => {
     setBusy(true);
     const { data } = await supabase.rpc("pay_storage_quote", { p_quote_id: quote.id });
@@ -551,7 +555,7 @@ function StorageQuoteFlow({ haulItems, balance, orderIds, onBack, onSuccess }) {
                 ? "Your previous quote expired. Request a fresh one — we'll send it today."
                 : "Storage costs now apply to these items. Request a shipping quote and we'll send you the total (shipping + storage) today."}
           </div>
-          <motion.button whileTap={{ scale: 0.98 }} onClick={request} disabled={busy}
+          <motion.button whileTap={{ scale: 0.98 }} onClick={quote?.status === "requested" ? refresh : request} disabled={busy}
             style={{ width: "100%", background: "#FF5C00", color: "#fff", border: "none", borderRadius: 12, padding: "13px", fontSize: 14, fontWeight: 700, cursor: busy ? "default" : "pointer" }}>
             {busy ? "…" : quote?.status === "requested" ? "Refresh" : "Request shipping quote"}
           </motion.button>

@@ -1688,6 +1688,10 @@ export default function SupplyFlow({ session }) {
   // het aangetikte element vastleggen i.p.v. Framers pagina-coördinaten, komt de morph voor
   // ELKE scrollpositie netjes uit de plek waar je tikt. Draait ná het scroll-herstel hierboven,
   // zodat de terugkerende kaart op z'n herstelde positie wordt gemeten.
+  // De parallax verschuift de foto's ín de kaart (±12px, scroll-afhankelijk). De ghost
+  // moet op de twee handoff-momenten (start + landing) EXACT dezelfde verschuiving
+  // hebben, anders "springt" het beeld — dat was het stotteren bij terug-naar-feed.
+  const plxApplyRef = useRef(null);
   useLayoutEffect(() => {
     if (!morph) return;
     const ghost = ghostRef.current;
@@ -1710,6 +1714,9 @@ export default function SupplyFlow({ session }) {
       ghost.removeEventListener("transitionend", onEnd);
       window.removeEventListener("scroll", onScroll);
       clearTimeout(armTimer);
+      // Parallax syncen op het landingsmoment: ghost-foto's en kaart-foto's krijgen
+      // dezelfde verschuiving → naadloze overdracht, geen sprong meer.
+      plxApplyRef.current?.();
       destEl.style.visibility = "";
       setMorph(null);
     };
@@ -1722,6 +1729,7 @@ export default function SupplyFlow({ session }) {
     // FLIP via CSS-transitie: compositor-gedreven (soepel + betrouwbare afronding) en
     // geen border-radius-vervorming zoals bij transform-scale.
     void ghost.offsetWidth; // forceer reflow op de bron-rect vóór we naar het doel zetten
+    plxApplyRef.current?.(); // parallax syncen op het startmoment (ghost staat op de bron-rect)
     const ease = "cubic-bezier(0.32, 0.72, 0, 1)";
     ghost.style.transition = `left .44s ${ease}, top .44s ${ease}, width .44s ${ease}, height .44s ${ease}, border-radius .44s ${ease}`;
     ghost.style.left = `${to.left}px`;
@@ -2014,8 +2022,9 @@ export default function SupplyFlow({ session }) {
     const onScroll = () => { if (!raf) raf = requestAnimationFrame(apply); };
     window.addEventListener("scroll", onScroll, { passive: true });
     const iv = setInterval(apply, 350);
+    plxApplyRef.current = apply;   // de morph roept dit aan op z'n handoff-momenten
     apply();
-    return () => { window.removeEventListener("scroll", onScroll); clearInterval(iv); if (raf) cancelAnimationFrame(raf); };
+    return () => { window.removeEventListener("scroll", onScroll); clearInterval(iv); if (raf) cancelAnimationFrame(raf); plxApplyRef.current = null; };
   }, []);
 
   // Hype-check: laad de stem-tellingen + mijn eigen stem voor alle demo/"Coming soon"-producten.

@@ -14,7 +14,8 @@ import GroupModeGlow from "./GroupModeGlow";
 import { ffMyGroups } from "./ffApi";
 import { garmentType } from "./garment";
 import { WarehouseTab, TransitTab } from "./WarehouseAndHaul";
-import { motion, AnimatePresence, useDragControls } from "framer-motion";
+import { motion, AnimatePresence, useDragControls, useMotionValue, useTransform } from "framer-motion";
+import GlassDefs, { glassStyle, glassSpec } from "./LiquidGlass";
 import { createPortal } from "react-dom";
 import { springSnappy, springSoft, springBouncy, springMorph } from "./motion";
 import { Search, SlidersHorizontal, Bell, Home, Package, Factory, User, Users, ShoppingBag, Eye, Star, Plus, X, Plane, CreditCard, PackageCheck, Truck, Camera, ChevronUp } from "lucide-react";
@@ -577,6 +578,9 @@ function RequestListSheet({ items, onRemove, onSetQty, onClose, onSend, sending,
   const [view, setView] = useState("cart");
   const [agreed, setAgreed] = useState(false);
   const dragControls = useDragControls();           // rubber-band: sheet omlaag trekken om te sluiten
+  // Gel-rek: hoe verder je trekt, hoe meer de kaart uitrekt (bovenkant "plakt").
+  const dragStretch = useMotionValue(0);
+  const stretchY = useTransform(dragStretch, [0, 170], [1, 1.055]);
   useBodyScrollLock(true);                          // feed erachter niet mee laten scrollen
   const [paying, setPaying] = useState("idle");     // "idle" | "check" — betaal-morph (knop → cirkel → vinkje)
   const isHeld = (item) => !!flagged && flagged.has(item.source_url);
@@ -637,8 +641,9 @@ function RequestListSheet({ items, onRemove, onSetQty, onClose, onSend, sending,
         initial={{ opacity: 0, y: 26, scale: 0.96 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 20, scale: 0.97 }}
         drag="y" dragControls={dragControls} dragListener={false}
         dragConstraints={{ top: 0, bottom: 0 }} dragElastic={{ top: 0, bottom: 0.55 }}
-        onDragEnd={(e, info) => { if (info.offset.y > 110 || info.velocity.y > 650) (view === "placed" ? onFinish?.(false) : onClose()); }}
-        style={{ position: "fixed", bottom: 86, left: 0, right: 0, margin: "0 auto", width: "calc(100% - 24px)", maxWidth: 404, boxSizing: "border-box", background: "#111111", borderRadius: 28, zIndex: 301, maxHeight: "74vh", overflowY: "auto", overscrollBehavior: "contain", boxShadow: "0 30px 80px rgba(0,0,0,0.5)" }}>
+        onDrag={(e, info) => dragStretch.set(Math.max(0, info.offset.y))}
+        onDragEnd={(e, info) => { dragStretch.set(0); if (info.offset.y > 110 || info.velocity.y > 650) (view === "placed" ? onFinish?.(false) : onClose()); }}
+        style={{ position: "fixed", bottom: 86, left: 0, right: 0, margin: "0 auto", width: "calc(100% - 24px)", maxWidth: 404, boxSizing: "border-box", background: "#111111", borderRadius: 28, zIndex: 301, maxHeight: "74vh", overflowY: "auto", overscrollBehavior: "contain", boxShadow: "0 30px 80px rgba(0,0,0,0.5)", scaleY: stretchY, transformOrigin: "50% 0%" }}>
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1, transition: { delay: 0.16, duration: 0.2 } }} exit={{ opacity: 0, transition: { duration: 0.08 } }}
           style={{ padding: "18px 18px 26px" }}>
           <div onClick={view === "checkout" ? () => setView("cart") : view === "placed" ? () => onFinish?.(false) : onClose}
@@ -2323,6 +2328,9 @@ export default function SupplyFlow({ session }) {
     <div style={{ fontFamily: "'Inter', 'Helvetica Neue', sans-serif", background: "#F8F7F4", minHeight: "100vh", maxWidth: 430, margin: "0 auto", width: "100%", position: "relative" }}>
 
       <GroupModeGlow key={activeGroup?.id || "none"} active={activeGroupShopping} dimmed={!!(selectedProduct || showRequestList || showFriends || showNotifs || showVable)} />
+      {/* Liquid Glass: SVG-displacement-filters (Chromium krijgt echte rand-breking;
+          iOS/Firefox vallen terug op clear-glass blur — geregeld in glassStyle). */}
+      <GlassDefs />
 
       {/* 🦊 Pull-to-refresh indicator: pootafdrukken lichten op met de trek-afstand; bij
           verversen huppelt de vos. In-flow → duwt de feed zachtjes mee omlaag. */}
@@ -2434,17 +2442,20 @@ export default function SupplyFlow({ session }) {
           <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 10 }}>
             <div style={{ fontSize: 30, fontWeight: 800, letterSpacing: -0.6, color: "#111111", marginBottom: 2 }}>{showFavoritesOnly ? "Favorites" : selectedFactory ? selectedFactory.name : <>Factory <span style={{ color: "#FF5C00" }}>Feed</span></>}</div>
             <div style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
-              <motion.button data-money-btn whileTap={{ scale: 0.85 }} transition={springSnappy} onClick={() => openSheetWithArc("pricing")} aria-label="How pricing works"
-                style={{ width: 42, height: 42, borderRadius: "50%", background: "#fff", border: "1px solid #ECEAE5", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", fontSize: 18, lineHeight: 1, WebkitTapHighlightColor: "transparent" }}>
+              <motion.button data-money-btn whileTap={{ scaleX: 1.15, scaleY: 0.85 }} transition={springSnappy} onClick={() => openSheetWithArc("pricing")} aria-label="How pricing works"
+                style={{ position: "relative", overflow: "hidden", width: 42, height: 42, borderRadius: "50%", border: "none", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", fontSize: 18, lineHeight: 1, WebkitTapHighlightColor: "transparent", ...glassStyle("chip") }}>
+                <div style={glassSpec} />
                 {/* het emoji "vertrekt" tijdens de boogvlucht (de knop-cirkel blijft) */}
                 <span style={{ display: "inline-block", opacity: arcFlight?.kind === "pricing" ? 0 : 1, transition: "opacity .15s" }}>💸</span>
               </motion.button>
-              <motion.button data-diamond-btn whileTap={{ scale: 0.85 }} transition={springSnappy} onClick={() => openSheetWithArc("diamond")} aria-label="How diamond rankings work"
-                style={{ width: 42, height: 42, borderRadius: "50%", background: "#fff", border: "1px solid #ECEAE5", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", fontSize: 18, lineHeight: 1, WebkitTapHighlightColor: "transparent" }}>
+              <motion.button data-diamond-btn whileTap={{ scaleX: 1.15, scaleY: 0.85 }} transition={springSnappy} onClick={() => openSheetWithArc("diamond")} aria-label="How diamond rankings work"
+                style={{ position: "relative", overflow: "hidden", width: 42, height: 42, borderRadius: "50%", border: "none", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", fontSize: 18, lineHeight: 1, WebkitTapHighlightColor: "transparent", ...glassStyle("chip") }}>
+                <div style={glassSpec} />
                 <span style={{ display: "inline-block", opacity: arcFlight?.kind === "diamond" ? 0 : 1, transition: "opacity .15s" }}>💎</span>
               </motion.button>
-              <motion.button whileTap={{ scale: 0.85 }} transition={springSnappy} onClick={() => setShowFavoritesOnly((v) => !v)} aria-label="favorites"
-                style={{ width: 42, height: 42, borderRadius: "50%", background: showFavoritesOnly ? "#FF5C00" : "#fff", border: "1px solid #ECEAE5", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}>
+              <motion.button whileTap={{ scaleX: 1.15, scaleY: 0.85 }} transition={springSnappy} onClick={() => setShowFavoritesOnly((v) => !v)} aria-label="favorites"
+                style={{ position: "relative", overflow: "hidden", width: 42, height: 42, borderRadius: "50%", border: "none", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", ...(showFavoritesOnly ? { background: "#FF5C00", boxShadow: "0 6px 18px rgba(255,92,0,0.35)" } : glassStyle("chip")) }}>
+                {!showFavoritesOnly && <div style={glassSpec} />}
                 <Star size={19} color={showFavoritesOnly ? "#fff" : "#111111"} fill={showFavoritesOnly ? "#fff" : "none"} strokeWidth={2} />
               </motion.button>
               <motion.button whileTap={{ scale: 0.85 }} transition={springSnappy} onClick={() => setShowVable(true)} aria-label="VABLE — our brand"
@@ -3232,18 +3243,19 @@ export default function SupplyFlow({ session }) {
           </motion.div>
         )}
         {requestList.length > 0 && tab === "feed" && !showRequestList && !selectedProduct && !showFriends && !activeGroupShopping && !showVable && !hypeProduct && (
-          <motion.div layoutId="cart-pop" layoutRoot initial={{ y: 24, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 30, opacity: 0, scale: 0.96 }} whileTap={{ scale: 0.97 }} transition={springMorph}
+          <motion.div layoutId="cart-pop" layoutRoot initial={{ y: 24, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 30, opacity: 0, scale: 0.96 }} whileTap={{ scaleX: 1.03, scaleY: 0.93 }} transition={springMorph}
             onClick={() => { setListError(null); setShowRequestList(true); }}
-            style={{ position: "fixed", bottom: 78, left: 0, right: 0, margin: "0 auto", width: "calc(100% - 40px)", maxWidth: 390, background: "#111111", borderRadius: 16, overflow: "hidden", cursor: "pointer", zIndex: 301, boxShadow: "0 12px 40px rgba(17,17,17,0.35)" }}>
-            <div style={{ padding: "12px 16px", display: "flex", alignItems: "center", gap: 12 }}>
+            style={{ position: "fixed", bottom: 86, left: 0, right: 0, margin: "0 auto", width: "calc(100% - 40px)", maxWidth: 390, borderRadius: 999, overflow: "hidden", cursor: "pointer", zIndex: 301, ...glassStyle("bar") }}>
+            <div style={glassSpec} />
+            <div style={{ padding: "11px 18px", display: "flex", alignItems: "center", gap: 12 }}>
               <span data-cart-emoji style={{ fontSize: 18 }}>📋</span>
               <div style={{ flex: 1 }}>
-                <div style={{ fontSize: 13, fontWeight: 700, color: "#fff" }}>Shopping cart · <motion.span key={requestList.length} initial={{ scale: 1.6, color: "#FF8A3D" }} animate={{ scale: 1, color: "#FFFFFF" }} transition={springSnappy} style={{ display: "inline-block" }}>{requestList.length}</motion.span> item{requestList.length > 1 ? "s" : ""}</div>
-                <div style={{ fontSize: 11.5, color: "#9C9893" }}>Tap to open — one fee at shipping <Fox /></div>
+                <div style={{ fontSize: 13, fontWeight: 700, color: "#111" }}>Shopping cart · <motion.span key={requestList.length} initial={{ scale: 1.6, color: "#B8430A" }} animate={{ scale: 1, color: "#111111" }} transition={springSnappy} style={{ display: "inline-block" }}>{requestList.length}</motion.span> item{requestList.length > 1 ? "s" : ""}</div>
+                <div style={{ fontSize: 11.5, color: "rgba(20,18,14,0.55)" }}>Tap to open — one fee at shipping <Fox /></div>
               </div>
               <motion.div animate={{ y: [0, -3, 0] }} transition={{ duration: 1.4, repeat: Infinity, ease: "easeInOut" }}
-                style={{ width: 30, height: 30, borderRadius: "50%", background: "rgba(255,92,0,0.15)", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                <ChevronUp size={16} color="#FF5C00" strokeWidth={2.5} />
+                style={{ width: 30, height: 30, borderRadius: "50%", background: "rgba(255,92,0,0.85)", display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 4px 12px rgba(255,92,0,0.35)" }}>
+                <ChevronUp size={16} color="#fff" strokeWidth={2.5} />
               </motion.div>
             </div>
           </motion.div>
@@ -3467,7 +3479,8 @@ export default function SupplyFlow({ session }) {
       {/* Bottom nav — layout+layoutRoot isoleert de navPill (layoutId) van pagina-scroll-
           sprongen. LET OP: centreren via left/right+margin, NIET via transform — framer's
           layout-projectie zet z'n eigen transform en overschrijft translateX(-50%). */}
-      <motion.div layout layoutRoot style={{ position: "fixed", zIndex: 100, bottom: 0, left: 0, right: 0, margin: "0 auto", width: "100%", maxWidth: 430, background: "#fff", borderTop: "1px solid #ECEAE5", display: "flex", padding: "9px 0 15px" }}>
+      <motion.div layout layoutRoot style={{ position: "fixed", zIndex: 100, bottom: 12, left: 0, right: 0, margin: "0 auto", width: "calc(100% - 28px)", maxWidth: 402, borderRadius: 999, display: "flex", padding: "6px 8px", overflow: "hidden", ...glassStyle("nav") }}>
+        <div style={glassSpec} />
         {[
           { id: "feed", Icon: Home, label: "Feed" },
           { id: "orders", Icon: Package, label: "Orders" },
@@ -3478,11 +3491,17 @@ export default function SupplyFlow({ session }) {
           const active = tab === t.id;
           return (
             <motion.button key={t.id} onClick={() => { setTab(t.id); setSelectedOrder(null); }}
-              whileTap={{ scale: 0.85 }} transition={springSnappy}
-              style={{ position: "relative", flex: 1, background: "none", border: "none", display: "flex", flexDirection: "column", alignItems: "center", gap: 4, cursor: "pointer", WebkitTapHighlightColor: "transparent" }}>
+              whileTap={{ scaleX: 1.12, scaleY: 0.86 }} transition={springSnappy}
+              style={{ position: "relative", flex: 1, background: "none", border: "none", display: "flex", flexDirection: "column", alignItems: "center", gap: 3, cursor: "pointer", WebkitTapHighlightColor: "transparent", padding: "6px 0 7px" }}>
               {active && (
                 <motion.div layoutId="navPill" transition={springSnappy}
-                  style={{ position: "absolute", top: -3, bottom: -3, left: 14, right: 14, background: "rgba(255,92,0,0.1)", borderRadius: 14, zIndex: 0 }} />
+                  style={{ position: "absolute", inset: 0, zIndex: 0 }}>
+                  {/* gel-blob: rekt uit (breder + platter) bij de sprong naar een nieuwe tab */}
+                  <motion.div key={tab}
+                    animate={{ scaleX: [1, 1.35, 0.92, 1], scaleY: [1, 0.72, 1.06, 1] }}
+                    transition={{ duration: 0.5, times: [0, 0.35, 0.7, 1], ease: "easeOut" }}
+                    style={{ position: "absolute", inset: 0, borderRadius: 999, background: "rgba(255,92,0,0.17)", boxShadow: "inset 0 0 0 1px rgba(255,92,0,0.35), inset 2px 3px 6px rgba(255,255,255,0.5)" }} />
+                </motion.div>
               )}
               <motion.span animate={{ scale: active ? 1.12 : 1, y: active ? -1 : 0 }} transition={springSnappy}
                 style={{ position: "relative", zIndex: 1, display: "flex" }}>

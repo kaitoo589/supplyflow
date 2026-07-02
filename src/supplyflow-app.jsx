@@ -219,7 +219,7 @@ function ProgressWheelModal({ items, onClose, onOpenItem }) {
                 <div key={o.id} onClick={onOpenItem ? () => { onClose(); onOpenItem(o); } : undefined} style={{ cursor: onOpenItem ? "pointer" : "default" }}>
                   <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 5 }}>
                     <div style={{ width: 26, height: 26, borderRadius: 7, background: "#fff", border: "1px solid #F0EEE8", overflow: "hidden", flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
-                      {o.variant_image ? <img src={o.variant_image} referrerPolicy="no-referrer" alt="" style={{ width: "100%", height: "100%", objectFit: "contain" }} /> : <span style={{ fontSize: 14 }}>📦</span>}
+                      {o.variant_image ? <img src={o.variant_image} referrerPolicy="no-referrer" alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : <span style={{ fontSize: 14 }}>📦</span>}
                     </div>
                     <span style={{ flex: 1, minWidth: 0, fontSize: 12, fontWeight: 600, color: "#222", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{o.product_title || o.product}</span>
                     <span style={{ fontSize: 12.5, fontWeight: 800, color, flexShrink: 0 }}>{pct}%</span>
@@ -290,7 +290,7 @@ function OrderGroupCard({ items, onOpenItem, groupSize, onDismiss, parcel, activ
         <div style={{ display: "flex", flexShrink: 0 }}>
           {items.slice(0, 3).map((o, i) => (
             <div key={o.id} style={{ width: 40, height: 40, borderRadius: 9, background: "#fff", boxShadow: "0 0 0 1px #F0EEE8", overflow: "hidden", marginLeft: i ? -14 : 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
-              {o.variant_image ? <img src={o.variant_image} referrerPolicy="no-referrer" alt="" style={{ width: "100%", height: "100%", objectFit: "contain" }} /> : <span style={{ fontSize: 18 }}>📦</span>}
+              {o.variant_image ? <img src={o.variant_image} referrerPolicy="no-referrer" alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : <span style={{ fontSize: 18 }}>📦</span>}
             </div>
           ))}
           {items.length > 3 && <div style={{ width: 40, height: 40, borderRadius: 9, background: "#F3F1ED", marginLeft: -14, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, fontWeight: 700, color: "#888" }}>+{items.length - 3}</div>}
@@ -342,7 +342,7 @@ function OrderGroupCard({ items, onOpenItem, groupSize, onDismiss, parcel, activ
                   <motion.div key={o.id} whileTap={onOpenItem ? { scale: 0.98 } : undefined} onClick={onOpenItem ? () => onOpenItem(o) : undefined}
                     style={{ display: "flex", alignItems: "center", gap: 10, background: "#F8F7F4", borderRadius: 12, padding: "9px 11px", marginBottom: 6, cursor: onOpenItem ? "pointer" : "default" }}>
                     <div style={{ width: 38, height: 38, borderRadius: 8, background: "#fff", border: "1px solid #F0EEE8", overflow: "hidden", flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
-                      {o.variant_image ? <img src={o.variant_image} referrerPolicy="no-referrer" alt="" style={{ width: "100%", height: "100%", objectFit: "contain" }} /> : <span style={{ fontSize: 17 }}>📦</span>}
+                      {o.variant_image ? <img src={o.variant_image} referrerPolicy="no-referrer" alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : <span style={{ fontSize: 17 }}>📦</span>}
                     </div>
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{ fontSize: 12.5, fontWeight: 600, color: "#111", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{o.product_title || o.product}</div>
@@ -614,7 +614,7 @@ function RequestListSheet({ items, onRemove, onSetQty, onClose, onSend, sending,
 
   const itemThumb = (item) => (
     <div style={{ width: 46, height: 46, borderRadius: 10, background: "#fff", overflow: "hidden", flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
-      {item.variant_image ? <img src={item.variant_image} referrerPolicy="no-referrer" alt="" style={{ width: "100%", height: "100%", objectFit: "contain" }} /> : <span style={{ fontSize: 20 }}>📦</span>}
+      {item.variant_image ? <img src={item.variant_image} referrerPolicy="no-referrer" alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : <span style={{ fontSize: 20 }}>📦</span>}
     </div>
   );
 
@@ -2109,8 +2109,18 @@ export default function SupplyFlow({ session }) {
   const [pull, setPull] = useState(0);
   const [ptrBusy, setPtrBusy] = useState(false);
   const ptrRef = useRef({ startY: 0, active: false });
+  // Elastische bottom-pull (rek de content omhoog als je op de bodem verder trekt).
+  const stretchRef = useRef(null);       // de content-wrapper die meebeweegt
+  const bottomGlowRef = useRef(null);    // oranje 'einde'-gloed onderaan
+  const bpRef = useRef({ startY: 0, active: false });
   const uiRef = useRef({});
-  uiRef.current = { tab, blocked: !!(selectedProduct || showRequestList || showFriends || showVable || hypeProduct || showNotifs || authOpen || morph || selectedOrder) };
+  uiRef.current = {
+    tab,
+    blocked: !!(selectedProduct || showRequestList || showFriends || showVable || hypeProduct || showNotifs || authOpen || morph || selectedOrder),
+    // Voor de bottom-pull: alléén échte fixed-overlays blokkeren (order-detail is gewone
+    // scrollende content en mág rekken → niet in deze lijst).
+    overlay: !!(selectedProduct || showRequestList || showFriends || showVable || hypeProduct || showNotifs || authOpen || morph || previewProduct || actionProduct || reviewProduct || orderSuccess || successProduct || showEditProfile || showHowItWorks || showPricing || showDiamond || squadWheel || showClothesPicker),
+  };
   useEffect(() => {
     const onStart = (e) => {
       const u = uiRef.current;
@@ -2140,6 +2150,67 @@ export default function SupplyFlow({ session }) {
     window.addEventListener("touchmove", onMove, { passive: false });
     window.addEventListener("touchend", onEnd);
     return () => { window.removeEventListener("touchstart", onStart); window.removeEventListener("touchmove", onMove); window.removeEventListener("touchend", onEnd); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Elastische bottom-pull: sta je onderaan een pagina en trek je verder omhoog, dan rekt
+  // de content elastisch mee (met weerstand) en gloeit er onderaan iets oranjes op; loslaten
+  // = terugveren. Werkt op álle tabs. Imperatief (ref + style) zodat een touchmove niet de
+  // hele app re-rendert. De wrapper krijgt alléén tijdens de trek een transform → in rust
+  // geen containing-block (anders zouden fixed sheets binnen de tabs verspringen).
+  useEffect(() => {
+    const MAX = 78;
+    const atBottom = () => (window.scrollY + window.innerHeight) >= (document.documentElement.scrollHeight - 2);
+    // Zit het touch-target in een fixed/sticky overlay bínnen de wrapper (bv. een
+    // warehouse-sheet)? Dan niet de pagina erachter rekken.
+    const insideFixed = (node) => {
+      let el = node; const stop = stretchRef.current;
+      while (el && el !== stop && el !== document.body) {
+        const pos = getComputedStyle(el).position;
+        if (pos === "fixed" || pos === "sticky") return true;
+        el = el.parentElement;
+      }
+      return false;
+    };
+    const setGlow = (px) => { const g = bottomGlowRef.current; if (g) g.style.opacity = String(Math.min(1, Math.abs(px) / 44)); };
+    const onStart = (e) => {
+      const b = bpRef.current; b.active = false;
+      const u = uiRef.current;
+      const w = stretchRef.current;
+      const t = e.touches ? e.touches[0] : e;
+      if (u.overlay) return;                                   // een sheet/overlay staat open
+      if (!w || !w.contains(e.target)) return;                 // nav/cart/sheets zitten buiten de wrapper
+      if (insideFixed(e.target)) return;                       // interne fixed overlay
+      if (!atBottom()) return;                                 // alleen als je écht onderaan staat
+      b.startY = t.clientY; b.active = true;
+      w.style.transition = "none";
+      const g = bottomGlowRef.current; if (g) g.style.transition = "none";
+    };
+    const onMove = (e) => {
+      const b = bpRef.current; if (!b.active) return;
+      const w = stretchRef.current; if (!w) return;
+      const t = e.touches ? e.touches[0] : e;
+      const dy = t.clientY - b.startY;                         // vinger omhoog → dy < 0
+      if (dy >= 0 || !atBottom()) { w.style.transform = ""; setGlow(0); if (dy >= 0) b.active = false; return; }
+      const pulled = Math.min(MAX, Math.abs(dy) * 0.42);       // weerstand
+      w.style.transform = `translateY(${-pulled}px)`;
+      setGlow(pulled);
+      if (e.cancelable) e.preventDefault();
+    };
+    const onEnd = () => {
+      const b = bpRef.current; if (!b.active) return;
+      b.active = false;
+      const w = stretchRef.current, g = bottomGlowRef.current;
+      if (w) { w.style.transition = "transform .5s cubic-bezier(0.22, 1.1, 0.36, 1)"; w.style.transform = "translateY(0px)"; }
+      if (g) { g.style.transition = "opacity .45s ease"; g.style.opacity = "0"; }
+      // Na de terugveer: transition + lege transform opruimen (geen containing-block in rust).
+      setTimeout(() => { if (w && !bpRef.current.active) { w.style.transition = ""; w.style.transform = ""; } }, 520);
+    };
+    window.addEventListener("touchstart", onStart, { passive: true });
+    window.addEventListener("touchmove", onMove, { passive: false });
+    window.addEventListener("touchend", onEnd);
+    window.addEventListener("touchcancel", onEnd);
+    return () => { window.removeEventListener("touchstart", onStart); window.removeEventListener("touchmove", onMove); window.removeEventListener("touchend", onEnd); window.removeEventListener("touchcancel", onEnd); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -2393,12 +2464,12 @@ export default function SupplyFlow({ session }) {
       transition={springMorph}
       style={{ background: "#fff", borderRadius: 18, overflow: "hidden", boxShadow: "0 1px 2px rgba(17,17,17,0.04), 0 6px 18px rgba(17,17,17,0.05)", cursor: "pointer" }}>
       <div style={{ position: "relative" }}>
-        <motion.div layoutId={`pimg-${p.id}`} data-pcard-img={p.id} transition={springMorph} style={{ background: "#fff", height: 160, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 48, overflow: "hidden" }}>
+        <motion.div layoutId={`pimg-${p.id}`} data-pcard-img={p.id} transition={springMorph} style={{ background: "#fff", aspectRatio: "4 / 5", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 48, overflow: "hidden" }}>
           {p.image?.startsWith("http") ? (
             <>
-              <img src={p.image} referrerPolicy="no-referrer" alt={p.title}
+              <img src={p.image} referrerPolicy="no-referrer" alt={p.title} decoding="async"
                 onError={(e) => { e.currentTarget.style.display = "none"; const fb = e.currentTarget.nextSibling; if (fb) fb.style.display = "flex"; }}
-                style={{ width: "100%", height: "100%", objectFit: "contain" }} />
+                style={{ width: "100%", height: "100%", objectFit: "cover" }} />
               <span style={{ display: "none", width: "100%", height: "100%", alignItems: "center", justifyContent: "center" }}>📦</span>
             </>
           ) : p.image}
@@ -2575,6 +2646,13 @@ export default function SupplyFlow({ session }) {
           </div>
         </div>
       )}
+      {/* Oranje 'einde van de lijst'-gloed: gloeit onderaan op naarmate je de bottom-pull
+          verder rekt. Fixed sibling (beweegt niet mee met de wrapper-transform), onder de nav. */}
+      <div ref={bottomGlowRef} aria-hidden style={{ position: "fixed", left: 0, right: 0, bottom: 0, margin: "0 auto", width: "100%", maxWidth: 430, height: 130, zIndex: 92, pointerEvents: "none", opacity: 0, background: "linear-gradient(to top, rgba(255,92,0,0.32), rgba(255,92,0,0.13) 42%, rgba(255,92,0,0) 80%)" }} />
+      {/* Content-wrapper voor de elastische bottom-pull: bevat alléén scrollende content
+          (header + tabs). Nav, cart-balk, sheets, toasts en de gloed zijn siblings hierbuiten,
+          dus die bewegen niet mee als de wrapper omhoog rekt. */}
+      <div ref={stretchRef}>
       {/* Header */}
       <div style={{ padding: "16px 20px 10px", display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 9, minWidth: 0 }}>
@@ -2984,7 +3062,7 @@ export default function SupplyFlow({ session }) {
                 return orderImage ? (
                   <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={springSoft}
                     style={{ marginBottom: 10, borderRadius: 12, overflow: "hidden", position: "relative", background: "#fff" }}>
-                    <img src={orderImage} referrerPolicy="no-referrer" alt="your order" style={{ width: "100%", aspectRatio: "1", objectFit: "contain", display: "block" }} />
+                    <img src={orderImage} referrerPolicy="no-referrer" alt="your order" style={{ width: "100%", aspectRatio: "4 / 5", objectFit: "cover", display: "block" }} />
                     <div style={{ position: "absolute", top: 8, left: 8, background: "#0F0E0C", color: "#FF5C00", fontSize: 10, fontWeight: 700, padding: "4px 10px", borderRadius: 20 }}>
                       Your order{selectedOrder.kleur ? ` · ${selectedOrder.kleur}` : ""}
                     </div>
@@ -3304,6 +3382,7 @@ export default function SupplyFlow({ session }) {
       )}
 
       </AnimatePresence>
+      </div>{/* /content-wrapper bottom-pull */}
 
       {/* Order Request Modal */}
       <AnimatePresence>

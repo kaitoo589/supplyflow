@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 
 // #12 — idempotentie-token voor de instant-buy pay_cart (module-scope). Zie supplyflow-app.jsx.
 let _buyPayToken = null;
@@ -29,6 +29,12 @@ export default function OrderRequest({ product, session, onRequireAuth, onClose,
   const imgRef = useRef(null);            // bron-rect voor de "foto vliegt naar de mand"-animatie
   const dragControls = useDragControls(); // rubber-band: sheet omlaag trekken om te sluiten
   useBodyScrollLock(true);                // feed erachter niet mee laten scrollen
+  // "settled": pas ná de open-morph laden we de zware sheet-inhoud (galerij, prijs,
+  // varianten, knoppen — ~30 motion-nodes + foto-decodes). Tijdens de morph draait
+  // dus alleen header + hero, net als de fabriek-ghost pas ná de eerste paint vertrekt →
+  // de morph loopt over een vrijwel lege main thread = zelfde gladheid.
+  const [settled, setSettled] = useState(false);
+  useEffect(() => { const t = setTimeout(() => setSettled(true), 620); return () => clearTimeout(t); }, []);
 
   const productVariants = product.sizes?.length > 0 ? product.sizes : null;
   // Door admin handmatig uitverkocht gemelde varianten (per groep+optie) — klant kan ze niet kiezen.
@@ -46,7 +52,11 @@ export default function OrderRequest({ product, session, onRequireAuth, onClose,
   const variantImage = Object.values(selectedVariants).map(opt => product.variant_images?.[opt]).filter(Boolean).pop();
   // Hoofdfoto-galerij: alle officiële foto's, klant tikt erdoorheen.
   const photos = [...new Set([...(product.gallery || []), product.image].filter(u => typeof u === "string" && u.startsWith("http")))];
-  const [galleryPhoto, setGalleryPhoto] = useState(photos[0] || null);
+  // Start op de feedkaart-foto (product.image) als die er is: die is al gedecodeerd, dus
+  // de hero-morph hergebruikt hetzelfde beeld i.p.v. mid-vlucht een verse full-res foto te
+  // fetchen (dat gaf een hik). De galerij-strip laat alsnog alle foto's kiezen.
+  const heroStart = (product.image?.startsWith("http") ? product.image : null) || photos[0] || null;
+  const [galleryPhoto, setGalleryPhoto] = useState(heroStart);
   const displayImage = variantImage || galleryPhoto || (product.image?.startsWith("http") ? product.image : null);
 
   // Valideert varianten en bouwt het order-item (zonder id/status) —
@@ -170,8 +180,11 @@ export default function OrderRequest({ product, session, onRequireAuth, onClose,
         style={{
           position: "fixed", inset: 0, zIndex: 100,
           background: "rgba(0,0,0,0.35)",
-          backdropFilter: "blur(12px)",
-          WebkitBackdropFilter: "blur(12px)",
+          // Blur pas ná de morph — een in-fadende backdrop-blur is compositor-zwaar en
+          // liet de vlucht haperen; tijdens de morph alleen de donkere scrim.
+          backdropFilter: settled ? "blur(12px)" : "none",
+          WebkitBackdropFilter: settled ? "blur(12px)" : "none",
+          transition: "backdrop-filter .25s ease",
         }}
       />
 
@@ -187,6 +200,7 @@ export default function OrderRequest({ product, session, onRequireAuth, onClose,
           key="card"
           layoutId={`card-${product.id}`}
           transition={spring}
+          onLayoutAnimationComplete={() => setSettled(true)}
           drag="y" dragControls={dragControls} dragListener={false}
           dragConstraints={{ top: 0, bottom: 0 }} dragElastic={{ top: 0, bottom: 0.55 }}
           onDragEnd={(e, info) => { if (info.offset.y > 110 || info.velocity.y > 650) onClose(); }}
@@ -199,9 +213,7 @@ export default function OrderRequest({ product, session, onRequireAuth, onClose,
             pointerEvents: "all",
           }}
         >
-          <motion.div
-            layoutId={`card-inner-${product.id}`}
-            transition={spring}
+          <div
             style={{ background: "#0F0E0C", padding: "20px 20px 24px", borderRadius: "24px 24px 0 0" }}
           >
             <div onPointerDown={(e) => dragControls.start(e)} style={{ padding: "6px 0 12px", margin: "-6px 0 4px", cursor: "grab", touchAction: "none" }}>
@@ -209,14 +221,12 @@ export default function OrderRequest({ product, session, onRequireAuth, onClose,
             </div>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
               <div>
-                <motion.div layoutId={`title-${product.id}`} transition={spring}
-                  style={{ fontSize: 18, fontWeight: 700, color: "#fff" }}>
+                <div style={{ fontSize: 18, fontWeight: 700, color: "#fff" }}>
                   {product.title}
-                </motion.div>
-                <motion.div layoutId={`platform-${product.id}`} transition={spring}
-                  style={{ fontSize: 12.5, color: "#888", marginTop: 4 }}>
+                </div>
+                <div style={{ fontSize: 12.5, color: "#888", marginTop: 4 }}>
                   {product.platform}{product.source_url ? <> · raw link: <a href={product.source_url} target="_blank" rel="noreferrer" style={{ color: "#FF7A1A", wordBreak: "break-all" }}>{product.source_url}</a></> : null}
-                </motion.div>
+                </div>
               </div>
               <motion.button
                 whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.85 }}
@@ -224,24 +234,29 @@ export default function OrderRequest({ product, session, onRequireAuth, onClose,
                 style={{ background: "rgba(255,255,255,0.1)", border: "none", borderRadius: 10, padding: "8px 12px", cursor: "pointer", fontSize: 16, color: "#fff" }}
               >✕</motion.button>
             </div>
-          </motion.div>
+          </div>
 
           <motion.div variants={stagger} initial="initial" animate="animate" style={{ padding: "24px 20px 40px" }}>
 
             {/* Productafbeelding — morpht vanuit de feed-kaart, wisselt mee met de gekozen optie */}
             {displayImage && (
-              <motion.div layoutId={`pimg-${product.id}`} transition={spring} onClick={() => photos.length && setZoomOpen(true)} style={{ marginBottom: product.description ? 16 : 24, borderRadius: 16, overflow: "hidden", aspectRatio: "1", background: "#fff", position: "relative", cursor: photos.length ? "zoom-in" : "default" }}>
+              <motion.div layoutId={`pimg-${product.id}`} transition={spring} onClick={() => photos.length && setZoomOpen(true)} style={{ marginBottom: product.description ? 16 : 24, borderRadius: 16, overflow: "hidden", aspectRatio: "4 / 5", background: "#fff", position: "relative", cursor: photos.length ? "zoom-in" : "default" }}>
                 {photos.length > 0 && <div style={{ position: "absolute", bottom: 10, right: 10, zIndex: 2, background: "rgba(0,0,0,0.5)", color: "#fff", fontSize: 10.5, padding: "3px 8px", borderRadius: 8, pointerEvents: "none" }}>tap to zoom</div>}
                 <AnimatePresence mode="popLayout" initial={false}>
-                  <motion.img key={displayImage} ref={imgRef} src={displayImage} alt={product.title}
+                  <motion.img key={displayImage} ref={imgRef} src={displayImage} alt={product.title} decoding="async" fetchPriority="high"
                     initial={{ opacity: 0, scale: 1.04 }}
                     animate={{ opacity: 1, scale: 1 }}
                     exit={{ opacity: 0 }}
                     transition={{ duration: 0.3, ease: [0.32, 0.72, 0, 1] }}
-                    style={{ width: "100%", height: "100%", objectFit: "contain", display: "block" }} />
+                    style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
                 </AnimatePresence>
               </motion.div>
             )}
+            {/* Zware inhoud (galerij t/m knoppen) laadt pas ná de morph. De spacer houdt de
+                sheet zolang op ~eindhoogte, zodat de morph meteen op de juiste rect landt en
+                de sheet niet nagroeit als de content erin valt. */}
+            {!settled && <div style={{ height: "40vh" }} />}
+            {settled && (<>
             {photos.length > 1 && (
               <motion.div variants={fadeUp} style={{ display: "flex", gap: 8, overflowX: "auto", marginBottom: product.description ? 16 : 24, paddingBottom: 2 }}>
                 {photos.map((url) => {
@@ -249,7 +264,7 @@ export default function OrderRequest({ product, session, onRequireAuth, onClose,
                   return (
                     <button key={url} onClick={() => setGalleryPhoto(url)}
                       style={{ flexShrink: 0, width: 54, height: 54, borderRadius: 10, overflow: "hidden", border: `2px solid ${active ? "#FF5C00" : "#E8E6E0"}`, background: "#fff", padding: 0, cursor: "pointer" }}>
-                      <img src={url} referrerPolicy="no-referrer" alt="" style={{ width: "100%", height: "100%", objectFit: "contain" }} />
+                      <img src={url} referrerPolicy="no-referrer" alt="" loading="lazy" decoding="async" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
                     </button>
                   );
                 })}
@@ -436,6 +451,7 @@ export default function OrderRequest({ product, session, onRequireAuth, onClose,
               style={{ width: "100%", marginTop: 8, background: "transparent", color: isFavorite ? "#FF5C00" : "#8A8780", border: "none", padding: "11px", fontSize: 13.5, fontWeight: 700, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}>
               {isFavorite ? "★ Remove from favorites" : "☆ Add to favorites"}
             </motion.button>
+            </>)}
           </motion.div>
         </motion.div>
       </div>

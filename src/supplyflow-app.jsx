@@ -1486,9 +1486,17 @@ export default function SupplyFlow({ session }) {
   const navDrag = useRef({ on: false, moved: false, startX: 0 });
   const pullRaw = useMotionValue(0);
   const pullX = useSpring(pullRaw, { stiffness: 420, damping: 30 });
-  const pullScaleX = useTransform(pullX, (v) => 1 + Math.min(0.5, Math.abs(v) / 60));
-  const pullScaleY = useTransform(pullX, (v) => 1 - Math.min(0.28, Math.abs(v) / 130));
-  const navPointerDown = (e) => { navDrag.current = { on: true, moved: false, startX: e.clientX }; };
+  // Rek verankerd aan het BEGINPUNT: de blob schuift maar een beetje mee (x) en rekt
+  // vooral uit richting je vinger (transformOrigin = de kant waar je vandaan trekt).
+  const pullShift = useTransform(pullX, (v) => v * 0.35);
+  const pullScaleX = useTransform(pullX, (v) => 1 + Math.min(1.05, Math.abs(v) / 55));
+  const pullScaleY = useTransform(pullX, (v) => 1 - Math.min(0.35, Math.abs(v) / 120));
+  const pullOrigin = useTransform(pullX, (v) => (v >= 0 ? "0% 50%" : "100% 50%"));
+  // hard = direct naar 0 (zonder na-veren) — nodig bij een tab-wissel, anders erft de
+  // blob op de nieuwe cel de oude uitrek-stand (de glitch uit de screenshots).
+  const resetPull = (hard) => { if (hard) { pullRaw.jump(0); pullX.jump(0); } else { pullRaw.set(0); } };
+  useEffect(() => { resetPull(true); // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tab]);
   const navPointerMove = (e) => {
     const d = navDrag.current;
     if (!d.on || !navRef.current) return;
@@ -1497,18 +1505,28 @@ export default function SupplyFlow({ session }) {
     const tabW = r.width / NAV_TABS.length;
     const center = r.left + tabW * (NAV_TABS.indexOf(tab) + 0.5);
     const dx = e.clientX - center;
-    pullRaw.set(Math.max(-tabW * 1.1, Math.min(tabW * 1.1, dx * 0.4)));
+    pullRaw.set(Math.max(-tabW * 1.5, Math.min(tabW * 1.5, dx * 0.5)));
   };
   const navPointerUp = (e) => {
+    // Window-luisteraars opruimen — óók als je buiten de balk loslaat (dat was de
+    // "blob blijft hangen"-glitch: de nav kreeg dan nooit een pointerup).
+    window.removeEventListener("pointermove", navPointerMove);
     const d = navDrag.current;
     if (!d.on) return;
     d.on = false;
     if (d.moved && navRef.current) {
       const r = navRef.current.getBoundingClientRect();
+      const inside = e.clientY >= r.top - 30 && e.clientY <= r.bottom + 30 && e.clientX >= r.left && e.clientX <= r.right;
       const idx = Math.max(0, Math.min(NAV_TABS.length - 1, Math.floor((e.clientX - r.left) / (r.width / NAV_TABS.length))));
-      if (NAV_TABS[idx] !== tab) { setTab(NAV_TABS[idx]); setSelectedOrder(null); }
+      if (inside && NAV_TABS[idx] !== tab) { resetPull(true); setTab(NAV_TABS[idx]); setSelectedOrder(null); return; }
     }
-    pullRaw.set(0);
+    resetPull(false);   // niets gekozen → elastisch terugveren naar het beginpunt
+  };
+  const navPointerDown = (e) => {
+    navDrag.current = { on: true, moved: false, startX: e.clientX };
+    window.addEventListener("pointermove", navPointerMove);
+    window.addEventListener("pointerup", navPointerUp, { once: true });
+    window.addEventListener("pointercancel", navPointerUp, { once: true });
   };
   const [products, setProducts] = useState([]);
   const [factories, setFactories] = useState([]);
@@ -3504,7 +3522,7 @@ export default function SupplyFlow({ session }) {
           sprongen. LET OP: centreren via left/right+margin, NIET via transform — framer's
           layout-projectie zet z'n eigen transform en overschrijft translateX(-50%). */}
       <motion.div ref={navRef} layout layoutRoot
-        onPointerDown={navPointerDown} onPointerMove={navPointerMove} onPointerUp={navPointerUp} onPointerCancel={navPointerUp}
+        onPointerDown={navPointerDown}
         style={{ position: "fixed", zIndex: 100, bottom: 12, left: 0, right: 0, margin: "0 auto", width: "calc(100% - 28px)", maxWidth: 402, borderRadius: 999, display: "flex", padding: "6px 8px", overflow: "hidden", background: "#fff", border: "1px solid #ECEAE5", boxShadow: "0 10px 30px rgba(17,17,17,0.14)", touchAction: "none" }}>
         {[
           { id: "feed", Icon: Home, label: "Feed" },
@@ -3521,8 +3539,9 @@ export default function SupplyFlow({ session }) {
               {active && (
                 <motion.div layoutId="navPill" transition={springSnappy}
                   style={{ position: "absolute", inset: 0, zIndex: 0 }}>
-                  {/* pull-laag: vasthouden + bewegen trekt de blob elastisch naar je vinger */}
-                  <motion.div style={{ position: "absolute", inset: 0, x: pullX, scaleX: pullScaleX, scaleY: pullScaleY }}>
+                  {/* pull-laag: vasthouden + bewegen trekt de blob elastisch naar je vinger,
+                      verankerd aan het beginpunt (rekt één kant op, schuift maar licht mee) */}
+                  <motion.div style={{ position: "absolute", inset: 0, x: pullShift, scaleX: pullScaleX, scaleY: pullScaleY, transformOrigin: pullOrigin }}>
                     {/* gel-blob: rekt uit (breder + platter) bij de sprong naar een nieuwe tab */}
                     <motion.div key={tab}
                       animate={{ scaleX: [1, 1.35, 0.92, 1], scaleY: [1, 0.72, 1.06, 1] }}

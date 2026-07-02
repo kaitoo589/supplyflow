@@ -575,8 +575,9 @@ function NormalShippingConfirm({ session, haulItems, balance, onBack, onSuccess 
           const ddp = channels.filter(c => c.taxInclusive);
           if (!data.isSandbox && ddp.length) {
             // BuckyDrop kiest de route zelf (dashboard-prioriteit); wij baseren de schatting op de
-            // DDP-route die 't meest waarschijnlijk gebruikt wordt (DHL Duty-Free). Alleen DDP.
-            setChosen(ddp.find(c => /dhl/i.test(c.name)) || ddp[0]);
+            // DDP-route die 't meest waarschijnlijk gebruikt wordt. Vera (2026-07-02): hoofdlijn =
+            // YunExpress clothing Registered Air Mail, reserve = Europe DHL Duty-Free. Alleen DDP.
+            setChosen(ddp.find(c => /yun\s*express|yunexpress/i.test(c.name)) || ddp.find(c => /dhl/i.test(c.name)) || ddp[0]);
           } else if (!data.isSandbox && channels.length) {
             // Wél live routes, maar geen enkele DDP → we kunnen de "duties included"-belofte niet live waarmaken.
             setError("No duty-paid shipping option is available right now. Please try again in a little while.");

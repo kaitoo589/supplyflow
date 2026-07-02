@@ -3159,8 +3159,6 @@ export default function SupplyFlow({ session }) {
           </motion.div>
         )}
         {requestList.length > 0 && tab === "feed" && !showRequestList && !selectedProduct && !showFriends && !activeGroupShopping && !showVable && !hypeProduct && (
-          {/* layoutRoot (ook op de sheet): fixed elementen worden anders PAGINA-relatief gemeten,
-              waardoor de scroll-restore bij terugkeren uit een fabriek de balk liet "springen". */}
           <motion.div layoutId="cart-pop" layoutRoot initial={{ y: 24, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 30, opacity: 0, scale: 0.96 }} whileTap={{ scale: 0.97 }} transition={springMorph}
             onClick={() => { setListError(null); setShowRequestList(true); }}
             style={{ position: "fixed", bottom: 78, left: 0, right: 0, margin: "0 auto", width: "calc(100% - 40px)", maxWidth: 390, background: "#111111", borderRadius: 16, overflow: "hidden", cursor: "pointer", zIndex: 301, boxShadow: "0 12px 40px rgba(17,17,17,0.35)" }}>

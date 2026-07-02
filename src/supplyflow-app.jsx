@@ -1203,7 +1203,7 @@ function HowItWorksSheet({ onClose }) {
               style={{ position: "absolute", right: -8, bottom: 13, width: 0, height: 0, borderTop: "8px solid transparent", borderBottom: "8px solid transparent", borderLeft: "9px solid #1E1D1A" }} />
             {/* de vos hangt onder de betreffende hoek en morpht van links naar rechts */}
             <motion.span layoutId="hiw-fox" transition={{ layout: morph }}
-              style={{ position: "absolute", bottom: -2, [foxSide]: -28, fontSize: 34, lineHeight: 1, display: "inline-block" }}><Fox /></motion.span>
+              style={{ position: "absolute", bottom: -2, [foxSide]: -38, fontSize: 34, lineHeight: 1, display: "inline-block" }}><Fox /></motion.span>
           </div>
         )}
 

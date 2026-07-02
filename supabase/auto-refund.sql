@@ -3,9 +3,12 @@
 -- (bijv. uitverkocht). Wordt server-side aangeroepen door de edge function
 -- place-bucky-order (service role). NIET door klanten aanroepbaar.
 --
--- Refundt de productprijs naar het saldo + transactie-log, zet de order op
--- 'cancelled'. Als de hele aanvraaggroep geannuleerd is, gaat ook de
+-- Refundt de productprijs + de bij checkout betaalde domestic-shipping (¥5) en
+-- quality-control-fee (¥6) naar het saldo + transactie-log, zet de order op
+-- 'cancelled'. Als de hele aanvraaggroep geannuleerd is, gaat ook de (legacy)
 -- service fee één keer terug.
+-- (2026-07-02: domestic+QC toegevoegd — sinds de fee-verhuizing eigen
+--  transactieregels; migratie refund_order_include_domestic_qc is al toegepast.)
 --
 -- Voer uit in: Supabase → SQL Editor → New query → plak → Run.
 -- ============================================================
@@ -19,6 +22,8 @@ as $$
 declare
   v_order record;
   v_line numeric;
+  v_extra numeric;
+  v_total numeric;
   v_group text;
   v_remaining int;
   v_fee record;
@@ -29,11 +34,18 @@ begin
 
   v_line := coalesce(v_order.quoted_total, v_order.price, 0);
 
-  -- 1) Productprijs terug naar de klant.
-  if v_line > 0 then
-    update profiles set balance = balance + v_line where id = v_order.user_id;
+  -- Domestic-shipping + quality-control die bij checkout voor déze order zijn betaald.
+  select coalesce(-sum(amount), 0) into v_extra
+    from transactions
+   where order_id = p_order_id and type in ('domestic_shipping', 'qc_fee');
+
+  v_total := coalesce(v_line, 0) + coalesce(v_extra, 0);
+
+  -- 1) Alles terug naar de klant (productprijs + domestic + QC) in één refund-regel.
+  if v_total > 0 then
+    update profiles set balance = balance + v_total where id = v_order.user_id;
     insert into transactions (user_id, amount, type, order_id)
-    values (v_order.user_id, v_line, 'refund', p_order_id);
+    values (v_order.user_id, v_total, 'refund', p_order_id);
   end if;
 
   -- 2) Order annuleren + reden vastleggen.
@@ -59,7 +71,7 @@ begin
     end if;
   end if;
 
-  return json_build_object('ok', true, 'refunded', v_line);
+  return json_build_object('ok', true, 'refunded', v_total);
 end;
 $$;
 

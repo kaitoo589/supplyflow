@@ -83,8 +83,10 @@ export default function PhotoZoom({ photos, index = 0, onClose }) {
   return createPortal(
     <div onTouchStart={onStart} onTouchMove={onMove} onTouchEnd={onEnd}
       style={{ position: "fixed", inset: 0, zIndex: 9500, background: "rgba(0,0,0,0.94)", touchAction: "none", display: "flex", alignItems: "center", justifyContent: "center", overflow: "hidden" }}>
+      {/* width/height 100% + contain: schaalt kleine (thumbnail-)foto's ook OMHOOG tot schermvullend —
+          max-constraints alleen lieten low-res foto's piepklein in het midden hangen. */}
       <img src={list[idx]} referrerPolicy="no-referrer" alt="" draggable={false}
-        style={{ maxWidth: "100%", maxHeight: "100%", objectFit: "contain", transform: `translate(${t.x}px, ${t.y}px) scale(${scale})`, transition: dragging ? "none" : "transform .18s ease", willChange: "transform", userSelect: "none" }} />
+        style={{ width: "100%", height: "100%", objectFit: "contain", transform: `translate(${t.x}px, ${t.y}px) scale(${scale})`, transition: dragging ? "none" : "transform .18s ease", willChange: "transform", userSelect: "none" }} />
       <button onClick={onClose} aria-label="Close"
         style={{ position: "fixed", top: 14, right: 14, zIndex: 9501, width: 40, height: 40, borderRadius: 20, border: "none", background: "rgba(255,255,255,0.16)", color: "#fff", fontSize: 19, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>✕</button>
       <div style={{ position: "fixed", top: 20, left: 16, color: "rgba(255,255,255,0.7)", fontSize: 12, zIndex: 9501 }}>

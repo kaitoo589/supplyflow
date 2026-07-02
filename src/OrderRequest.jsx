@@ -34,6 +34,12 @@ export default function OrderRequest({ product, session, onRequireAuth, onClose,
   // Door admin handmatig uitverkocht gemelde varianten (per groep+optie) — klant kan ze niet kiezen.
   const oosVariants = Array.isArray(product.oos_variants) ? product.oos_variants : [];
   const isOos = (name, opt) => oosVariants.some(o => o && o.name === name && o.value === opt);
+  // Combinatie-uitverkocht (auto-geleerd van een BuckyDrop-afwijzing): alleen déze
+  // combinatie (bijv. white + M) is op — losse opties blijven gewoon kiesbaar.
+  const comboOos = productVariants
+    ? oosVariants.some(o => Array.isArray(o?.combo) && o.combo.length > 0
+        && o.combo.every(c => selectedVariants[c.name] === c.value))
+    : false;
 
   // Foto die hoort bij de laatst gekozen optie (bijv. "Wit" → witte foto),
   // anders de standaard productfoto.
@@ -49,6 +55,7 @@ export default function OrderRequest({ product, session, onRequireAuth, onClose,
     if (productVariants) {
       const missing = productVariants.filter(v => !selectedVariants[v.name]).map(v => v.name);
       if (missing.length) { setMissingVariants(missing); return null; }
+      if (comboOos) { setError("This combination is sold out at the factory — try a different option."); return null; }
     }
     const variantString = Object.entries(selectedVariants)
       .map(([k, v]) => `${k}: ${v}`)
@@ -357,7 +364,12 @@ export default function OrderRequest({ product, session, onRequireAuth, onClose,
               );
             })}
 
-            
+            {comboOos && (
+              <motion.div initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }}
+                style={{ marginTop: -10, marginBottom: 20, background: "#FEF2F2", border: "1px solid #FECACA", borderRadius: 10, padding: "9px 12px", fontSize: 12, fontWeight: 600, color: "#DC2626" }}>
+                ✕ This combination is sold out at the factory — try a different option.
+              </motion.div>
+            )}
 
             {(product.size_chart?.measures?.length > 0 || product.size_chart?.image) && (
               <motion.button variants={fadeUp} type="button" onClick={() => setShowSizeGuide(true)}

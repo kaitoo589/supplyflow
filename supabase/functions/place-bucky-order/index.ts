@@ -126,7 +126,7 @@ Deno.serve(async (req) => {
   // Product koppelen via source_url (staat zowel op de order als op het product).
   const { data: products } = await admin
     .from("products")
-    .select("spu_code, bd_platform, bd_skus, title, source_url, image, price")
+    .select("id, spu_code, bd_platform, bd_skus, title, source_url, image, price, oos_variants")
     .eq("source_url", order.source_url || "___none___")
     .limit(5);
   const product =
@@ -217,6 +217,27 @@ Deno.serve(async (req) => {
         p_order_id: order.id,
         p_reason: `Out of stock / unavailable: ${info || "item no longer available"}`,
       });
+      // AUTO-LEREN: markeer precies deze variant als uitverkocht op het product, zodat
+      // volgende klanten 'm vooraf grijs/geblokkeerd zien (zelfde oos_variants-veld als
+      // de handmatige admin-toggle). Eén prop → losse optie-chip; meerdere props → een
+      // combo-regel (alleen die combinatie blokkeert, losse opties blijven kiesbaar).
+      // Listings tonen vaak nep-voorraad (bv. 8888), dus de order-afwijzing is de enige
+      // betrouwbare bron — alleen de éérste koper merkt het (en krijgt alles terug).
+      try {
+        const props = (Array.isArray(sku.props) ? sku.props : []).filter((p: any) => p?.name && p?.value);
+        if (props.length && product.id != null) {
+          const entry = props.length === 1
+            ? { name: props[0].name, value: props[0].value }
+            : { combo: props.map((p: any) => ({ name: p.name, value: p.value })) };
+          const cur = Array.isArray((product as any).oos_variants) ? (product as any).oos_variants : [];
+          const key = JSON.stringify(entry);
+          if (!cur.some((e: any) => JSON.stringify(e) === key)) {
+            await admin.from("products").update({ oos_variants: [...cur, entry] }).eq("id", product.id);
+          }
+        }
+      } catch (e) {
+        console.error("oos auto-mark failed:", (e as Error).message);
+      }
       return new Response(
         JSON.stringify({ ok: false, refunded: true, outOfStock: true, reason: info }),
         { status: 200, headers: { "Content-Type": "application/json" } },

@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useLayoutEffect } from "react";
+import { useState, useEffect, useRef, useLayoutEffect, useMemo } from "react";
 
 // #12 — idempotentie-token voor pay_cart (module-scope: één cart per tab). Stabiel per
 // poging; pas roteren NA een ontvangen server-antwoord, zodat een reclick na netwerk-
@@ -1770,19 +1770,23 @@ export default function SupplyFlow({ session }) {
       ? pillRef.current
       : (morph.id != null ? document.querySelector(`[data-factory-img="${morph.id}"]`) : null);
     if (!ghost || !destEl) { setMorph(null); return; }
-    const to = destEl.getBoundingClientRect();
-    if (!to.width || !to.height) { setMorph(null); return; }
     // Eindvorm: pill is rondom rond; het fotogebied is alleen bovenaan rond (de onderkant
     // sluit naadloos aan op het stats-gedeelte van de kaart).
     const toR = morph.target === "pill" ? "22px" : "20px 20px 0px 0px";
+    // Snelle her-klik: de vorige vlucht kan nog een .44s-transitie op de ghost hebben
+    // staan, en React schrijft net de nieuwe bron-rect in de style — zonder dit zou de
+    // ghost zichtbaar van de oude naar de nieuwe bronpositie tweenen.
+    ghost.style.transition = "none";
     destEl.style.visibility = "hidden"; // verberg alleen het doel-fotogebied; de ghost neemt het over
     let done = false;
     let armTimer = 0;
+    let safetyTimer = 0;
+    let raf1 = 0, raf2 = 0;
     const finish = () => {
       if (done) return; done = true;
       ghost.removeEventListener("transitionend", onEnd);
       window.removeEventListener("scroll", onScroll);
-      clearTimeout(armTimer);
+      clearTimeout(armTimer); clearTimeout(safetyTimer);
       // Parallax syncen op het landingsmoment: ghost-foto's en kaart-foto's krijgen
       // dezelfde verschuiving → naadloze overdracht, geen sprong meer.
       plxApplyRef.current?.();
@@ -1795,30 +1799,47 @@ export default function SupplyFlow({ session }) {
     // Scrollt de gebruiker TIJDENS de morph? Rond dan meteen af, zodat de foto direct bij
     // de echte kaart hoort i.p.v. dat de fixed ghost in beeld blijft "hangen".
     const onScroll = () => finish();
-    // FLIP via CSS-transitie: compositor-gedreven (soepel + betrouwbare afronding) en
-    // geen border-radius-vervorming zoals bij transform-scale.
-    void ghost.offsetWidth; // forceer reflow op de bron-rect vóór we naar het doel zetten
-    plxApplyRef.current?.(); // parallax syncen op het startmoment (ghost staat op de bron-rect)
-    const ease = "cubic-bezier(0.32, 0.72, 0, 1)";
-    ghost.style.transition = `left .44s ${ease}, top .44s ${ease}, width .44s ${ease}, height .44s ${ease}, border-radius .44s ${ease}`;
-    ghost.style.left = `${to.left}px`;
-    ghost.style.top = `${to.top}px`;
-    ghost.style.width = `${to.width}px`;
-    ghost.style.height = `${to.height}px`;
-    ghost.style.borderRadius = toR;
-    // Overlay (witte 'All factories'-pill): heen pas op het eind in, terug meteen uit →
-    // de foto blijft tijdens de beweging zichtbaar.
-    const overlay = overlayRef.current;
-    if (overlay) {
-      overlay.style.transition = morph.target === "pill" ? "opacity .2s ease 0.22s" : "opacity .18s ease";
-      overlay.style.opacity = morph.target === "pill" ? "1" : "0";
-    }
-    ghost.addEventListener("transitionend", onEnd);
-    const t = setTimeout(finish, 560); // vangnet als transitionend uitblijft
-    // Scroll-luisteraar pas na ~120ms koppelen: de eerste momenten scrollen we ZELF
-    // programmatisch (scrollTo bij in-/uitzoomen) — die scroll mag de morph niet afbreken.
-    armTimer = setTimeout(() => window.addEventListener("scroll", onScroll, { passive: true, once: true }), 120);
-    return () => { clearTimeout(t); clearTimeout(armTimer); ghost.removeEventListener("transitionend", onEnd); window.removeEventListener("scroll", onScroll); destEl.style.visibility = ""; };
+    // De vlucht start pas NA de eerste paint (dubbele rAF), om twee redenen:
+    // (1) left/top/width/height-transities draaien per frame op de MAIN THREAD — en die
+    //     is op dít moment verstopt door de zware feed-remount. De transitieklok tikt op
+    //     wandtijd door, dus meteen starten = "bevroren" op de bron staan en dan in één
+    //     klap naar het eind springen (het stotteren).
+    // (2) het doel pas meten als de pagina écht op z'n plek staat: het rAF-scroll-herstel
+    //     hierboven en framer's entree-styles zijn dan verwerkt → geen landing op een
+    //     verouderde (te lage) rect meer.
+    let started = false;
+    const start = () => {
+      if (done || started) return; started = true;
+      const to = destEl.getBoundingClientRect();
+      if (!to.width || !to.height) { finish(); return; }
+      void ghost.offsetWidth; // forceer reflow op de bron-rect vóór we naar het doel zetten
+      plxApplyRef.current?.(); // parallax syncen op het startmoment (ghost staat op de bron-rect)
+      const ease = "cubic-bezier(0.32, 0.72, 0, 1)";
+      ghost.style.transition = `left .44s ${ease}, top .44s ${ease}, width .44s ${ease}, height .44s ${ease}, border-radius .44s ${ease}`;
+      ghost.style.left = `${to.left}px`;
+      ghost.style.top = `${to.top}px`;
+      ghost.style.width = `${to.width}px`;
+      ghost.style.height = `${to.height}px`;
+      ghost.style.borderRadius = toR;
+      // Overlay (witte 'All factories'-pill): heen pas op het eind in, terug meteen uit →
+      // de foto blijft tijdens de beweging zichtbaar.
+      const overlay = overlayRef.current;
+      if (overlay) {
+        overlay.style.transition = morph.target === "pill" ? "opacity .2s ease 0.22s" : "opacity .18s ease";
+        overlay.style.opacity = morph.target === "pill" ? "1" : "0";
+      }
+      ghost.addEventListener("transitionend", onEnd);
+      safetyTimer = setTimeout(finish, 560); // vangnet als transitionend uitblijft
+      // Scroll-luisteraar pas na ~120ms koppelen: de eerste momenten scrollen we ZELF
+      // programmatisch (scrollTo bij in-/uitzoomen) — die scroll mag de morph niet afbreken.
+      armTimer = setTimeout(() => window.addEventListener("scroll", onScroll, { passive: true, once: true }), 120);
+    };
+    raf1 = requestAnimationFrame(() => { raf2 = requestAnimationFrame(start); });
+    // Vangnet: in een achtergrond-tab staat rAF stil — dan start de timer de vlucht
+    // alsnog, zodat het doelgebied nooit verborgen blijft hangen. (started-guard: wie
+    // het eerst komt, wint; de ander is een no-op.)
+    const startFallback = setTimeout(start, 300);
+    return () => { cancelAnimationFrame(raf1); cancelAnimationFrame(raf2); clearTimeout(startFallback); clearTimeout(safetyTimer); clearTimeout(armTimer); ghost.removeEventListener("transitionend", onEnd); window.removeEventListener("scroll", onScroll); destEl.style.visibility = ""; };
   }, [morph]);
   const VABLE_URL = "https://vable.store";
   const VABLE_ITEMS = [
@@ -2275,7 +2296,10 @@ export default function SupplyFlow({ session }) {
   const belongsToFactory = (p, f) => p.factory_id === f.id || (p.factory_id == null && (p.supplier || "") === f.name);
   // Fabriek-kaarten: alleen fabrieken met zichtbare producten, gesorteerd op
   // diamanten (4 = hoogste). De zoekbalk filtert hier op fabrieksnaam.
-  const factoryCards = factories
+  // useMemo: dit is O(fabrieken × producten) en de feed re-rendert vaak (CountUp,
+  // stem-polling, PTR) — zonder memo betaalt elke render deze rekensom mee, en dat
+  // vertraagt precies het frame waarin de terug-morph moet vertrekken.
+  const factoryCards = useMemo(() => factories
     .map(f => {
       const fp = products.filter(p => belongsToFactory(p, f));
       // Kaart-plaatje: een geüploade fabrieksfoto wint, anders pakt de kaart
@@ -2297,7 +2321,7 @@ export default function SupplyFlow({ session }) {
     })
     .filter(f => f.count > 0)
     .filter(f => { const q = search.trim().toLowerCase(); return !q || (f.name || "").toLowerCase().includes(q); })
-    .sort((a, b) => (Number(b.diamonds) || 0) - (Number(a.diamonds) || 0) || (a.name || "").localeCompare(b.name || ""));
+    .sort((a, b) => (Number(b.diamonds) || 0) - (Number(a.diamonds) || 0) || (a.name || "").localeCompare(b.name || "")), [factories, products, search]);
   // Drill-in: producten van de geopende fabriek, met de gewone filters erop.
   const factoryProducts = selectedFactory
     ? visibleProducts.filter(p => belongsToFactory(p, selectedFactory))
@@ -2370,7 +2394,7 @@ export default function SupplyFlow({ session }) {
     // (±10px meeschuiven, iets ingezoomd zodat er geen randen ontstaan).
     const imgBox = (src, big) => (
       <div style={{ flex: 1, minHeight: 0, minWidth: 0, background: "#ECE8E0", display: "flex", alignItems: "center", justifyContent: "center", fontSize: big ? 44 : 26, overflow: "hidden" }}>
-        {src ? <img src={src} referrerPolicy="no-referrer" alt="" data-plx={big ? "0.05" : "0.035"} style={{ width: "100%", height: "100%", objectFit: "cover", display: "block", transform: "scale(1.12)", willChange: "transform" }} /> : "🏭"}
+        {src ? <img src={src} referrerPolicy="no-referrer" alt="" decoding="async" data-plx={big ? "0.05" : "0.035"} style={{ width: "100%", height: "100%", objectFit: "cover", display: "block", transform: "scale(1.12)", willChange: "transform" }} /> : "🏭"}
       </div>
     );
     return (
@@ -2602,9 +2626,12 @@ export default function SupplyFlow({ session }) {
             </motion.div>
           )}
           {/* === BODY: smooth fade+slide bij wisselen feed ↔ fabriek ↔ favorieten === */}
+          {/* Bij een TERUG-morph géén y:22-entree: framer zet die translateY al bij de render
+              als inline style, dus de morph zou de doelkaart 22px te laag meten en dáár landen
+              (de foto hing dan even over de titelrij). Zelfde principe als isMorphTarget. */}
           <motion.div
             key={showFavoritesOnly ? "favs" : selectedFactory ? `fac-${selectedFactory.id}` : "factory-list"}
-            initial={{ opacity: 0, y: 22 }} animate={{ opacity: 1, y: 0 }}
+            initial={morph && morph.target === "card" ? false : { opacity: 0, y: 22 }} animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.34, ease: [0.22, 0.61, 0.36, 1] }}>
           {showFavoritesOnly ? (
             <>

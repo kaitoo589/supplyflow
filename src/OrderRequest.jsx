@@ -211,9 +211,12 @@ export default function OrderRequest({ product, session, onRequireAuth, onClose,
           onDragEnd={(e, info) => { if (info.offset.y > 110 || info.velocity.y > 650) onClose(); }}
           style={{
             width: "100%", maxWidth: 430,
-            background: "#fff",
+            // Transparant: de scroll-overscroll (rubber-band omlaag) laat zo de wazige
+            // backdrop erachter zien i.p.v. wit. De zwarte header + witte body eronder
+            // (elk met eigen achtergrond) dekken de sheet in normale weergave volledig.
+            background: "transparent",
             borderRadius: "24px 24px 0 0",
-            maxHeight: "92vh", overflowY: "auto",
+            maxHeight: "92vh", overflowY: "auto", overscrollBehaviorY: "contain",
             boxShadow: "0 -4px 60px rgba(0,0,0,0.15)",
             pointerEvents: "all",
           }}
@@ -241,7 +244,7 @@ export default function OrderRequest({ product, session, onRequireAuth, onClose,
             </div>
           </div>
 
-          <motion.div variants={stagger} initial="initial" animate="animate" style={{ padding: "24px 20px 40px" }}>
+          <motion.div variants={stagger} initial="initial" animate="animate" style={{ background: "#fff", padding: "24px 20px 40px" }}>
 
             {/* Productafbeelding — morpht vanuit de feed-kaart, wisselt mee met de gekozen optie */}
             {displayImage && (

@@ -633,7 +633,7 @@ function RequestListSheet({ items, onRemove, onSetQty, onClose, onSend, sending,
       {/* Zwevende mand-kaart: raakt de schermranden nergens (minimalistisch, "duur") en
           klapt via de gedeelde layoutId ("cart-pop") uit de mand-balk omhoog — geen paneel
           meer dat aan de onderkant vastzit. */}
-      <motion.div layoutId="cart-pop" transition={springMorph}
+      <motion.div layoutId="cart-pop" layoutRoot transition={springMorph}
         initial={{ opacity: 0, y: 26, scale: 0.96 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 20, scale: 0.97 }}
         drag="y" dragControls={dragControls} dragListener={false}
         dragConstraints={{ top: 0, bottom: 0 }} dragElastic={{ top: 0, bottom: 0.55 }}
@@ -3159,7 +3159,9 @@ export default function SupplyFlow({ session }) {
           </motion.div>
         )}
         {requestList.length > 0 && tab === "feed" && !showRequestList && !selectedProduct && !showFriends && !activeGroupShopping && !showVable && !hypeProduct && (
-          <motion.div layoutId="cart-pop" initial={{ y: 24, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 30, opacity: 0, scale: 0.96 }} whileTap={{ scale: 0.97 }} transition={springMorph}
+          {/* layoutRoot (ook op de sheet): fixed elementen worden anders PAGINA-relatief gemeten,
+              waardoor de scroll-restore bij terugkeren uit een fabriek de balk liet "springen". */}
+          <motion.div layoutId="cart-pop" layoutRoot initial={{ y: 24, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 30, opacity: 0, scale: 0.96 }} whileTap={{ scale: 0.97 }} transition={springMorph}
             onClick={() => { setListError(null); setShowRequestList(true); }}
             style={{ position: "fixed", bottom: 78, left: 0, right: 0, margin: "0 auto", width: "calc(100% - 40px)", maxWidth: 390, background: "#111111", borderRadius: 16, overflow: "hidden", cursor: "pointer", zIndex: 301, boxShadow: "0 12px 40px rgba(17,17,17,0.35)" }}>
             <div style={{ padding: "12px 16px", display: "flex", alignItems: "center", gap: 12 }}>

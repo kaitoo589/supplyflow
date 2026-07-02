@@ -226,12 +226,16 @@ Deno.serve(async (req) => {
       try {
         const props = (Array.isArray(sku.props) ? sku.props : []).filter((p: any) => p?.name && p?.value);
         if (props.length && product.id != null) {
+          const stamp = new Date().toISOString(); // 'since' → de admin-timer ("⛔ uitverkocht · Nd")
           const entry = props.length === 1
-            ? { name: props[0].name, value: props[0].value }
-            : { combo: props.map((p: any) => ({ name: p.name, value: p.value })) };
+            ? { name: props[0].name, value: props[0].value, since: stamp }
+            : { combo: props.map((p: any) => ({ name: p.name, value: p.value })), since: stamp };
           const cur = Array.isArray((product as any).oos_variants) ? (product as any).oos_variants : [];
-          const key = JSON.stringify(entry);
-          if (!cur.some((e: any) => JSON.stringify(e) === key)) {
+          // Dedupe zónder 'since', anders groeit de lijst bij elke herhaalde afwijzing.
+          const dup = props.length === 1
+            ? cur.some((e: any) => e?.name === (entry as any).name && e?.value === (entry as any).value)
+            : cur.some((e: any) => JSON.stringify(e?.combo ?? null) === JSON.stringify((entry as any).combo));
+          if (!dup) {
             await admin.from("products").update({ oos_variants: [...cur, entry] }).eq("id", product.id);
           }
         }

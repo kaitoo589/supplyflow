@@ -1160,10 +1160,39 @@ function HowItWorksSheet({ onClose }) {
   );
 }
 
+// 💸-boogvlucht: het geld-emoji vliegt van de feed-knop in een vloeiende boog (eerst
+// iets omhoog-links, dan overzeilen) naar het icoon op de "How pricing works"-sheet.
+// Kwadratische bezier, gesampled naar keyframes; via portal zodat sheet-transforms
+// de vlucht niet beïnvloeden. De starttangens wijst náár het controlepunt → dat
+// linksboven het startpunt leggen geeft precies "eerst een beetje links omhoog".
+function MoneyArcGhost({ f, onDone }) {
+  const N = 22;
+  const cx = f.sx - 80;
+  const cy = Math.min(f.sy, f.ty) - 110;
+  const xs = [], ys = [];
+  for (let i = 0; i <= N; i++) {
+    const t = i / N, u = 1 - t;
+    xs.push(u * u * f.sx + 2 * u * t * cx + t * t * f.tx);
+    ys.push(u * u * f.sy + 2 * u * t * cy + t * t * f.ty);
+  }
+  return createPortal(
+    <motion.span
+      initial={{ x: xs[0], y: ys[0], scale: 1 }}
+      animate={{ x: xs, y: ys, scale: [1, 1.35, 1] }}
+      transition={{ duration: 0.8, ease: "easeInOut" }}
+      onAnimationComplete={onDone}
+      style={{ position: "fixed", left: -14, top: -14, width: 28, height: 28, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 19, lineHeight: 1, zIndex: 9800, pointerEvents: "none" }}>
+      💸
+    </motion.span>,
+    document.body,
+  );
+}
+
 // Transparant fee-paneel achter de 💸-knop (feed-header + profiel). Engels,
 // zelfde bottom-sheet als HowItWorksSheet. Solo + Flowva Friends + per-regel
-// een labeltje wie het geld krijgt.
-function PricingSheet({ onClose }) {
+// een labeltje wie het geld krijgt. `arriving` = de boogvlucht is onderweg →
+// het eigen 💸-icoon blijft verborgen tot de vlucht landt (en popt dan binnen).
+function PricingSheet({ onClose, arriving = false }) {
   const chip = (orange) => ({ display: "inline-block", background: orange ? "#FFF0E7" : "#F1EFED", color: orange ? "#B8430A" : "#6E6B66", fontSize: 10, fontWeight: 700, padding: "2px 7px", borderRadius: 999, marginRight: 6 });
   const Row = ({ icon, name, who, amount, desc, whoOrange, extra }) => (
     <div style={{ padding: "9px 0", borderTop: "1px solid #F1EFEA" }}>
@@ -1196,12 +1225,15 @@ function PricingSheet({ onClose }) {
     <>
       <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={onClose}
         style={{ position: "fixed", inset: 0, zIndex: 300, background: "rgba(0,0,0,0.5)", backdropFilter: "blur(6px)" }} />
-      <motion.div initial={{ y: "100%" }} animate={{ y: 0 }} exit={{ y: "100%" }}
+      <motion.div data-pricing-sheet initial={{ y: "100%" }} animate={{ y: 0 }} exit={{ y: "100%" }}
         transition={{ type: "spring", stiffness: 320, damping: 34 }}
         style={{ position: "fixed", bottom: 0, left: 0, right: 0, margin: "0 auto", width: "100%", maxWidth: 430, boxSizing: "border-box", background: "#F8F7F4", borderRadius: "24px 24px 0 0", zIndex: 301, maxHeight: "92vh", overflowY: "auto", padding: "18px 16px 36px" }}>
         <div style={{ width: 36, height: 4, background: "#D8D5CF", borderRadius: 2, margin: "0 auto 16px" }} />
         <div style={{ display: "flex", alignItems: "center", gap: 11, padding: "0 4px" }}>
-          <div style={{ width: 42, height: 42, borderRadius: "50%", background: "#FFF0E7", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20, flexShrink: 0 }}>💸</div>
+          <div data-pricing-icon style={{ width: 42, height: 42, borderRadius: "50%", background: "#FFF0E7", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20, flexShrink: 0 }}>
+            {/* het emoji wacht verborgen tot de boogvlucht erin landt, en popt dan binnen */}
+            <motion.span initial={false} animate={arriving ? { opacity: 0, scale: 0.3 } : { opacity: 1, scale: 1 }} transition={springBouncy} style={{ display: "inline-block" }}>💸</motion.span>
+          </div>
           <div>
             <div style={{ fontSize: 19, fontWeight: 800, color: "#111", letterSpacing: -0.3 }}>How pricing works</div>
             <div style={{ fontSize: 12.5, color: "#8A8780" }}>Fully transparent — no hidden markup</div>
@@ -1317,6 +1349,34 @@ export default function SupplyFlow({ session }) {
   const [showEditProfile, setShowEditProfile] = useState(false);
   const [showHowItWorks, setShowHowItWorks] = useState(false);
   const [showPricing, setShowPricing] = useState(false);
+  // 💸-boogvlucht van de feed-knop naar het icoon op de pricing-sheet.
+  // pending=true tot het doel gemeten is (sheet mount eerst, transform-gecorrigeerd).
+  const [moneyFlight, setMoneyFlight] = useState(null);
+  // Sheet dicht (backdrop-tik, ook mid-vlucht) → vlucht-state mee opruimen, anders
+  // blijft het emoji verborgen en blokkeert de guard een volgende boog.
+  useEffect(() => { if (!showPricing) setMoneyFlight(null); }, [showPricing]);
+  const openPricingWithArc = () => {
+    if (showPricing || moneyFlight) { setShowPricing(true); return; }
+    const src = document.querySelector("[data-money-btn]")?.getBoundingClientRect();
+    setShowPricing(true);
+    if (!src) return;
+    setMoneyFlight({ pending: true, sx: src.left + src.width / 2, sy: src.top + src.height / 2 });
+    // 50ms-timer i.p.v. rAF: de sheet is dan gemount, en timers lopen óók door als
+    // frames even stilstaan (achtergrond-tab) — geen eeuwig-verborgen emoji's.
+    setTimeout(() => {
+      const icon = document.querySelector("[data-pricing-icon]");
+      if (!icon) { setMoneyFlight(null); return; }
+      const r = icon.getBoundingClientRect();
+      // De sheet schuift nog omhoog (translateY) — corrigeer naar de EINDpositie.
+      let dx = 0, dy = 0;
+      const sheet = document.querySelector("[data-pricing-sheet]");
+      if (sheet) {
+        const tr = getComputedStyle(sheet).transform;
+        if (tr && tr !== "none") { const m = new DOMMatrixReadOnly(tr); dx = m.e; dy = m.f; }
+      }
+      setMoneyFlight((f) => f ? { ...f, tx: r.left + r.width / 2 - dx, ty: r.top + r.height / 2 - dy, pending: false } : null);
+    }, 50);
+  };
   const [avatarUploading, setAvatarUploading] = useState(false);
   const [showNotifs, setShowNotifs] = useState(false);
   const [confirmCancel, setConfirmCancel] = useState(false);
@@ -2211,9 +2271,10 @@ export default function SupplyFlow({ session }) {
           <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 10 }}>
             <div style={{ fontSize: 30, fontWeight: 800, letterSpacing: -0.6, color: "#111111", marginBottom: 2 }}>{showFavoritesOnly ? "Favorites" : selectedFactory ? selectedFactory.name : <>Factory <span style={{ color: "#FF5C00" }}>Feed</span></>}</div>
             <div style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
-              <motion.button whileTap={{ scale: 0.85 }} transition={springSnappy} onClick={() => setShowPricing(true)} aria-label="How pricing works"
+              <motion.button data-money-btn whileTap={{ scale: 0.85 }} transition={springSnappy} onClick={openPricingWithArc} aria-label="How pricing works"
                 style={{ width: 42, height: 42, borderRadius: "50%", background: "#fff", border: "1px solid #ECEAE5", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", fontSize: 18, lineHeight: 1, WebkitTapHighlightColor: "transparent" }}>
-                💸
+                {/* het emoji "vertrekt" tijdens de boogvlucht (de knop-cirkel blijft) */}
+                <span style={{ display: "inline-block", opacity: moneyFlight ? 0 : 1, transition: "opacity .15s" }}>💸</span>
               </motion.button>
               <motion.button whileTap={{ scale: 0.85 }} transition={springSnappy} onClick={() => window.open("/diamond-rankings.html", "_blank")} aria-label="How diamond rankings work"
                 style={{ width: 42, height: 42, borderRadius: "50%", background: "#fff", border: "1px solid #ECEAE5", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", fontSize: 18, lineHeight: 1, WebkitTapHighlightColor: "transparent" }}>
@@ -2907,6 +2968,9 @@ export default function SupplyFlow({ session }) {
       {/* Productfoto onderweg naar de mand-balk */}
       {cartFlight && <FlyingImage flight={cartFlight} onDone={() => setCartFlight(null)} />}
 
+      {/* 💸 in boogvlucht van de feed-knop naar de pricing-sheet */}
+      {moneyFlight && !moneyFlight.pending && <MoneyArcGhost f={moneyFlight} onDone={() => setMoneyFlight(null)} />}
+
       {/* Hype check — stemsheet voor een Coming soon/demo-product (niet koopbaar) */}
       <AnimatePresence>
         {hypeProduct && (
@@ -3167,7 +3231,7 @@ export default function SupplyFlow({ session }) {
       {/* Uitleg: hoe Flowva werkt */}
       <AnimatePresence>
         {showHowItWorks && <HowItWorksSheet onClose={closeHowItWorks} />}
-        {showPricing && <PricingSheet onClose={() => setShowPricing(false)} />}
+        {showPricing && <PricingSheet onClose={() => setShowPricing(false)} arriving={!!moneyFlight} />}
         {squadWheel && <ProgressWheelModal items={[squadWheel]} onClose={() => setSquadWheel(null)} />}
       </AnimatePresence>
 

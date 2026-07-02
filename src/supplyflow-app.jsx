@@ -1124,29 +1124,36 @@ const HIW_STOPS = [
   { icon: "💸", title: "Only the real shipping", sub: "difference comes back", say: "You pay an estimate — any difference comes straight back." },
 ];
 function HowItWorksSheet({ onClose }) {
-  const [step, setStep] = useState(-1);     // -1 = intro · 0..5 = stops · 6 = klaar
-  const [landed, setLanded] = useState(false);
+  // TAP-GEDREVEN regie: -1 = intro (vos gecentreerd) · 0..5 = stops · 6 = klaar.
+  // Per tap één beat: intro-tap → wolkje fadet, vos morpht naar linksonder, stop 1 op het
+  // podium; stop-tap → balkje klapt soepel uit (hoogte-animatie) → icoon morpht erin →
+  // de volgende stop verschijnt vanzelf op het podium. Verder gebeurt er niks zonder tap.
+  const [step, setStep] = useState(-1);
+  const [landed, setLanded] = useState(false);     // balkje van de actieve stop is gemount
+  const [readyRows, setReadyRows] = useState(0);   // rijen waarvan de uitklap af is (overflow → visible, anders clipt de morph)
   const done = step >= HIW_STOPS.length;
-  // Auto-regie: intro → per stop (groot+schud → land in de route) → klaar. Tik versnelt.
+  const rowReady = readyRows > step;               // actieve rij is uitgeklapt → icoon mag landen
+  // Ná de landing (uitklap + morph) automatisch de VOLGENDE stop op het podium presenteren.
   useEffect(() => {
-    if (done) return;
-    const t = setTimeout(() => {
-      if (step === -1) setStep(0);
-      else if (!landed) setLanded(true);
-      else { setLanded(false); setStep(s => s + 1); }
-    }, step === -1 ? 1500 : !landed ? 1250 : 550);
+    if (done || !landed || !rowReady) return;
+    const t = setTimeout(() => { setLanded(false); setStep(s => s + 1); }, 900);
     return () => clearTimeout(t);
-  }, [step, landed, done]);
+  }, [landed, rowReady, done, step]);
   const advance = () => {
     if (done) return;
-    if (step === -1) setStep(0);
-    else if (!landed) setLanded(true);
-    else { setLanded(false); setStep(s => s + 1); }
+    if (step === -1) { setStep(0); return; }       // intro-tap
+    if (!landed) { setLanded(true); return; }      // stop-tap: land dit icoon
+    // Nóg een tap tijdens het landen → doorspoelen naar de volgende stop (en
+    // vangnet voor het geval een animatie-callback niet vuurt).
+    setReadyRows(r => Math.max(r, step + 1));
+    setLanded(false); setStep(s => s + 1);
   };
+  const skipAll = () => { setStep(HIW_STOPS.length); setLanded(false); setReadyRows(HIW_STOPS.length); };
   const shownCount = done ? HIW_STOPS.length : (landed ? step + 1 : step);
+  const awaitingTap = !done && (step === -1 || !landed);
   const bubbleText = done
     ? "Golden rule: bundle everything into one box — cheaper per item, on the fee and the shipping. 🪙"
-    : step === -1 ? "Hi! Let me show you how Flowva works…" : HIW_STOPS[step].say;
+    : step >= 0 ? HIW_STOPS[step].say : "";
   return (
     <>
       <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={onClose}
@@ -1154,80 +1161,123 @@ function HowItWorksSheet({ onClose }) {
       <motion.div initial={{ y: "100%" }} animate={{ y: 0 }} exit={{ y: "100%" }}
         transition={{ type: "spring", stiffness: 320, damping: 34 }}
         onClick={advance}
-        style={{ position: "fixed", bottom: 0, left: 0, right: 0, margin: "0 auto", width: "100%", maxWidth: 430, boxSizing: "border-box", background: "#fff", borderRadius: "24px 24px 0 0", zIndex: 301, maxHeight: "92vh", overflowY: "auto", padding: "20px 20px 36px", cursor: done ? "default" : "pointer" }}>
+        style={{ position: "fixed", bottom: 0, left: 0, right: 0, margin: "0 auto", width: "100%", maxWidth: 430, boxSizing: "border-box", background: "#fff", borderRadius: "24px 24px 0 0", zIndex: 301, maxHeight: "92vh", overflowY: "auto", padding: "20px 20px 30px", cursor: done ? "default" : "pointer" }}>
         <div style={{ width: 36, height: 4, background: "#E8E6E0", borderRadius: 2, margin: "0 auto 14px" }} />
-        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-          <div style={{ flex: 1, fontSize: 20, fontWeight: 800, color: "#0F0E0C" }}>How Flowva works</div>
-          {!done && (
-            <button onClick={(e) => { e.stopPropagation(); setStep(HIW_STOPS.length); setLanded(false); }}
-              style={{ background: "none", border: "none", color: "#A8A5A0", fontSize: 12.5, fontWeight: 700, cursor: "pointer", padding: "4px 2px" }}>Skip →</button>
-          )}
-        </div>
-        <div style={{ fontSize: 12.5, color: "#8A8780", marginBottom: 6 }}>{done ? "Factory prices, one parcel — duties included." : "tap to speed up"}</div>
 
-        {/* PODIUM: het icoon van de actieve stop verschijnt hier groot en schudt (bel-moment) */}
-        <div style={{ height: done ? 0 : 84, display: "flex", alignItems: "center", justifyContent: "center", transition: "height .35s ease" }}>
-          {!done && step >= 0 && !landed && (
-            <motion.span layoutId="hiw-ic"
-              animate={{ rotate: [0, -28, 20, -10, 0] }}
-              transition={{ layout: { type: "spring", stiffness: 260, damping: 24 }, rotate: { duration: 0.8, ease: [0.32, 0.72, 0, 1] } }}
-              style={{ display: "inline-block", fontSize: 52, lineHeight: 1, filter: "drop-shadow(0 10px 26px rgba(255,92,0,0.35))" }}>
-              {HIW_STOPS[step].icon}
-            </motion.span>
-          )}
-        </div>
-
-        {/* ROUTE: gelande stops langs de oranje stippellijn; de laatste tegel is het landingsdoel van de morph */}
-        <div style={{ position: "relative" }}>
-          {shownCount > 1 && <div style={{ position: "absolute", left: 19, top: 20, bottom: 20, borderLeft: "2px dashed #FFB98A" }} />}
-          {HIW_STOPS.slice(0, shownCount).map((s, i) => {
-            const isLanding = !done && landed && i === step;
-            return (
-              <motion.div key={s.title} initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} transition={springBouncy}
-                style={{ display: "flex", alignItems: "center", gap: 13, padding: "7px 0", position: "relative" }}>
-                <div style={{ width: 40, height: 40, borderRadius: 12, background: "#FFF0E7", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, position: "relative", zIndex: 1 }}>
-                  {isLanding
-                    ? <motion.span layoutId="hiw-ic"
-                        animate={{ rotate: [0, -14, 10, 0] }}
-                        transition={{ layout: { type: "spring", stiffness: 300, damping: 24 }, rotate: { delay: 0.35, duration: 0.5, ease: [0.32, 0.72, 0, 1] } }}
-                        style={{ display: "inline-block", fontSize: 20, lineHeight: 1 }}>{s.icon}</motion.span>
-                    : <span style={{ fontSize: 20, lineHeight: 1 }}>{s.icon}</span>}
-                </div>
-                <div style={{ minWidth: 0 }}>
-                  <div style={{ fontSize: 14.5, fontWeight: 700, color: "#0F0E0C" }}>{s.title}</div>
-                  <div style={{ fontSize: 12, color: "#8A8780" }}>{s.sub}</div>
-                </div>
+        {/* INTRO: vos + wolkje gecentreerd; bij de tap fadet het wolkje en morpht de vos (layoutId) naar z'n gids-plek linksonder */}
+        <AnimatePresence mode="popLayout">
+          {step === -1 && (
+            <motion.div key="hiw-intro" exit={{ opacity: 0, transition: { duration: 0.28 } }}
+              style={{ minHeight: 340, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 18 }}>
+              <motion.span layoutId="hiw-fox" transition={{ layout: { type: "spring", stiffness: 240, damping: 26 } }}
+                style={{ fontSize: 58, lineHeight: 1, display: "inline-block" }}><Fox /></motion.span>
+              <motion.div initial={{ opacity: 0, y: 14, scale: 0.92 }} animate={{ opacity: 1, y: 0, scale: 1 }} transition={{ delay: 0.35, ...springBouncy }}
+                style={{ maxWidth: 300 }}>
+                <SpeechBubble bg="#1E1D1A" color="#fff">
+                  <span style={{ fontSize: 14.5, lineHeight: 1.6, fontWeight: 600, textAlign: "center", display: "inline-block" }}>
+                    <WordReveal text="Hey! Let me show you how Flowva works" delay={0.6} stagger={0.07} />
+                  </span>
+                </SpeechBubble>
               </motion.div>
-            );
-          })}
-        </div>
-
-        {/* VOS: schuift mee omlaag met elke gelande stop (layout) en praat per stop woord-voor-woord */}
-        <motion.div layout transition={{ type: "spring", stiffness: 260, damping: 26 }}
-          style={{ display: "flex", gap: 10, alignItems: "flex-end", marginTop: 12 }}>
-          <motion.span layout style={{ fontSize: 34, flexShrink: 0, lineHeight: 1 }}><Fox /></motion.span>
-          <SpeechBubble bg="#1E1D1A" color="#fff">
-            <span style={{ fontSize: 13, lineHeight: 1.6, fontWeight: 600 }}>
-              <WordReveal key={bubbleText} text={bubbleText} delay={0.25} stagger={0.055} />
-            </span>
-          </SpeechBubble>
-        </motion.div>
-
-        {/* KLAAR: Friends-kaart + CTA poppen in */}
-        <AnimatePresence>
-          {done && (
-            <motion.div key="hiw-done" initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.5, ...springSoft }}>
-              <div style={{ background: "#FFF7F2", border: "1px solid rgba(255,92,0,0.25)", borderRadius: 16, padding: "13px 15px", margin: "16px 0 12px" }}>
-                <div style={{ fontSize: 13, fontWeight: 800, color: "#B8430A", marginBottom: 3 }}><Fox /> Cheaper with Flowva Friends</div>
-                <div style={{ fontSize: 12.5, color: "#6B6862", lineHeight: 1.55 }}>Team up — one shared parcel, split shipping, and the fee drops with every friend.</div>
-              </div>
-              <motion.button whileTap={{ scale: 0.97 }} onClick={(e) => { e.stopPropagation(); onClose(); }}
-                style={{ width: "100%", background: "#FF5C00", color: "#fff", border: "none", borderRadius: 12, padding: "14px", fontSize: 15, fontWeight: 700, cursor: "pointer", WebkitTapHighlightColor: "transparent" }}>
-                Start shopping <Fox />
-              </motion.button>
             </motion.div>
           )}
         </AnimatePresence>
+
+        {step >= 0 && (
+          <>
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.4 }}
+              style={{ display: "flex", alignItems: "center", gap: 10 }}>
+              <div style={{ flex: 1, fontSize: 20, fontWeight: 800, color: "#0F0E0C" }}>How Flowva works</div>
+              {!done && (
+                <button onClick={(e) => { e.stopPropagation(); skipAll(); }}
+                  style={{ background: "none", border: "none", color: "#A8A5A0", fontSize: 12.5, fontWeight: 700, cursor: "pointer", padding: "4px 2px" }}>Skip →</button>
+              )}
+            </motion.div>
+
+            {/* PODIUM: de actieve stop verschijnt groot en schudt (bel-moment) tot je tapt */}
+            <div style={{ height: done ? 0 : 86, display: "flex", alignItems: "center", justifyContent: "center", transition: "height .4s cubic-bezier(0.32,0.72,0,1)" }}>
+              {!done && !landed && (
+                <motion.span key={`pod-${step}`} layoutId="hiw-ic"
+                  initial={{ scale: 0.4, opacity: 0 }}
+                  animate={{ scale: 1, opacity: 1, rotate: [0, -28, 20, -10, 0] }}
+                  transition={{ layout: { type: "spring", stiffness: 260, damping: 24 }, scale: { delay: 0.25, ...springBouncy }, opacity: { delay: 0.25, duration: 0.25 }, rotate: { delay: 0.45, duration: 0.8, ease: [0.32, 0.72, 0, 1] } }}
+                  style={{ display: "inline-block", fontSize: 52, lineHeight: 1, filter: "drop-shadow(0 10px 26px rgba(255,92,0,0.35))" }}>
+                  {HIW_STOPS[step].icon}
+                </motion.span>
+              )}
+            </div>
+
+            {/* ROUTE: elk balkje klapt met een hoogte-animatie soepel uit; pas als 't uitgeklapt
+                is (overflow terug naar visible) landt het icoon erin — anders clipt de morph. */}
+            <div style={{ position: "relative" }}>
+              {shownCount > 1 && <div style={{ position: "absolute", left: 19, top: 20, bottom: 20, borderLeft: "2px dashed #FFB98A" }} />}
+              {HIW_STOPS.slice(0, shownCount).map((s, i) => {
+                const expanded = i < readyRows;
+                const isLanding = !done && landed && i === step && expanded;
+                return (
+                  <motion.div key={s.title}
+                    initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }}
+                    onAnimationComplete={() => setReadyRows(r => Math.max(r, i + 1))}
+                    transition={{ height: { duration: 0.45, ease: [0.32, 0.72, 0, 1] }, opacity: { duration: 0.3, delay: 0.12 } }}
+                    style={{ overflow: expanded ? "visible" : "hidden", position: "relative" }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 13, padding: "7px 0" }}>
+                      <div style={{ width: 40, height: 40, borderRadius: 12, background: "#FFF0E7", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, position: "relative", zIndex: 1 }}>
+                        {isLanding
+                          ? <motion.span layoutId="hiw-ic"
+                              animate={{ rotate: [0, -14, 10, 0] }}
+                              transition={{ layout: { type: "spring", stiffness: 300, damping: 24 }, rotate: { delay: 0.35, duration: 0.5, ease: [0.32, 0.72, 0, 1] } }}
+                              style={{ display: "inline-block", fontSize: 20, lineHeight: 1 }}>{s.icon}</motion.span>
+                          : <span style={{ fontSize: 20, lineHeight: 1, opacity: (!done && landed && i === step) ? 0 : 1 }}>{s.icon}</span>}
+                      </div>
+                      <div style={{ minWidth: 0 }}>
+                        <div style={{ fontSize: 14.5, fontWeight: 700, color: "#0F0E0C" }}>{s.title}</div>
+                        <div style={{ fontSize: 12, color: "#8A8780" }}>{s.sub}</div>
+                      </div>
+                    </div>
+                  </motion.div>
+                );
+              })}
+            </div>
+
+            {/* VOS: nu op z'n gids-plek linksonder (gemorpht vanuit het intro-midden), praat per stop */}
+            <motion.div layout transition={{ type: "spring", stiffness: 260, damping: 26 }}
+              style={{ display: "flex", gap: 10, alignItems: "flex-end", marginTop: 12 }}>
+              <motion.span layoutId="hiw-fox" transition={{ layout: { type: "spring", stiffness: 240, damping: 26 } }}
+                style={{ fontSize: 34, flexShrink: 0, lineHeight: 1, display: "inline-block" }}><Fox /></motion.span>
+              {bubbleText && (
+                <SpeechBubble bg="#1E1D1A" color="#fff">
+                  <span style={{ fontSize: 13, lineHeight: 1.6, fontWeight: 600 }}>
+                    <WordReveal key={bubbleText} text={bubbleText} delay={0.3} stagger={0.055} />
+                  </span>
+                </SpeechBubble>
+              )}
+            </motion.div>
+
+            {/* KLAAR: Friends-kaart + CTA poppen in */}
+            <AnimatePresence>
+              {done && (
+                <motion.div key="hiw-done" initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.5, ...springSoft }}>
+                  <div style={{ background: "#FFF7F2", border: "1px solid rgba(255,92,0,0.25)", borderRadius: 16, padding: "13px 15px", margin: "16px 0 12px" }}>
+                    <div style={{ fontSize: 13, fontWeight: 800, color: "#B8430A", marginBottom: 3 }}><Fox /> Cheaper with Flowva Friends</div>
+                    <div style={{ fontSize: 12.5, color: "#6B6862", lineHeight: 1.55 }}>Team up — one shared parcel, split shipping, and the fee drops with every friend.</div>
+                  </div>
+                  <motion.button whileTap={{ scale: 0.97 }} onClick={(e) => { e.stopPropagation(); onClose(); }}
+                    style={{ width: "100%", background: "#FF5C00", color: "#fff", border: "none", borderRadius: 12, padding: "14px", fontSize: 15, fontWeight: 700, cursor: "pointer", WebkitTapHighlightColor: "transparent" }}>
+                    Start shopping <Fox />
+                  </motion.button>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </>
+        )}
+
+        {/* tap-hint: zachte puls zolang er een tik verwacht wordt */}
+        {awaitingTap && (
+          <motion.div animate={{ opacity: [0.35, 0.9, 0.35] }} transition={{ duration: 1.6, repeat: Infinity, ease: "easeInOut" }}
+            style={{ textAlign: "center", fontSize: 12, fontWeight: 700, color: "#A8A5A0", marginTop: 14 }}>
+            tap to continue
+          </motion.div>
+        )}
       </motion.div>
     </>
   );

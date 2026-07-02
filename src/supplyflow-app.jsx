@@ -1165,7 +1165,7 @@ function HowItWorksSheet({ onClose }) {
 // Kwadratische bezier, gesampled naar keyframes; via portal zodat sheet-transforms
 // de vlucht niet beïnvloeden. De starttangens wijst náár het controlepunt → dat
 // linksboven het startpunt leggen geeft precies "eerst een beetje links omhoog".
-function MoneyArcGhost({ f, onDone }) {
+function ArcGhost({ f, onDone }) {
   const N = 22;
   const cx = f.sx - 80;
   const cy = Math.min(f.sy, f.ty) - 110;
@@ -1182,9 +1182,90 @@ function MoneyArcGhost({ f, onDone }) {
       transition={{ duration: 0.8, ease: "easeInOut" }}
       onAnimationComplete={onDone}
       style={{ position: "fixed", left: -14, top: -14, width: 28, height: 28, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 19, lineHeight: 1, zIndex: 9800, pointerEvents: "none" }}>
-      💸
+      {f.emoji}
     </motion.span>,
     document.body,
+  );
+}
+
+// 💎-uitlegpagina als in-app bottom-sheet (verving het losse /diamond-rankings.html-
+// browser-tabblad). Zelfde opzet als PricingSheet; `arriving` = de 💎-boogvlucht is
+// onderweg → het eigen icoon wacht verborgen en popt binnen bij de landing.
+function DiamondSheet({ onClose, arriving = false }) {
+  useBodyScrollLock(true);
+  const card = { background: "#fff", border: "1px solid #ECEAE5", borderRadius: 16, padding: "14px 16px", marginBottom: 12 };
+  const sectionLabel = { fontSize: 11, fontWeight: 700, letterSpacing: 0.5, color: "#A8A5A0", marginBottom: 2 };
+  const Level = ({ gems, name, tag, desc }) => (
+    <div style={{ display: "flex", gap: 14, padding: "13px 0", borderTop: "1px solid #F0EEE8" }}>
+      <div style={{ flexShrink: 0, width: 92 }}>
+        {gems > 0 ? (
+          <>
+            <div style={{ fontSize: 14, letterSpacing: 1, lineHeight: 1 }}>{"💎".repeat(gems)}</div>
+            <div style={{ fontSize: 11.5, fontWeight: 700, color: "#FF5C00", marginTop: 5 }}>{name}</div>
+          </>
+        ) : (
+          <div style={{ fontSize: 10.5, fontWeight: 700, color: "#A8A5A0", textTransform: "uppercase", letterSpacing: 0.5, marginTop: 2 }}>No diamond</div>
+        )}
+      </div>
+      <div style={{ flex: 1 }}>
+        <div style={{ fontSize: 13.5, fontWeight: 700, color: "#111", marginBottom: 2 }}>{tag}</div>
+        <div style={{ fontSize: 12.5, color: "#6B6862", lineHeight: 1.55 }}>{desc}</div>
+      </div>
+    </div>
+  );
+  const metrics = [
+    ["On-Time Delivery Rate", "Percentage of orders delivered within the agreed timeframe."],
+    ["Service Response Rate", "Percentage of inquiries that receive a timely response from the supplier."],
+    ["Custom Transaction Score", "Value of custom manufacturing orders completed through the platform."],
+    ["Repurchase Rate", "Percentage of customers who place repeat orders."],
+    ["Interested Customer Count", "Number of customers who have engaged in serious negotiations with the supplier."],
+  ];
+  return (
+    <>
+      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={onClose}
+        style={{ position: "fixed", inset: 0, zIndex: 300, background: "rgba(0,0,0,0.5)", backdropFilter: "blur(6px)" }} />
+      <motion.div data-diamond-sheet initial={{ y: "100%" }} animate={{ y: 0 }} exit={{ y: "100%" }}
+        transition={{ type: "spring", stiffness: 320, damping: 34 }}
+        style={{ position: "fixed", bottom: 0, left: 0, right: 0, margin: "0 auto", width: "100%", maxWidth: 430, boxSizing: "border-box", background: "#F8F7F4", borderRadius: "24px 24px 0 0", zIndex: 301, maxHeight: "92vh", overflowY: "auto", overscrollBehavior: "contain", padding: "18px 16px 36px" }}>
+        <div style={{ width: 36, height: 4, background: "#D8D5CF", borderRadius: 2, margin: "0 auto 16px" }} />
+        <div style={{ display: "flex", alignItems: "center", gap: 11, padding: "0 4px" }}>
+          <div data-diamond-icon style={{ width: 42, height: 42, borderRadius: "50%", background: "#E6F1FB", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20, flexShrink: 0 }}>
+            {/* het diamantje wacht verborgen tot de boogvlucht erin landt, en popt dan binnen */}
+            <motion.span initial={false} animate={arriving ? { opacity: 0, scale: 0.3 } : { opacity: 1, scale: 1 }} transition={springBouncy} style={{ display: "inline-block" }}>💎</motion.span>
+          </div>
+          <div>
+            <div style={{ fontSize: 16.5, fontWeight: 800, color: "#111", letterSpacing: -0.3, lineHeight: 1.25 }}>How Do 1688 Factory Diamond Rankings Work?</div>
+            <div style={{ fontSize: 12.5, color: "#8A8780" }}>Straight from 1688's own supplier metrics</div>
+          </div>
+        </div>
+        <div style={{ fontSize: 13, lineHeight: 1.6, color: "#46443F", margin: "12px 4px 14px" }}>
+          1688 ranks factories on recent performance — the more diamonds, the stronger the factory's track record. Rankings are based on the past 30–90 days of data: on-time delivery, service responsiveness, custom manufacturing volume, customer satisfaction and repeat purchases.
+        </div>
+        <div style={card}>
+          <div style={sectionLabel}>RANKING LEVELS</div>
+          <Level gems={0} tag="A new or less active factory." desc="The supplier may not yet have enough transaction history or performance data to qualify for a diamond ranking." />
+          <Level gems={1} name="1 Diamond" tag="Solid baseline performance." desc="Meets 1688's minimum standards for service quality, delivery reliability and transaction activity." />
+          <Level gems={2} name="2 Diamonds" tag="Above-average performance." desc="Stronger reliability, customer service and order volume than lower-ranked suppliers." />
+          <Level gems={3} name="3 Diamonds" tag="A high-performing supplier." desc="Consistently strong results in delivery, communication and customer satisfaction." />
+          <Level gems={4} name="4 Diamonds" tag="The highest diamond level." desc="Excellent operational performance and a proven track record across all major indicators." />
+        </div>
+        <div style={card}>
+          <div style={{ ...sectionLabel, marginBottom: 6 }}>WHAT 1688 MEASURES</div>
+          {metrics.map(([k, v]) => (
+            <div key={k} style={{ padding: "8px 0", borderTop: "1px solid #F1EFEA" }}>
+              <div style={{ fontSize: 13, fontWeight: 700, color: "#111" }}>{k}</div>
+              <div style={{ fontSize: 12.5, color: "#6B6862", lineHeight: 1.5 }}>{v}</div>
+            </div>
+          ))}
+        </div>
+        <div style={{ fontSize: 11.5, color: "#8A8780", lineHeight: 1.55, margin: "0 4px 16px" }}>
+          Based on 1688's official supplier performance definitions ("指标定义") shown in supplier profiles — on-time delivery, service response, repurchase rate, custom manufacturing transactions and interested customers.
+        </div>
+        <button onClick={onClose} style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 7, width: "100%", background: "#111", color: "#fff", border: "none", borderRadius: 14, padding: "14px", fontSize: 14, fontWeight: 700, cursor: "pointer" }}>
+          Got it <Fox />
+        </button>
+      </motion.div>
+    </>
   );
 }
 
@@ -1349,32 +1430,41 @@ export default function SupplyFlow({ session }) {
   const [showEditProfile, setShowEditProfile] = useState(false);
   const [showHowItWorks, setShowHowItWorks] = useState(false);
   const [showPricing, setShowPricing] = useState(false);
-  // 💸-boogvlucht van de feed-knop naar het icoon op de pricing-sheet.
+  const [showDiamond, setShowDiamond] = useState(false);
+  // Boogvlucht van een feed-knop naar het icoon op z'n sheet (💸 pricing / 💎 diamond).
   // pending=true tot het doel gemeten is (sheet mount eerst, transform-gecorrigeerd).
-  const [moneyFlight, setMoneyFlight] = useState(null);
+  const [arcFlight, setArcFlight] = useState(null);   // { kind, emoji, sx, sy, tx, ty, pending }
   // Sheet dicht (backdrop-tik, ook mid-vlucht) → vlucht-state mee opruimen, anders
   // blijft het emoji verborgen en blokkeert de guard een volgende boog.
-  useEffect(() => { if (!showPricing) setMoneyFlight(null); }, [showPricing]);
-  const openPricingWithArc = () => {
-    if (showPricing || moneyFlight) { setShowPricing(true); return; }
-    const src = document.querySelector("[data-money-btn]")?.getBoundingClientRect();
-    setShowPricing(true);
+  useEffect(() => { if (!showPricing) setArcFlight((f) => (f?.kind === "pricing" ? null : f)); }, [showPricing]);
+  useEffect(() => { if (!showDiamond) setArcFlight((f) => (f?.kind === "diamond" ? null : f)); }, [showDiamond]);
+  const ARC_SHEETS = {
+    pricing: { emoji: "💸", btn: "[data-money-btn]", icon: "[data-pricing-icon]", sheet: "[data-pricing-sheet]" },
+    diamond: { emoji: "💎", btn: "[data-diamond-btn]", icon: "[data-diamond-icon]", sheet: "[data-diamond-sheet]" },
+  };
+  const openSheetWithArc = (kind) => {
+    const cfg = ARC_SHEETS[kind];
+    const open = kind === "diamond" ? setShowDiamond : setShowPricing;
+    const isOpen = kind === "diamond" ? showDiamond : showPricing;
+    if (isOpen || arcFlight) { open(true); return; }
+    const src = document.querySelector(cfg.btn)?.getBoundingClientRect();
+    open(true);
     if (!src) return;
-    setMoneyFlight({ pending: true, sx: src.left + src.width / 2, sy: src.top + src.height / 2 });
+    setArcFlight({ kind, emoji: cfg.emoji, pending: true, sx: src.left + src.width / 2, sy: src.top + src.height / 2 });
     // 50ms-timer i.p.v. rAF: de sheet is dan gemount, en timers lopen óók door als
     // frames even stilstaan (achtergrond-tab) — geen eeuwig-verborgen emoji's.
     setTimeout(() => {
-      const icon = document.querySelector("[data-pricing-icon]");
-      if (!icon) { setMoneyFlight(null); return; }
+      const icon = document.querySelector(cfg.icon);
+      if (!icon) { setArcFlight(null); return; }
       const r = icon.getBoundingClientRect();
       // De sheet schuift nog omhoog (translateY) — corrigeer naar de EINDpositie.
       let dx = 0, dy = 0;
-      const sheet = document.querySelector("[data-pricing-sheet]");
+      const sheet = document.querySelector(cfg.sheet);
       if (sheet) {
         const tr = getComputedStyle(sheet).transform;
         if (tr && tr !== "none") { const m = new DOMMatrixReadOnly(tr); dx = m.e; dy = m.f; }
       }
-      setMoneyFlight((f) => f ? { ...f, tx: r.left + r.width / 2 - dx, ty: r.top + r.height / 2 - dy, pending: false } : null);
+      setArcFlight((f) => f ? { ...f, tx: r.left + r.width / 2 - dx, ty: r.top + r.height / 2 - dy, pending: false } : null);
     }, 50);
   };
   const [avatarUploading, setAvatarUploading] = useState(false);
@@ -2271,14 +2361,14 @@ export default function SupplyFlow({ session }) {
           <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 10 }}>
             <div style={{ fontSize: 30, fontWeight: 800, letterSpacing: -0.6, color: "#111111", marginBottom: 2 }}>{showFavoritesOnly ? "Favorites" : selectedFactory ? selectedFactory.name : <>Factory <span style={{ color: "#FF5C00" }}>Feed</span></>}</div>
             <div style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
-              <motion.button data-money-btn whileTap={{ scale: 0.85 }} transition={springSnappy} onClick={openPricingWithArc} aria-label="How pricing works"
+              <motion.button data-money-btn whileTap={{ scale: 0.85 }} transition={springSnappy} onClick={() => openSheetWithArc("pricing")} aria-label="How pricing works"
                 style={{ width: 42, height: 42, borderRadius: "50%", background: "#fff", border: "1px solid #ECEAE5", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", fontSize: 18, lineHeight: 1, WebkitTapHighlightColor: "transparent" }}>
                 {/* het emoji "vertrekt" tijdens de boogvlucht (de knop-cirkel blijft) */}
-                <span style={{ display: "inline-block", opacity: moneyFlight ? 0 : 1, transition: "opacity .15s" }}>💸</span>
+                <span style={{ display: "inline-block", opacity: arcFlight?.kind === "pricing" ? 0 : 1, transition: "opacity .15s" }}>💸</span>
               </motion.button>
-              <motion.button whileTap={{ scale: 0.85 }} transition={springSnappy} onClick={() => window.open("/diamond-rankings.html", "_blank")} aria-label="How diamond rankings work"
+              <motion.button data-diamond-btn whileTap={{ scale: 0.85 }} transition={springSnappy} onClick={() => openSheetWithArc("diamond")} aria-label="How diamond rankings work"
                 style={{ width: 42, height: 42, borderRadius: "50%", background: "#fff", border: "1px solid #ECEAE5", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", fontSize: 18, lineHeight: 1, WebkitTapHighlightColor: "transparent" }}>
-                💎
+                <span style={{ display: "inline-block", opacity: arcFlight?.kind === "diamond" ? 0 : 1, transition: "opacity .15s" }}>💎</span>
               </motion.button>
               <motion.button whileTap={{ scale: 0.85 }} transition={springSnappy} onClick={() => setShowFavoritesOnly((v) => !v)} aria-label="favorites"
                 style={{ width: 42, height: 42, borderRadius: "50%", background: showFavoritesOnly ? "#FF5C00" : "#fff", border: "1px solid #ECEAE5", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}>
@@ -2968,8 +3058,8 @@ export default function SupplyFlow({ session }) {
       {/* Productfoto onderweg naar de mand-balk */}
       {cartFlight && <FlyingImage flight={cartFlight} onDone={() => setCartFlight(null)} />}
 
-      {/* 💸 in boogvlucht van de feed-knop naar de pricing-sheet */}
-      {moneyFlight && !moneyFlight.pending && <MoneyArcGhost f={moneyFlight} onDone={() => setMoneyFlight(null)} />}
+      {/* 💸/💎 in boogvlucht van de feed-knop naar z'n sheet */}
+      {arcFlight && !arcFlight.pending && <ArcGhost f={arcFlight} onDone={() => setArcFlight(null)} />}
 
       {/* Hype check — stemsheet voor een Coming soon/demo-product (niet koopbaar) */}
       <AnimatePresence>
@@ -3231,7 +3321,8 @@ export default function SupplyFlow({ session }) {
       {/* Uitleg: hoe Flowva werkt */}
       <AnimatePresence>
         {showHowItWorks && <HowItWorksSheet onClose={closeHowItWorks} />}
-        {showPricing && <PricingSheet onClose={() => setShowPricing(false)} arriving={!!moneyFlight} />}
+        {showPricing && <PricingSheet onClose={() => setShowPricing(false)} arriving={arcFlight?.kind === "pricing"} />}
+        {showDiamond && <DiamondSheet onClose={() => setShowDiamond(false)} arriving={arcFlight?.kind === "diamond"} />}
         {squadWheel && <ProgressWheelModal items={[squadWheel]} onClose={() => setSquadWheel(null)} />}
       </AnimatePresence>
 

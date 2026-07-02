@@ -1247,10 +1247,19 @@ function DiamondSheet({ onClose, arriving = false }) {
           <>
             <div style={{ fontSize: 14, lineHeight: 1, display: "flex", gap: 3 }}>
               {Array.from({ length: gems }, (_, i) => (
-                <motion.span key={i} data-gem={`${gems}-${i}`} initial={false}
-                  animate={revealed >= gems ? { opacity: 1, scale: 1 } : { opacity: 0, scale: 0.3 }}
-                  transition={{ ...springBouncy, delay: revealed >= gems ? i * 0.06 : 0 }}
-                  style={{ display: "inline-block" }}>💎</motion.span>
+                <span key={i} data-gem={`${gems}-${i}`} style={{ position: "relative", display: "inline-block", overflow: "hidden", borderRadius: 4 }}>
+                  {/* landing-bounce: even kleiner → overshoot → rust (om de beurt per rij) */}
+                  <motion.span initial={false}
+                    animate={revealed >= gems ? { opacity: 1, scale: [0.5, 1.22, 0.92, 1] } : { opacity: 0, scale: 0.3 }}
+                    transition={revealed >= gems ? { duration: 0.5, times: [0, 0.45, 0.75, 1], ease: "easeOut", delay: i * 0.12 } : { duration: 0 }}
+                    style={{ display: "inline-block" }}>💎</motion.span>
+                  {/* ná de bounce glanst precies dít diamantje — zo glimmen ze om de beurt */}
+                  {revealed >= gems && (
+                    <motion.span initial={{ x: "-130%" }} animate={{ x: "230%" }}
+                      transition={{ delay: i * 0.12 + 0.55, duration: 0.5, ease: "easeInOut" }}
+                      style={{ position: "absolute", top: 0, bottom: 0, left: 0, width: "60%", background: "linear-gradient(105deg, transparent, rgba(255,255,255,0.9), transparent)", pointerEvents: "none" }} />
+                  )}
+                </span>
               ))}
             </div>
             <div style={{ fontSize: 11.5, fontWeight: 700, color: "#FF5C00", marginTop: 5 }}>{name}</div>
@@ -1317,13 +1326,16 @@ function DiamondSheet({ onClose, arriving = false }) {
           Got it <Fox />
         </button>
 
-        {/* de vallende cascade-diamanten (scrollen mee met de sheet-inhoud) */}
+        {/* de vallende cascade-diamanten (scrollen mee met de sheet-inhoud). Vast 16×16-
+            doosje met het emoji gecentreerd → het middelpunt landt exact op het gemeten
+            gem-middelpunt (strakke uitlijning); fade-out direct ná de landing zodat de
+            bounce van het echte diamantje het naadloos overneemt. */}
         {drops.map((d) => (
           <motion.span key={d.id}
             initial={{ x: d.fx, y: d.fy, opacity: 0, scale: 0.9 }}
-            animate={{ x: d.tx, y: d.ty, opacity: 1, scale: 1 }}
-            transition={{ delay: d.delay, duration: 0.5, ease: "easeInOut", opacity: { delay: d.delay, duration: 0.12 } }}
-            style={{ position: "absolute", left: -7, top: -8, fontSize: 13, lineHeight: 1, zIndex: 6, pointerEvents: "none" }}>💎</motion.span>
+            animate={{ x: d.tx, y: d.ty, opacity: [0, 1, 1, 0], scale: 1 }}
+            transition={{ delay: d.delay, duration: 0.5, ease: "easeInOut", opacity: { delay: d.delay, duration: 0.6, times: [0, 0.2, 0.82, 1] } }}
+            style={{ position: "absolute", left: -8, top: -8, width: 16, height: 16, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14, lineHeight: 1, zIndex: 6, pointerEvents: "none" }}>💎</motion.span>
         ))}
       </motion.div>
     </>
@@ -3452,9 +3464,10 @@ export default function SupplyFlow({ session }) {
         )}
       </AnimatePresence>
 
-      {/* Bottom nav — layoutRoot: fixed ouder van de navPill (layoutId), anders animeert
-          de pill mee met pagina-scroll-sprongen (bv. de scroll-restore bij terug-naar-feed) */}
-      <motion.div layoutRoot style={{ position: "fixed", zIndex: 100, bottom: 0, left: "50%", transform: "translateX(-50%)", width: "100%", maxWidth: 430, background: "#fff", borderTop: "1px solid #ECEAE5", display: "flex", padding: "9px 0 15px" }}>
+      {/* Bottom nav — layout+layoutRoot: fixed ouder van de navPill (layoutId). layoutRoot
+          werkt alléén samen met layout; dan meet de pill relatief aan deze balk en telt een
+          pagina-scroll-sprong (scroll-restore bij terug-naar-feed) niet meer als beweging. */}
+      <motion.div layout layoutRoot style={{ position: "fixed", zIndex: 100, bottom: 0, left: "50%", transform: "translateX(-50%)", width: "100%", maxWidth: 430, background: "#fff", borderTop: "1px solid #ECEAE5", display: "flex", padding: "9px 0 15px" }}>
         {[
           { id: "feed", Icon: Home, label: "Feed" },
           { id: "orders", Icon: Package, label: "Orders" },

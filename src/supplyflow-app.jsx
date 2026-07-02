@@ -1110,55 +1110,124 @@ function EditProfileSheet({ session, onClose }) {
   );
 }
 
-// Altijd bereikbare uitleg-pagina (Profile + automatisch bij de eerste keer).
-// Zet de verwachting vooraf: fabrieksprijs + fee + verzending, en waarom bundelen loont.
+// Altijd bereikbare uitleg-pagina (Profile + automatisch bij de eerste keer) —
+// als VOS-GELEIDE TOUR met de bel-choreografie uit HypeCheck: per stop verschijnt
+// het icoon GROOT op het podium, schudt, de vos legt 'm woord-voor-woord uit, en
+// het icoon morpht (shared layoutId) z'n plek in de route in. De vos schuift mee
+// omlaag met elke gelande stop. Tik = versnellen; Skip = alles meteen.
+const HIW_STOPS = [
+  { icon: "🏭", title: "Factory price", sub: "what it costs in China", say: "You shop at the real factory price — zero markup." },
+  { icon: "🛍️", title: "We buy it for you", sub: "no fee when you order", say: "I buy & check it for you — there's no fee when you order." },
+  { icon: "🏬", title: "Your China warehouse", sub: "30 days free — keep adding", say: "Your items wait safely in your own warehouse, 30 days free." },
+  { icon: "📸", title: "Real photos first", sub: "see your actual item", say: "Before anything ships, you see photos of your actual item." },
+  { icon: "📦", title: "One parcel — duties paid", sub: "bundling = cheaper per item", say: "Everything goes as one parcel, duties paid — nothing at your door." },
+  { icon: "💸", title: "Only the real shipping", sub: "difference comes back", say: "You pay an estimate — any difference comes straight back." },
+];
 function HowItWorksSheet({ onClose }) {
-  const steps = [
-    { icon: "🏭", title: "Shop straight from the factory", body: "You see the real 1688 & Taobao factory prices — no inflated retail markup. What it costs in China is what you pay." },
-    { icon: "🛒", title: "A small service fee", body: <>We buy it, check it and handle everything for you. There's no fee when you order — a single 8% (min €5) service fee is charged once when you ship your bundle, and it drops further with <b style={{ color: "#FF5C00" }}>Flowva Friends</b>.</> },
-    { icon: "🏬", title: "Your items wait in your China warehouse", body: "Bought items gather safely in your personal warehouse — 30 days free. No rush; keep adding to your haul." },
-    { icon: "📸", title: "Quality-control + measurement photos", body: "We photograph and measure your actual item before it ships — so you see exactly what you're getting, no surprises on the doorstep." },
-    { icon: "📦", title: "One parcel — duties included (DDP)", body: "International shipping is charged per parcel, not per item — so the more you bundle, the cheaper it gets per item. Sent duty-paid (DDP): nothing extra to pay at your door." },
-    { icon: "💸", title: "You only pay the real shipping", body: "When you ship your bundle you pay an estimate with a small safety buffer. About a week after it ships, the carrier's final bill comes in and you get any difference back on your balance." },
-  ];
+  const [step, setStep] = useState(-1);     // -1 = intro · 0..5 = stops · 6 = klaar
+  const [landed, setLanded] = useState(false);
+  const done = step >= HIW_STOPS.length;
+  // Auto-regie: intro → per stop (groot+schud → land in de route) → klaar. Tik versnelt.
+  useEffect(() => {
+    if (done) return;
+    const t = setTimeout(() => {
+      if (step === -1) setStep(0);
+      else if (!landed) setLanded(true);
+      else { setLanded(false); setStep(s => s + 1); }
+    }, step === -1 ? 1500 : !landed ? 1250 : 550);
+    return () => clearTimeout(t);
+  }, [step, landed, done]);
+  const advance = () => {
+    if (done) return;
+    if (step === -1) setStep(0);
+    else if (!landed) setLanded(true);
+    else { setLanded(false); setStep(s => s + 1); }
+  };
+  const shownCount = done ? HIW_STOPS.length : (landed ? step + 1 : step);
+  const bubbleText = done
+    ? "Golden rule: bundle everything into one box — cheaper per item, on the fee and the shipping. 🪙"
+    : step === -1 ? "Hi! Let me show you how Flowva works…" : HIW_STOPS[step].say;
   return (
     <>
       <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={onClose}
         style={{ position: "fixed", inset: 0, zIndex: 300, background: "rgba(0,0,0,0.5)", backdropFilter: "blur(6px)" }} />
       <motion.div initial={{ y: "100%" }} animate={{ y: 0 }} exit={{ y: "100%" }}
         transition={{ type: "spring", stiffness: 320, damping: 34 }}
-        style={{ position: "fixed", bottom: 0, left: 0, right: 0, margin: "0 auto", width: "100%", maxWidth: 430, boxSizing: "border-box", background: "#fff", borderRadius: "24px 24px 0 0", zIndex: 301, maxHeight: "92vh", overflowY: "auto", padding: "20px 20px 40px" }}>
-        <div style={{ width: 36, height: 4, background: "#E8E6E0", borderRadius: 2, margin: "0 auto 16px" }} />
-        <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 3 }}>
-          <span style={{ fontSize: 26 }}><Fox /></span>
-          <div style={{ fontSize: 20, fontWeight: 800, color: "#0F0E0C" }}>How Flowva works</div>
+        onClick={advance}
+        style={{ position: "fixed", bottom: 0, left: 0, right: 0, margin: "0 auto", width: "100%", maxWidth: 430, boxSizing: "border-box", background: "#fff", borderRadius: "24px 24px 0 0", zIndex: 301, maxHeight: "92vh", overflowY: "auto", padding: "20px 20px 36px", cursor: done ? "default" : "pointer" }}>
+        <div style={{ width: 36, height: 4, background: "#E8E6E0", borderRadius: 2, margin: "0 auto 14px" }} />
+        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          <div style={{ flex: 1, fontSize: 20, fontWeight: 800, color: "#0F0E0C" }}>How Flowva works</div>
+          {!done && (
+            <button onClick={(e) => { e.stopPropagation(); setStep(HIW_STOPS.length); setLanded(false); }}
+              style={{ background: "none", border: "none", color: "#A8A5A0", fontSize: 12.5, fontWeight: 700, cursor: "pointer", padding: "4px 2px" }}>Skip →</button>
+          )}
         </div>
-        <div style={{ fontSize: 13, color: "#8A8780", marginBottom: 18 }}>Factory prices, real photos, one parcel — duties included.</div>
+        <div style={{ fontSize: 12.5, color: "#8A8780", marginBottom: 6 }}>{done ? "Factory prices, one parcel — duties included." : "tap to speed up"}</div>
 
-        {steps.map((s, i) => (
-          <div key={i} style={{ display: "flex", gap: 13, marginBottom: 15 }}>
-            <div style={{ width: 40, height: 40, borderRadius: 12, background: "#FFF0E7", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20, flexShrink: 0 }}>{s.icon}</div>
-            <div style={{ flex: 1 }}>
-              <div style={{ fontSize: 14.5, fontWeight: 700, color: "#0F0E0C", marginBottom: 2 }}>{i + 1}. {s.title}</div>
-              <div style={{ fontSize: 13, color: "#6B6862", lineHeight: 1.5 }}>{s.body}</div>
-            </div>
-          </div>
-        ))}
-
-        <div style={{ background: "#FFF7F2", border: "1px solid rgba(255,92,0,0.25)", borderRadius: 16, padding: "14px 16px", marginBottom: 14 }}>
-          <div style={{ fontSize: 13, fontWeight: 800, color: "#B8430A", marginBottom: 3 }}><Fox /> Cheaper with Flowva Friends</div>
-          <div style={{ fontSize: 13, color: "#6B6862", lineHeight: 1.55 }}>Team up, combine everyone's items into one parcel and split the shipping — the cheapest way to ship, and the service fee drops too.</div>
-        </div>
-
-        <div style={{ background: "#0F0E0C", borderRadius: 16, padding: "15px 18px", marginBottom: 18 }}>
-          <div style={{ fontSize: 13, fontWeight: 800, color: "#FF5C00", marginBottom: 4 }}>The golden rule 🪙</div>
-          <div style={{ fontSize: 13.5, color: "#E8E6E0", lineHeight: 1.55 }}>Build your haul, then ship it as one box. The more you bundle, the less you pay per item — on both the fee and the shipping.</div>
+        {/* PODIUM: het icoon van de actieve stop verschijnt hier groot en schudt (bel-moment) */}
+        <div style={{ height: done ? 0 : 84, display: "flex", alignItems: "center", justifyContent: "center", transition: "height .35s ease" }}>
+          {!done && step >= 0 && !landed && (
+            <motion.span layoutId="hiw-ic"
+              animate={{ rotate: [0, -28, 20, -10, 0] }}
+              transition={{ layout: { type: "spring", stiffness: 260, damping: 24 }, rotate: { duration: 0.8, ease: [0.32, 0.72, 0, 1] } }}
+              style={{ display: "inline-block", fontSize: 52, lineHeight: 1, filter: "drop-shadow(0 10px 26px rgba(255,92,0,0.35))" }}>
+              {HIW_STOPS[step].icon}
+            </motion.span>
+          )}
         </div>
 
-        <motion.button whileTap={{ scale: 0.97 }} onClick={onClose}
-          style={{ width: "100%", background: "#FF5C00", color: "#fff", border: "none", borderRadius: 12, padding: "14px", fontSize: 15, fontWeight: 700, cursor: "pointer", WebkitTapHighlightColor: "transparent" }}>
-          Got it <Fox />
-        </motion.button>
+        {/* ROUTE: gelande stops langs de oranje stippellijn; de laatste tegel is het landingsdoel van de morph */}
+        <div style={{ position: "relative" }}>
+          {shownCount > 1 && <div style={{ position: "absolute", left: 19, top: 20, bottom: 20, borderLeft: "2px dashed #FFB98A" }} />}
+          {HIW_STOPS.slice(0, shownCount).map((s, i) => {
+            const isLanding = !done && landed && i === step;
+            return (
+              <motion.div key={s.title} initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} transition={springBouncy}
+                style={{ display: "flex", alignItems: "center", gap: 13, padding: "7px 0", position: "relative" }}>
+                <div style={{ width: 40, height: 40, borderRadius: 12, background: "#FFF0E7", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, position: "relative", zIndex: 1 }}>
+                  {isLanding
+                    ? <motion.span layoutId="hiw-ic"
+                        animate={{ rotate: [0, -14, 10, 0] }}
+                        transition={{ layout: { type: "spring", stiffness: 300, damping: 24 }, rotate: { delay: 0.35, duration: 0.5, ease: [0.32, 0.72, 0, 1] } }}
+                        style={{ display: "inline-block", fontSize: 20, lineHeight: 1 }}>{s.icon}</motion.span>
+                    : <span style={{ fontSize: 20, lineHeight: 1 }}>{s.icon}</span>}
+                </div>
+                <div style={{ minWidth: 0 }}>
+                  <div style={{ fontSize: 14.5, fontWeight: 700, color: "#0F0E0C" }}>{s.title}</div>
+                  <div style={{ fontSize: 12, color: "#8A8780" }}>{s.sub}</div>
+                </div>
+              </motion.div>
+            );
+          })}
+        </div>
+
+        {/* VOS: schuift mee omlaag met elke gelande stop (layout) en praat per stop woord-voor-woord */}
+        <motion.div layout transition={{ type: "spring", stiffness: 260, damping: 26 }}
+          style={{ display: "flex", gap: 10, alignItems: "flex-end", marginTop: 12 }}>
+          <motion.span layout style={{ fontSize: 34, flexShrink: 0, lineHeight: 1 }}><Fox /></motion.span>
+          <SpeechBubble bg="#1E1D1A" color="#fff">
+            <span style={{ fontSize: 13, lineHeight: 1.6, fontWeight: 600 }}>
+              <WordReveal key={bubbleText} text={bubbleText} delay={0.25} stagger={0.055} />
+            </span>
+          </SpeechBubble>
+        </motion.div>
+
+        {/* KLAAR: Friends-kaart + CTA poppen in */}
+        <AnimatePresence>
+          {done && (
+            <motion.div key="hiw-done" initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.5, ...springSoft }}>
+              <div style={{ background: "#FFF7F2", border: "1px solid rgba(255,92,0,0.25)", borderRadius: 16, padding: "13px 15px", margin: "16px 0 12px" }}>
+                <div style={{ fontSize: 13, fontWeight: 800, color: "#B8430A", marginBottom: 3 }}><Fox /> Cheaper with Flowva Friends</div>
+                <div style={{ fontSize: 12.5, color: "#6B6862", lineHeight: 1.55 }}>Team up — one shared parcel, split shipping, and the fee drops with every friend.</div>
+              </div>
+              <motion.button whileTap={{ scale: 0.97 }} onClick={(e) => { e.stopPropagation(); onClose(); }}
+                style={{ width: "100%", background: "#FF5C00", color: "#fff", border: "none", borderRadius: 12, padding: "14px", fontSize: 15, fontWeight: 700, cursor: "pointer", WebkitTapHighlightColor: "transparent" }}>
+                Start shopping <Fox />
+              </motion.button>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </motion.div>
     </>
   );

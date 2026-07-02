@@ -1117,11 +1117,11 @@ function EditProfileSheet({ session, onClose }) {
 // omlaag met elke gelande stop. Tik = versnellen; Skip = alles meteen.
 const HIW_STOPS = [
   { icon: "🏭", title: "Factory price", sub: "what it costs in China", say: "You shop at the real factory price — zero markup." },
-  { icon: "🛍️", title: "We buy it for you", sub: "no fee when you order", say: "I buy & check it for you — there's no fee when you order." },
+  { icon: "🛍️", title: "We buy it for you", sub: "no fee when you order", say: "I handle the buying process for you." },
   { icon: "🏬", title: "Your China warehouse", sub: "30 days free — keep adding", say: "Your items wait safely in your own warehouse, 30 days free." },
-  { icon: "📸", title: "Real photos first", sub: "see your actual item", say: "Before anything ships, you see photos of your actual item." },
-  { icon: "📦", title: "One parcel — duties paid", sub: "bundling = cheaper per item", say: "Everything goes as one parcel, duties paid — nothing at your door." },
-  { icon: "💸", title: "Only the real shipping", sub: "difference comes back", say: "You pay an estimate — any difference comes straight back." },
+  { icon: "📸", title: "Real photos first", sub: "see your actual item", say: "Before anything ships, you receive photos and measurements of your actual item." },
+  { icon: "📦", title: "One parcel — taxes paid", sub: "bundling = cheaper per item", say: "Everything ships together in one parcel — taxes and import fees included." },
+  { icon: "💸", title: "You only pay the actual shipping cost", sub: "difference comes back", say: "You pay an estimate — any difference comes straight back." },
 ];
 const HIW_INTRO = "Hey, let's explore Flowva together!";
 const HIW_GOLDEN = "Golden rule: bundle it all into one box — cheaper per item, on both the fee and the shipping. 🪙";
@@ -1167,14 +1167,12 @@ function HowItWorksSheet({ onClose }) {
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={advance}
       style={{ position: "fixed", inset: 0, zIndex: 300, background: "rgba(0,0,0,0.55)", backdropFilter: "blur(9px)", WebkitBackdropFilter: "blur(9px)", display: "flex", flexDirection: "column", alignItems: "center", overflowY: "auto", overscrollBehavior: "contain", padding: "0 22px 40px", cursor: done ? "default" : "pointer" }}>
 
-      {/* top-hoeken: Skip + sluiten */}
-      <div style={{ position: "sticky", top: 0, alignSelf: "stretch", display: "flex", justifyContent: "space-between", alignItems: "center", padding: "15px 2px 8px", zIndex: 5, background: "linear-gradient(rgba(15,14,12,0.5), rgba(15,14,12,0))" }}>
-        {!done
-          ? <button onClick={(e) => { e.stopPropagation(); skipAll(); }}
-              style={{ background: "none", border: "none", color: "rgba(255,255,255,0.6)", fontSize: 13, fontWeight: 700, cursor: "pointer", pointerEvents: "auto" }}>Skip</button>
-          : <span />}
-        <button onClick={(e) => { e.stopPropagation(); onClose(); }} aria-label="Close"
-          style={{ width: 32, height: 32, borderRadius: 16, border: "none", background: "rgba(255,255,255,0.14)", color: "#fff", fontSize: 15, cursor: "pointer", pointerEvents: "auto", lineHeight: 1 }}>✕</button>
+      {/* top-hoek: Skip (het kruisje is weg — Skip is voldoende) */}
+      <div style={{ position: "sticky", top: 0, alignSelf: "stretch", display: "flex", justifyContent: "flex-start", alignItems: "center", padding: "15px 2px 8px", zIndex: 5, background: "linear-gradient(rgba(15,14,12,0.5), rgba(15,14,12,0))" }}>
+        {!done && (
+          <button onClick={(e) => { e.stopPropagation(); skipAll(); }}
+            style={{ background: "none", border: "none", color: "rgba(255,255,255,0.6)", fontSize: 13, fontWeight: 700, cursor: "pointer", pointerEvents: "auto" }}>Skip</button>
+        )}
       </div>
 
       {/* VOS dead-center (beat 0) — eigen FIXED laag zodat de layoutId-morph naar de wolk
@@ -1205,7 +1203,7 @@ function HowItWorksSheet({ onClose }) {
               style={{ position: "absolute", right: -8, bottom: 13, width: 0, height: 0, borderTop: "8px solid transparent", borderBottom: "8px solid transparent", borderLeft: "9px solid #1E1D1A" }} />
             {/* de vos hangt onder de betreffende hoek en morpht van links naar rechts */}
             <motion.span layoutId="hiw-fox" transition={{ layout: morph }}
-              style={{ position: "absolute", bottom: -30, [foxSide]: -34, fontSize: 34, lineHeight: 1, display: "inline-block" }}><Fox /></motion.span>
+              style={{ position: "absolute", bottom: -20, [foxSide]: -34, fontSize: 34, lineHeight: 1, display: "inline-block" }}><Fox /></motion.span>
           </div>
         )}
 
@@ -1244,7 +1242,8 @@ function HowItWorksSheet({ onClose }) {
           {done && (
             <motion.div key="hiw-done" initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4, ...springSoft }}
               style={{ width: "100%", marginTop: 10 }}>
-              <div style={{ background: "rgba(255,92,0,0.12)", border: "1px solid rgba(255,146,79,0.35)", borderRadius: 16, padding: "13px 15px", marginBottom: 12 }}>
+              <div style={{ position: "relative", background: "rgba(255,92,0,0.12)", border: "1px solid rgba(255,146,79,0.35)", borderRadius: 16, padding: "15px 15px 13px", marginBottom: 12 }}>
+                <div style={{ position: "absolute", top: -9, right: 12, background: "#FF5C00", color: "#fff", fontSize: 9, fontWeight: 800, letterSpacing: 0.5, textTransform: "uppercase", padding: "3px 9px", borderRadius: 20, boxShadow: "0 4px 12px rgba(255,92,0,0.45)" }}>★ Highly recommended</div>
                 <div style={{ fontSize: 13, fontWeight: 800, color: "#FF8A3D", marginBottom: 3 }}><Fox /> Cheaper with Flowva Friends</div>
                 <div style={{ fontSize: 12.5, color: "rgba(255,255,255,0.7)", lineHeight: 1.55 }}>Team up — one shared parcel, split shipping, and the fee drops with every friend.</div>
               </div>
@@ -2001,15 +2000,19 @@ export default function SupplyFlow({ session }) {
       });
   }, [showRequestList]);
 
-  // Toon "How Flowva works" één keer automatisch bij de allereerste keer.
+  // Toon "How Flowva works" één keer automatisch bij de allereerste keer — ALLEEN voor
+  // gasten (ingelogde gebruikers kennen de app al; zij openen 'm via Profile → How Flowva
+  // works). Deps op isGuest: logt iemand snel in (sessie laadt), dan ruimt de cleanup de
+  // 900ms-timer op vóór 'ie vuurt, dus de tour verschijnt niet voor ingelogde gebruikers.
   useEffect(() => {
+    if (!isGuest) return;
     try {
       if (!localStorage.getItem(lsKey("flowva_seen_howitworks"))) {
         const t = setTimeout(() => setShowHowItWorks(true), 900);
         return () => clearTimeout(t);
       }
     } catch { /* localStorage kan geblokkeerd zijn */ }
-  }, []);
+  }, [isGuest]);
   const closeHowItWorks = () => {
     try { localStorage.setItem(lsKey("flowva_seen_howitworks"), "1"); } catch { /* ignore */ }
     setShowHowItWorks(false);

@@ -47,17 +47,22 @@ export default function OrderRequest({ product, session, onRequireAuth, onClose,
         && o.combo.every(c => selectedVariants[c.name] === c.value))
     : false;
 
-  // Foto die hoort bij de laatst gekozen optie (bijv. "Wit" → witte foto),
-  // anders de standaard productfoto.
+  // Foto die hoort bij de laatst gekozen optie (bijv. "Wit" → witte foto).
+  // Alleen nog gebruikt voor de order-thumbnail; de hoofdfoto wordt gestuurd door de galerij.
   const variantImage = Object.values(selectedVariants).map(opt => product.variant_images?.[opt]).filter(Boolean).pop();
-  // Hoofdfoto-galerij: alle officiële foto's, klant tikt erdoorheen.
-  const photos = [...new Set([...(product.gallery || []), product.image].filter(u => typeof u === "string" && u.startsWith("http")))];
+  // Hoofdfoto-galerij: álle officiële foto's + de per-variant toegewezen foto's, zodat een
+  // kleurfoto altijd gewoon ín de galerij staat (doorswipen blijft werken, ook ná een keuze).
+  const variantPhotos = Object.values(product.variant_images || {}).filter(u => typeof u === "string" && u.startsWith("http"));
+  const photos = [...new Set([...(product.gallery || []), product.image, ...variantPhotos].filter(u => typeof u === "string" && u.startsWith("http")))];
   // Start op de feedkaart-foto (product.image) als die er is: die is al gedecodeerd, dus
   // de hero-morph hergebruikt hetzelfde beeld i.p.v. mid-vlucht een verse full-res foto te
   // fetchen (dat gaf een hik). De galerij-strip laat alsnog alle foto's kiezen.
   const heroStart = (product.image?.startsWith("http") ? product.image : null) || photos[0] || null;
   const [galleryPhoto, setGalleryPhoto] = useState(heroStart);
-  const displayImage = variantImage || galleryPhoto || (product.image?.startsWith("http") ? product.image : null);
+  // Eén bron voor de hoofdfoto = de galerij. Een kleurkeuze springt de galerij naar de
+  // bijbehorende foto (zie de variant-knop) i.p.v. de hero vast te zetten — zo blijft de
+  // galerij altijd bedienbaar en krijgt de gekozen foto gewoon de oranje omlijning.
+  const displayImage = galleryPhoto || (product.image?.startsWith("http") ? product.image : null);
 
   // Valideert varianten en bouwt het order-item (zonder id/status) —
   // gedeeld door "direct versturen" en "toevoegen aan aanvraaglijst".
@@ -78,7 +83,7 @@ export default function OrderRequest({ product, session, onRequireAuth, onClose,
       price: product.price,
       qty: aantal,
       kleur: variantString,
-      variant_image: displayImage,
+      variant_image: variantImage || displayImage,
       opmerking,
     };
   };
@@ -260,7 +265,7 @@ export default function OrderRequest({ product, session, onRequireAuth, onClose,
             {photos.length > 1 && (
               <motion.div variants={fadeUp} style={{ display: "flex", gap: 8, overflowX: "auto", marginBottom: product.description ? 16 : 24, paddingBottom: 2 }}>
                 {photos.map((url) => {
-                  const active = !variantImage && displayImage === url;
+                  const active = displayImage === url;
                   return (
                     <button key={url} onClick={() => setGalleryPhoto(url)}
                       style={{ flexShrink: 0, width: 54, height: 54, borderRadius: 10, overflow: "hidden", border: `2px solid ${active ? "#FF5C00" : "#E8E6E0"}`, background: "#fff", padding: 0, cursor: "pointer" }}>
@@ -290,7 +295,7 @@ export default function OrderRequest({ product, session, onRequireAuth, onClose,
                       whileTap={oos ? {} : { scale: 0.85 }}
                       animate={{ scale: !oos && selectedVariants[variant.name] === opt ? [1, 1.15, 1] : 1 }}
                       transition={{ duration: 0.3, type: "spring", stiffness: 300 }}
-                      onClick={() => { if (oos) return; setSelectedVariants({ ...selectedVariants, [variant.name]: opt }); setMissingVariants(m => m.filter(n => n !== variant.name)); }}
+                      onClick={() => { if (oos) return; setSelectedVariants({ ...selectedVariants, [variant.name]: opt }); setMissingVariants(m => m.filter(n => n !== variant.name)); const vimg = product.variant_images?.[opt]; if (vimg && vimg.startsWith("http")) setGalleryPhoto(vimg); }}
                       style={{ position: "relative", padding: "10px 18px", borderRadius: 12, border: `1.5px solid ${oos ? "#EAE7E0" : selectedVariants[variant.name] === opt ? "#0F0E0C" : missing ? "#FCA5A5" : "#E8E6E0"}`, background: oos ? "#F3F1EC" : selectedVariants[variant.name] === opt ? "#0F0E0C" : "#fff", color: oos ? "#B6B2AB" : selectedVariants[variant.name] === opt ? "#fff" : "#555", fontSize: 13, fontWeight: 600, cursor: oos ? "not-allowed" : "pointer" }}>
                       {!oos && selectedVariants[variant.name] === opt && (
                         <motion.svg width="11" height="11" viewBox="0 0 24 24" fill="none" style={{ marginRight: 6, verticalAlign: "-1px" }}>

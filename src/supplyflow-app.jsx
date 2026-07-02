@@ -1166,12 +1166,16 @@ function HowItWorksSheet({ onClose }) {
 // de vlucht niet beïnvloeden. De starttangens wijst náár het controlepunt → dat
 // linksboven het startpunt leggen geeft precies "eerst een beetje links omhoog".
 function ArcGhost({ f, onDone }) {
+  // Easing IN de gesamplede punten bakken + linear afspelen: één ease over de hele
+  // vlucht. (Een ease op een keyframes-array werkt per tussen-segmentje → dat gaf op
+  // kleine schermen zichtbare "hobbels", alsof het twee bogen waren.)
   const N = 22;
   const cx = f.sx - 80;
   const cy = Math.min(f.sy, f.ty) - 110;
+  const easeIO = (t) => (t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2);
   const xs = [], ys = [];
   for (let i = 0; i <= N; i++) {
-    const t = i / N, u = 1 - t;
+    const t = easeIO(i / N), u = 1 - t;
     xs.push(u * u * f.sx + 2 * u * t * cx + t * t * f.tx);
     ys.push(u * u * f.sy + 2 * u * t * cy + t * t * f.ty);
   }
@@ -1179,7 +1183,7 @@ function ArcGhost({ f, onDone }) {
     <motion.span
       initial={{ x: xs[0], y: ys[0], scale: 1 }}
       animate={{ x: xs, y: ys, scale: [1, 1.35, 1] }}
-      transition={{ duration: 0.8, ease: "easeInOut" }}
+      transition={{ duration: 0.8, ease: "linear", scale: { duration: 0.8, ease: "easeInOut" } }}
       onAnimationComplete={onDone}
       style={{ position: "fixed", left: -14, top: -14, width: 28, height: 28, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 19, lineHeight: 1, zIndex: 9800, pointerEvents: "none" }}>
       {f.emoji}
@@ -1193,6 +1197,47 @@ function ArcGhost({ f, onDone }) {
 // onderweg → het eigen icoon wacht verborgen en popt binnen bij de landing.
 function DiamondSheet({ onClose, arriving = false }) {
   useBodyScrollLock(true);
+  // 🎇 Waterval-cascade (naar de schets van de user): ná de landing van de boogvlucht
+  // valt één diamant uit het header-icoon naar rij 1; daar splitst 'ie in tweeën → rij 2;
+  // per rij vallen de linkse(n) recht omlaag en splitst alleen de rechtse → tot rij 4 vol
+  // is (Pascal-driehoek). De échte diamanten per rij wachten verborgen tot hun ghost
+  // landt, en poppen dan binnen.
+  const sheetRef = useRef(null);
+  const [revealed, setRevealed] = useState(0);   // hoogste rij met zichtbare echte gems
+  const [drops, setDrops] = useState([]);        // vallende ghost-diamanten
+  const started = useRef(false);
+  const timers = useRef([]);
+  useEffect(() => () => timers.current.forEach(clearTimeout), []);
+  useEffect(() => {
+    if (arriving || started.current) return;
+    const kick = setTimeout(() => {
+      if (started.current) return;
+      started.current = true;
+      const sheet = sheetRef.current;
+      const sr = sheet?.getBoundingClientRect();
+      const pos = (sel) => {
+        const el = sheet?.querySelector(sel);
+        if (!el) return null;
+        const r = el.getBoundingClientRect();
+        return { x: r.left + r.width / 2 - sr.left, y: r.top + r.height / 2 - sr.top + sheet.scrollTop };
+      };
+      const H = sheet ? pos("[data-diamond-icon]") : null;
+      const P = {};
+      if (H) for (let row = 1; row <= 4; row++) for (let i = 0; i < row; i++) P[`${row}-${i}`] = pos(`[data-gem="${row}-${i}"]`);
+      if (!H || Object.values(P).some((p) => !p)) { setRevealed(4); return; }   // meetprobleem → alles gewoon tonen
+      const LEG = 0.5, GAP = 0.55;
+      const legs = [{ f: H, t: P["1-0"], d: 0 }];
+      for (let row = 1; row <= 3; row++) {
+        for (let i = 0; i < row; i++) legs.push({ f: P[`${row}-${i}`], t: P[`${row + 1}-${i}`], d: row * GAP });
+        legs.push({ f: P[`${row}-${row - 1}`], t: P[`${row + 1}-${row}`], d: row * GAP });   // de splitser
+      }
+      setDrops(legs.map((l, i) => ({ id: i, fx: l.f.x, fy: l.f.y, tx: l.t.x, ty: l.t.y, delay: l.d })));
+      for (let row = 1; row <= 4; row++) timers.current.push(setTimeout(() => setRevealed(row), ((row - 1) * GAP + LEG) * 1000));
+      timers.current.push(setTimeout(() => setDrops([]), (3 * GAP + LEG + 0.4) * 1000));
+    }, 500);
+    timers.current.push(kick);
+    return () => clearTimeout(kick);
+  }, [arriving]);
   const card = { background: "#fff", border: "1px solid #ECEAE5", borderRadius: 16, padding: "14px 16px", marginBottom: 12 };
   const sectionLabel = { fontSize: 11, fontWeight: 700, letterSpacing: 0.5, color: "#A8A5A0", marginBottom: 2 };
   const Level = ({ gems, name, tag, desc }) => (
@@ -1200,7 +1245,14 @@ function DiamondSheet({ onClose, arriving = false }) {
       <div style={{ flexShrink: 0, width: 92 }}>
         {gems > 0 ? (
           <>
-            <div style={{ fontSize: 14, letterSpacing: 1, lineHeight: 1 }}>{"💎".repeat(gems)}</div>
+            <div style={{ fontSize: 14, lineHeight: 1, display: "flex", gap: 3 }}>
+              {Array.from({ length: gems }, (_, i) => (
+                <motion.span key={i} data-gem={`${gems}-${i}`} initial={false}
+                  animate={revealed >= gems ? { opacity: 1, scale: 1 } : { opacity: 0, scale: 0.3 }}
+                  transition={{ ...springBouncy, delay: revealed >= gems ? i * 0.06 : 0 }}
+                  style={{ display: "inline-block" }}>💎</motion.span>
+              ))}
+            </div>
             <div style={{ fontSize: 11.5, fontWeight: 700, color: "#FF5C00", marginTop: 5 }}>{name}</div>
           </>
         ) : (
@@ -1224,7 +1276,7 @@ function DiamondSheet({ onClose, arriving = false }) {
     <>
       <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={onClose}
         style={{ position: "fixed", inset: 0, zIndex: 300, background: "rgba(0,0,0,0.5)", backdropFilter: "blur(6px)" }} />
-      <motion.div data-diamond-sheet initial={{ y: "100%" }} animate={{ y: 0 }} exit={{ y: "100%" }}
+      <motion.div ref={sheetRef} data-diamond-sheet initial={{ y: "100%" }} animate={{ y: 0 }} exit={{ y: "100%" }}
         transition={{ type: "spring", stiffness: 320, damping: 34 }}
         style={{ position: "fixed", bottom: 0, left: 0, right: 0, margin: "0 auto", width: "100%", maxWidth: 430, boxSizing: "border-box", background: "#F8F7F4", borderRadius: "24px 24px 0 0", zIndex: 301, maxHeight: "92vh", overflowY: "auto", overscrollBehavior: "contain", padding: "18px 16px 36px" }}>
         <div style={{ width: 36, height: 4, background: "#D8D5CF", borderRadius: 2, margin: "0 auto 16px" }} />
@@ -1264,6 +1316,15 @@ function DiamondSheet({ onClose, arriving = false }) {
         <button onClick={onClose} style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 7, width: "100%", background: "#111", color: "#fff", border: "none", borderRadius: 14, padding: "14px", fontSize: 14, fontWeight: 700, cursor: "pointer" }}>
           Got it <Fox />
         </button>
+
+        {/* de vallende cascade-diamanten (scrollen mee met de sheet-inhoud) */}
+        {drops.map((d) => (
+          <motion.span key={d.id}
+            initial={{ x: d.fx, y: d.fy, opacity: 0, scale: 0.9 }}
+            animate={{ x: d.tx, y: d.ty, opacity: 1, scale: 1 }}
+            transition={{ delay: d.delay, duration: 0.5, ease: "easeInOut", opacity: { delay: d.delay, duration: 0.12 } }}
+            style={{ position: "absolute", left: -7, top: -8, fontSize: 13, lineHeight: 1, zIndex: 6, pointerEvents: "none" }}>💎</motion.span>
+        ))}
       </motion.div>
     </>
   );
@@ -3391,8 +3452,9 @@ export default function SupplyFlow({ session }) {
         )}
       </AnimatePresence>
 
-      {/* Bottom nav */}
-      <div style={{ position: "fixed", zIndex: 100, bottom: 0, left: "50%", transform: "translateX(-50%)", width: "100%", maxWidth: 430, background: "#fff", borderTop: "1px solid #ECEAE5", display: "flex", padding: "9px 0 15px" }}>
+      {/* Bottom nav — layoutRoot: fixed ouder van de navPill (layoutId), anders animeert
+          de pill mee met pagina-scroll-sprongen (bv. de scroll-restore bij terug-naar-feed) */}
+      <motion.div layoutRoot style={{ position: "fixed", zIndex: 100, bottom: 0, left: "50%", transform: "translateX(-50%)", width: "100%", maxWidth: 430, background: "#fff", borderTop: "1px solid #ECEAE5", display: "flex", padding: "9px 0 15px" }}>
         {[
           { id: "feed", Icon: Home, label: "Feed" },
           { id: "orders", Icon: Package, label: "Orders" },
@@ -3420,7 +3482,7 @@ export default function SupplyFlow({ session }) {
             </motion.button>
           );
         })}
-      </div>
+      </motion.div>
     </div>
   );
 }

@@ -9,9 +9,15 @@ import Fox from "./Fox";
 export function useBodyScrollLock(active = true) {
   useEffect(() => {
     if (!active) return;
-    const prev = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    return () => { document.body.style.overflow = prev; };
+    const b = document.body.style;
+    const prev = { overflow: b.overflow, paddingRight: b.paddingRight };
+    // Desktop: overflow:hidden laat de scrollbalk verdwijnen → de pagina wordt ~17px
+    // breder en reflowt → framer-layout-elementen "springen" bij openen/sluiten.
+    // Reserveer de scrollbalk-breedte als padding zodat de layout exact gelijk blijft.
+    const gutter = window.innerWidth - document.documentElement.clientWidth;
+    if (gutter > 0) b.paddingRight = `${gutter}px`;
+    b.overflow = "hidden";
+    return () => { b.overflow = prev.overflow; b.paddingRight = prev.paddingRight; };
   }, [active]);
 }
 

@@ -1118,10 +1118,10 @@ function EditProfileSheet({ session, onClose }) {
 const HIW_STOPS = [
   { icon: "🏭", title: "Factory price", sub: "what it costs in China", say: "You shop at the real factory price — zero markup." },
   { icon: "🛍️", title: "We buy it for you", sub: "no fee when you order", say: "I handle the buying process for you." },
-  { icon: "🏬", title: "Your China warehouse", sub: "30 days free — keep adding", say: "Your items wait safely in your own warehouse, 30 days free." },
+  { icon: "🏬", title: "Stored in our warehouse", sub: "30 days free — keep adding", say: "Your items stay safely stored in our warehouse — free for 30 days." },
   { icon: "📸", title: "Real photos first", sub: "see your actual item", say: "Before anything ships, you receive photos and measurements of your actual item." },
-  { icon: "📦", title: "One parcel — taxes paid", sub: "bundling = cheaper per item", say: "Everything ships together in one parcel — taxes and import fees included." },
-  { icon: "💸", title: "You only pay the actual shipping cost", sub: "difference comes back", say: "You pay an estimate — any difference comes straight back." },
+  { icon: "📦", title: "One parcel — taxes paid", sub: "bundling = cheaper per item", say: "Everything ships together in one parcel — taxes and import fees are included." },
+  { icon: "💸", title: "Cut out the middleman", sub: "No retail markups.", say: "Enjoy clothes at prices you won't find elsewhere." },
 ];
 const HIW_INTRO = "Hey, let's explore Flowva together!";
 const HIW_GOLDEN = "Golden rule: bundle it all into one box — cheaper per item, on both the fee and the shipping. 🪙";
@@ -1203,7 +1203,7 @@ function HowItWorksSheet({ onClose }) {
               style={{ position: "absolute", right: -8, bottom: 13, width: 0, height: 0, borderTop: "8px solid transparent", borderBottom: "8px solid transparent", borderLeft: "9px solid #1E1D1A" }} />
             {/* de vos hangt onder de betreffende hoek en morpht van links naar rechts */}
             <motion.span layoutId="hiw-fox" transition={{ layout: morph }}
-              style={{ position: "absolute", bottom: -20, [foxSide]: -34, fontSize: 34, lineHeight: 1, display: "inline-block" }}><Fox /></motion.span>
+              style={{ position: "absolute", bottom: -2, [foxSide]: -28, fontSize: 34, lineHeight: 1, display: "inline-block" }}><Fox /></motion.span>
           </div>
         )}
 
@@ -1245,7 +1245,7 @@ function HowItWorksSheet({ onClose }) {
               <div style={{ position: "relative", background: "rgba(255,92,0,0.12)", border: "1px solid rgba(255,146,79,0.35)", borderRadius: 16, padding: "15px 15px 13px", marginBottom: 12 }}>
                 <div style={{ position: "absolute", top: -9, right: 12, background: "#FF5C00", color: "#fff", fontSize: 9, fontWeight: 800, letterSpacing: 0.5, textTransform: "uppercase", padding: "3px 9px", borderRadius: 20, boxShadow: "0 4px 12px rgba(255,92,0,0.45)" }}>★ Highly recommended</div>
                 <div style={{ fontSize: 13, fontWeight: 800, color: "#FF8A3D", marginBottom: 3 }}><Fox /> Cheaper with Flowva Friends</div>
-                <div style={{ fontSize: 12.5, color: "rgba(255,255,255,0.7)", lineHeight: 1.55 }}>Team up — one shared parcel, split shipping, and the fee drops with every friend.</div>
+                <div style={{ fontSize: 12.5, color: "rgba(255,255,255,0.7)", lineHeight: 1.55 }}>Share one parcel, split shipping costs, and save more with every friend you invite.</div>
               </div>
               <motion.button whileTap={{ scale: 0.97 }} onClick={(e) => { e.stopPropagation(); onClose(); }}
                 style={{ width: "100%", background: "#FF5C00", color: "#fff", border: "none", borderRadius: 13, padding: "15px", fontSize: 15, fontWeight: 700, cursor: "pointer", WebkitTapHighlightColor: "transparent" }}>

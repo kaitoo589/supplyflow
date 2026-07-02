@@ -3437,9 +3437,13 @@ export default function SupplyFlow({ session }) {
         )}
         {showVable && (
           <>
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setShowVable(false)}
+            {/* Stabiele keys: anders hergebruikt React de DOM-node van een unmountende
+                sibling (de cart-pop-balk met layoutId) voor deze backdrop → framer's
+                inline-styles (border-radius/box-shadow/translate) blijven plakken en
+                geven een rare "boog" achter de sheet. */}
+            <motion.div key="vable-backdrop" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setShowVable(false)}
               style={{ position: "fixed", inset: 0, zIndex: 300, background: "rgba(0,0,0,0.55)", backdropFilter: "blur(6px)" }} />
-            <motion.div initial={{ y: "100%" }} animate={{ y: 0 }} exit={{ y: "100%" }} transition={{ type: "spring", stiffness: 320, damping: 34 }}
+            <motion.div key="vable-sheet" initial={{ y: "100%" }} animate={{ y: 0 }} exit={{ y: "100%" }} transition={{ type: "spring", stiffness: 320, damping: 34 }}
               style={{ position: "fixed", bottom: 0, left: 0, right: 0, margin: "0 auto", width: "100%", maxWidth: 430, boxSizing: "border-box", background: "#fff", borderRadius: "24px 24px 0 0", zIndex: 301, maxHeight: "88vh", overflowY: "auto", padding: 0 }}>
               <div style={{ position: "relative", width: "100%", aspectRatio: "1080 / 1934", background: "#0b101d", overflow: "hidden" }}>
                 <video src="/vable/hero.mp4" poster="/vable/hero-poster.jpg" autoPlay loop muted playsInline preload="auto"
@@ -3508,7 +3512,7 @@ export default function SupplyFlow({ session }) {
           </motion.div>
         )}
         {requestList.length > 0 && tab === "feed" && !showRequestList && !selectedProduct && !showFriends && !activeGroupShopping && !showVable && !hypeProduct && (
-          <motion.div layoutId="cart-pop" layoutRoot initial={{ y: 24, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 30, opacity: 0, scale: 0.96 }} whileTap={{ scaleX: 1.03, scaleY: 0.93 }} transition={springMorph}
+          <motion.div key="cart-pop-bar" layoutId="cart-pop" layoutRoot initial={{ y: 24, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 30, opacity: 0, scale: 0.96 }} whileTap={{ scaleX: 1.03, scaleY: 0.93 }} transition={springMorph}
             onClick={() => { setListError(null); setShowRequestList(true); }}
             style={{ position: "fixed", bottom: 86, left: 0, right: 0, margin: "0 auto", width: "calc(100% - 40px)", maxWidth: 390, background: "#111111", borderRadius: 999, overflow: "hidden", cursor: "pointer", zIndex: 301, boxShadow: "0 12px 40px rgba(17,17,17,0.35)" }}>
             <div style={{ padding: "11px 18px", display: "flex", alignItems: "center", gap: 12 }}>

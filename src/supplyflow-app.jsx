@@ -3464,10 +3464,10 @@ export default function SupplyFlow({ session }) {
         )}
       </AnimatePresence>
 
-      {/* Bottom nav — layout+layoutRoot: fixed ouder van de navPill (layoutId). layoutRoot
-          werkt alléén samen met layout; dan meet de pill relatief aan deze balk en telt een
-          pagina-scroll-sprong (scroll-restore bij terug-naar-feed) niet meer als beweging. */}
-      <motion.div layout layoutRoot style={{ position: "fixed", zIndex: 100, bottom: 0, left: "50%", transform: "translateX(-50%)", width: "100%", maxWidth: 430, background: "#fff", borderTop: "1px solid #ECEAE5", display: "flex", padding: "9px 0 15px" }}>
+      {/* Bottom nav — layout+layoutRoot isoleert de navPill (layoutId) van pagina-scroll-
+          sprongen. LET OP: centreren via left/right+margin, NIET via transform — framer's
+          layout-projectie zet z'n eigen transform en overschrijft translateX(-50%). */}
+      <motion.div layout layoutRoot style={{ position: "fixed", zIndex: 100, bottom: 0, left: 0, right: 0, margin: "0 auto", width: "100%", maxWidth: 430, background: "#fff", borderTop: "1px solid #ECEAE5", display: "flex", padding: "9px 0 15px" }}>
         {[
           { id: "feed", Icon: Home, label: "Feed" },
           { id: "orders", Icon: Package, label: "Orders" },

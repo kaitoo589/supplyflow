@@ -271,6 +271,50 @@ export default function OrderRequest({ product, session, onRequireAuth, onClose,
               </motion.div>
             )}
 
+            {/* Kleur/size-keuze bovenaan: zo ziet de klant direct hoe elke kleur eruitziet
+                (de gekozen optie wisselt de hoofdfoto). Rest van de volgorde blijft gelijk. */}
+            {productVariants && productVariants.map((variant) => {
+              const missing = missingVariants.includes(variant.name);
+              return (
+              <motion.div key={variant.name} variants={fadeUp} style={{ marginBottom: 24 }}>
+                <div style={{ fontSize: 13, fontWeight: 600, color: missing ? "#DC2626" : "#0F0E0C", marginBottom: 10 }}>
+                  {variant.name}
+                  {missing && <span style={{ color: "#DC2626", fontWeight: 700, marginLeft: 8 }}>· Choose an option</span>}
+                </div>
+                <motion.div animate={missing ? { x: [0, -8, 8, -6, 6, 0] } : { x: 0 }} transition={{ duration: 0.4 }} style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+                  {variant.options.map(opt => {
+                    const oos = isOos(variant.name, opt);
+                    return (
+                    <motion.button key={opt}
+                      whileHover={oos ? {} : { scale: 1.05 }}
+                      whileTap={oos ? {} : { scale: 0.85 }}
+                      animate={{ scale: !oos && selectedVariants[variant.name] === opt ? [1, 1.15, 1] : 1 }}
+                      transition={{ duration: 0.3, type: "spring", stiffness: 300 }}
+                      onClick={() => { if (oos) return; setSelectedVariants({ ...selectedVariants, [variant.name]: opt }); setMissingVariants(m => m.filter(n => n !== variant.name)); }}
+                      style={{ position: "relative", padding: "10px 18px", borderRadius: 12, border: `1.5px solid ${oos ? "#EAE7E0" : selectedVariants[variant.name] === opt ? "#0F0E0C" : missing ? "#FCA5A5" : "#E8E6E0"}`, background: oos ? "#F3F1EC" : selectedVariants[variant.name] === opt ? "#0F0E0C" : "#fff", color: oos ? "#B6B2AB" : selectedVariants[variant.name] === opt ? "#fff" : "#555", fontSize: 13, fontWeight: 600, cursor: oos ? "not-allowed" : "pointer" }}>
+                      {!oos && selectedVariants[variant.name] === opt && (
+                        <motion.svg width="11" height="11" viewBox="0 0 24 24" fill="none" style={{ marginRight: 6, verticalAlign: "-1px" }}>
+                          <motion.path d="M4 12.5L9.5 18L20 6.5" stroke="#FF5C00" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round"
+                            initial={{ pathLength: 0 }} animate={{ pathLength: 1 }} transition={{ duration: 0.22, ease: "easeOut" }} />
+                        </motion.svg>
+                      )}
+                      <span style={{ textDecoration: oos ? "line-through" : "none" }}>{opt}</span>
+                      {oos && <span style={{ display: "block", fontSize: 9, fontWeight: 700, color: "#DC2626", letterSpacing: 0.3, marginTop: 1 }}>OUT OF STOCK</span>}
+                    </motion.button>
+                    );
+                  })}
+                </motion.div>
+              </motion.div>
+              );
+            })}
+
+            {comboOos && (
+              <motion.div initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }}
+                style={{ marginTop: -10, marginBottom: 20, background: "#FEF2F2", border: "1px solid #FECACA", borderRadius: 10, padding: "9px 12px", fontSize: 12, fontWeight: 600, color: "#DC2626" }}>
+                ✕ This combination is sold out at the factory — try a different option.
+              </motion.div>
+            )}
+
             {/* Beschrijving */}
             {product.description && (
               <motion.div variants={fadeUp} style={{ marginBottom: 24 }}>
@@ -343,49 +387,6 @@ export default function OrderRequest({ product, session, onRequireAuth, onClose,
               </div>
             </motion.div>
 
-            {/* Custom varianten */}
-            {productVariants && productVariants.map((variant) => {
-              const missing = missingVariants.includes(variant.name);
-              return (
-              <motion.div key={variant.name} variants={fadeUp} style={{ marginBottom: 24 }}>
-                <div style={{ fontSize: 13, fontWeight: 600, color: missing ? "#DC2626" : "#0F0E0C", marginBottom: 10 }}>
-                  {variant.name}
-                  {missing && <span style={{ color: "#DC2626", fontWeight: 700, marginLeft: 8 }}>· Choose an option</span>}
-                </div>
-                <motion.div animate={missing ? { x: [0, -8, 8, -6, 6, 0] } : { x: 0 }} transition={{ duration: 0.4 }} style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
-                  {variant.options.map(opt => {
-                    const oos = isOos(variant.name, opt);
-                    return (
-                    <motion.button key={opt}
-                      whileHover={oos ? {} : { scale: 1.05 }}
-                      whileTap={oos ? {} : { scale: 0.85 }}
-                      animate={{ scale: !oos && selectedVariants[variant.name] === opt ? [1, 1.15, 1] : 1 }}
-                      transition={{ duration: 0.3, type: "spring", stiffness: 300 }}
-                      onClick={() => { if (oos) return; setSelectedVariants({ ...selectedVariants, [variant.name]: opt }); setMissingVariants(m => m.filter(n => n !== variant.name)); }}
-                      style={{ position: "relative", padding: "10px 18px", borderRadius: 12, border: `1.5px solid ${oos ? "#EAE7E0" : selectedVariants[variant.name] === opt ? "#0F0E0C" : missing ? "#FCA5A5" : "#E8E6E0"}`, background: oos ? "#F3F1EC" : selectedVariants[variant.name] === opt ? "#0F0E0C" : "#fff", color: oos ? "#B6B2AB" : selectedVariants[variant.name] === opt ? "#fff" : "#555", fontSize: 13, fontWeight: 600, cursor: oos ? "not-allowed" : "pointer" }}>
-                      {!oos && selectedVariants[variant.name] === opt && (
-                        <motion.svg width="11" height="11" viewBox="0 0 24 24" fill="none" style={{ marginRight: 6, verticalAlign: "-1px" }}>
-                          <motion.path d="M4 12.5L9.5 18L20 6.5" stroke="#FF5C00" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round"
-                            initial={{ pathLength: 0 }} animate={{ pathLength: 1 }} transition={{ duration: 0.22, ease: "easeOut" }} />
-                        </motion.svg>
-                      )}
-                      <span style={{ textDecoration: oos ? "line-through" : "none" }}>{opt}</span>
-                      {oos && <span style={{ display: "block", fontSize: 9, fontWeight: 700, color: "#DC2626", letterSpacing: 0.3, marginTop: 1 }}>OUT OF STOCK</span>}
-                    </motion.button>
-                    );
-                  })}
-                </motion.div>
-              </motion.div>
-              );
-            })}
-
-            {comboOos && (
-              <motion.div initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }}
-                style={{ marginTop: -10, marginBottom: 20, background: "#FEF2F2", border: "1px solid #FECACA", borderRadius: 10, padding: "9px 12px", fontSize: 12, fontWeight: 600, color: "#DC2626" }}>
-                ✕ This combination is sold out at the factory — try a different option.
-              </motion.div>
-            )}
-
             {(product.size_chart?.measures?.length > 0 || product.size_chart?.image) && (
               <motion.button variants={fadeUp} type="button" onClick={() => setShowSizeGuide(true)}
                 style={{ width: "100%", marginBottom: 16, background: "#F8F7F4", color: "#111", border: "1px solid #E8E6E0", borderRadius: 12, padding: "12px", fontSize: 13.5, fontWeight: 700, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
@@ -399,20 +400,6 @@ export default function OrderRequest({ product, session, onRequireAuth, onClose,
                 {error}
               </motion.div>
             )}
-
-            <motion.div variants={fadeUp}
-              style={{ background: "#F8F7F4", borderRadius: 10, padding: "10px 14px", marginBottom: 10, fontSize: 12, color: "#888" }}>
-              💡 No service fee now — today you only pay the factory price. A single service fee (8%, min €5) and international shipping are paid later, when you ship your bundle — so bundling keeps everything cheap per item.
-            </motion.div>
-
-            {/* Vos-tip: aanvragen bundelen = één service fee i.p.v. één per aanvraag */}
-            <motion.div variants={fadeUp}
-              style={{ display: "flex", alignItems: "center", gap: 10, background: "#111111", borderRadius: 12, padding: "10px 14px", marginBottom: 16 }}>
-              <span style={{ fontSize: 20, flexShrink: 0 }}><Fox /></span>
-              <span style={{ fontSize: 12, color: "#C9C6C1", lineHeight: 1.5 }}>
-                <b style={{ color: "#FF5C00" }}>Tip:</b> keep adding items — one single service fee covers your whole bundle when you ship, so more items means a lower fee per item.
-              </span>
-            </motion.div>
 
             {activeGroup && (
               <>

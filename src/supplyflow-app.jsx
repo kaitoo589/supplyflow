@@ -2462,6 +2462,7 @@ export default function SupplyFlow({ session }) {
         {isDemo ? (
           <>
             <span style={{ position: "absolute", top: 10, right: 10, background: "#F5C518", color: "#4a3800", fontSize: 10.5, fontWeight: 700, padding: "3px 8px", borderRadius: 8 }}>Coming soon</span>
+            <span style={{ position: "absolute", top: 34, right: 11, color: "#fff", fontSize: 10, fontWeight: 700, letterSpacing: 0.2, textShadow: "0 1px 3px rgba(0,0,0,0.55)", pointerEvents: "none" }}>tap to view</span>
             <span style={{ position: "absolute", top: 10, left: 10, background: "#FF5C00", color: "#fff", fontSize: 10.5, fontWeight: 700, padding: "3px 8px", borderRadius: 8, boxShadow: "0 2px 8px rgba(17,17,17,0.18)", whiteSpace: "nowrap" }}>Vote</span>
           </>
         ) : (

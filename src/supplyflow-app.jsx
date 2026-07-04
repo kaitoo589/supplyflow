@@ -49,18 +49,21 @@ const pageTransition = {
 
 // Categorieën + subcategorieën worden nu dynamisch uit de producten afgeleid.
 
+// Labels als key + Engels bewaren (NIET tr() op module-scope aanroepen — dat zou bij
+// import in het Engels "bevriezen" voor first-timers die mid-sessie een taal kiezen).
+// Vertalen gebeurt op leestijd via statusLabel().
 const statusConfig = {
   // requested/quote_sent bestaan niet meer in de flow (direct kopen) — blijven
   // als vangnet voor eventuele oude orders, tonen als "Order placed".
-  requested:            { label: tr("orders.checkpoint.orderPlaced", "Order placed"),                color: "#0369A1", bg: "#E0F2FE", step: 0 },
-  quote_sent:           { label: tr("orders.checkpoint.orderPlaced", "Order placed"),                color: "#0369A1", bg: "#E0F2FE", step: 0 },
-  quote_accepted:       { label: tr("orders.checkpoint.orderPlaced", "Order placed"),                color: "#0369A1", bg: "#E0F2FE", step: 0 },
-  purchased:            { label: tr("orders.checkpoint.orderPlaced", "Order placed"),                color: "#0369A1", bg: "#E0F2FE", step: 0 },
-  bought:               { label: tr("orders.status.bought", "Item bought successfully"),    color: "#065F46", bg: "#D1FAE5", step: 1 },
-  shipped_local:        { label: tr("orders.status.shippedLocal", "On its way to our warehouse"), color: "#0369A1", bg: "#E0F2FE", step: 2 },
-  qc_pending:           { label: tr("orders.status.qcPending", "Arrived in warehouse"),          color: "#065F46", bg: "#D1FAE5", step: 3 },
-  shipped_international: { label: tr("orders.status.inTransit", "In transit"),                 color: "#0369A1", bg: "#E0F2FE", step: 4 },
-  delivered:            { label: tr("orders.status.delivered", "Delivered"),                   color: "#15803D", bg: "#DCFCE7", step: 5 },
+  requested:            { labelKey: "orders.checkpoint.orderPlaced", label: "Order placed",                color: "#0369A1", bg: "#E0F2FE", step: 0 },
+  quote_sent:           { labelKey: "orders.checkpoint.orderPlaced", label: "Order placed",                color: "#0369A1", bg: "#E0F2FE", step: 0 },
+  quote_accepted:       { labelKey: "orders.checkpoint.orderPlaced", label: "Order placed",                color: "#0369A1", bg: "#E0F2FE", step: 0 },
+  purchased:            { labelKey: "orders.checkpoint.orderPlaced", label: "Order placed",                color: "#0369A1", bg: "#E0F2FE", step: 0 },
+  bought:               { labelKey: "orders.status.bought", label: "Item bought successfully",    color: "#065F46", bg: "#D1FAE5", step: 1 },
+  shipped_local:        { labelKey: "orders.status.shippedLocal", label: "On its way to our warehouse", color: "#0369A1", bg: "#E0F2FE", step: 2 },
+  qc_pending:           { labelKey: "orders.status.qcPending", label: "Arrived in warehouse",          color: "#065F46", bg: "#D1FAE5", step: 3 },
+  shipped_international: { labelKey: "orders.status.inTransit", label: "In transit",                 color: "#0369A1", bg: "#E0F2FE", step: 4 },
+  delivered:            { labelKey: "orders.status.delivered", label: "Delivered",                   color: "#15803D", bg: "#DCFCE7", step: 5 },
 };
 
 // Labels van de tracking-bolletjes — index = statusConfig[...].step.
@@ -68,22 +71,23 @@ const statusConfig = {
 // verzending + levering wordt op PAKKET-niveau in de In transit-tab gevolgd (hauls/trace_status),
 // niet als order-status — dus 'Shipped to you'/'Delivered' horen hier bewust NIET.
 const trackingSteps = [
-  tr("orders.checkpoint.orderPlaced", "Order placed"),
-  tr("orders.checkpoint.bought", "Bought"),
-  tr("orders.checkpoint.toWarehouse", "To warehouse"),
-  tr("orders.status.qcPending", "Arrived in warehouse"),
+  { key: "orders.checkpoint.orderPlaced", en: "Order placed" },
+  { key: "orders.checkpoint.bought", en: "Bought" },
+  { key: "orders.checkpoint.toWarehouse", en: "To warehouse" },
+  { key: "orders.status.qcPending", en: "Arrived in warehouse" },
 ];
 
+// msg als key + Engels (zie statusConfig); vertaald op leestijd bij het tonen.
 const foxMessages = {
-  requested:            { msg: tr("orders.fox.requested", "We've placed your order — the agent is purchasing it for you right now."), icon: "🛒" },
-  quote_sent:           { msg: tr("orders.fox.requested", "We've placed your order — the agent is purchasing it for you right now."), icon: "🛒" },
-  quote_accepted:       { msg: tr("orders.fox.requested", "We've placed your order — the agent is purchasing it for you right now."), icon: "🛒" },
-  purchased:            { msg: tr("orders.fox.requested", "We've placed your order — the agent is purchasing it for you right now."), icon: "🛒" },
-  bought:               { msg: tr("orders.fox.bought", "Bought! 🎉 Your item is paid for and getting ready to head to our warehouse."), icon: "✅" },
-  shipped_local:        { msg: tr("orders.fox.shippedLocal", "Your item is on its way to our warehouse in China."), icon: "🚚" },
-  qc_pending:           { msg: tr("orders.fox.qcPending", "Arrived & inspected! View the photos and add it to a parcel to ship."), icon: "🏭" },
-  shipped_international: { msg: tr("orders.fox.shippedInternational", "Your item shipped in a parcel — follow its journey in the In transit tab."), icon: "✈️" },
-  delivered:            { msg: tr("orders.fox.delivered", "Delivered — your parcel arrived! 🎉 See the full timeline in In transit."), icon: "🎉" },
+  requested:            { msgKey: "orders.fox.requested", msg: "We've placed your order — the agent is purchasing it for you right now.", icon: "🛒" },
+  quote_sent:           { msgKey: "orders.fox.requested", msg: "We've placed your order — the agent is purchasing it for you right now.", icon: "🛒" },
+  quote_accepted:       { msgKey: "orders.fox.requested", msg: "We've placed your order — the agent is purchasing it for you right now.", icon: "🛒" },
+  purchased:            { msgKey: "orders.fox.requested", msg: "We've placed your order — the agent is purchasing it for you right now.", icon: "🛒" },
+  bought:               { msgKey: "orders.fox.bought", msg: "Bought! 🎉 Your item is paid for and getting ready to head to our warehouse.", icon: "✅" },
+  shipped_local:        { msgKey: "orders.fox.shippedLocal", msg: "Your item is on its way to our warehouse in China.", icon: "🚚" },
+  qc_pending:           { msgKey: "orders.fox.qcPending", msg: "Arrived & inspected! View the photos and add it to a parcel to ship.", icon: "🏭" },
+  shipped_international: { msgKey: "orders.fox.shippedInternational", msg: "Your item shipped in a parcel — follow its journey in the In transit tab.", icon: "✈️" },
+  delivered:            { msgKey: "orders.fox.delivered", msg: "Delivered — your parcel arrived! 🎉 See the full timeline in In transit.", icon: "🎉" },
 };
 
 const extraServices = [
@@ -126,10 +130,10 @@ const extraServices = [
 // Tik op een checkpoint om je orders op die fase te filteren. De internationale
 // verzending + levering zit bewust NIET hier — dat is de In transit-tab.
 const journeyStops = [
-  { key: "purchased", label: tr("orders.checkpoint.orderPlaced", "Order placed"), Icon: ShoppingBag, statuses: ["requested", "quote_sent", "quote_accepted", "purchased"] },
-  { key: "bought", label: tr("orders.checkpoint.bought", "Bought"), Icon: PackageCheck, statuses: ["bought"] },
-  { key: "shipped_local", label: tr("orders.checkpoint.toWarehouse", "To warehouse"), Icon: Truck, statuses: ["shipped_local"] },
-  { key: "qc_pending", label: tr("orders.checkpoint.arrivedQcReady", "Arrived & quality-control ready"), Icon: Camera, statuses: ["qc_pending"] },
+  { key: "purchased", labelKey: "orders.checkpoint.orderPlaced", label: "Order placed", Icon: ShoppingBag, statuses: ["requested", "quote_sent", "quote_accepted", "purchased"] },
+  { key: "bought", labelKey: "orders.checkpoint.bought", label: "Bought", Icon: PackageCheck, statuses: ["bought"] },
+  { key: "shipped_local", labelKey: "orders.checkpoint.toWarehouse", label: "To warehouse", Icon: Truck, statuses: ["shipped_local"] },
+  { key: "qc_pending", labelKey: "orders.checkpoint.arrivedQcReady", label: "Arrived & quality-control ready", Icon: Camera, statuses: ["qc_pending"] },
 ];
 
 // Ronde voortgangsring (% van de reis afgelegd) rechts op de groepskaart.
@@ -163,7 +167,8 @@ function productProgress(o) {
 }
 function statusLabel(o) {
   const status = typeof o === "string" ? o : o?.status;
-  return (statusConfig[status] || statusConfig.purchased).label;
+  const cfg = statusConfig[status] || statusConfig.purchased;
+  return tr(cfg.labelKey, cfg.label);
 }
 const PRODUCT_COLORS = ["#FF5C00", "#6366F1", "#16A34A", "#EAB308", "#EC4899"];
 
@@ -440,7 +445,7 @@ function TreasureMap({ activeFilter, onSelect, orders }) {
                   <div style={{ position: "absolute", top: -4, right: -3, minWidth: 16, height: 16, padding: "0 3px", borderRadius: 8, background: "#FF5C00", color: "#fff", fontSize: 9.5, fontWeight: 800, display: "flex", alignItems: "center", justifyContent: "center", border: "2px solid #fff", boxSizing: "content-box", zIndex: 2 }}>{count}</div>
                 )}
               </div>
-              <div style={{ marginTop: 7, width: 74, textAlign: "center", fontSize: 9.5, fontWeight: active ? 700 : 500, color: active ? "#FF5C00" : "#8A8780", lineHeight: 1.2 }}>{s.label}</div>
+              <div style={{ marginTop: 7, width: 74, textAlign: "center", fontSize: 9.5, fontWeight: active ? 700 : 500, color: active ? "#FF5C00" : "#8A8780", lineHeight: 1.2 }}>{tr(s.labelKey, s.label)}</div>
             </motion.div>
           );
         })}
@@ -2949,7 +2954,8 @@ export default function SupplyFlow({ session }) {
                   <span style={{ fontSize: 13, fontWeight: 700, color: "#111111" }}>{tr("orders.detail.status", "Status")}</span>
                   <span style={{ fontSize: 12, color: "#A8A5A0" }}>{tr("orders.detail.stepOf", "Step {current} of {total}", { current: Math.min(step + 1, trackingSteps.length), total: trackingSteps.length })}</span>
                 </div>
-                {trackingSteps.map((label, i) => {
+                {trackingSteps.map((st, i) => {
+                  const label = tr(st.key, st.en);
                   const done = i < step;
                   const current = i === step;
                   const last = i === trackingSteps.length - 1;
@@ -3057,7 +3063,7 @@ export default function SupplyFlow({ session }) {
           )}
           {(() => {
             const fm = foxMessages[selectedOrder.status];
-            const fmMsg = fm?.msg;
+            const fmMsg = fm ? tr(fm.msgKey, fm.msg) : undefined;
             return fm ? (
               <div style={{ display: "flex", alignItems: "flex-start", gap: 12, background: "#111111", borderRadius: 18, padding: "15px 16px", marginBottom: 16 }}>
                 <div style={{ width: 34, height: 34, borderRadius: "50%", background: "rgba(255,255,255,0.08)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 17, flexShrink: 0 }}><Fox /></div>

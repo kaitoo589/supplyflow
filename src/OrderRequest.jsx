@@ -53,7 +53,10 @@ export default function OrderRequest({ product, session, onRequireAuth, onClose,
   // Hoofdfoto-galerij: álle officiële foto's + de per-variant toegewezen foto's, zodat een
   // kleurfoto altijd gewoon ín de galerij staat (doorswipen blijft werken, ook ná een keuze).
   const variantPhotos = Object.values(product.variant_images || {}).filter(u => typeof u === "string" && u.startsWith("http"));
-  const photos = [...new Set([...(product.gallery || []), product.image, ...variantPhotos].filter(u => typeof u === "string" && u.startsWith("http")))];
+  // VASTE VOLGORDE: 1) hoofdfoto (eerste die je ziet bij openen), 2) de per-maat/variant
+  // toegewezen foto's, 3) de galerij. Dedupe houdt elke foto uniek (staat de hoofdfoto ook
+  // in de galerij → alleen vooraan). Zie ook de admin (productFormModal galerij-uitleg).
+  const photos = [...new Set([product.image, ...variantPhotos, ...(product.gallery || [])].filter(u => typeof u === "string" && u.startsWith("http")))];
   // Start op de feedkaart-foto (product.image) als die er is: die is al gedecodeerd, dus
   // de hero-morph hergebruikt hetzelfde beeld i.p.v. mid-vlucht een verse full-res foto te
   // fetchen (dat gaf een hik). De galerij-strip laat alsnog alle foto's kiezen.

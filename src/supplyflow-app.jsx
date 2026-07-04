@@ -29,6 +29,7 @@ import Auth from "./Auth";
 import HypeCheckSheet from "./HypeCheck";
 import { getVoteStats, getMyVotes } from "./votes";
 import { CountUp, ConfettiBurst, FlyingImage, useBodyScrollLock } from "./DelightBits";
+import { useTr, useLang, LANGS, hasChosenLang } from "./i18n";
 
 // —— PREVIEW / LAUNCH-GATE —————————————————————————————————————————————
 // Tot de officiële launch (Stripe live) kan er nog niet betaald worden. Zolang
@@ -1116,12 +1117,12 @@ function EditProfileSheet({ session, onClose }) {
 // het icoon morpht (shared layoutId) z'n plek in de route in. De vos schuift mee
 // omlaag met elke gelande stop. Tik = versnellen; Skip = alles meteen.
 const HIW_STOPS = [
-  { icon: "🏭", title: "Factory price", sub: "what it costs in China", say: "You shop at the real factory price — zero markup." },
-  { icon: "🛍️", title: "We buy it for you", sub: "no fee when you order", say: "I handle the buying process for you." },
-  { icon: "🏬", title: "Stored in our warehouse", sub: "30 days free — keep adding", say: "Your items stay safely stored in our warehouse — free for 30 days." },
-  { icon: "📸", title: "Real photos first", sub: "see your actual item", say: "Before anything ships, you receive photos and measurements of your actual item." },
-  { icon: "📦", title: "One parcel — taxes paid", sub: "bundling = cheaper per item", say: "Everything ships together in one parcel — taxes and import fees are included." },
-  { icon: "💸", title: "Cut out the middleman", sub: "No retail markups.", say: "Enjoy clothes at prices you won't find elsewhere." },
+  { icon: "🏭", key: "factory", title: "Factory price", sub: "what it costs in China", say: "You shop at the real factory price — zero markup." },
+  { icon: "🛍️", key: "buy", title: "We buy it for you", sub: "no fee when you order", say: "I handle the buying process for you." },
+  { icon: "🏬", key: "warehouse", title: "Stored in our warehouse", sub: "30 days free — keep adding", say: "Your items stay safely stored in our warehouse — free for 30 days." },
+  { icon: "📸", key: "photos", title: "Real photos first", sub: "see your actual item", say: "Before anything ships, you receive photos and measurements of your actual item." },
+  { icon: "📦", key: "parcel", title: "One parcel — taxes paid", sub: "bundling = cheaper per item", say: "Everything ships together in one parcel — taxes and import fees are included." },
+  { icon: "💸", key: "value", title: "Cut out the middleman", sub: "No retail markups.", say: "Enjoy clothes at prices you won't find elsewhere." },
 ];
 const HIW_INTRO = "Hey, let's explore Flowva together!";
 const HIW_GOLDEN = "Golden rule: bundle it all into one box — cheaper per item, on both the fee and the shipping. 🪙";
@@ -1137,13 +1138,20 @@ function HowItWorksSheet({ onClose }) {
   //  tik  de grote emoji krimpt op z'n plek in een compacte rij (titel schuift ernaast) en de
   //       volgende emoji verschijnt eronder groot → zo zakt de actieve emoji langzaam omlaag.
   //       De wolk morpht steeds mee van grootte (layout), dat is clean.
+  const tr = useTr();
+  const { setLang } = useLang();
   const [beat, setBeat] = useState(0);          // 0 = vos dead-center · 1 = wolk zichtbaar
   const [step, setStep] = useState(-1);         // -1 intro · 0..5 actieve stap · 6 klaar
+  const [langPicking, setLangPicking] = useState(false);   // taalkiezer tussen begroeting en stap 1
+  const needLang = !hasChosenLang();            // alleen de allereerste keer de taalkiezer tonen
   useBodyScrollLock(true);                       // feed erachter niet mee laten scrollen (anders verschuiven de anchors)
   const done = step >= HIW_STOPS.length;
   const foxSide = (step >= 0 || done) ? "right" : "left";
-  const bubbleText = done ? HIW_GOLDEN : step >= 0 ? HIW_STOPS[step].say : HIW_INTRO;
-  const awaitingTap = !done && (step === -1 ? beat >= 1 : true);
+  const bubbleText = done ? tr("tour.golden", HIW_GOLDEN)
+    : step >= 0 ? tr("tour." + HIW_STOPS[step].key + ".say", HIW_STOPS[step].say)
+    : langPicking ? "Set your language to your preference!"          // pre-selectie → Engels
+    : tr("tour.greeting", HIW_INTRO);
+  const awaitingTap = !done && !langPicking && (step === -1 ? beat >= 1 : true);
   const activeCount = done ? HIW_STOPS.length : step + 1;
 
   // Intro-entree: vos van dead-center naar de wolk (dan verschijnt de wolk).
@@ -1153,13 +1161,19 @@ function HowItWorksSheet({ onClose }) {
     return () => clearTimeout(t);
   }, [step]);
 
-  // Puur tap-gedreven: elke tik = één stap. De krimp van de actieve emoji ÉN het verschijnen
-  // van de volgende gebeuren zo in ÉÉN render (tegelijk) — precies zoals gevraagd.
+  // Puur tap-gedreven: elke tik = één stap. Na de begroeting eerst de TAALKIEZER (eerste keer);
+  // pas na een taalkeuze start de eigenlijke tour (in die taal).
   const advance = () => {
     if (done) return;
-    if (step === -1) setBeat(1);   // vangnet als de 620ms-timer nog niet vuurde
+    if (step === -1) {
+      setBeat(1);                                              // vangnet als de 620ms-timer nog niet vuurde
+      if (needLang && !langPicking) { setLangPicking(true); return; }   // begroeting → taalkiezer
+      if (langPicking) return;                                 // tijdens kiezen: tik doet niks, kies een taal
+      setStep(0); return;
+    }
     setStep(s => s + 1);
   };
+  const chooseLang = (code) => { setLang(code); setLangPicking(false); setStep(0); };  // taal → tour start
   const skipAll = () => setStep(HIW_STOPS.length);
   const morph = { type: "spring", stiffness: 260, damping: 26 };
 
@@ -1207,12 +1221,27 @@ function HowItWorksSheet({ onClose }) {
           </div>
         )}
 
+        {/* TAALKIEZER — verschijnt na de begroeting, op dezelfde plek onder de wolk. Kies = tour start. */}
+        {langPicking && (
+          <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={springSoft}
+            style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, width: "100%" }}>
+            {LANGS.map((l) => (
+              <motion.button key={l.code} whileTap={{ scale: 0.96 }}
+                onClick={(e) => { e.stopPropagation(); chooseLang(l.code); }}
+                style={{ display: "flex", alignItems: "center", gap: 10, background: "rgba(255,255,255,0.08)", border: "1px solid rgba(255,255,255,0.16)", borderRadius: 13, padding: "12px 14px", color: "#fff", fontSize: 14, fontWeight: 600, cursor: "pointer", textAlign: "left", pointerEvents: "auto", WebkitTapHighlightColor: "transparent" }}>
+                <span style={{ fontSize: 20, lineHeight: 1 }}>{l.flag}</span>
+                <span>{l.label}</span>
+              </motion.button>
+            ))}
+          </motion.div>
+        )}
+
         {/* STAPPEN — groeien naar onder; actieve stap groot (schudt), gelande stappen compact */}
         {step >= 0 && HIW_STOPS.slice(0, activeCount).map((stop, i) => {
           const big = !done && i === step;
           const compact = !big;
           return (
-            <motion.div key={stop.title} layout initial={{ opacity: 0 }} animate={{ opacity: 1 }}
+            <motion.div key={stop.key} layout initial={{ opacity: 0 }} animate={{ opacity: 1 }}
               transition={{ layout: morph, opacity: { duration: 0.3 } }}
               style={{ display: "flex", flexDirection: big ? "column" : "row", alignItems: "center", justifyContent: big ? "center" : "flex-start", gap: big ? 0 : 14, width: "100%", minHeight: big ? 92 : 0, padding: compact ? "9px 6px" : "6px 0" }}>
               {/* BUITEN = alleen positie (layout, morpht midden→links); BINNEN = scale/schud
@@ -1229,8 +1258,8 @@ function HowItWorksSheet({ onClose }) {
               {compact && (
                 <motion.div initial={{ opacity: 0, x: -8 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.12, ...springSoft }}
                   style={{ minWidth: 0, textAlign: "left" }}>
-                  <div style={{ fontSize: 14.5, fontWeight: 700, color: "#fff" }}>{stop.title}</div>
-                  <div style={{ fontSize: 12, color: "rgba(255,255,255,0.55)" }}>{stop.sub}</div>
+                  <div style={{ fontSize: 14.5, fontWeight: 700, color: "#fff" }}>{tr("tour." + stop.key + ".title", stop.title)}</div>
+                  <div style={{ fontSize: 12, color: "rgba(255,255,255,0.55)" }}>{tr("tour." + stop.key + ".sub", stop.sub)}</div>
                 </motion.div>
               )}
             </motion.div>
@@ -1243,13 +1272,13 @@ function HowItWorksSheet({ onClose }) {
             <motion.div key="hiw-done" initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4, ...springSoft }}
               style={{ width: "100%", marginTop: 10 }}>
               <div style={{ position: "relative", background: "rgba(255,92,0,0.12)", border: "1px solid rgba(255,146,79,0.35)", borderRadius: 16, padding: "15px 15px 13px", marginBottom: 12 }}>
-                <div style={{ position: "absolute", top: -9, right: 12, background: "#FF5C00", color: "#fff", fontSize: 9, fontWeight: 800, letterSpacing: 0.5, textTransform: "uppercase", padding: "3px 9px", borderRadius: 20, boxShadow: "0 4px 12px rgba(255,92,0,0.45)" }}>★ Highly recommended</div>
-                <div style={{ fontSize: 13, fontWeight: 800, color: "#FF8A3D", marginBottom: 3 }}><Fox /> Cheaper with Flowva Friends</div>
-                <div style={{ fontSize: 12.5, color: "rgba(255,255,255,0.7)", lineHeight: 1.55 }}>Share one parcel, split shipping costs, and save more with every friend you invite.</div>
+                <div style={{ position: "absolute", top: -9, right: 12, background: "#FF5C00", color: "#fff", fontSize: 9, fontWeight: 800, letterSpacing: 0.5, textTransform: "uppercase", padding: "3px 9px", borderRadius: 20, boxShadow: "0 4px 12px rgba(255,92,0,0.45)" }}>{tr("tour.recommended", "★ Highly recommended")}</div>
+                <div style={{ fontSize: 13, fontWeight: 800, color: "#FF8A3D", marginBottom: 3 }}><Fox /> {tr("tour.friendsTitle", "Cheaper with Flowva Friends")}</div>
+                <div style={{ fontSize: 12.5, color: "rgba(255,255,255,0.7)", lineHeight: 1.55 }}>{tr("tour.friendsBody", "Share one parcel, split shipping costs, and save more with every friend you invite.")}</div>
               </div>
               <motion.button whileTap={{ scale: 0.97 }} onClick={(e) => { e.stopPropagation(); onClose(); }}
                 style={{ width: "100%", background: "#FF5C00", color: "#fff", border: "none", borderRadius: 13, padding: "15px", fontSize: 15, fontWeight: 700, cursor: "pointer", WebkitTapHighlightColor: "transparent" }}>
-                Start shopping <Fox />
+                {tr("tour.cta", "Start shopping")} <Fox />
               </motion.button>
             </motion.div>
           )}
@@ -1260,7 +1289,7 @@ function HowItWorksSheet({ onClose }) {
       {awaitingTap && (
         <motion.div animate={{ opacity: [0.3, 0.85, 0.3] }} transition={{ duration: 1.6, repeat: Infinity, ease: "easeInOut" }}
           style={{ position: "fixed", bottom: 26, left: 0, right: 0, textAlign: "center", fontSize: 12.5, fontWeight: 700, color: "rgba(255,255,255,0.6)", pointerEvents: "none" }}>
-          tap to continue
+          {tr("tour.tap", "tap to continue")}
         </motion.div>
       )}
     </motion.div>

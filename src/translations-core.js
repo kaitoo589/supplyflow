@@ -296,7 +296,8 @@ export default {
     "orders.notif.storageEndingSoon": "{name}: nog maar {daysLeft} dag{plural} gratis opslag over — verzend snel",
     "orders.notif.storageDaysUsed": "{name} ligt al {days} dagen in opslag — verzend binnen {daysLeft} dagen om het gratis te houden",
     "orders.notif.agentReplied": "Je agent heeft gereageerd ({productName})",
-    "feed.title.factoryFeed.word1": "Fabriek"
+    "feed.title.factoryFeed.word1": "Fabriek",
+    "profile.entry.language": "Taal"
   },
   "de": {
     "feed.header.balanceLabel": "Guthaben",
@@ -592,7 +593,8 @@ export default {
     "orders.notif.storageEndingSoon": "{name}: nur noch {daysLeft} Tag{plural} kostenlose Lagerung übrig – bald versenden",
     "orders.notif.storageDaysUsed": "{name} ist seit {days} Tagen im Lager – versende innerhalb von {daysLeft} Tagen, um ihn kostenlos zu halten",
     "orders.notif.agentReplied": "Dein Agent hat geantwortet ({productName})",
-    "feed.title.factoryFeed.word1": "Fabrik"
+    "feed.title.factoryFeed.word1": "Fabrik",
+    "profile.entry.language": "Sprache"
   },
   "fr": {
     "feed.header.balanceLabel": "Solde",
@@ -888,7 +890,8 @@ export default {
     "orders.notif.storageEndingSoon": "{name} : plus que {daysLeft} jour{plural} de stockage gratuit — envoie vite",
     "orders.notif.storageDaysUsed": "{name} est en stockage depuis {days} jours — envoie sous {daysLeft} jours pour le garder gratuit",
     "orders.notif.agentReplied": "Ton agent a répondu ({productName})",
-    "feed.title.factoryFeed.word1": "Usine"
+    "feed.title.factoryFeed.word1": "Usine",
+    "profile.entry.language": "Langue"
   },
   "es": {
     "feed.header.balanceLabel": "Saldo",
@@ -1184,7 +1187,8 @@ export default {
     "orders.notif.storageEndingSoon": "{name}: solo queda{plural} {daysLeft} día{plural} de almacenamiento gratis — envía pronto",
     "orders.notif.storageDaysUsed": "{name} lleva {days} días guardado — envía en {daysLeft} días para que siga gratis",
     "orders.notif.agentReplied": "Tu agente respondió ({productName})",
-    "feed.title.factoryFeed.word1": "Fábrica"
+    "feed.title.factoryFeed.word1": "Fábrica",
+    "profile.entry.language": "Idioma"
   },
   "it": {
     "feed.header.balanceLabel": "Saldo",
@@ -1480,7 +1484,8 @@ export default {
     "orders.notif.storageEndingSoon": "{name}: restano solo {daysLeft} giorno{plural} di deposito gratuito — spedisci presto",
     "orders.notif.storageDaysUsed": "{name} è in deposito da {days} giorni — spedisci entro {daysLeft} giorni per tenerlo gratis",
     "orders.notif.agentReplied": "Il tuo agente ha risposto ({productName})",
-    "feed.title.factoryFeed.word1": "Fabbrica"
+    "feed.title.factoryFeed.word1": "Fabbrica",
+    "profile.entry.language": "Lingua"
   },
   "pl": {
     "feed.header.balanceLabel": "Saldo",
@@ -1776,7 +1781,8 @@ export default {
     "orders.notif.storageEndingSoon": "{name}: został{plural} tylko {daysLeft} dzień/dni darmowego przechowywania — wyślij wkrótce",
     "orders.notif.storageDaysUsed": "{name} jest w magazynie {days} dni — wyślij w ciągu {daysLeft} dni, by było za darmo",
     "orders.notif.agentReplied": "Twój agent odpowiedział ({productName})",
-    "feed.title.factoryFeed.word1": "Fabryka"
+    "feed.title.factoryFeed.word1": "Fabryka",
+    "profile.entry.language": "Język"
   },
   "pt": {
     "feed.header.balanceLabel": "Saldo",
@@ -2072,6 +2078,7 @@ export default {
     "orders.notif.storageEndingSoon": "{name}: só restam {daysLeft} dia{plural} de armazenamento grátis — envia em breve",
     "orders.notif.storageDaysUsed": "{name} está em armazenamento há {days} dias — envia em {daysLeft} dias para o manteres grátis",
     "orders.notif.agentReplied": "O teu agente respondeu ({productName})",
-    "feed.title.factoryFeed.word1": "Fábrica"
+    "feed.title.factoryFeed.word1": "Fábrica",
+    "profile.entry.language": "Idioma"
   }
 };

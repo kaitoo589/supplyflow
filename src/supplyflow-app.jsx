@@ -29,7 +29,7 @@ import Auth from "./Auth";
 import HypeCheckSheet from "./HypeCheck";
 import { getVoteStats, getMyVotes } from "./votes";
 import { CountUp, ConfettiBurst, FlyingImage, useBodyScrollLock } from "./DelightBits";
-import { tr, useTr, useLang, LANGS, hasChosenLang } from "./i18n";
+import { tr, useTr, useLang, useLangVersion, LANGS, hasChosenLang } from "./i18n";
 
 // —— PREVIEW / LAUNCH-GATE —————————————————————————————————————————————
 // Tot de officiële launch (Stripe live) kan er nog niet betaald worden. Zolang
@@ -1615,7 +1615,49 @@ function PricingSheet({ onClose, arriving = false }) {
   );
 }
 
+// Taal-switcher in Profiel: rij + inklap-picker van de 8 talen. useLang() maakt 'm reactief;
+// setLang her-rendert de hele app (SupplyFlow abonneert via useLangVersion), dus alles wisselt mee.
+function LanguageRow() {
+  const { lang, setLang } = useLang();
+  const [open, setOpen] = useState(false);
+  const current = LANGS.find((l) => l.code === lang) || LANGS[0];
+  return (
+    <div style={{ marginBottom: 12 }}>
+      <motion.div whileTap={{ scale: 0.98 }} onClick={() => setOpen((o) => !o)}
+        style={{ background: "#fff", border: "1px solid #E8E6E0", borderRadius: 16, padding: "15px 18px", display: "flex", alignItems: "center", gap: 12, cursor: "pointer" }}>
+        <div style={{ width: 38, height: 38, borderRadius: 11, background: "#FFF0E7", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18, flexShrink: 0 }}>🌐</div>
+        <div style={{ flex: 1 }}>
+          <div style={{ fontSize: 14, fontWeight: 700, color: "#0F0E0C" }}>{tr("profile.entry.language", "Language")}</div>
+          <div style={{ fontSize: 12, color: "#A8A5A0" }}>{current.flag} {current.label}</div>
+        </div>
+        <div style={{ color: "#C9C6C1", fontSize: 16 }}>{open ? "▲" : "▾"}</div>
+      </motion.div>
+      <AnimatePresence>
+        {open && (
+          <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }}
+            transition={{ duration: 0.25, ease: [0.32, 0.72, 0, 1] }} style={{ overflow: "hidden" }}>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, padding: "10px 2px 2px" }}>
+              {LANGS.map((l) => {
+                const active = l.code === lang;
+                return (
+                  <motion.button key={l.code} whileTap={{ scale: 0.96 }} onClick={() => { setLang(l.code); setOpen(false); }}
+                    style={{ display: "flex", alignItems: "center", gap: 8, background: active ? "#FFF0E7" : "#fff", border: `1px solid ${active ? "#FF5C00" : "#E8E6E0"}`, borderRadius: 12, padding: "10px 12px", cursor: "pointer", fontSize: 13.5, fontWeight: 600, color: active ? "#B8430A" : "#0F0E0C", textAlign: "left", WebkitTapHighlightColor: "transparent" }}>
+                    <span style={{ fontSize: 18, lineHeight: 1 }}>{l.flag}</span>
+                    <span style={{ flex: 1, minWidth: 0 }}>{l.label}</span>
+                    {active && <span style={{ color: "#FF5C00" }}>✓</span>}
+                  </motion.button>
+                );
+              })}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}
+
 export default function SupplyFlow({ session }) {
+  useLangVersion();   // her-render de héle app bij een taalwissel (bv. via de Profiel-switcher)
   const [tab, setTab] = useState(() => { try { return new URLSearchParams(window.location.search).get("tab") === "profile" ? "profile" : "feed"; } catch { return "feed"; } });
   // 🫧 Blob-pull op de nav: houd een knop vast en beweeg → de oranje blob wordt elastisch
   // naar je vinger toe getrokken (rekt uit, wordt platter); loslaten boven een andere tab
@@ -3216,6 +3258,7 @@ export default function SupplyFlow({ session }) {
                 <div style={{ flex: 1 }}><div style={{ fontSize: 14, fontWeight: 700, color: "#0F0E0C" }}>{tr("profile.entry.returns", "Returns & withdrawal")}</div><div style={{ fontSize: 12, color: "#A8A5A0" }}>{tr("profile.entry.returnsSubGuest", "Read the policy")}</div></div>
                 <div style={{ color: "#C9C6C1", fontSize: 18 }}>→</div>
               </a>
+              <LanguageRow />
               {/* S2 — Shipping address gate */}
               <div style={{ background: "#fff", border: "1px solid #E8E6E0", borderRadius: 16, padding: "18px", marginBottom: 12, textAlign: "center" }}>
                 <div style={{ fontSize: 24, marginBottom: 8 }}>📦</div>
@@ -3344,6 +3387,7 @@ export default function SupplyFlow({ session }) {
             );
           })()}
           <PushToggle session={session} />
+          <LanguageRow />
           <motion.div whileTap={{ scale: 0.98 }} onClick={() => setShowHowItWorks(true)}
             style={{ background: "#fff", border: "1px solid #E8E6E0", borderRadius: 16, padding: "15px 18px", marginBottom: 12, display: "flex", alignItems: "center", gap: 12, cursor: "pointer" }}>
             <div style={{ width: 38, height: 38, borderRadius: 11, background: "#FFF0E7", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18, flexShrink: 0 }}><Fox /></div>

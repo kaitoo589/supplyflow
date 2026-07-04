@@ -606,7 +606,14 @@ function NormalShippingConfirm({ session, haulItems, balance, onBack, onSuccess 
   // Houd 1:1 gelijk aan pay_shipping_buffered (server): greatest(round(0.08 * sum(price), 2), 5).
   const productValue = haulItems.reduce((s, o) => s + (Number(o.price) || 0), 0);
   const svcFee = Math.max(5, r2(productValue * 0.08));
-  const toPay = r2(buffered + vat + FULFIL_EUR + surcharge + svcFee);
+  // Valuta-conversie (EUR→CNY via Alipay, 3%) over ALLES wat naar yuan wordt omgezet: product +
+  // binnenlandverzending (¥5/stuk) + qc (¥6/stuk) + fulfilment + internationale verzending (echte
+  // schatting) + toeslag. NIET over de BTW (blijft euro's) of de service fee (marge). Houd 1:1 gelijk
+  // aan pay_shipping_buffered (server).
+  const domesticEur = r2(pieces * 5 / 7.8);
+  const qcEur = r2(pieces * 6 / 7.8);
+  const currencyFee = r2((productValue + domesticEur + qcEur + FULFIL_EUR + estFreight + surcharge) * 0.03);
+  const toPay = r2(buffered + vat + FULFIL_EUR + surcharge + svcFee + currencyFee);
   const canAfford = balance >= toPay;
 
   // Afrekenen: de edge function her-quote't + rekent server-side de buffered schatting af.
@@ -667,6 +674,10 @@ function NormalShippingConfirm({ session, haulItems, balance, onBack, onSuccess 
               <span style={{ fontSize: 11.5, color: "#777" }}>€{(custCats.length * 3).toFixed(2)}</span>
             </div>
           )}
+          <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8 }}>
+            <span style={{ fontSize: 13, color: "#888" }}>Currency conversion <span style={{ color: "#666" }}>· 3% · EUR → ¥</span></span>
+            <span style={{ fontSize: 13, color: "#fff" }}>€{currencyFee.toFixed(2)}</span>
+          </div>
           {vat > 0 && (
             <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8 }}>
               <span style={{ fontSize: 13, color: "#888" }}>Import VAT (21%)</span>

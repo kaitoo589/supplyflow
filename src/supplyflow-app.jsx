@@ -1524,6 +1524,8 @@ function PricingSheet({ onClose, arriving = false }) {
             } />
           <Row icon="✈️" name="International shipping" who="to the carrier & customs" amount="by weight"
             desc={<>China → your door, priced by weight. <b style={{ color: "#46443F" }}>Tax-inclusive.</b> A <b style={{ color: "#46443F" }}>€3 customs cost per product category</b> is also settled inside this shipping price.</>} />
+          <Row icon="💱" name="Currency conversion" who="to Alipay" amount="3% · at cost"
+            desc={<>We pay the factory and our agent in Chinese yuan (¥), converted from euros through <b style={{ color: "#46443F" }}>Alipay</b>, which charges a <b style={{ color: "#46443F" }}>3% conversion fee</b>. We pass this on <b style={{ color: "#46443F" }}>at cost</b> — calculated over everything that's converted to yuan (product, agent & shipping costs), never on VAT or the Flowva fee.</>} />
           <Row icon="🧾" name="Flowva fee" who="Flowva's fee" whoOrange amount="4–8% · min €3.50–€5"
             desc={<>Our only earning, calculated <b style={{ color: "#46443F" }}>only on the factory price</b> — never on the agent or shipping costs. Charged once when you ship your bundle.</>} />
         </div>
@@ -3151,7 +3153,13 @@ export default function SupplyFlow({ session }) {
               {/* S1 — Flowva Friends gate */}
               <div style={{ background: "#fff", border: "1px solid #E8E6E0", borderRadius: 16, padding: "18px", marginBottom: 12, textAlign: "center" }}>
                 <div style={{ width: 40, height: 40, borderRadius: 12, background: "#FFF0E7", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18, margin: "0 auto 10px" }}><Fox /></div>
-                <div style={{ fontSize: 14, fontWeight: 700, color: "#0F0E0C", marginBottom: 4 }}>Flowva Friends</div>
+                <div style={{ fontSize: 14, fontWeight: 700, color: "#0F0E0C", marginBottom: 8 }}>Flowva Friends</div>
+                {/* Deal-embleem — elke gast ziet meteen de groep-besparing (fee 8%→4% + gedeelde verzending) */}
+                <div style={{ position: "relative", overflow: "hidden", display: "inline-flex", alignItems: "center", gap: 6, background: "linear-gradient(135deg, #FF7A1A, #FF5C00)", color: "#fff", fontSize: 12.5, fontWeight: 800, padding: "8px 15px", borderRadius: 999, boxShadow: "0 5px 16px rgba(255,92,0,0.35)", marginBottom: 12, letterSpacing: 0.2 }}>
+                  <span style={{ fontSize: 14, lineHeight: 1 }}>💸</span> Up to 50% cheaper on fees &amp; shipping!
+                  <motion.span initial={{ x: "-130%" }} animate={{ x: "260%" }} transition={{ duration: 1.5, repeat: Infinity, repeatDelay: 2.6, ease: "easeInOut" }}
+                    style={{ position: "absolute", top: 0, bottom: 0, left: 0, width: "38%", background: "linear-gradient(105deg, transparent, rgba(255,255,255,0.55), transparent)", pointerEvents: "none" }} />
+                </div>
                 <div style={{ fontSize: 12.5, color: "#8A8780", lineHeight: 1.5, marginBottom: 12 }}>Team up and split the fees with your squad.</div>
                 <button onClick={() => setAuthOpen(true)} style={{ width: "100%", background: "#FFF0E7", border: "1px dashed rgba(255,92,0,0.4)", color: "#FF5C00", borderRadius: 12, padding: "12px", fontSize: 13, fontWeight: 700, cursor: "pointer" }}>Create an account to unlock Flowva Friends</button>
               </div>

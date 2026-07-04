@@ -173,7 +173,7 @@ export default {
     "cart.barTitle": "Winkelmandje · {count} item{s}",
     "cart.barSubtitle": "Tik om te openen — één keer kosten bij verzenden",
     "cart.title": "🛒 Winkelmandje ({count})",
-    "cart.customsHeader": "{n} product{category|categorieën} · €{amount} EU-douane",
+    "cart.customsHeader": "{n} productcategorieën · €{amount} EU-douane",
     "cart.customsBody": "Een nieuwe EU-regel rekent €3 per productcategorie, verrekend in je internationale verzending (in rekening gebracht bij verzenden, niet nu). Shoppen met Flowva Friends verdeelt dit over je groep.",
     "cart.heldReasonDefault": "In de wacht — gewijzigd bij de fabriek",
     "cart.remove": "Verwijderen",
@@ -193,7 +193,7 @@ export default {
     "cart.shippingTo": "📦 VERZENDEN NAAR",
     "common.edit": "Bewerken",
     "cart.noAddress": "⚠️ Nog geen verzendadres — tik op Bewerken om er een toe te voegen.",
-    "cart.itemPcsColor": "{qty} st{ · {color}}",
+    "cart.itemPcsColor": "{qty} st.{color}",
     "cart.totalNow": "Totaal nu",
     "cart.deferredFeeNote": "🚢 Internationale verzending en één keer servicekosten worden later in rekening gebracht, zodra je items in het magazijn zijn en je je bundel verstuurt — dus vandaag betaal je alleen de fabrieksprijs.",
     "cart.heldBannerCheckout": "⏸ {n} item{s} in de wacht en worden niet in rekening gebracht — we rekenen alleen je {p} beschikbare item{s} af. De item{one stays|s blijven} in de wacht in je mandje voor wanneer {it's|ze} weer beschikbaar {|zijn}.",
@@ -295,7 +295,8 @@ export default {
     "orders.notif.storageApplies": "Opslagkosten gelden nu voor {name} ({days} dagen in opslag) — verzend binnen 90 dagen of het vervalt",
     "orders.notif.storageEndingSoon": "{name}: nog maar {daysLeft} dag{plural} gratis opslag over — verzend snel",
     "orders.notif.storageDaysUsed": "{name} ligt al {days} dagen in opslag — verzend binnen {daysLeft} dagen om het gratis te houden",
-    "orders.notif.agentReplied": "Je agent heeft gereageerd ({productName})"
+    "orders.notif.agentReplied": "Je agent heeft gereageerd ({productName})",
+    "feed.title.factoryFeed.word1": "Fabriek"
   },
   "de": {
     "feed.header.balanceLabel": "Guthaben",
@@ -468,7 +469,7 @@ export default {
     "cart.barTitle": "Warenkorb · {count} Artikel",
     "cart.barSubtitle": "Tippen zum Öffnen – eine Gebühr beim Versand",
     "cart.title": "🛒 Warenkorb ({count})",
-    "cart.customsHeader": "{n} Produkt{kategorie|kategorien} · €{amount} EU-Zoll",
+    "cart.customsHeader": "{n} Produktkategorien · €{amount} EU-Zoll",
     "cart.customsBody": "Eine neue EU-Regel erhebt €3 pro Produktkategorie, berechnet im internationalen Versand (fällig beim Versand, nicht jetzt). Mit Flowva Friends teilt sich das auf deine Gruppe auf.",
     "cart.heldReasonDefault": "Pausiert – in der Fabrik geändert",
     "cart.remove": "Entfernen",
@@ -488,7 +489,7 @@ export default {
     "cart.shippingTo": "📦 VERSAND AN",
     "common.edit": "Bearbeiten",
     "cart.noAddress": "⚠️ Noch keine Lieferadresse – tippe auf Bearbeiten, um eine hinzuzufügen.",
-    "cart.itemPcsColor": "{qty} Stk.{ · {color}}",
+    "cart.itemPcsColor": "{qty} Stk.{color}",
     "cart.totalNow": "Gesamt jetzt",
     "cart.deferredFeeNote": "🚢 Internationaler Versand und eine einzige Servicegebühr werden später abgerechnet, sobald deine Artikel im Lager ankommen und du dein Bundle versendest – heute zahlst du also nur den Fabrikpreis.",
     "cart.heldBannerCheckout": "⏸ {n} Artikel pausiert und {werden|wird} nicht berechnet – wir schließen nur deine {p} verfügbaren Artikel ab. Die pausierten {bleiben|bleibt} in deinem Warenkorb, bis {sie|er} wieder da {sind|ist}.",
@@ -590,7 +591,8 @@ export default {
     "orders.notif.storageApplies": "Für {name} fallen jetzt Lagerkosten an ({days} Tage im Lager) – versende innerhalb von 90 Tagen, sonst verfällt er",
     "orders.notif.storageEndingSoon": "{name}: nur noch {daysLeft} Tag{plural} kostenlose Lagerung übrig – bald versenden",
     "orders.notif.storageDaysUsed": "{name} ist seit {days} Tagen im Lager – versende innerhalb von {daysLeft} Tagen, um ihn kostenlos zu halten",
-    "orders.notif.agentReplied": "Dein Agent hat geantwortet ({productName})"
+    "orders.notif.agentReplied": "Dein Agent hat geantwortet ({productName})",
+    "feed.title.factoryFeed.word1": "Fabrik"
   },
   "fr": {
     "feed.header.balanceLabel": "Solde",
@@ -763,7 +765,7 @@ export default {
     "cart.barTitle": "Panier · {count} article{s}",
     "cart.barSubtitle": "Touche pour ouvrir — un seul frais à l'envoi",
     "cart.title": "🛒 Panier ({count})",
-    "cart.customsHeader": "{n} produit{s} {category|categories} · {amount} € de douane UE",
+    "cart.customsHeader": "{n} catégories produit · {amount} € douane UE",
     "cart.customsBody": "Une nouvelle règle UE facture <b>3 € par catégorie de produit</b>, calculés dans ta <b>livraison internationale</b> (facturés à l'envoi, pas maintenant). Avec <b>Flowva Friends</b>, c'est réparti dans ton groupe.",
     "cart.heldReasonDefault": "En attente — modifié à l'usine",
     "cart.remove": "Retirer",
@@ -783,7 +785,7 @@ export default {
     "cart.shippingTo": "📦 LIVRAISON À",
     "common.edit": "Modifier",
     "cart.noAddress": "⚠️ Pas encore d'adresse de livraison — touche Modifier pour en ajouter une.",
-    "cart.itemPcsColor": "{qty} pc{ · {color}}",
+    "cart.itemPcsColor": "{qty} pc{color}",
     "cart.totalNow": "Total maintenant",
     "cart.deferredFeeNote": "🚢 La livraison internationale <b>et un seul frais de service</b> sont facturés <b>plus tard</b>, une fois tes articles arrivés à l'entrepôt et ton bundle envoyé — donc aujourd'hui tu paies seulement le prix usine.",
     "cart.heldBannerCheckout": "⏸ {n} article{s} en attente et non facturé{s} — on ne commande que tes {p} article{s} dispo. Le{s} article{s} en attente {one stays|ones stay} dans ton panier pour quand {it's|they're} de retour.",
@@ -885,7 +887,8 @@ export default {
     "orders.notif.storageApplies": "Le stockage s'applique maintenant à {name} ({days} jours en stockage) — envoie sous 90 jours sinon il est perdu",
     "orders.notif.storageEndingSoon": "{name} : plus que {daysLeft} jour{plural} de stockage gratuit — envoie vite",
     "orders.notif.storageDaysUsed": "{name} est en stockage depuis {days} jours — envoie sous {daysLeft} jours pour le garder gratuit",
-    "orders.notif.agentReplied": "Ton agent a répondu ({productName})"
+    "orders.notif.agentReplied": "Ton agent a répondu ({productName})",
+    "feed.title.factoryFeed.word1": "Usine"
   },
   "es": {
     "feed.header.balanceLabel": "Saldo",
@@ -1058,7 +1061,7 @@ export default {
     "cart.barTitle": "Carrito · {count} artículo{s}",
     "cart.barSubtitle": "Toca para abrir — una sola tarifa al enviar",
     "cart.title": "🛒 Carrito ({count})",
-    "cart.customsHeader": "{n} producto{ ·} €{amount} de aduanas UE",
+    "cart.customsHeader": "{n} categorías de producto · {amount} € aduana UE",
     "cart.customsBody": "Una nueva norma de la UE cobra €3 por categoría de producto, calculados dentro de tu envío internacional (se cobra al enviar, no ahora). Comprando con Flowva Friends esto se reparte entre tu grupo.",
     "cart.heldReasonDefault": "En pausa — cambió en la fábrica",
     "cart.remove": "Quitar",
@@ -1078,7 +1081,7 @@ export default {
     "cart.shippingTo": "📦 ENVIAR A",
     "common.edit": "Editar",
     "cart.noAddress": "⚠️ Aún no hay dirección de envío — toca Editar para añadir una.",
-    "cart.itemPcsColor": "{qty} uds{ · {color}}",
+    "cart.itemPcsColor": "{qty} u.{color}",
     "cart.totalNow": "Total ahora",
     "cart.deferredFeeNote": "🚢 El envío internacional y una única tarifa de servicio se cobran más tarde, cuando tus artículos lleguen al almacén y envíes tu bundle — así que hoy solo pagas el precio de fábrica.",
     "cart.heldBannerCheckout": "⏸ {n} artículo{s} en pausa y no se cobrará{n} — solo pagaremos tus {p} artículo{s} disponible{s}. {El artículo en pausa se queda|Los artículos en pausa se quedan} en tu carrito para cuando {vuelva|vuelvan}.",
@@ -1180,7 +1183,8 @@ export default {
     "orders.notif.storageApplies": "Ahora se aplica almacenamiento a {name} ({days} días guardado) — envía en 90 días o se pierde",
     "orders.notif.storageEndingSoon": "{name}: solo queda{plural} {daysLeft} día{plural} de almacenamiento gratis — envía pronto",
     "orders.notif.storageDaysUsed": "{name} lleva {days} días guardado — envía en {daysLeft} días para que siga gratis",
-    "orders.notif.agentReplied": "Tu agente respondió ({productName})"
+    "orders.notif.agentReplied": "Tu agente respondió ({productName})",
+    "feed.title.factoryFeed.word1": "Fábrica"
   },
   "it": {
     "feed.header.balanceLabel": "Saldo",
@@ -1353,7 +1357,7 @@ export default {
     "cart.barTitle": "Carrello · {count} articolo{s}",
     "cart.barSubtitle": "Tocca per aprire — una sola commissione alla spedizione",
     "cart.title": "🛒 Carrello ({count})",
-    "cart.customsHeader": "{n} prodotto {category|categories} · €{amount} di dogana UE",
+    "cart.customsHeader": "{n} categorie prodotto · {amount} € dogana UE",
     "cart.customsBody": "Una nuova regola UE applica €3 per categoria di prodotto, calcolati all'interno della spedizione internazionale (addebitati quando spedisci, non ora). Facendo acquisti con Flowva Friends questo costo si divide nel tuo gruppo.",
     "cart.heldReasonDefault": "In sospeso — modificato in fabbrica",
     "cart.remove": "Rimuovi",
@@ -1373,7 +1377,7 @@ export default {
     "cart.shippingTo": "📦 SPEDIZIONE A",
     "common.edit": "Modifica",
     "cart.noAddress": "⚠️ Ancora nessun indirizzo di spedizione — tocca Modifica per aggiungerne uno.",
-    "cart.itemPcsColor": "{qty} pz{ · {color}}",
+    "cart.itemPcsColor": "{qty} pz{color}",
     "cart.totalNow": "Totale ora",
     "cart.deferredFeeNote": "🚢 La spedizione internazionale e una singola commissione di servizio vengono addebitate dopo, quando i tuoi articoli arrivano in magazzino e spedisci il tuo bundle — quindi oggi paghi solo il prezzo di fabbrica.",
     "cart.heldBannerCheckout": "⏸ {n} articolo{s} in sospeso e non verranno addebitati — completiamo l'acquisto solo dei tuoi {p} articolo{s} disponibili. {one stays|ones stay} Quello in sospeso resta nel carrello per quando {it's|they're} torna disponibile.",
@@ -1475,7 +1479,8 @@ export default {
     "orders.notif.storageApplies": "Ora si applicano costi di deposito a {name} ({days} giorni in deposito) — spedisci entro 90 giorni o verrà perso",
     "orders.notif.storageEndingSoon": "{name}: restano solo {daysLeft} giorno{plural} di deposito gratuito — spedisci presto",
     "orders.notif.storageDaysUsed": "{name} è in deposito da {days} giorni — spedisci entro {daysLeft} giorni per tenerlo gratis",
-    "orders.notif.agentReplied": "Il tuo agente ha risposto ({productName})"
+    "orders.notif.agentReplied": "Il tuo agente ha risposto ({productName})",
+    "feed.title.factoryFeed.word1": "Fabbrica"
   },
   "pl": {
     "feed.header.balanceLabel": "Saldo",
@@ -1648,7 +1653,7 @@ export default {
     "cart.barTitle": "Koszyk · {count} przedmiot{s}",
     "cart.barSubtitle": "Dotknij, by otworzyć — jedna opłata przy wysyłce",
     "cart.title": "🛒 Koszyk ({count})",
-    "cart.customsHeader": "{n} {category|kategorie} produktów · €{amount} cła UE",
+    "cart.customsHeader": "{n} kategorii produktów · {amount} € cło UE",
     "cart.customsBody": "Nowy przepis UE nalicza €3 za kategorię produktu, wliczane w Twoją wysyłkę międzynarodową (pobierane przy wysyłce, nie teraz). Zakupy z Flowva Friends dzielą to na całą grupę.",
     "cart.heldReasonDefault": "Wstrzymane — zmiana w fabryce",
     "cart.remove": "Usuń",
@@ -1668,7 +1673,7 @@ export default {
     "cart.shippingTo": "📦 WYSYŁKA DO",
     "common.edit": "Edytuj",
     "cart.noAddress": "⚠️ Brak adresu wysyłki — dotknij Edytuj, by go dodać.",
-    "cart.itemPcsColor": "{qty} szt.{ · {color}}",
+    "cart.itemPcsColor": "{qty} szt.{color}",
     "cart.totalNow": "Do zapłaty teraz",
     "cart.deferredFeeNote": "🚢 Wysyłka międzynarodowa i jedna opłata serwisowa są naliczane później, gdy Twoje produkty dotrą do magazynu i wyślesz swoją przesyłkę — więc dziś płacisz tylko cenę fabryczną.",
     "cart.heldBannerCheckout": "⏸ {n} przedmiot{s} wstrzyman{y|e} i nie zostan{ie|ą} obciążon{y|e} — zamówimy tylko {p} dostępn{y|e} przedmiot{s}. Wstrzyman{y zostaje|e zostają} w koszyku, aż {wróci|wrócą} do dostępności.",
@@ -1770,7 +1775,8 @@ export default {
     "orders.notif.storageApplies": "Do {name} nalicza się teraz opłata za przechowywanie ({days} dni w magazynie) — wyślij w ciągu 90 dni, inaczej przepadnie",
     "orders.notif.storageEndingSoon": "{name}: został{plural} tylko {daysLeft} dzień/dni darmowego przechowywania — wyślij wkrótce",
     "orders.notif.storageDaysUsed": "{name} jest w magazynie {days} dni — wyślij w ciągu {daysLeft} dni, by było za darmo",
-    "orders.notif.agentReplied": "Twój agent odpowiedział ({productName})"
+    "orders.notif.agentReplied": "Twój agent odpowiedział ({productName})",
+    "feed.title.factoryFeed.word1": "Fabryka"
   },
   "pt": {
     "feed.header.balanceLabel": "Saldo",
@@ -1943,7 +1949,7 @@ export default {
     "cart.barTitle": "Carrinho · {count} artigo{s}",
     "cart.barSubtitle": "Toca para abrir — uma taxa no envio",
     "cart.title": "🛒 Carrinho ({count})",
-    "cart.customsHeader": "{n} produto {category|categorias} · €{amount} alfândega UE",
+    "cart.customsHeader": "{n} categorias de produto · {amount} € alfândega UE",
     "cart.customsBody": "Uma nova regra da UE cobra €3 por categoria de produto, calculada dentro do teu envio internacional (cobrada quando enviares, não agora). Comprar com o Flowva Friends divide isto pelo grupo.",
     "cart.heldReasonDefault": "Em espera — alterado na fábrica",
     "cart.remove": "Remover",
@@ -1963,7 +1969,7 @@ export default {
     "cart.shippingTo": "📦 ENVIAR PARA",
     "common.edit": "Editar",
     "cart.noAddress": "⚠️ Ainda sem morada de envio — toca em Editar para adicionar.",
-    "cart.itemPcsColor": "{qty} un.{ · {color}}",
+    "cart.itemPcsColor": "{qty} un.{color}",
     "cart.totalNow": "Total agora",
     "cart.deferredFeeNote": "🚢 O envio internacional e uma única taxa de serviço são cobrados mais tarde, quando os teus artigos chegarem ao armazém e enviares o teu bundle — por isso hoje pagas só o preço de fábrica.",
     "cart.heldBannerCheckout": "⏸ {n} artigo{s} em espera e não serão cobrados — vamos finalizar apenas os teus {p} artigo{s} disponível. {one stays|Os em espera ficam} no carrinho para quando {it's|voltarem}.",
@@ -2065,6 +2071,7 @@ export default {
     "orders.notif.storageApplies": "O armazenamento aplica-se agora a {name} ({days} dias em armazenamento) — envia em 90 dias ou é perdido",
     "orders.notif.storageEndingSoon": "{name}: só restam {daysLeft} dia{plural} de armazenamento grátis — envia em breve",
     "orders.notif.storageDaysUsed": "{name} está em armazenamento há {days} dias — envia em {daysLeft} dias para o manteres grátis",
-    "orders.notif.agentReplied": "O teu agente respondeu ({productName})"
+    "orders.notif.agentReplied": "O teu agente respondeu ({productName})",
+    "feed.title.factoryFeed.word1": "Fábrica"
   }
 };

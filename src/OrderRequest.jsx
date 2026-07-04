@@ -416,7 +416,7 @@ export default function OrderRequest({ product, session, onRequireAuth, onClose,
             {activeGroup && (
               <>
                 <motion.div variants={fadeUp} style={{ display: "flex", alignItems: "center", gap: 6, background: "rgba(255,92,0,0.1)", border: "1px solid rgba(255,92,0,0.3)", borderRadius: 12, padding: "10px 13px", marginBottom: 10, fontSize: 12.5, color: "#B45309" }}>
-                  <Fox /> Shopping for <b style={{ marginLeft: 2 }}>{activeGroup.name}</b> · bought into the group now, one fee at shipping
+                  <Fox /> {tr("product.shoppingForGroup", "Shopping for {group} · bought into the group now, one fee at shipping", { group: activeGroup.name })}
                 </motion.div>
                 <motion.button variants={fadeUp} whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.96 }}
                   onClick={handleAddToGroup} disabled={loading || addedToGroup}

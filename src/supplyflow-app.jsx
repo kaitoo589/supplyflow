@@ -254,7 +254,7 @@ function ProgressWheelModal({ items, onClose, onOpenItem }) {
               </div>
             ))}
           </div>
-          <div style={{ marginTop: 12, textAlign: "center", fontSize: 11.5, color: "#9A968F" }}>Overall <b style={{ color: "#111" }}>{overall}%</b></div>
+          <div style={{ marginTop: 12, textAlign: "center", fontSize: 11.5, color: "#9A968F" }}>{tr("orders.progress.overall", "Overall {percent}%", { percent: overall })}</div>
         </div>
       </motion.div>
     </>,
@@ -287,7 +287,7 @@ function OrderGroupCard({ items, onOpenItem, groupSize, onDismiss, parcel, activ
   return (
     <motion.div layout exit={{ opacity: 0, scale: 0.94, transition: { duration: 0.22, ease: [0.4, 0, 1, 1] } }} style={{ position: "relative", background: "#fff", border: "1px solid #E8E6E0", borderRadius: 16, marginBottom: 10, overflow: "hidden" }}>
       {allDelivered && onDismiss && (
-        <motion.button whileTap={{ scale: 0.82 }} onClick={(e) => { e.stopPropagation(); onDismiss(items.map(o => o.id)); }} title="Remove from orders"
+        <motion.button whileTap={{ scale: 0.82 }} onClick={(e) => { e.stopPropagation(); onDismiss(items.map(o => o.id)); }} title={tr("orders.card.removeTitle", "Remove from orders")}
           style={{ position: "absolute", top: 8, right: 9, zIndex: 3, width: 23, height: 23, borderRadius: 999, background: "#F1EFE9", border: "none", display: "flex", alignItems: "center", justifyContent: "center", color: "#9A968F", cursor: "pointer", padding: 0, WebkitTapHighlightColor: "transparent" }}>
           <X size={13} strokeWidth={2.7} />
         </motion.button>
@@ -668,7 +668,7 @@ function RequestListSheet({ items, onRemove, onSetQty, onClose, onSend, sending,
                     <span style={{ fontSize: 12.5, fontWeight: 700, color: "#fff" }}>{tr("cart.customsHeader", "{n} product {cat} · €{amount} EU customs", { n: cats.length, cat: cats.length === 1 ? "category" : "categories", amount: cats.length * 3 })}</span>
                   </div>
                   <div style={{ fontSize: 11.5, lineHeight: 1.5, color: "#9C9893" }}>
-                    A new EU rule charges <b style={{ color: "#C9C6C1" }}>€3 per product category</b>, calculated inside your <b style={{ color: "#C9C6C1" }}>international shipping</b> (charged when you ship, not now). Shopping with <b style={{ color: "#FF5C00" }}>Flowva Friends</b> splits this across your group.
+                    {tr("cart.customsBody", "A new EU rule charges €3 per product category, calculated inside your international shipping (charged when you ship, not now). Shopping with Flowva Friends splits this across your group.")}
                   </div>
                 </div>
               ); })()}
@@ -689,7 +689,7 @@ function RequestListSheet({ items, onRemove, onSetQty, onClose, onSend, sending,
                   </div>
                   {held ? (
                     <button onClick={() => onRemove(i)}
-                      style={{ flexShrink: 0, background: "rgba(245,158,11,0.15)", color: "#F59E0B", border: "1px solid rgba(245,158,11,0.35)", borderRadius: 9, padding: "7px 12px", fontSize: 12, fontWeight: 700, cursor: "pointer", WebkitTapHighlightColor: "transparent" }}>Remove</button>
+                      style={{ flexShrink: 0, background: "rgba(245,158,11,0.15)", color: "#F59E0B", border: "1px solid rgba(245,158,11,0.35)", borderRadius: 9, padding: "7px 12px", fontSize: 12, fontWeight: 700, cursor: "pointer", WebkitTapHighlightColor: "transparent" }}>{tr("cart.remove", "Remove")}</button>
                   ) : (
                   <div style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
                     <motion.button whileTap={{ scale: 0.85 }} onClick={() => ((item.qty || 1) > 1 ? onSetQty(i, item.qty - 1) : onRemove(i))}
@@ -729,7 +729,7 @@ function RequestListSheet({ items, onRemove, onSetQty, onClose, onSend, sending,
                   <motion.span layoutId="cart-fox" style={{ fontSize: 28, flexShrink: 0 }}><Fox /></motion.span>
                   <SpeechBubble bg="#1E1D1A" color="#C9C6C1">
                     <span style={{ fontSize: 12.5, lineHeight: 1.6 }}>
-                      Good news: there's <b style={{ color: "#FF5C00" }}>no service fee now</b> — today you only pay the factory price. A single service fee (8% of item value, min €5) is charged <b style={{ color: "#C9C6C1" }}>once, later</b>, when you ship your bundle. The more you bundle into one parcel, the lower it works out per item — and a <b style={{ color: "#FF5C00" }}>group order with friends</b> splits it even further.
+                      {tr("cart.feeExplainerBubble", "Good news: there's no service fee now — today you only pay the factory price. A single service fee (8% of item value, min €5) is charged once, later, when you ship your bundle. The more you bundle into one parcel, the lower it works out per item — and a group order with friends splits it even further.")}
                     </span>
                   </SpeechBubble>
                 </div>
@@ -820,7 +820,7 @@ function RequestListSheet({ items, onRemove, onSetQty, onClose, onSend, sending,
               </motion.div>
 
               <motion.div style={{ background: "rgba(99,102,241,0.12)", borderRadius: 12, padding: "10px 13px", marginBottom: 12, fontSize: 11.5, color: "#A5B4FC", lineHeight: 1.5 }}>
-                🚢 International shipping <b>and a single service fee</b> are billed <b>later</b>, once your items reach the warehouse and you ship your bundle — so today you only pay the factory price.
+                {tr("cart.deferredFeeNote", "🚢 International shipping and a single service fee are billed later, once your items reach the warehouse and you ship your bundle — so today you only pay the factory price.")}
               </motion.div>
 
               {errorBlock}
@@ -864,8 +864,8 @@ function RequestListSheet({ items, onRemove, onSetQty, onClose, onSend, sending,
               <ConfettiBurst />
               <div style={{ textAlign: "center", marginBottom: 22, marginTop: 4 }}>
                 <motion.span layoutId="cart-fox" style={{ fontSize: 52, display: "inline-block", marginBottom: 12 }}><Fox /></motion.span>
-                <div style={{ fontSize: 22, fontWeight: 700, color: "#FF5C00", marginBottom: 6 }}>Order placed! 🎉</div>
-                <div style={{ fontSize: 13, color: "#888" }}>We're getting it from the factory:</div>
+                <div style={{ fontSize: 22, fontWeight: 700, color: "#FF5C00", marginBottom: 6 }}>{tr("product.orderSuccess.title", "Order placed! 🎉")}</div>
+                <div style={{ fontSize: 13, color: "#888" }}>{tr("product.orderSuccess.subtitle", "We're getting it from the factory:")}</div>
               </div>
               {heldCount > 0 && (
                 <div style={{ background: "rgba(245,158,11,0.12)", color: "#F59E0B", borderRadius: 10, padding: "10px 13px", fontSize: 12, marginBottom: 16, lineHeight: 1.5, textAlign: "center" }}>
@@ -874,10 +874,10 @@ function RequestListSheet({ items, onRemove, onSetQty, onClose, onSend, sending,
               )}
               <div style={{ display: "flex", flexDirection: "column", gap: 10, marginBottom: 22 }}>
                 {[
-                  { icon: "🛒", text: "Buying your item from the supplier", lid: "ck-ship" },
-                  { icon: "📸", text: "Taking quality-control photos", lid: "ck-items" },
-                  { icon: "🏭", text: "Storing it safely in the warehouse", lid: "ck-total" },
-                  { icon: "✈️", text: "Shipping it to your door", lid: "ck-boat" },
+                  { icon: "🛒", text: tr("product.orderSuccess.step.buying", "Buying your item from the supplier"), lid: "ck-ship" },
+                  { icon: "📸", text: tr("product.orderSuccess.step.photos", "Taking quality-control photos"), lid: "ck-items" },
+                  { icon: "🏭", text: tr("product.orderSuccess.step.storing", "Storing it safely in the warehouse"), lid: "ck-total" },
+                  { icon: "✈️", text: tr("product.orderSuccess.step.shipping", "Shipping it to your door"), lid: "ck-boat" },
                 ].map((s) => (
                   <motion.div key={s.lid} style={{ display: "flex", alignItems: "center", gap: 12, background: "#1A1917", borderRadius: 10, padding: "12px 14px" }}>
                     <span style={{ fontSize: 18 }}>{s.icon}</span>
@@ -887,11 +887,11 @@ function RequestListSheet({ items, onRemove, onSetQty, onClose, onSend, sending,
               </div>
               <motion.button whileTap={{ scale: 0.97 }} onClick={() => onFinish?.(true)}
                 style={{ width: "100%", background: "#FF5C00", color: "#fff", border: "none", borderRadius: 14, padding: "16px", fontSize: 15, fontWeight: 700, cursor: "pointer", WebkitTapHighlightColor: "transparent" }}>
-                Track it in Orders →
+                {tr("product.orderSuccess.trackCta", "Track it in Orders →")}
               </motion.button>
               <motion.button whileTap={{ scale: 0.97 }} onClick={() => onFinish?.(false)}
                 style={{ width: "100%", marginTop: 8, background: "transparent", color: "#888", border: "none", borderRadius: 14, padding: "13px", fontSize: 13, fontWeight: 600, cursor: "pointer", WebkitTapHighlightColor: "transparent" }}>
-                Back to feed
+                {tr("product.orderSuccess.backToFeed", "Back to feed")}
               </motion.button>
             </motion.div>
           )}
@@ -2454,7 +2454,7 @@ export default function SupplyFlow({ session }) {
     const p = groupItems.map((o) => orderToParcel[o.id]).find(Boolean);
     if (!p) return null;
     let date = ""; try { date = new Date(p.created_at).toLocaleDateString("en-GB"); } catch {}
-    return { label: `Parcel ${p.n}`, date };
+    return { label: tr("orders.card.parcelLabel", "Parcel {n}", { n: p.n }), date };
   };
   // Shop-modus geldt ALLEEN voor een 'gathering'-groep. Een geplaatste groep is "Following"
   // (volgen) — dan gedraagt de feed/cart/glow zich gewoon solo; Orders blijft wel die groep volgen.
@@ -2539,9 +2539,9 @@ export default function SupplyFlow({ session }) {
         </motion.div>
         {isDemo ? (
           <>
-            <span style={{ position: "absolute", top: 10, right: 10, background: "#F5C518", color: "#4a3800", fontSize: 10.5, fontWeight: 700, padding: "3px 8px", borderRadius: 8 }}>Coming soon</span>
-            <span style={{ position: "absolute", top: 34, right: 11, color: "#fff", fontSize: 10, fontWeight: 700, letterSpacing: 0.2, textShadow: "0 1px 3px rgba(0,0,0,0.55)", pointerEvents: "none" }}>tap to view</span>
-            <span style={{ position: "absolute", top: 10, left: 10, background: "#FF5C00", color: "#fff", fontSize: 10.5, fontWeight: 700, padding: "3px 8px", borderRadius: 8, boxShadow: "0 2px 8px rgba(17,17,17,0.18)", whiteSpace: "nowrap" }}>Vote</span>
+            <span style={{ position: "absolute", top: 10, right: 10, background: "#F5C518", color: "#4a3800", fontSize: 10.5, fontWeight: 700, padding: "3px 8px", borderRadius: 8 }}>{tr("product.badge.comingSoon", "Coming soon")}</span>
+            <span style={{ position: "absolute", top: 34, right: 11, color: "#fff", fontSize: 10, fontWeight: 700, letterSpacing: 0.2, textShadow: "0 1px 3px rgba(0,0,0,0.55)", pointerEvents: "none" }}>{tr("product.badge.tapToView", "tap to view")}</span>
+            <span style={{ position: "absolute", top: 10, left: 10, background: "#FF5C00", color: "#fff", fontSize: 10.5, fontWeight: 700, padding: "3px 8px", borderRadius: 8, boxShadow: "0 2px 8px rgba(17,17,17,0.18)", whiteSpace: "nowrap" }}>{tr("product.badge.vote", "Vote")}</span>
           </>
         ) : (
           <motion.div layoutId={`plus-${p.id}`} transition={{ duration: 0.34, ease: [0.32, 0.72, 0, 1] }}
@@ -2561,13 +2561,13 @@ export default function SupplyFlow({ session }) {
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end" }}>
           <div>
             <div style={{ fontSize: 15, fontWeight: 700, color: "#111111" }}>€{Number(p.price).toFixed(2)}</div>
-            <div style={{ fontSize: 9.5, color: "#A8A5A0", marginTop: 1, lineHeight: 1.2 }}>{isDemo ? "factory price · not live yet" : "factory price · +fees & shipping"}</div>
+            <div style={{ fontSize: 9.5, color: "#A8A5A0", marginTop: 1, lineHeight: 1.2 }}>{isDemo ? tr("product.priceCaption.demo", "factory price · not live yet") : tr("product.priceCaption.live", "factory price · +fees & shipping")}</div>
           </div>
           {isDemo
             ? null
             : Number(p.rating) > 0
               ? <div style={{ fontSize: 11.5, fontWeight: 600, color: "#111111" }}>★ {Number(p.rating).toFixed(1)}</div>
-              : <div style={{ fontSize: 11, color: "#A8A5A0" }}>MOQ {p.moq}</div>}
+              : <div style={{ fontSize: 11, color: "#A8A5A0" }}>{tr("product.moq", "MOQ {value}", { value: p.moq })}</div>}
         </div>
       </div>
     </motion.div>
@@ -2595,7 +2595,7 @@ export default function SupplyFlow({ session }) {
               <div style={{ flex: 1, minHeight: 0, position: "relative", display: "flex" }}>
                 {imgBox(pv[2])}
                 {extra > 0 && (
-                  <div style={{ position: "absolute", right: 6, bottom: 6, background: "rgba(17,17,17,0.74)", color: "#fff", fontSize: 11, fontWeight: 700, padding: "2px 8px", borderRadius: 12 }}>+<CountUp to={extra} duration={0.7} /> more</div>
+                  <div style={{ position: "absolute", right: 6, bottom: 6, background: "rgba(17,17,17,0.74)", color: "#fff", fontSize: 11, fontWeight: 700, padding: "2px 8px", borderRadius: 12 }}>{tr("feed.factoryCard.moreImages", "+{count} more", { count: extra })}</div>
                 )}
               </div>
             )}
@@ -3047,16 +3047,16 @@ export default function SupplyFlow({ session }) {
             <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} transition={springSoft}
               style={{ background: "#F0FDF4", border: "1.5px solid #34D17B", borderRadius: 14, padding: 16, marginBottom: 16 }}>
               <div style={{ fontSize: 14, fontWeight: 700, color: "#15803D", marginBottom: 6 }}>{tr("orders.detail.oos.title", "📦 Out of stock — refunded")}</div>
-              <div style={{ fontSize: 13, color: "#166534", lineHeight: 1.5 }}>Unfortunately this item is out of stock. The item price has been <b>automatically refunded</b> to your balance — no action needed.</div>
+              <div style={{ fontSize: 13, color: "#166534", lineHeight: 1.5 }}>{tr("orders.detail.oos.body", "Unfortunately this item is out of stock. The item price has been automatically refunded to your balance — no action needed.")}</div>
             </motion.div>
           ) : selectedOrder.problem_type && problemTypes[selectedOrder.problem_type] ? (
             <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} transition={springSoft}
               style={{ background: "#FFF7ED", border: "1.5px solid #F59E0B", borderRadius: 14, padding: 16, marginBottom: 16 }}>
               <div style={{ fontSize: 14, fontWeight: 700, color: "#B45309", marginBottom: 6 }}>
-                {problemTypes[selectedOrder.problem_type].icon} {problemTypes[selectedOrder.problem_type].label}
+                {problemTypes[selectedOrder.problem_type].icon} {tr(problemTypes[selectedOrder.problem_type].labelKey, problemTypes[selectedOrder.problem_type].label)}
               </div>
               <div style={{ fontSize: 13, color: "#92400E", lineHeight: 1.5, marginBottom: 12 }}>
-                {problemTypes[selectedOrder.problem_type].msg}
+                {tr(problemTypes[selectedOrder.problem_type].msgKey, problemTypes[selectedOrder.problem_type].msg)}
               </div>
               {selectedOrder.status === "quote_accepted" && (
                 <div style={{ display: "flex", gap: 8 }}>
@@ -3170,7 +3170,7 @@ export default function SupplyFlow({ session }) {
             <div style={{ background: "#fff", border: "1px solid #E8E6E0", borderRadius: 14, padding: "16px", marginBottom: 16 }}>
               <div style={{ fontSize: 14, fontWeight: 700, color: "#0F0E0C", marginBottom: 4 }}>{tr("orders.detail.recordedCondition.title", "Recorded condition")} <span style={{ fontSize: 11, fontWeight: 500, color: "#A8A5A0" }}>{tr("orders.detail.recordedCondition.subtitle", "· kept for returns")}</span></div>
               <div style={{ fontSize: 12, color: "#8A8780", lineHeight: 1.5, marginBottom: 12 }}>
-                These quality-control &amp; measurement photos are the documented condition of your item before it shipped — we keep them as the record if you request a return or withdrawal. For a change of mind the international shipping isn't refunded; a faulty item is on us. See our <a href="/returns-policy" target="_blank" rel="noreferrer" style={{ color: "#FF5C00" }}>Returns policy</a>.
+                {tr("orders.detail.recordedCondition.body", "These quality-control & measurement photos are the documented condition of your item before it shipped — we keep them as the record if you request a return or withdrawal. For a change of mind the international shipping isn't refunded; a faulty item is on us. See our Returns policy.")}
               </div>
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 6 }}>
                 {[...(selectedOrder.qc_images || []), ...(selectedOrder.measurement_images || [])].map((url, i) => (
@@ -3321,7 +3321,7 @@ export default function SupplyFlow({ session }) {
               <div style={{ width: "100%", boxSizing: "border-box", background: "#111111", color: "#fff", borderRadius: 10, padding: "13px 14px", textAlign: "center", lineHeight: 1.4 }}>
                 <div style={{ fontSize: 13.5, fontWeight: 700 }}>{tr("profile.prelaunch.title", "🚀 Flowva launches {date}", { date: LAUNCH_DATE_LABEL })}</div>
                 <div style={{ fontSize: 11.5, fontWeight: 500, color: "#B7B3AD", marginTop: 3 }}>{tr("profile.prelaunch.body", "Top-ups & ordering open on launch day — you can already browse and build your cart.")}</div>
-                <div style={{ fontSize: 11.5, fontWeight: 500, color: "#B7B3AD", marginTop: 6 }}>Follow <span style={{ color: "#fff", fontWeight: 700 }}>flowva.app</span> on TikTok to stay updated.</div>
+                <div style={{ fontSize: 11.5, fontWeight: 500, color: "#B7B3AD", marginTop: 6 }}>{tr("profile.prelaunch.follow", "Follow flowva.app on TikTok to stay updated.")}</div>
               </div>
             ) : (
               <button onClick={handleTopup} disabled={loadingBalance || !topupAmount || !topupAgreed}
@@ -3555,8 +3555,8 @@ export default function SupplyFlow({ session }) {
             <span style={{ fontSize: 22 }}>{groupToast.kind === "placed" ? "🎉" : "↩️"}</span>
             <div style={{ flex: 1, fontSize: 12.5, color: "#fff", lineHeight: 1.4 }}>
               {groupToast.kind === "placed"
-                ? <>Your group <b>{groupToast.name || "order"}</b> is placed — everyone's in! Tap to view.</>
-                : <>Your group <b>{groupToast.name || ""}</b> closed. Tap for details.</>}
+                ? tr("feed.groupToast.placed", "Your group {name} is placed — everyone's in! Tap to view.", { name: groupToast.name || "order" })
+                : tr("feed.groupToast.closed", "Your group {name} closed. Tap for details.", { name: groupToast.name || "" })}
             </div>
             <button onClick={(e) => { e.stopPropagation(); setGroupToast(null); }} aria-label={tr("common.aria.dismiss", "dismiss")} style={{ background: "transparent", border: "none", color: "#9C9893", fontSize: 14, cursor: "pointer" }}>✕</button>
           </div>
@@ -3606,7 +3606,7 @@ export default function SupplyFlow({ session }) {
             <div style={{ padding: "11px 18px", display: "flex", alignItems: "center", gap: 12 }}>
               <span data-cart-emoji style={{ fontSize: 18 }}>📋</span>
               <div style={{ flex: 1 }}>
-                <div style={{ fontSize: 13, fontWeight: 700, color: "#fff" }}>Shopping cart · <motion.span key={requestList.length} initial={{ scale: 1.6, color: "#FF8A3D" }} animate={{ scale: 1, color: "#FFFFFF" }} transition={springSnappy} style={{ display: "inline-block" }}>{requestList.length}</motion.span> item{requestList.length > 1 ? "s" : ""}</div>
+                <div style={{ fontSize: 13, fontWeight: 700, color: "#fff" }}>{tr("cart.popBar.title", "Shopping cart · {count} item{s}", { count: requestList.length, s: requestList.length > 1 ? "s" : "" })}</div>
                 <div style={{ fontSize: 11.5, color: "#9C9893" }}>{tr("cart.popBar.subtitle", "Tap to open — one fee at shipping")} <Fox /></div>
               </div>
               <motion.div animate={{ y: [0, -3, 0] }} transition={{ duration: 1.4, repeat: Infinity, ease: "easeInOut" }}
@@ -3650,11 +3650,11 @@ export default function SupplyFlow({ session }) {
               <div style={{ width: 36, height: 4, background: "#E8E6E0", borderRadius: 2, margin: "0 auto 16px" }} />
               <button onClick={() => setPreviewProduct(null)} style={{ background: "none", border: "none", fontSize: 14, color: "#666", cursor: "pointer", padding: 0, marginBottom: 12 }}>{tr("common.back", "← Back")}</button>
               <div style={{ fontSize: 16, fontWeight: 700, color: "#0F0E0C", marginBottom: 4 }}>{previewProduct.title}</div>
-              <div style={{ fontSize: 12, color: "#aaa", marginBottom: 16 }}>Product preview</div>
+              <div style={{ fontSize: 12, color: "#aaa", marginBottom: 16 }}>{tr("product.preview.subtitle", "Product preview")}</div>
               <PreviewGallery images={previewProduct.preview_images} />
               <button onClick={() => { setPreviewProduct(null); setSelectedProduct(previewProduct); }}
                 style={{ width: "100%", marginTop: 20, background: "#FF5C00", color: "#fff", border: "none", borderRadius: 12, padding: "14px", fontSize: 14, fontWeight: 700, cursor: "pointer" }}>
-                View product →
+                {tr("product.preview.viewProductCta", "View product →")}
               </button>
             </motion.div>
           </>
@@ -3674,17 +3674,17 @@ export default function SupplyFlow({ session }) {
               <div style={{ width: 36, height: 4, background: "#333", borderRadius: 2, margin: "0 auto 24px" }} />
               <div style={{ textAlign: "center", marginBottom: 24 }}>
                 <motion.span layoutId="cart-fox" style={{ fontSize: 56, display: "inline-block", marginBottom: 16 }}><Fox /></motion.span>
-                <div style={{ fontSize: 22, fontWeight: 700, color: "#FF5C00", marginBottom: 8 }}>Order placed! 🎉</div>
+                <div style={{ fontSize: 22, fontWeight: 700, color: "#FF5C00", marginBottom: 8 }}>{tr("product.orderSuccess.title", "Order placed! 🎉")}</div>
                 <div style={{ fontSize: 14, color: "#888", lineHeight: 1.6 }}>
-                  We're getting it from the factory:
+                  {tr("product.orderSuccess.subtitle", "We're getting it from the factory:")}
                 </div>
               </div>
               <div style={{ display: "flex", flexDirection: "column", gap: 10, marginBottom: 28 }}>
                 {[
-                  { icon: "🛒", text: "Buying your item from the supplier", lid: "ck-ship" },
-                  { icon: "📸", text: "Taking quality-control photos", lid: "ck-items" },
-                  { icon: "🏭", text: "Storing it safely in the warehouse", lid: "ck-total" },
-                  { icon: "✈️", text: "Shipping it to your door", lid: "ck-boat" },
+                  { icon: "🛒", text: tr("product.orderSuccess.step.buying", "Buying your item from the supplier"), lid: "ck-ship" },
+                  { icon: "📸", text: tr("product.orderSuccess.step.photos", "Taking quality-control photos"), lid: "ck-items" },
+                  { icon: "🏭", text: tr("product.orderSuccess.step.storing", "Storing it safely in the warehouse"), lid: "ck-total" },
+                  { icon: "✈️", text: tr("product.orderSuccess.step.shipping", "Shipping it to your door"), lid: "ck-boat" },
                 ].map((item) => (
                   <motion.div key={item.lid} style={{ display: "flex", alignItems: "center", gap: 12, background: "#1A1917", borderRadius: 10, padding: "10px 14px" }}>
                     <span style={{ fontSize: 18 }}>{item.icon}</span>
@@ -3695,11 +3695,11 @@ export default function SupplyFlow({ session }) {
               <motion.button whileTap={{ scale: 0.97 }}
                 onClick={() => { setSuccessProduct(null); setOrderSuccess(false); setTab("orders"); setSelectedOrder(null); }}
                 style={{ width: "100%", background: "#FF5C00", color: "#fff", border: "none", borderRadius: 12, padding: "14px", fontSize: 15, fontWeight: 700, cursor: "pointer", WebkitTapHighlightColor: "transparent" }}>
-                Track it in Orders →
+                {tr("product.orderSuccess.trackCta", "Track it in Orders →")}
               </motion.button>
               <motion.button onClick={() => { setSuccessProduct(null); setOrderSuccess(false); }}
                 style={{ width: "100%", background: "transparent", color: "#888", border: "none", padding: "12px", fontSize: 14, fontWeight: 600, cursor: "pointer", marginTop: 6 }}>
-                Back to feed
+                {tr("product.orderSuccess.backToFeed", "Back to feed")}
               </motion.button>
             </motion.div>
           </>
@@ -3725,11 +3725,11 @@ export default function SupplyFlow({ session }) {
                   </div>
                   <div style={{ background: "#fff", borderRadius: "14px 14px 0 0" }}>
                   {[
-                    { Icon: ShoppingBag, label: "View product", sub: "Choose options & add to cart", accent: true, show: true,
+                    { Icon: ShoppingBag, label: tr("product.actions.viewProduct", "View product"), sub: tr("product.actions.viewProductSub", "Choose options & add to cart"), accent: true, show: true,
                       go: () => { const p = actionProduct; setActionProduct(null); setSelectedProduct(p); } },
-                    { Icon: Eye, label: "Product preview", sub: "View extra photos", accent: false, show: actionProduct.preview_images?.length > 0,
+                    { Icon: Eye, label: tr("product.actions.preview", "Product preview"), sub: tr("product.actions.previewSub", "View extra photos"), accent: false, show: actionProduct.preview_images?.length > 0,
                       go: () => { const p = actionProduct; setActionProduct(null); setPreviewProduct(p); } },
-                    { Icon: Star, label: "Reviews", sub: "Ratings & photos", accent: false, show: true,
+                    { Icon: Star, label: tr("product.actions.reviews", "Reviews"), sub: tr("product.actions.reviewsSub", "Ratings & photos"), accent: false, show: true,
                       go: () => { const p = actionProduct; setActionProduct(null); setReviewProduct(p); } },
                   ].filter(o => o.show).map((o, oi) => (
                     <motion.div key={o.label} whileTap={{ scale: 0.97 }} onClick={o.go}

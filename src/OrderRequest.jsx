@@ -11,6 +11,7 @@ import { ffAddItem, ffShareProduct } from "./ffApi";
 import Fox from "./Fox";
 import PhotoZoom from "./PhotoZoom";
 import { useBodyScrollLock } from "./DelightBits";
+import { tr } from "./i18n";
 
 const spring = springMorph;
 
@@ -73,7 +74,7 @@ export default function OrderRequest({ product, session, onRequireAuth, onClose,
     if (productVariants) {
       const missing = productVariants.filter(v => !selectedVariants[v.name]).map(v => v.name);
       if (missing.length) { setMissingVariants(missing); return null; }
-      if (comboOos) { setError("This combination is sold out at the factory — try a different option."); return null; }
+      if (comboOos) { setError(tr("product.comboSoldOut","This combination is sold out at the factory — try a different option.")); return null; }
     }
     const variantString = Object.entries(selectedVariants)
       .map(([k, v]) => `${k}: ${v}`)
@@ -104,7 +105,7 @@ export default function OrderRequest({ product, session, onRequireAuth, onClose,
       });
       if (chk?.anyChanged) {
         setLoading(false);
-        setError("This item's supplier price just changed, so it's temporarily on hold. We're updating it — please check back soon.");
+        setError(tr("product.priceChangedOnHold","This item's supplier price just changed, so it's temporarily on hold. We're updating it — please check back soon."));
         return;
       }
     } catch { /* check onbereikbaar → fail-open */ }
@@ -116,8 +117,8 @@ export default function OrderRequest({ product, session, onRequireAuth, onClose,
     if (!data?.ok) {
       setError(
         data?.error === "Insufficient balance"
-          ? "Insufficient balance — top up to complete your order."
-          : data?.error || "Something went wrong. Please try again."
+          ? tr("product.insufficientBalanceTopUp","Insufficient balance — top up to complete your order.")
+          : data?.error || tr("common.somethingWentWrong","Something went wrong. Please try again.")
       );
       return;
     }
@@ -144,8 +145,8 @@ export default function OrderRequest({ product, session, onRequireAuth, onClose,
     setLoading(false);
     if (!r.ok) {
       setError(r.error === "Insufficient balance"
-        ? `Insufficient balance — you need €${Number(r.needed || 0).toFixed(2)}. Top up first.`
-        : (r.error || "Could not buy for the group"));
+        ? tr("product.insufficientBalanceNeeded","Insufficient balance — you need €{amount}. Top up first.",{ amount: Number(r.needed || 0).toFixed(2) })
+        : (r.error || tr("product.couldNotBuyForGroup","Could not buy for the group")));
       // Groep bestaat niet meer / geen lid / gesloten → stop met "voor deze groep shoppen".
       if (/not a member|not found|closed|full/i.test(r.error || "")) onActiveGroupGone?.();
       return;
@@ -161,7 +162,7 @@ export default function OrderRequest({ product, session, onRequireAuth, onClose,
     if (!item) return;
     const r = await ffShareProduct(activeGroup.id, item);
     if (!r.ok) {
-      setError(r.error || "Could not share to the group");
+      setError(r.error || tr("product.couldNotShareToGroup","Could not share to the group"));
       if (/not a member|not found|closed/i.test(r.error || "")) onActiveGroupGone?.();
       return;
     }
@@ -236,7 +237,7 @@ export default function OrderRequest({ product, session, onRequireAuth, onClose,
                   {product.title}
                 </div>
                 <div style={{ fontSize: 12.5, color: "#888", marginTop: 4 }}>
-                  {product.platform}{product.source_url ? <> · raw link: <a href={product.source_url} target="_blank" rel="noreferrer" style={{ color: "#FF7A1A", wordBreak: "break-all" }}>{product.source_url}</a></> : null}
+                  {product.platform}{product.source_url ? <> · {tr("product.rawLinkLabel","raw link: ")}<a href={product.source_url} target="_blank" rel="noreferrer" style={{ color: "#FF7A1A", wordBreak: "break-all" }}>{product.source_url}</a></> : null}
                 </div>
               </div>
               <motion.button
@@ -252,7 +253,7 @@ export default function OrderRequest({ product, session, onRequireAuth, onClose,
             {/* Productafbeelding — morpht vanuit de feed-kaart, wisselt mee met de gekozen optie */}
             {displayImage && (
               <motion.div layoutId={`pimg-${product.id}`} transition={spring} onClick={() => photos.length && setZoomOpen(true)} style={{ marginBottom: product.description ? 16 : 24, borderRadius: 16, overflow: "hidden", aspectRatio: "4 / 5", background: "#fff", position: "relative", cursor: photos.length ? "zoom-in" : "default" }}>
-                {photos.length > 0 && <div style={{ position: "absolute", bottom: 10, right: 10, zIndex: 2, background: "rgba(0,0,0,0.5)", color: "#fff", fontSize: 10.5, padding: "3px 8px", borderRadius: 8, pointerEvents: "none" }}>tap to zoom</div>}
+                {photos.length > 0 && <div style={{ position: "absolute", bottom: 10, right: 10, zIndex: 2, background: "rgba(0,0,0,0.5)", color: "#fff", fontSize: 10.5, padding: "3px 8px", borderRadius: 8, pointerEvents: "none" }}>{tr("product.tapToZoom","tap to zoom")}</div>}
                 <AnimatePresence mode="popLayout" initial={false}>
                   <motion.img key={displayImage} ref={imgRef} src={displayImage} alt={product.title} decoding="async" fetchPriority="high"
                     initial={{ opacity: 0, scale: 1.04 }}
@@ -290,7 +291,7 @@ export default function OrderRequest({ product, session, onRequireAuth, onClose,
               <motion.div key={variant.name} variants={fadeUp} style={{ marginBottom: 24 }}>
                 <div style={{ fontSize: 13, fontWeight: 600, color: missing ? "#DC2626" : "#0F0E0C", marginBottom: 10 }}>
                   {variant.name}
-                  {missing && <span style={{ color: "#DC2626", fontWeight: 700, marginLeft: 8 }}>· Choose an option</span>}
+                  {missing && <span style={{ color: "#DC2626", fontWeight: 700, marginLeft: 8 }}>{tr("product.chooseOption","· Choose an option")}</span>}
                 </div>
                 <motion.div animate={missing ? { x: [0, -8, 8, -6, 6, 0] } : { x: 0 }} transition={{ duration: 0.4 }} style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
                   {variant.options.map(opt => {
@@ -310,7 +311,7 @@ export default function OrderRequest({ product, session, onRequireAuth, onClose,
                         </motion.svg>
                       )}
                       <span style={{ textDecoration: oos ? "line-through" : "none" }}>{opt}</span>
-                      {oos && <span style={{ display: "block", fontSize: 9, fontWeight: 700, color: "#DC2626", letterSpacing: 0.3, marginTop: 1 }}>OUT OF STOCK</span>}
+                      {oos && <span style={{ display: "block", fontSize: 9, fontWeight: 700, color: "#DC2626", letterSpacing: 0.3, marginTop: 1 }}>{tr("product.outOfStock","OUT OF STOCK")}</span>}
                     </motion.button>
                     );
                   })}
@@ -322,21 +323,21 @@ export default function OrderRequest({ product, session, onRequireAuth, onClose,
             {comboOos && (
               <motion.div initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }}
                 style={{ marginTop: -10, marginBottom: 20, background: "#FEF2F2", border: "1px solid #FECACA", borderRadius: 10, padding: "9px 12px", fontSize: 12, fontWeight: 600, color: "#DC2626" }}>
-                ✕ This combination is sold out at the factory — try a different option.
+                ✕ {tr("product.comboSoldOut","This combination is sold out at the factory — try a different option.")}
               </motion.div>
             )}
 
             {/* Beschrijving */}
             {product.description && (
               <motion.div variants={fadeUp} style={{ marginBottom: 24 }}>
-                <div style={{ fontSize: 13, fontWeight: 600, color: "#0F0E0C", marginBottom: 6 }}>Description</div>
+                <div style={{ fontSize: 13, fontWeight: 600, color: "#0F0E0C", marginBottom: 6 }}>{tr("product.descriptionHeading","Description")}</div>
                 <div style={{ fontSize: 13, color: "#555", lineHeight: 1.6, whiteSpace: "pre-wrap" }}>{product.description}</div>
               </motion.div>
             )}
 
             {product.material?.length > 0 && (
               <motion.div variants={fadeUp} style={{ marginBottom: 24 }}>
-                <div style={{ fontSize: 13, fontWeight: 600, color: "#0F0E0C", marginBottom: 8 }}>Materials</div>
+                <div style={{ fontSize: 13, fontWeight: 600, color: "#0F0E0C", marginBottom: 8 }}>{tr("product.materialsHeading","Materials")}</div>
                 <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
                   {product.material.map((m, i) => (
                     <div key={i} style={{ background: "#F8F7F4", borderRadius: 10, padding: "7px 12px", display: "flex", alignItems: "baseline", gap: 6 }}>
@@ -356,7 +357,7 @@ export default function OrderRequest({ product, session, onRequireAuth, onClose,
               return (
                 <motion.div variants={fadeUp} style={{ background: "#F8F7F4", borderRadius: 14, padding: "14px 16px", marginBottom: 24 }}>
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
-                    <span style={{ fontSize: 13, color: "#6B6862", fontWeight: 600 }}>Factory price</span>
+                    <span style={{ fontSize: 13, color: "#6B6862", fontWeight: 600 }}>{tr("product.factoryPrice","Factory price")}</span>
                     <span style={{ fontSize: 18, fontWeight: 800, color: "#111" }}>
                       {/* prijs-stempel: de échte fabrieksprijs wordt "gestempeld" */}
                       <motion.span initial={{ scale: 1.7, opacity: 0, rotate: -8 }} animate={{ scale: 1, opacity: 1, rotate: 0 }}
@@ -366,7 +367,7 @@ export default function OrderRequest({ product, session, onRequireAuth, onClose,
                     </span>
                   </div>
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginTop: 7 }}>
-                    <span style={{ fontSize: 12.5, color: "#8A8780" }}>China shipping</span>
+                    <span style={{ fontSize: 12.5, color: "#8A8780" }}>{tr("product.chinaShipping","China shipping")}</span>
                     <span style={{ fontSize: 13.5, fontWeight: 700, color: "#111" }}>€{(shipCny / KOERS).toFixed(2)} <span style={{ fontSize: 12, color: "#A8A5A0", fontWeight: 600 }}>· ¥{shipCny}</span></span>
                   </div>
                 </motion.div>
@@ -375,7 +376,7 @@ export default function OrderRequest({ product, session, onRequireAuth, onClose,
 
             {/* Aantal */}
             <motion.div variants={fadeUp} style={{ marginBottom: 24 }}>
-              <div style={{ fontSize: 13, fontWeight: 600, color: "#0F0E0C", marginBottom: 10 }}>Quantity</div>
+              <div style={{ fontSize: 13, fontWeight: 600, color: "#0F0E0C", marginBottom: 10 }}>{tr("product.quantity","Quantity")}</div>
               <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
                 <motion.button whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.8 }}
                   onClick={() => { setDirection(-1); setAantal(Math.max(1, aantal - 1)); }}
@@ -401,7 +402,7 @@ export default function OrderRequest({ product, session, onRequireAuth, onClose,
             {(product.size_chart?.measures?.length > 0 || product.size_chart?.image) && (
               <motion.button variants={fadeUp} type="button" onClick={() => setShowSizeGuide(true)}
                 style={{ width: "100%", marginBottom: 16, background: "#F8F7F4", color: "#111", border: "1px solid #E8E6E0", borderRadius: 12, padding: "12px", fontSize: 13.5, fontWeight: 700, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
-                📐 Size guide
+                {tr("product.sizeGuideButton","📐 Size guide")}
               </motion.button>
             )}
 
@@ -420,18 +421,18 @@ export default function OrderRequest({ product, session, onRequireAuth, onClose,
                 <motion.button variants={fadeUp} whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.96 }}
                   onClick={handleAddToGroup} disabled={loading || addedToGroup}
                   style={{ width: "100%", marginBottom: 8, background: addedToGroup ? "#16A34A" : "#FF5C00", color: "#fff", border: "none", borderRadius: 14, padding: "16px", fontSize: 15, fontWeight: 700, cursor: loading ? "default" : "pointer" }}>
-                  {addedToGroup ? `✓ Bought for ${activeGroup.name}` : loading ? "Buying…" : `+ Buy for ${activeGroup.name}`}
+                  {addedToGroup ? tr("product.boughtForGroup","✓ Bought for {group}",{ group: activeGroup.name }) : loading ? tr("product.buying","Buying…") : tr("product.buyForGroup","+ Buy for {group}",{ group: activeGroup.name })}
                 </motion.button>
                 <motion.button variants={fadeUp} whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.96 }}
                   onClick={handleShareToGroup} disabled={loading}
                   style={{ width: "100%", background: sharedToGroup ? "rgba(52,209,123,0.15)" : "rgba(255,92,0,0.08)", color: sharedToGroup ? "#16A34A" : "#FF5C00", border: `1.5px solid ${sharedToGroup ? "rgba(52,209,123,0.4)" : "rgba(255,92,0,0.35)"}`, borderRadius: 14, padding: "13px", fontSize: 14, fontWeight: 700, cursor: "pointer" }}>
-                  {sharedToGroup ? "✓ Shared to the group" : "↗ Share to group"}
+                  {sharedToGroup ? tr("product.sharedToGroup","✓ Shared to the group") : tr("product.shareToGroup","↗ Share to group")}
                 </motion.button>
               </>
             )}
             {onAddToList && !activeGroup && (groupLocked ? (
               <div style={{ width: "100%", background: "#F1EFEA", color: "#9C9893", borderRadius: 14, padding: "16px", fontSize: 15, fontWeight: 700, textAlign: "center" }}>
-                🔒 Group locked
+                {tr("product.groupLocked","🔒 Group locked")}
               </div>
             ) : (
               <motion.button
@@ -441,13 +442,13 @@ export default function OrderRequest({ product, session, onRequireAuth, onClose,
                 disabled={loading}
                 style={{ width: "100%", background: "#FF5C00", color: "#fff", border: "none", borderRadius: 14, padding: "16px", fontSize: 15, fontWeight: 700, cursor: "pointer" }}
               >
-                + Add to cart{listCount > 0 ? ` (${listCount})` : ""}
+                {tr("product.addToCart","+ Add to cart{count}",{ count: listCount > 0 ? ` (${listCount})` : "" })}
               </motion.button>
             ))}
             <motion.button variants={fadeUp} whileTap={{ scale: 0.95 }}
               onClick={() => onToggleFavorite?.()}
               style={{ width: "100%", marginTop: 8, background: "transparent", color: isFavorite ? "#FF5C00" : "#8A8780", border: "none", padding: "11px", fontSize: 13.5, fontWeight: 700, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}>
-              {isFavorite ? "★ Remove from favorites" : "☆ Add to favorites"}
+              {isFavorite ? tr("product.removeFromFavorites","★ Remove from favorites") : tr("product.addToFavorites","☆ Add to favorites")}
             </motion.button>
             </>)}
           </motion.div>
@@ -466,7 +467,7 @@ export default function OrderRequest({ product, session, onRequireAuth, onClose,
             style={{ position: "fixed", bottom: 0, left: 0, right: 0, margin: "0 auto", width: "100%", maxWidth: 430, boxSizing: "border-box", background: "#fff", borderRadius: "24px 24px 0 0", zIndex: 201, maxHeight: "88vh", overflowY: "auto", padding: "20px 20px 40px" }}>
             <div style={{ width: 36, height: 4, background: "#E8E6E0", borderRadius: 2, margin: "0 auto 16px" }} />
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
-              <div style={{ fontSize: 18, fontWeight: 700, color: "#0F0E0C" }}>Size guide</div>
+              <div style={{ fontSize: 18, fontWeight: 700, color: "#0F0E0C" }}>{tr("product.sizeGuideTitle","Size guide")}</div>
               <button onClick={() => setShowSizeGuide(false)} style={{ background: "#F3F1ED", border: "none", borderRadius: 999, width: 30, height: 30, fontSize: 15, color: "#777", cursor: "pointer" }}>✕</button>
             </div>
             {sc.image && (
@@ -474,10 +475,10 @@ export default function OrderRequest({ product, session, onRequireAuth, onClose,
             )}
             {sc.measures?.length > 0 && (
               <>
-                <div style={{ fontSize: 12, color: "#8A8780", marginBottom: 12 }}>Measurements in cm — the colors match the sketch below.</div>
+                <div style={{ fontSize: 12, color: "#8A8780", marginBottom: 12 }}>{tr("product.sizeGuideMeasurementsHint","Measurements in cm — the colors match the sketch below.")}</div>
                 <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
                   <thead><tr>
-                    <th style={{ textAlign: "left", padding: "7px 4px", color: "#888", fontWeight: 600, borderBottom: "1px solid #ECEAE5" }}>Size</th>
+                    <th style={{ textAlign: "left", padding: "7px 4px", color: "#888", fontWeight: 600, borderBottom: "1px solid #ECEAE5" }}>{tr("product.sizeColumnHeader","Size")}</th>
                     {sc.measures.map((m, i) => <th key={m} style={{ textAlign: "right", padding: "7px 4px", color: C[i % C.length], fontWeight: 700, borderBottom: "1px solid #ECEAE5", whiteSpace: "nowrap" }}>{m}</th>)}
                   </tr></thead>
                   <tbody>

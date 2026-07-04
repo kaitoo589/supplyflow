@@ -7,7 +7,7 @@
 //   tr("sleutel", "Engelse tekst")  door de vertaling overlaid zodra er een taal ≠ en
 // gekozen is. Zo kan de Engelse copy vrij aangepast worden zonder dat i18n "verdrift":
 // een ontbrekende vertaling valt gewoon terug op de inline-Engelse tekst.
-import { createContext, useContext, useState, useCallback, createElement } from "react";
+import { useReducer, useEffect } from "react";
 import CORE from "./translations-core.js";   // auto-gegenereerde kernscherm-vertalingen (fase 2)
 
 // De 8 gecureerde EU-talen (dekt ~90% van de markt). Native labels + herkenbare vlag.
@@ -228,26 +228,42 @@ const TOUR = {
 const T = {};
 for (const c of CODES) if (c !== "en") T[c] = { ...(TOUR[c] || {}), ...(CORE[c] || {}) };
 
-const LangCtx = createContext({ lang: "en", setLang: () => {}, t: (k, _v, f) => f ?? k, tr: (_k, f) => f });
+// ——— Module-level taalstatus + tr() ————————————————————————————————————————
+// Zo hoeft niet elke component een hook te threaden: overal `import { tr } from "./i18n"`
+// en `tr("key","English")`. De taal wordt één keer in de intro gekozen (daarna vast voor de
+// sessie); componenten die mid-sessie moeten meeveranderen (de tour) gebruiken useLangVersion().
+let _lang = getStoredLang() || "en";
+const _subs = new Set();
+function notify() { _subs.forEach((f) => f()); }
 
-export function LangProvider({ children }) {
-  const [lang, setLangState] = useState(() => getStoredLang() || "en");
-  const setLang = useCallback((code) => {
-    if (!CODES.includes(code)) return;
-    setLangState(code);
-    try { localStorage.setItem(LS_KEY, code); } catch { /* private mode */ }
-  }, []);
-  // tr(sleutel, engelseTekst[, vars]) — Engels blijft de inline-bron; vertaling overlaid.
-  const tr = useCallback((key, fallback, vars) => {
-    let s = lang === "en" ? fallback : (T[lang] && T[lang][key]) ?? fallback;
-    if (vars) for (const k of Object.keys(vars)) s = String(s).split(`{${k}}`).join(String(vars[k]));
-    return s;
-  }, [lang]);
-  // t(sleutel[, vars]) — voor puur-sleutel-teksten zonder inline Engels (val terug op sleutel).
-  const t = useCallback((key, vars) => tr(key, key, vars), [tr]);
-  return createElement(LangCtx.Provider, { value: { lang, setLang, t, tr } }, children);
+export function currentLang() { return _lang; }
+
+export function setLang(code) {
+  if (!CODES.includes(code) || code === _lang) return;
+  _lang = code;
+  try { localStorage.setItem(LS_KEY, code); } catch { /* private mode */ }
+  notify();
 }
 
-export const useLang = () => useContext(LangCtx);
-export const useT = () => useContext(LangCtx).t;
-export const useTr = () => useContext(LangCtx).tr;
+// tr(sleutel, engelseTekst[, vars]) — Engels blijft de inline-bron; vertaling overlaid.
+// vars vervangt {naam}-placeholders (bv. tr("cart.title","{n} items",{n:3})).
+export function tr(key, fallback, vars) {
+  let s = _lang === "en" ? fallback : (T[_lang] && T[_lang][key]) ?? fallback;
+  if (vars) for (const k of Object.keys(vars)) s = String(s).split(`{${k}}`).join(String(vars[k]));
+  return s;
+}
+export function t(key, vars) { return tr(key, key, vars); }
+
+// Re-render op taalwissel (voor componenten die mid-sessie moeten meeveranderen, bv. de tour).
+export function useLangVersion() {
+  const [, force] = useReducer((x) => x + 1, 0);
+  useEffect(() => { _subs.add(force); return () => { _subs.delete(force); }; }, []);
+}
+
+// Hooks (reactief) — de intro-tour gebruikt deze; overige schermen kunnen gewoon tr() importeren.
+export function useTr() { useLangVersion(); return tr; }
+export function useLang() { useLangVersion(); return { lang: _lang, setLang, tr }; }
+export function useT() { useLangVersion(); return t; }
+
+// LangProvider is nu een simpele passthrough (taalstatus is module-level, geen context nodig).
+export function LangProvider({ children }) { return children; }

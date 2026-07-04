@@ -506,6 +506,9 @@ export default function Friends({ session, onClose, initialJoinCode, initialGrou
     const someFlagged = myItems.some((it) => flaggedUrls.includes(it.source_url));
     // JOUW fee-besparing: wat je solo aan fee zou betalen vs. in deze groep (exact).
     const myFeeSavings = myTotal > 0 ? Math.round((estimateMemberFee(1, myTotal) - myFee) * 100) / 100 : 0;
+    // Uitnodig-balk: hoeveel plekken vrij + of de groep vol is.
+    const isFull = !!g && members.length >= (g.max_size || 7);
+    const spotsLeft = g ? Math.max(0, (g.max_size || 7) - members.length) : 0;
     // EU €3-per-categorie douane, GEDEELD per categorie over de leden die 'm hebben.
     // Jouw aandeel = som over jouw categorieën van €3 ÷ (aantal leden met die categorie).
     // Puur transparant: dit zit al in de DDP-verzendprijs, niet bovenop de fee-hold.
@@ -524,7 +527,6 @@ export default function Friends({ session, onClose, initialJoinCode, initialGrou
             <>
               {iconBtn("admin", () => setShowAdminInfo(true), "About the admin", <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#9C9893" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 3l7 3v5c0 4-3 7.5-7 9-4-1.5-7-5-7-9V6l7-3z" /><path d="M9.5 12l1.7 1.7L15 10" /></svg>)}
               {iconBtn("fee", () => setShowFeeInfo(true), "Why it's cheaper", <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#9C9893" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="9" /><path d="M12 11.5v4.5" /><path d="M12 8h.01" /></svg>)}
-              {iconBtn("share", () => setShowInvite((v) => !v), "Share invite", <ShareGlyph />)}
               {isAdmin && !isPlaced && iconBtn("settings", () => setEditing((v) => !v), "Group settings", <span style={{ fontSize: 14 }}>⚙️</span>)}
               {!isPlaced && iconBtn("leave", () => setShowLeaveConfirm(true), "Leave group", <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#E24B4A" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" /><path d="M16 17l5-5-5-5" /><path d="M21 12H9" /></svg>)}
             </>
@@ -534,29 +536,41 @@ export default function Friends({ session, onClose, initialJoinCode, initialGrou
           <div style={{ textAlign: "center", color: "#777", padding: "30px 0", fontSize: 13 }}>Loading group…</div>
         ) : (
           <div style={{ padding: "0 18px 28px" }}>
-            {/* invite — in/uitklapbaar via het deelknopje in de header */}
-            <AnimatePresence initial={false}>
-              {showInvite && (
-                <motion.div initial={{ height: 0, opacity: 0, marginBottom: 0 }} animate={{ height: "auto", opacity: 1, marginBottom: 14 }} exit={{ height: 0, opacity: 0, marginBottom: 0 }} transition={springMorph} style={{ overflow: "hidden" }}>
-                  <div style={{ background: "#1A1917", borderRadius: 14, padding: "14px" }}>
-                    <div style={{ display: "flex", alignItems: "center", marginBottom: 6 }}>
-                      <div style={{ flex: 1, fontSize: 13, fontWeight: 700, color: "#fff" }}>Invite your squad</div>
-                      <button onClick={() => setShowInvite(false)} aria-label="hide invite" style={{ background: "none", border: "none", color: "#6b6862", fontSize: 16, cursor: "pointer", lineHeight: 1, padding: "0 2px" }}>▴</button>
-                    </div>
-                    <div style={{ fontSize: 11.5, color: "#9C9893", lineHeight: 1.5, marginBottom: 12 }}>The more friends join, the cheaper for everyone — <b style={{ color: "#FF8A3D" }}>up to 50% off fees &amp; shipping</b>. Code <b style={{ color: "#fff", letterSpacing: 1 }}>{g.invite_code}</b></div>
-                    {/* Hero: één tik → WhatsApp / TikTok / Insta / alles (native deel-sheet) */}
-                    <motion.button whileTap={{ scale: 0.97 }} onClick={() => doShare(g.invite_code, g.name)}
-                      style={{ width: "100%", display: "flex", alignItems: "center", justifyContent: "center", gap: 8, background: "#FF5C00", color: "#fff", border: "none", borderRadius: 12, padding: "13px", fontSize: 14, fontWeight: 800, cursor: "pointer", marginBottom: 8, boxShadow: "0 5px 16px rgba(255,92,0,0.32)" }}>
-                      <ShareGlyph size={16} color="#fff" /> Share invite
-                    </motion.button>
-                    <div style={{ display: "flex", gap: 8 }}>
-                      <a href={whatsappShare(g.invite_code, g.name)} target="_blank" rel="noreferrer" style={{ flex: 1, textAlign: "center", background: "#1E1D1A", border: "1px solid #2c2b29", color: "#C9C6C1", borderRadius: 10, padding: "10px", fontSize: 12.5, fontWeight: 700, textDecoration: "none" }}>WhatsApp</a>
-                      <button onClick={() => { copyLink(g.invite_code); setShareCopied(true); setTimeout(() => setShareCopied(false), 1800); }} style={{ flex: 1, background: "#1E1D1A", border: "1px solid #2c2b29", color: "#C9C6C1", borderRadius: 10, padding: "10px", fontSize: 12.5, fontWeight: 600, cursor: "pointer" }}>Copy link</button>
-                    </div>
+            {/* GROEIMOTOR — de belangrijkste actie krijgt eigen ruimte + het enige kleuraccent:
+                een volle-breedte uitnodig-balk. Eén tik = de native deel-sheet (WhatsApp/TikTok/
+                Insta/alles). Secundaire opties (WhatsApp-direct / kopieer / code) klappen eronder uit. */}
+            {!isPlaced && !isFull && (
+              <div style={{ marginBottom: 14 }}>
+                <motion.button whileTap={{ scale: 0.98 }} onClick={() => doShare(g.invite_code, g.name)}
+                  style={{ width: "100%", display: "flex", alignItems: "center", gap: 12, background: "linear-gradient(135deg, #FF7A1A, #FF5C00)", color: "#fff", border: "none", borderRadius: 14, padding: "14px 16px", cursor: "pointer", boxShadow: "0 6px 18px rgba(255,92,0,0.34)", textAlign: "left" }}>
+                  <div style={{ width: 38, height: 38, borderRadius: 11, background: "rgba(255,255,255,0.18)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}><ShareGlyph size={18} color="#fff" /></div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: 15, fontWeight: 800, lineHeight: 1.2 }}>Invite friends</div>
+                    <div style={{ fontSize: 11.5, fontWeight: 600, color: "rgba(255,255,255,0.92)", marginTop: 2 }}>{spotsLeft} spot{spotsLeft === 1 ? "" : "s"} left · you all save up to 50%</div>
                   </div>
-                </motion.div>
-              )}
-            </AnimatePresence>
+                  <div style={{ fontSize: 18, opacity: 0.9 }}>→</div>
+                </motion.button>
+                <div style={{ textAlign: "center", marginTop: 8 }}>
+                  <button onClick={() => setShowInvite((v) => !v)} style={{ background: "none", border: "none", color: "#9C9893", fontSize: 11.5, fontWeight: 600, cursor: "pointer", padding: 4 }}>{showInvite ? "Hide options ▴" : "More ways to share ▾"}</button>
+                </div>
+                <AnimatePresence initial={false}>
+                  {showInvite && (
+                    <motion.div initial={{ height: 0, opacity: 0, marginTop: 0 }} animate={{ height: "auto", opacity: 1, marginTop: 8 }} exit={{ height: 0, opacity: 0, marginTop: 0 }} transition={springMorph} style={{ overflow: "hidden" }}>
+                      <div style={{ background: "#1A1917", borderRadius: 14, padding: "14px" }}>
+                        <div style={{ fontSize: 11.5, color: "#9C9893", marginBottom: 10 }}>Invite code <b style={{ color: "#fff", letterSpacing: 1 }}>{g.invite_code}</b></div>
+                        <div style={{ display: "flex", gap: 8 }}>
+                          <a href={whatsappShare(g.invite_code, g.name)} target="_blank" rel="noreferrer" style={{ flex: 1, textAlign: "center", background: "#1E1D1A", border: "1px solid #2c2b29", color: "#C9C6C1", borderRadius: 10, padding: "10px", fontSize: 12.5, fontWeight: 700, textDecoration: "none" }}>WhatsApp</a>
+                          <button onClick={() => { copyLink(g.invite_code); setShareCopied(true); setTimeout(() => setShareCopied(false), 1800); }} style={{ flex: 1, background: "#1E1D1A", border: "1px solid #2c2b29", color: "#C9C6C1", borderRadius: 10, padding: "10px", fontSize: 12.5, fontWeight: 600, cursor: "pointer" }}>Copy link</button>
+                        </div>
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+            )}
+            {isFull && !isPlaced && (
+              <div style={{ textAlign: "center", background: "#1A1917", border: "1px solid #2c2b29", borderRadius: 12, padding: "11px", marginBottom: 14, fontSize: 12.5, fontWeight: 700, color: "#34D17B" }}>🎉 Squad full — {members.length}/{g.max_size} friends</div>
+            )}
 
             {/* members */}
             <div style={{ fontSize: 12, color: "#9C9893", margin: "0 2px 8px" }}>

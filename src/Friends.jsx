@@ -14,7 +14,7 @@ import {
 // Native deel-sheet (Apple/Android eigen icoon) met kopieer-fallback.
 async function nativeShare(code, name) {
   const url = inviteLink(code);
-  const text = `Join my Flowva group "${name || "Squad"}" — we order together so shipping + fees are way cheaper!`;
+  const text = `Join my Flowva squad "${name || "Squad"}" 🧡 We shop factory-direct together, so we both save up to 50% on fees & shipping — tap to join:`;
   if (navigator.share) { try { await navigator.share({ title: "Flowva Friends", text, url }); return true; } catch { return false; } }
   try { await navigator.clipboard?.writeText(`${text} ${url}`); } catch { /* ignore */ }
   return false;
@@ -449,24 +449,35 @@ export default function Friends({ session, onClose, initialJoinCode, initialGrou
   } else if (view === "join") {
     body = (
       <>
-        {header("Join a group", initialJoinCode ? onClose : () => setView("list"))}
+        {header(initialJoinCode ? "You're invited 🧡" : "Join a group", initialJoinCode ? onClose : () => setView("list"))}
         {errLine}
         <div style={{ padding: "8px 18px 28px" }}>
-          <label style={label}>Invite code</label>
-          <div style={{ display: "flex", gap: 8 }}>
-            <input style={{ ...input, textTransform: "uppercase" }} value={code} onChange={(e) => { setCode(e.target.value); setPreview(null); }} placeholder="ABC123" maxLength={6} />
-            <button style={{ background: "#1E1D1A", border: "1px solid #2c2b29", color: "#FF5C00", borderRadius: 12, padding: "0 16px", fontSize: 13, fontWeight: 700, cursor: "pointer", whiteSpace: "nowrap" }} onClick={() => doPreview()}>Check</button>
-          </div>
-          {preview && (
-            <div style={{ background: "#1A1917", borderRadius: 14, padding: "14px", marginTop: 16 }}>
-              <div style={{ fontSize: 15, fontWeight: 700 }}>{preview.name}</div>
-              <div style={{ fontSize: 12.5, color: "#9C9893", marginTop: 2 }}>{preview.member_count}/{preview.max_size} friends · {preview.is_private ? "🔒 private — invite only" : preview.status === "gathering" ? "open to join" : "closed"}</div>
-              <button style={{ ...primaryBtn, marginTop: 14, opacity: busy || preview.is_full || preview.is_private || preview.status !== "gathering" ? 0.5 : 1 }}
+          {/* Via een link binnenkomen = geen kaal codeveld; die tonen we alleen bij handmatig joinen. */}
+          {!initialJoinCode && (
+            <>
+              <label style={label}>Invite code</label>
+              <div style={{ display: "flex", gap: 8 }}>
+                <input style={{ ...input, textTransform: "uppercase" }} value={code} onChange={(e) => { setCode(e.target.value); setPreview(null); }} placeholder="ABC123" maxLength={6} />
+                <button style={{ background: "#1E1D1A", border: "1px solid #2c2b29", color: "#FF5C00", borderRadius: 12, padding: "0 16px", fontSize: 13, fontWeight: 700, cursor: "pointer", whiteSpace: "nowrap" }} onClick={() => doPreview()}>Check</button>
+              </div>
+            </>
+          )}
+          {preview ? (
+            // Verleidelijke uitnodiging: verkoopt de groep + de besparing i.p.v. een kale regel.
+            <div style={{ background: "linear-gradient(160deg, #221f1b, #1A1917)", border: "1px solid #2c2b29", borderRadius: 18, padding: "22px 18px", marginTop: initialJoinCode ? 4 : 16, textAlign: "center" }}>
+              <div style={{ width: 52, height: 52, borderRadius: 16, background: "rgba(255,92,0,0.14)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 24, margin: "0 auto 12px" }}><Fox /></div>
+              <div style={{ fontSize: 12, color: "#9C9893", marginBottom: 3 }}>You've been invited to join</div>
+              <div style={{ fontSize: 21, fontWeight: 800, color: "#fff", marginBottom: 6 }}>{preview.name}</div>
+              <div style={{ fontSize: 12.5, color: "#9C9893", marginBottom: 14 }}>{preview.member_count}/{preview.max_size} friends · {preview.is_private ? "🔒 private — invite only" : preview.status === "gathering" ? "open to join" : "closed"}</div>
+              <div style={{ display: "inline-block", background: "linear-gradient(135deg, #FF7A1A, #FF5C00)", color: "#fff", fontSize: 12.5, fontWeight: 800, padding: "8px 16px", borderRadius: 999, marginBottom: 16, boxShadow: "0 5px 16px rgba(255,92,0,0.3)" }}>💸 You both save up to 50% on fees &amp; shipping</div>
+              <button style={{ ...primaryBtn, opacity: busy || preview.is_full || preview.is_private || preview.status !== "gathering" ? 0.5 : 1 }}
                 disabled={busy || preview.is_full || preview.is_private || preview.status !== "gathering"} onClick={doJoin}>
                 {preview.is_private ? "Private group" : preview.is_full ? "Group is full" : preview.status !== "gathering" ? "Group is closed" : busy ? "Joining…" : `Join ${preview.name} →`}
               </button>
             </div>
-          )}
+          ) : initialJoinCode ? (
+            <div style={{ textAlign: "center", color: "#9C9893", padding: "26px 0", fontSize: 13 }}>Loading your invite…</div>
+          ) : null}
         </div>
       </>
     );
@@ -527,14 +538,20 @@ export default function Friends({ session, onClose, initialJoinCode, initialGrou
             <AnimatePresence initial={false}>
               {showInvite && (
                 <motion.div initial={{ height: 0, opacity: 0, marginBottom: 0 }} animate={{ height: "auto", opacity: 1, marginBottom: 14 }} exit={{ height: 0, opacity: 0, marginBottom: 0 }} transition={springMorph} style={{ overflow: "hidden" }}>
-                  <div style={{ background: "#1A1917", borderRadius: 14, padding: "12px 14px" }}>
-                    <div style={{ display: "flex", alignItems: "center", marginBottom: 8 }}>
-                      <div style={{ flex: 1, fontSize: 11.5, color: "#9C9893" }}>Invite link · code <b style={{ color: "#fff", letterSpacing: 1 }}>{g.invite_code}</b></div>
+                  <div style={{ background: "#1A1917", borderRadius: 14, padding: "14px" }}>
+                    <div style={{ display: "flex", alignItems: "center", marginBottom: 6 }}>
+                      <div style={{ flex: 1, fontSize: 13, fontWeight: 700, color: "#fff" }}>Invite your squad</div>
                       <button onClick={() => setShowInvite(false)} aria-label="hide invite" style={{ background: "none", border: "none", color: "#6b6862", fontSize: 16, cursor: "pointer", lineHeight: 1, padding: "0 2px" }}>▴</button>
                     </div>
+                    <div style={{ fontSize: 11.5, color: "#9C9893", lineHeight: 1.5, marginBottom: 12 }}>The more friends join, the cheaper for everyone — <b style={{ color: "#FF8A3D" }}>up to 50% off fees &amp; shipping</b>. Code <b style={{ color: "#fff", letterSpacing: 1 }}>{g.invite_code}</b></div>
+                    {/* Hero: één tik → WhatsApp / TikTok / Insta / alles (native deel-sheet) */}
+                    <motion.button whileTap={{ scale: 0.97 }} onClick={() => doShare(g.invite_code, g.name)}
+                      style={{ width: "100%", display: "flex", alignItems: "center", justifyContent: "center", gap: 8, background: "#FF5C00", color: "#fff", border: "none", borderRadius: 12, padding: "13px", fontSize: 14, fontWeight: 800, cursor: "pointer", marginBottom: 8, boxShadow: "0 5px 16px rgba(255,92,0,0.32)" }}>
+                      <ShareGlyph size={16} color="#fff" /> Share invite
+                    </motion.button>
                     <div style={{ display: "flex", gap: 8 }}>
-                      <a href={whatsappShare(g.invite_code, g.name)} target="_blank" rel="noreferrer" style={{ flex: 1, textAlign: "center", background: "#FF5C00", color: "#fff", borderRadius: 10, padding: "10px", fontSize: 12.5, fontWeight: 700, textDecoration: "none" }}>Share on WhatsApp</a>
-                      <button onClick={() => { copyLink(g.invite_code); setShareCopied(true); setTimeout(() => setShareCopied(false), 1800); }} style={{ background: "#1E1D1A", border: "1px solid #2c2b29", color: "#C9C6C1", borderRadius: 10, padding: "10px 14px", fontSize: 12.5, fontWeight: 600, cursor: "pointer" }}>Copy link</button>
+                      <a href={whatsappShare(g.invite_code, g.name)} target="_blank" rel="noreferrer" style={{ flex: 1, textAlign: "center", background: "#1E1D1A", border: "1px solid #2c2b29", color: "#C9C6C1", borderRadius: 10, padding: "10px", fontSize: 12.5, fontWeight: 700, textDecoration: "none" }}>WhatsApp</a>
+                      <button onClick={() => { copyLink(g.invite_code); setShareCopied(true); setTimeout(() => setShareCopied(false), 1800); }} style={{ flex: 1, background: "#1E1D1A", border: "1px solid #2c2b29", color: "#C9C6C1", borderRadius: 10, padding: "10px", fontSize: 12.5, fontWeight: 600, cursor: "pointer" }}>Copy link</button>
                     </div>
                   </div>
                 </motion.div>

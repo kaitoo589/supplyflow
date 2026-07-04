@@ -126,6 +126,6 @@ export function inviteLink(code) {
 }
 
 export function whatsappShare(code, groupName) {
-  const text = `Join my Flowva group "${groupName || "Squad"}" — we order together so shipping + fees are way cheaper! ${inviteLink(code)}`;
+  const text = `Join my Flowva squad "${groupName || "Squad"}" 🧡 We shop factory-direct together, so we both save up to 50% on fees & shipping — tap to join: ${inviteLink(code)}`;
   return `https://wa.me/?text=${encodeURIComponent(text)}`;
 }

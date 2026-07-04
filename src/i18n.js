@@ -8,6 +8,7 @@
 // gekozen is. Zo kan de Engelse copy vrij aangepast worden zonder dat i18n "verdrift":
 // een ontbrekende vertaling valt gewoon terug op de inline-Engelse tekst.
 import { createContext, useContext, useState, useCallback, createElement } from "react";
+import CORE from "./translations-core.js";   // auto-gegenereerde kernscherm-vertalingen (fase 2)
 
 // De 8 gecureerde EU-talen (dekt ~90% van de markt). Native labels + herkenbare vlag.
 export const LANGS = [
@@ -29,8 +30,9 @@ export function getStoredLang() {
 export function hasChosenLang() { return !!getStoredLang(); }
 
 // Vertalingen per taal (GEEN 'en' — Engels is de inline-fallback via tr()). Ontbreekt een
-// sleutel in een taal → valt terug op de meegegeven Engelse tekst.
-const T = {
+// sleutel in een taal → valt terug op de meegegeven Engelse tekst. Dit blok = de tour;
+// de kernscherm-vertalingen komen uit translations-core.js en worden hieronder samengevoegd.
+const TOUR = {
   nl: {
     "tour.greeting": "Hé, laten we Flowva samen ontdekken!",
     "tour.factory.title": "Fabrieksprijs",
@@ -221,6 +223,10 @@ const T = {
     "tour.tap": "toca para continuar",
   },
 };
+
+// Tour-vertalingen + auto-gegenereerde kernscherm-vertalingen samenvoegen per taal.
+const T = {};
+for (const c of CODES) if (c !== "en") T[c] = { ...(TOUR[c] || {}), ...(CORE[c] || {}) };
 
 const LangCtx = createContext({ lang: "en", setLang: () => {}, t: (k, _v, f) => f ?? k, tr: (_k, f) => f });
 

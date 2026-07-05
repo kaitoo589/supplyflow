@@ -1589,7 +1589,7 @@ function PricingSheet({ onClose, arriving = false }) {
             <div style={{ fontSize: 15.5, fontWeight: 800, color: "#111" }}>{tr("pricing.solo.title", "Solo shopping")}</div>
           </div>
           <div style={{ fontSize: 13, lineHeight: 1.6, color: "#46443F" }}>
-            {renderBold(tr("pricing.solo.body", "You shop on your own. You pay the factory price. Fulfillment, international shipping and the Flowva fee are charged once **when you ship your bundle** (which happens once your items arrive in the warehouse) — so the more you ship together, the less each item costs. Your Flowva fee is **8% of the factory price, min €5**."))}
+            {renderBold(tr("pricing.solo.body", "You shop on your own and pay just the factory price. The fees are only paid **when you assemble your parcel to ship**. Your Flowva fee is **8% of the factory price, min €5**."))}
           </div>
           <div style={{ display: "flex", gap: 8, marginTop: 11, alignItems: "flex-start" }}>
             <span style={{ fontSize: 14, marginTop: 1 }}>ℹ️</span>

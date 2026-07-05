@@ -814,11 +814,14 @@ export default function Friends({ session, onClose, initialJoinCode, initialGrou
   return (
     <>
       <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.2 }} style={backdrop} onClick={onClose} />
-      <motion.div initial={{ y: "100%" }} animate={{ y: 0 }} exit={{ y: "100%" }} transition={springMorph} style={sheet}>
-        <div style={{ padding: "8px 0 0", display: "flex", justifyContent: "center" }}>
-          <div style={{ width: 36, height: 4, background: "rgba(255,255,255,0.2)", borderRadius: 2 }} />
-        </div>
-        {body}
+      <motion.div layoutId="squad-pop" layoutRoot transition={springMorph}
+        initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} style={sheet}>
+        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1, transition: { delay: 0.14, duration: 0.2 } }} exit={{ opacity: 0, transition: { duration: 0.08 } }}>
+          <div style={{ padding: "8px 0 0", display: "flex", justifyContent: "center" }}>
+            <div style={{ width: 36, height: 4, background: "rgba(255,255,255,0.2)", borderRadius: 2 }} />
+          </div>
+          {body}
+        </motion.div>
       </motion.div>
       {shareCopied && (
         <div style={{ position: "fixed", bottom: 24, left: "50%", transform: "translateX(-50%)", zIndex: 420, background: "#0F0E0C", color: "#fff", borderRadius: 999, padding: "10px 18px", fontSize: 13, fontWeight: 600, boxShadow: "0 8px 30px rgba(0,0,0,0.5)" }}>🔗 Invite link copied!</div>

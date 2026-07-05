@@ -58,7 +58,10 @@ function memberLabel(m, self) {
   return n || `Friend ${String(m.user_id || "").slice(0, 4).toUpperCase()}`;
 }
 
-const sheet = { position: "fixed", bottom: 0, left: 0, right: 0, margin: "0 auto", width: "100%", maxWidth: 430, boxSizing: "border-box", background: "#111111", borderRadius: "24px 24px 0 0", zIndex: 401, maxHeight: "90vh", overflowY: "auto", color: "#fff" };
+// Zwevende kaart — identiek aan de solo-mand (Winkelmandje), mét een oranje gloeiende
+// rand als squad-cue. Zweeft boven de nav (bottom 86), alle hoeken rond, raakt de
+// schermranden nergens. Zo morpht 'ie ook puur omhoog uit de squad-balk (gedeelde layoutId).
+const sheet = { position: "fixed", bottom: 86, left: 0, right: 0, margin: "0 auto", width: "calc(100% - 24px)", maxWidth: 404, boxSizing: "border-box", background: "#111111", borderRadius: 28, zIndex: 401, maxHeight: "80vh", overflowY: "auto", overscrollBehavior: "contain", color: "#fff", border: "1px solid rgba(255,92,0,0.55)", boxShadow: "0 30px 80px rgba(0,0,0,0.5), 0 0 16px rgba(255,92,0,0.35)" };
 const backdrop = { position: "fixed", inset: 0, zIndex: 400, background: "rgba(0,0,0,0.55)", backdropFilter: "blur(6px)" };
 const primaryBtn = { width: "100%", background: "#FF5C00", color: "#fff", border: "none", borderRadius: 14, padding: "14px", fontSize: 14.5, fontWeight: 700, cursor: "pointer", WebkitTapHighlightColor: "transparent" };
 const ghostBtn = { width: "100%", background: "transparent", color: "#C9C6C1", border: "1px solid rgba(255,255,255,0.15)", borderRadius: 14, padding: "12px", fontSize: 13, fontWeight: 600, cursor: "pointer", WebkitTapHighlightColor: "transparent" };

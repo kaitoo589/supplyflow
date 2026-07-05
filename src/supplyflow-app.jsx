@@ -1344,6 +1344,13 @@ function ArcGhost({ f, onDone }) {
 // 💎-uitlegpagina als in-app bottom-sheet (verving het losse /diamond-rankings.html-
 // browser-tabblad). Zelfde opzet als PricingSheet; `arriving` = de 💎-boogvlucht is
 // onderweg → het eigen icoon wacht verborgen en popt binnen bij de landing.
+// Vertaalbare tekst met **vet**: splitst op ** en maakt de oneven stukken vet (kleur #46443F,
+// zodat benadrukte feiten ook in de vertalingen behouden blijven — net als de originele <b>).
+function renderBold(text) {
+  if (!text || text.indexOf("**") === -1) return text;
+  return text.split("**").map((part, i) => (i % 2 === 1 ? <b key={i} style={{ color: "#46443F" }}>{part}</b> : part));
+}
+
 function DiamondSheet({ onClose, arriving = false }) {
   useBodyScrollLock(true);
   // 🎇 Waterval-cascade (naar de schets van de user): ná de landing van de boogvlucht
@@ -1414,7 +1421,7 @@ function DiamondSheet({ onClose, arriving = false }) {
             <div style={{ fontSize: 11.5, fontWeight: 700, color: "#FF5C00", marginTop: 5 }}>{name}</div>
           </>
         ) : (
-          <div style={{ fontSize: 10.5, fontWeight: 700, color: "#A8A5A0", textTransform: "uppercase", letterSpacing: 0.5, marginTop: 2 }}>No diamond</div>
+          <div style={{ fontSize: 10.5, fontWeight: 700, color: "#A8A5A0", textTransform: "uppercase", letterSpacing: 0.5, marginTop: 2 }}>{tr("diamond.noDiamond", "No diamond")}</div>
         )}
       </div>
       <div style={{ flex: 1 }}>
@@ -1424,11 +1431,11 @@ function DiamondSheet({ onClose, arriving = false }) {
     </div>
   );
   const metrics = [
-    ["On-Time Delivery Rate", "Percentage of orders delivered within the agreed timeframe."],
-    ["Service Response Rate", "Percentage of inquiries that receive a timely response from the supplier."],
-    ["Custom Transaction Score", "Value of custom manufacturing orders completed through the platform."],
-    ["Repurchase Rate", "Percentage of customers who place repeat orders."],
-    ["Interested Customer Count", "Number of customers who have engaged in serious negotiations with the supplier."],
+    [tr("diamond.metric.onTime.k", "On-Time Delivery Rate"), tr("diamond.metric.onTime.v", "Percentage of orders delivered within the agreed timeframe.")],
+    [tr("diamond.metric.service.k", "Service Response Rate"), tr("diamond.metric.service.v", "Percentage of inquiries that receive a timely response from the supplier.")],
+    [tr("diamond.metric.custom.k", "Custom Transaction Score"), tr("diamond.metric.custom.v", "Value of custom manufacturing orders completed through the platform.")],
+    [tr("diamond.metric.repurchase.k", "Repurchase Rate"), tr("diamond.metric.repurchase.v", "Percentage of customers who place repeat orders.")],
+    [tr("diamond.metric.interested.k", "Interested Customer Count"), tr("diamond.metric.interested.v", "Number of customers who have engaged in serious negotiations with the supplier.")],
   ];
   return (
     <>
@@ -1444,23 +1451,23 @@ function DiamondSheet({ onClose, arriving = false }) {
             <motion.span initial={false} animate={arriving ? { opacity: 0, scale: 0.3 } : { opacity: 1, scale: 1 }} transition={springBouncy} style={{ display: "inline-block" }}>💎</motion.span>
           </div>
           <div>
-            <div style={{ fontSize: 16.5, fontWeight: 800, color: "#111", letterSpacing: -0.3, lineHeight: 1.25 }}>How Do 1688 Factory Diamond Rankings Work?</div>
-            <div style={{ fontSize: 12.5, color: "#8A8780" }}>Straight from 1688's own supplier metrics</div>
+            <div style={{ fontSize: 16.5, fontWeight: 800, color: "#111", letterSpacing: -0.3, lineHeight: 1.25 }}>{tr("diamond.title", "How Do 1688 Factory Diamond Rankings Work?")}</div>
+            <div style={{ fontSize: 12.5, color: "#8A8780" }}>{tr("diamond.subtitle", "Straight from 1688's own supplier metrics")}</div>
           </div>
         </div>
         <div style={{ fontSize: 13, lineHeight: 1.6, color: "#46443F", margin: "12px 4px 14px" }}>
-          1688 ranks factories on recent performance — the more diamonds, the stronger the factory's track record. Rankings are based on the past 30–90 days of data: on-time delivery, service responsiveness, custom manufacturing volume, customer satisfaction and repeat purchases.
+          {tr("diamond.intro", "1688 ranks factories on recent performance — the more diamonds, the stronger the factory's track record. Rankings are based on the past 30–90 days of data: on-time delivery, service responsiveness, custom manufacturing volume, customer satisfaction and repeat purchases.")}
         </div>
         <div style={card}>
-          <div style={sectionLabel}>RANKING LEVELS</div>
-          <Level gems={0} tag="A new or less active factory." desc="The supplier may not yet have enough transaction history or performance data to qualify for a diamond ranking." />
-          <Level gems={1} name="1 Diamond" tag="Solid baseline performance." desc="Meets 1688's minimum standards for service quality, delivery reliability and transaction activity." />
-          <Level gems={2} name="2 Diamonds" tag="Above-average performance." desc="Stronger reliability, customer service and order volume than lower-ranked suppliers." />
-          <Level gems={3} name="3 Diamonds" tag="A high-performing supplier." desc="Consistently strong results in delivery, communication and customer satisfaction." />
-          <Level gems={4} name="4 Diamonds" tag="The highest diamond level." desc="Excellent operational performance and a proven track record across all major indicators." />
+          <div style={sectionLabel}>{tr("diamond.levels", "RANKING LEVELS")}</div>
+          <Level gems={0} tag={tr("diamond.lvl0.tag", "A new or less active factory.")} desc={tr("diamond.lvl0.desc", "The supplier may not yet have enough transaction history or performance data to qualify for a diamond ranking.")} />
+          <Level gems={1} name={tr("diamond.lvl1.name", "1 Diamond")} tag={tr("diamond.lvl1.tag", "Solid baseline performance.")} desc={tr("diamond.lvl1.desc", "Meets 1688's minimum standards for service quality, delivery reliability and transaction activity.")} />
+          <Level gems={2} name={tr("diamond.lvl2.name", "2 Diamonds")} tag={tr("diamond.lvl2.tag", "Above-average performance.")} desc={tr("diamond.lvl2.desc", "Stronger reliability, customer service and order volume than lower-ranked suppliers.")} />
+          <Level gems={3} name={tr("diamond.lvl3.name", "3 Diamonds")} tag={tr("diamond.lvl3.tag", "A high-performing supplier.")} desc={tr("diamond.lvl3.desc", "Consistently strong results in delivery, communication and customer satisfaction.")} />
+          <Level gems={4} name={tr("diamond.lvl4.name", "4 Diamonds")} tag={tr("diamond.lvl4.tag", "The highest diamond level.")} desc={tr("diamond.lvl4.desc", "Excellent operational performance and a proven track record across all major indicators.")} />
         </div>
         <div style={card}>
-          <div style={{ ...sectionLabel, marginBottom: 6 }}>WHAT 1688 MEASURES</div>
+          <div style={{ ...sectionLabel, marginBottom: 6 }}>{tr("diamond.measures", "WHAT 1688 MEASURES")}</div>
           {metrics.map(([k, v]) => (
             <div key={k} style={{ padding: "8px 0", borderTop: "1px solid #F1EFEA" }}>
               <div style={{ fontSize: 13, fontWeight: 700, color: "#111" }}>{k}</div>
@@ -1469,10 +1476,10 @@ function DiamondSheet({ onClose, arriving = false }) {
           ))}
         </div>
         <div style={{ fontSize: 11.5, color: "#8A8780", lineHeight: 1.55, margin: "0 4px 16px" }}>
-          Based on 1688's official supplier performance definitions ("指标定义") shown in supplier profiles — on-time delivery, service response, repurchase rate, custom manufacturing transactions and interested customers.
+          {tr("diamond.footer", "Based on 1688's official supplier performance definitions (\"指标定义\") shown in supplier profiles — on-time delivery, service response, repurchase rate, custom manufacturing transactions and interested customers.")}
         </div>
         <button onClick={onClose} style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 7, width: "100%", background: "#111", color: "#fff", border: "none", borderRadius: 14, padding: "14px", fontSize: 14, fontWeight: 700, cursor: "pointer" }}>
-          Got it <Fox />
+          {tr("sheets.gotIt", "Got it")} <Fox />
         </button>
 
         {/* de vallende cascade-diamanten (scrollen mee met de sheet-inhoud). Vast 16×16-
@@ -1513,15 +1520,18 @@ function PricingSheet({ onClose, arriving = false }) {
       {extra}
     </div>
   );
-  // save = besparing op de fee t.o.v. solo (8%), naar beneden afgerond zodat we nooit overdrijven.
+  // n = "solo" of aantal personen; savePct = besparing op de fee t.o.v. solo (8%),
+  // naar beneden afgerond zodat we nooit overdrijven. Labels/"off" vertaalbaar op render.
+  const peopleWord = tr("pricing.tier.people", "people");
+  const offWord = tr("pricing.tier.off", "off");
   const friendTiers = [
-    ["Solo · 1 person", "8% · min €5", true, ""],
-    ["2 people", "7% · min €4.50", false, "12% off"],
-    ["3 people", "6% · min €4.50", false, "25% off"],
-    ["4 people", "5.5% · min €4", false, "31% off"],
-    ["5 people", "5% · min €4", false, "37% off"],
-    ["6 people", "4.5% · min €4", false, "43% off"],
-    ["7 people", "4% · min €3.50", false, "50% off"],
+    ["solo", "8% · min €5", true, null],
+    ["2", "7% · min €4.50", false, 12],
+    ["3", "6% · min €4.50", false, 25],
+    ["4", "5.5% · min €4", false, 31],
+    ["5", "5% · min €4", false, 37],
+    ["6", "4.5% · min €4", false, 43],
+    ["7", "4% · min €3.50", false, 50],
   ];
   const card = { background: "#fff", border: "1px solid #ECEAE5", borderRadius: 16, padding: "14px 16px", marginBottom: 12 };
   const sectionLabel = { fontSize: 11, fontWeight: 700, letterSpacing: 0.5, color: "#A8A5A0", marginBottom: 2 };
@@ -1539,73 +1549,75 @@ function PricingSheet({ onClose, arriving = false }) {
             <motion.span initial={false} animate={arriving ? { opacity: 0, scale: 0.3 } : { opacity: 1, scale: 1 }} transition={springBouncy} style={{ display: "inline-block" }}>💸</motion.span>
           </div>
           <div>
-            <div style={{ fontSize: 19, fontWeight: 800, color: "#111", letterSpacing: -0.3 }}>How pricing works</div>
-            <div style={{ fontSize: 12.5, color: "#8A8780" }}>Fully transparent — no hidden markup</div>
+            <div style={{ fontSize: 19, fontWeight: 800, color: "#111", letterSpacing: -0.3 }}>{tr("pricing.title", "How pricing works")}</div>
+            <div style={{ fontSize: 12.5, color: "#8A8780" }}>{tr("pricing.subtitle", "Fully transparent — no hidden markup")}</div>
           </div>
         </div>
         <div style={{ fontSize: 13, lineHeight: 1.6, color: "#46443F", margin: "12px 4px 14px" }}>
-          Each line below shows exactly who gets paid. The original factory link is visible on every product, for full transparency.
+          {tr("pricing.intro", "Each line below shows exactly who gets paid. The original factory link is visible on every product, for full transparency.")}
         </div>
 
         <div style={card}>
-          <div style={sectionLabel}>PER PRODUCT</div>
-          <Row icon="🏭" name="Factory price" who="to the factory" amount="shown + link" desc="The real price the factory charges — visible with its original link." />
-          <Row icon="📸" name="Quality-control" who="to our shipping agent" amount="¥2 · ≈€0.26" desc="Our shipping agent photographs every item before it ships — and takes extra photos if anything looks off." />
-          <Row icon="📐" name="Measurement Service" who="to our shipping agent" amount="¥4 · ≈€0.51" desc="Our shipping agent measures the key dimensions of your item to confirm the size matches the listing. Small tolerances apply (about ±3 cm on garments)." />
-          <Row icon="🚚" name="China domestic shipping fee" who="to the domestic carrier" amount="¥5 · ≈€0.64" desc="Transport from the factory to the consolidation warehouse in China." />
+          <div style={sectionLabel}>{tr("pricing.perProduct", "PER PRODUCT")}</div>
+          <Row icon="🏭" name={tr("pricing.factoryPrice.name", "Factory price")} who={tr("pricing.who.factory", "to the factory")} amount={tr("pricing.factoryPrice.amount", "shown + link")} desc={tr("pricing.factoryPrice.desc", "The real price the factory charges — visible with its original link.")} />
+          <Row icon="📸" name={tr("pricing.qc.name", "Quality-control")} who={tr("pricing.who.agent", "to our shipping agent")} amount="¥2 · ≈€0.26" desc={tr("pricing.qc.desc", "Our shipping agent photographs every item before it ships — and takes extra photos if anything looks off.")} />
+          <Row icon="📐" name={tr("pricing.measure.name", "Measurement Service")} who={tr("pricing.who.agent", "to our shipping agent")} amount="¥4 · ≈€0.51" desc={tr("pricing.measure.desc", "Our shipping agent measures the key dimensions of your item to confirm the size matches the listing. Small tolerances apply (about ±3 cm on garments).")} />
+          <Row icon="🚚" name={tr("pricing.domestic.name", "China domestic shipping fee")} who={tr("pricing.who.domestic", "to the domestic carrier")} amount="¥5 · ≈€0.64" desc={tr("pricing.domestic.desc", "Transport from the factory to the consolidation warehouse in China.")} />
         </div>
 
         <div style={card}>
-          <div style={sectionLabel}>PER PARCEL — charged when you ship, so bigger bundles are cheaper</div>
-          <Row icon="📦" name="Fulfillment" who="to our shipping agent" amount="¥9.9 · ≈€1.27"
-            desc="Our shipping agent receives, packs and prepares your parcel, plus 30 days of free storage. Charged once per parcel, when you ship."
+          <div style={sectionLabel}>{tr("pricing.perParcel", "PER PARCEL — charged when you ship, so bigger bundles are cheaper")}</div>
+          <Row icon="📦" name={tr("pricing.fulfillment.name", "Fulfillment")} who={tr("pricing.who.agent", "to our shipping agent")} amount="¥9.9 · ≈€1.27"
+            desc={tr("pricing.fulfillment.desc", "Our shipping agent receives, packs and prepares your parcel, plus 30 days of free storage. Charged once per parcel, when you ship.")}
             extra={
               <div style={{ background: "#FFF7F2", border: "1px solid #FBE2D2", borderRadius: 10, padding: "9px 11px", margin: "8px 0 0 25px" }}>
-                <div style={{ fontSize: 11, fontWeight: 700, color: "#B8430A", marginBottom: 3 }}>Two surcharges may apply:</div>
-                <div style={{ fontSize: 11, lineHeight: 1.55, color: "#7A5340" }}>• Packages with more than 5 items → +¥2 (≈€0.26) per additional item.<br />• Packages over 2 kg → +¥1.5 (≈€0.19) per kg above 2 kg, with the billable weight rounded up to the next whole kilogram.</div>
+                <div style={{ fontSize: 11, fontWeight: 700, color: "#B8430A", marginBottom: 3 }}>{tr("pricing.surcharges.title", "Two surcharges may apply:")}</div>
+                <div style={{ fontSize: 11, lineHeight: 1.55, color: "#7A5340" }}>{tr("pricing.surcharge.items", "• Packages with more than 5 items → +¥2 (≈€0.26) per additional item.")}<br />{tr("pricing.surcharge.weight", "• Packages over 2 kg → +¥1.5 (≈€0.19) per kg above 2 kg, with the billable weight rounded up to the next whole kilogram.")}</div>
               </div>
             } />
-          <Row icon="✈️" name="International shipping" who="to the carrier & customs" amount="by weight"
-            desc={<>China → your door, priced by weight. <b style={{ color: "#46443F" }}>Tax-inclusive.</b> A <b style={{ color: "#46443F" }}>€3 customs cost per product category</b> is also settled inside this shipping price.</>} />
-          <Row icon="💱" name="Currency conversion" who="to Alipay" amount="3% · at cost"
-            desc={<>We pay the factory and our agent in Chinese yuan (¥), converted from euros through <b style={{ color: "#46443F" }}>Alipay</b>, which charges a <b style={{ color: "#46443F" }}>3% conversion fee</b>. We pass this on <b style={{ color: "#46443F" }}>at cost</b> — calculated over everything that's converted to yuan (product, agent & shipping costs), never on VAT or the Flowva fee.</>} />
-          <Row icon="🧾" name="Flowva fee" who="Flowva's fee" whoOrange amount="4–8% · min €3.50–€5"
-            desc={<>Our only earning, calculated <b style={{ color: "#46443F" }}>only on the factory price</b> — never on the agent or shipping costs. Charged once when you ship your bundle.</>} />
+          <Row icon="✈️" name={tr("pricing.intlShip.name", "International shipping")} who={tr("pricing.who.carrier", "to the carrier & customs")} amount={tr("pricing.intlShip.amount", "by weight")}
+            desc={renderBold(tr("pricing.intlShip.desc", "China → your door, priced by weight. **Tax-inclusive.** A **€3 customs cost per product category** is also settled inside this shipping price."))} />
+          <Row icon="💱" name={tr("pricing.currency.name", "Currency conversion")} who={tr("pricing.who.alipay", "to Alipay")} amount={tr("pricing.currency.amount", "3% · at cost")}
+            desc={renderBold(tr("pricing.currency.desc", "We pay the factory and our agent in Chinese yuan (¥), converted from euros through **Alipay**, which charges a **3% conversion fee**. We pass this on **at cost** — calculated over everything that's converted to yuan (product, agent & shipping costs), never on VAT or the Flowva fee."))} />
+          <Row icon="🧾" name={tr("pricing.fee.name", "Flowva fee")} who={tr("pricing.who.flowva", "Flowva's fee")} whoOrange amount="4–8% · min €3.50–€5"
+            desc={renderBold(tr("pricing.fee.desc", "Our only earning, calculated **only on the factory price** — never on the agent or shipping costs. Charged once when you ship your bundle."))} />
         </div>
 
         <div style={card}>
           <div style={{ display: "flex", alignItems: "center", gap: 9, marginBottom: 8 }}>
             <span style={{ fontSize: 19 }}>👤</span>
-            <div style={{ fontSize: 15.5, fontWeight: 800, color: "#111" }}>Solo shopping</div>
+            <div style={{ fontSize: 15.5, fontWeight: 800, color: "#111" }}>{tr("pricing.solo.title", "Solo shopping")}</div>
           </div>
           <div style={{ fontSize: 13, lineHeight: 1.6, color: "#46443F" }}>
-            You shop on your own. There's <b>no fee when you buy</b> — you only pay the factory price. Fulfillment, shipping and the Flowva fee are charged once <b>when you ship your bundle</b> — so the more you ship together, the less each item costs. Your Flowva fee is <b>8% of the factory price, min €5</b>.
+            {renderBold(tr("pricing.solo.body", "You shop on your own. There's **no fee when you buy** — you only pay the factory price. Fulfillment, shipping and the Flowva fee are charged once **when you ship your bundle** — so the more you ship together, the less each item costs. Your Flowva fee is **8% of the factory price, min €5**."))}
           </div>
           <div style={{ display: "flex", gap: 8, marginTop: 11, alignItems: "flex-start" }}>
             <span style={{ fontSize: 14, marginTop: 1 }}>ℹ️</span>
-            <div style={{ fontSize: 11.5, lineHeight: 1.5, color: "#8A8780" }}><b style={{ color: "#46443F" }}>Note:</b> this €3 per product category is a customs charge, introduced by a new EU rule from 1 July 2026. It's included in the shipping price. Want to lower it? Shopping with friends is recommended.</div>
+            <div style={{ fontSize: 11.5, lineHeight: 1.5, color: "#8A8780" }}>{renderBold(tr("pricing.solo.note", "**Note:** this €3 per product category is a customs charge, introduced by a new EU rule from 1 July 2026. It's included in the shipping price. Want to lower it? Shopping with friends is recommended."))}</div>
           </div>
           <div style={{ display: "flex", gap: 8, marginTop: 8, alignItems: "flex-start" }}>
             <span style={{ fontSize: 14, marginTop: 1 }}>⚠️</span>
-            <div style={{ fontSize: 11.5, lineHeight: 1.5, color: "#8A8780" }}>Fulfillment, shipping and the fee are charged once <b style={{ color: "#46443F" }}>per parcel</b> — so ship everything in one bundle, not several separate parcels.</div>
+            <div style={{ fontSize: 11.5, lineHeight: 1.5, color: "#8A8780" }}>{renderBold(tr("pricing.solo.warning", "Fulfillment, shipping and the fee are charged once **per parcel** — so ship everything in one bundle, not several separate parcels."))}</div>
           </div>
         </div>
 
         <div style={{ ...card, border: "2px solid #FF5C00" }}>
           <div style={{ display: "flex", alignItems: "center", gap: 9, marginBottom: 8 }}>
             <span style={{ fontSize: 19 }}>👥</span>
-            <div style={{ fontSize: 15.5, fontWeight: 800, color: "#111" }}>Flowva Friends</div>
-            <div style={{ marginLeft: "auto", flexShrink: 0, whiteSpace: "nowrap", background: "#FF5C00", color: "#fff", fontSize: 10, fontWeight: 700, padding: "3px 9px", borderRadius: 999, letterSpacing: 0.3 }}>Up to 50% cheaper</div>
+            <div style={{ fontSize: 15.5, fontWeight: 800, color: "#111" }}>{tr("pricing.friends.title", "Flowva Friends")}</div>
+            <div style={{ marginLeft: "auto", flexShrink: 0, whiteSpace: "nowrap", background: "#FF5C00", color: "#fff", fontSize: 10, fontWeight: 700, padding: "3px 9px", borderRadius: 999, letterSpacing: 0.3 }}>{tr("pricing.friends.badge", "Up to 50% cheaper")}</div>
           </div>
           <div style={{ fontSize: 13, lineHeight: 1.6, color: "#46443F" }}>
-            Shop together in one shared basket. Everything ships as <b>one parcel for the whole group</b>, so you split the international shipping and the €3-per-category customs across all friends. And international shipping is <b>cheaper per product the heavier the parcel</b> — so a bigger group helps there too.
+            {renderBold(tr("pricing.friends.body", "Shop together in one shared basket. Everything ships as **one parcel for the whole group**, so you split the international shipping and the €3-per-category customs across all friends. And international shipping is **cheaper per product the heavier the parcel** — so a bigger group helps there too."))}
           </div>
           <div style={{ background: "#FFF7F2", border: "1px solid #FBE2D2", borderRadius: 12, padding: "12px 13px", marginTop: 12 }}>
-            <div style={{ fontSize: 12, fontWeight: 800, color: "#B8430A", marginBottom: 8 }}>Your Flowva fee drops with every friend</div>
-            {friendTiers.map(([label, fee, gray, save], i) => {
+            <div style={{ fontSize: 12, fontWeight: 800, color: "#B8430A", marginBottom: 8 }}>{tr("pricing.friends.feeDrops", "Your Flowva fee drops with every friend")}</div>
+            {friendTiers.map(([n, fee, gray, savePct], i) => {
               const best = i === friendTiers.length - 1;   // 7 personen = beste deal → uitgelicht
+              const label = n === "solo" ? tr("pricing.tier.solo", "Solo · 1 person") : `${n} ${peopleWord}`;
+              const save = savePct ? `${savePct}% ${offWord}` : "";
               return (
-                <div key={label} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, fontSize: 12, padding: best ? "8px 10px" : "5px 1px", marginTop: best ? 6 : 0, borderRadius: best ? 10 : 0, background: best ? "#FF5C00" : "transparent", color: best ? "#fff" : "#46443F", borderBottom: !best && i < friendTiers.length - 1 ? "1px solid #FBE2D2" : "none" }}>
+                <div key={n} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, fontSize: 12, padding: best ? "8px 10px" : "5px 1px", marginTop: best ? 6 : 0, borderRadius: best ? 10 : 0, background: best ? "#FF5C00" : "transparent", color: best ? "#fff" : "#46443F", borderBottom: !best && i < friendTiers.length - 1 ? "1px solid #FBE2D2" : "none" }}>
                   <span style={{ fontWeight: best ? 800 : 500 }}>{label}</span>
                   <div style={{ display: "flex", alignItems: "center", gap: 7, flexShrink: 0 }}>
                     {save && (
@@ -1621,12 +1633,12 @@ function PricingSheet({ onClose, arriving = false }) {
 
         <div style={{ display: "flex", gap: 9, alignItems: "flex-start", padding: "0 4px 4px" }}>
           <span style={{ fontSize: 15, marginTop: 1 }}>🔗</span>
-          <div style={{ fontSize: 11.5, lineHeight: 1.55, color: "#8A8780" }}>On every product you'll find the original factory link — check the factory price yourself, anytime. That's our promise of transparency.</div>
+          <div style={{ fontSize: 11.5, lineHeight: 1.55, color: "#8A8780" }}>{tr("pricing.footer", "On every product you'll find the original factory link — check the factory price yourself, anytime. That's our promise of transparency.")}</div>
         </div>
 
         <motion.button whileTap={{ scale: 0.97 }} onClick={onClose}
           style={{ width: "100%", marginTop: 14, background: "#FF5C00", color: "#fff", border: "none", borderRadius: 12, padding: "14px", fontSize: 15, fontWeight: 700, cursor: "pointer", WebkitTapHighlightColor: "transparent" }}>
-          Got it <Fox />
+          {tr("sheets.gotIt", "Got it")} <Fox />
         </motion.button>
       </motion.div>
     </>

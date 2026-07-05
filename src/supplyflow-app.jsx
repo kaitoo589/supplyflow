@@ -2310,10 +2310,17 @@ export default function SupplyFlow({ session }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Grof-pointer (touch = telefoon/tablet): daar geeft de collage-parallax op sommige mobiele
+  // GPU's beeld-FLIKKER (willChange:transform + constante transform-updates blanken de foto
+  // heel even). Detecteer 't en sla de JS-parallax daar volledig over → statische foto's, geen
+  // flikker. Desktop (fine pointer) houdt het effect.
+  const coarsePointer = typeof window !== "undefined" && !!window.matchMedia && window.matchMedia("(pointer: coarse)").matches;
+
   // Micro-parallax op álle collage-foto's ([data-plx] = factor; groot 0.05, klein 0.035) —
   // rAF-throttled, geclamped ±12px. De trage interval vangt net-gemounte foto's én de
   // morph-ghost (die dezelfde collage rendert), zodat de kaart↔ghost-handoff blijft kloppen.
   useEffect(() => {
+    if (coarsePointer) return;   // mobiel: geen JS-parallax → geen beeld-flikker (plxApplyRef blijft null; de morph roept 't via ?.() aan = no-op)
     let raf = 0;
     const apply = () => {
       raf = 0;
@@ -2612,7 +2619,7 @@ export default function SupplyFlow({ session }) {
     // (±10px meeschuiven, iets ingezoomd zodat er geen randen ontstaan).
     const imgBox = (src, big) => (
       <div style={{ flex: 1, minHeight: 0, minWidth: 0, background: "#ECE8E0", display: "flex", alignItems: "center", justifyContent: "center", fontSize: big ? 44 : 26, overflow: "hidden" }}>
-        {src ? <img src={src} referrerPolicy="no-referrer" alt="" decoding="async" data-plx={big ? "0.05" : "0.035"} style={{ width: "100%", height: "100%", objectFit: "cover", display: "block", transform: "scale(1.12)", willChange: "transform" }} /> : "🏭"}
+        {src ? <img src={src} referrerPolicy="no-referrer" alt="" decoding="async" data-plx={big ? "0.05" : "0.035"} style={{ width: "100%", height: "100%", objectFit: "cover", display: "block", transform: coarsePointer ? "none" : "scale(1.12)", willChange: coarsePointer ? "auto" : "transform" }} /> : "🏭"}
       </div>
     );
     return (

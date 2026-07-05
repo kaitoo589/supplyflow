@@ -54,25 +54,22 @@ export default function OrderRequest({ product, session, onRequireAuth, onClose,
   // Hoofdfoto-galerij: álle officiële foto's + de per-variant toegewezen foto's, zodat een
   // kleurfoto altijd gewoon ín de galerij staat (doorswipen blijft werken, ook ná een keuze).
   const variantPhotos = Object.values(product.variant_images || {}).filter(u => typeof u === "string" && u.startsWith("http"));
-  // VOLGORDE. Standaard: 1) hoofdfoto, 2) per-maat/variant-foto's, 3) galerij. Zet de admin-
-  // schakelaar "🎨 Kleurfoto's eerst" (variant_photos_first) AAN — bv. als de hoofdfoto dezelfde
-  // is als een kleurfoto — dan leiden de kleur/variant-foto's en wordt de hoofdfoto HELEMAAL
-  // weggelaten. (Kan niet op string-dedupe leunen: dezelfde foto staat vaak als een ANDER
-  // opgeslagen bestand op image vs variant → andere URL, dus dedupe ziet 'm niet als dubbel.)
-  const ordered = product.variant_photos_first
-    ? [...variantPhotos, ...(product.gallery || [])]
-    : [product.image, ...variantPhotos, ...(product.gallery || [])];
-  const deduped = [...new Set(ordered.filter(u => typeof u === "string" && u.startsWith("http")))];
-  // Vangnet: staat de schakelaar aan maar zijn er geen variant/galerij-foto's, val terug op
-  // de hoofdfoto zodat er altijd íets te zien is.
-  const photos = deduped.length ? deduped : (product.image?.startsWith("http") ? [product.image] : []);
-  // Start op de feedkaart-foto (product.image) als die er is: die is al gedecodeerd, dus
-  // de hero-morph hergebruikt hetzelfde beeld i.p.v. mid-vlucht een verse full-res foto te
-  // fetchen (dat gaf een hik). De galerij-strip laat alsnog alle foto's kiezen.
-  // Bij "Kleurfoto's eerst" opent 'ie op de eerste kleur/variant-foto (photos[0]); anders op de
-  // feedkaart-foto (product.image, al gedecodeerd → soepele hero-morph).
-  const heroImg = product.image?.startsWith("http") ? product.image : null;
-  const heroStart = (product.variant_photos_first ? (photos[0] || heroImg) : (heroImg || photos[0])) || null;
+  // AUTOMATISCHE FOTOVOLGORDE (geen per-product-instelling nodig). De strip bouwt op uit de
+  // kleur/variant-foto's + de galerij. De hoofdfoto (product.image) is vaak een ANDER opgeslagen
+  // bestand dan dezelfde foto in die set (andere rehost-URL) → string-dedupe ziet 'm niet als
+  // dubbel. Daarom: neem de hoofdfoto alléén vooraan mee als z'n URL ÉCHT al in de set zit
+  // (veilig, geen duplicaat); zit 'ie er niet in, dan is 't vrijwel altijd zo'n niet-matchbaar
+  // duplicaat → laat 'm weg (de kleur/galerij dekt 'm al). Zo nooit een dubbele foto — op elk
+  // product, zonder iets in te stellen.
+  const setPhotos = [...variantPhotos, ...(product.gallery || [])].filter(u => typeof u === "string" && u.startsWith("http"));
+  const mainHttp = product.image?.startsWith("http") ? product.image : null;
+  const ordered = (mainHttp && setPhotos.includes(mainHttp)) ? [mainHttp, ...setPhotos] : setPhotos;
+  const deduped = [...new Set(ordered)];
+  // Vangnet: geen kleur/galerij-foto's → toon dan de hoofdfoto zodat er altijd íets te zien is.
+  const photos = deduped.length ? deduped : (mainHttp ? [mainHttp] : []);
+  // Hero = de eerste foto van de strip (de hoofdfoto als die in de set zit, anders de eerste
+  // kleur/galerij-foto). displayImage valt hieronder terug op de hoofdfoto.
+  const heroStart = photos[0] || mainHttp || null;
   const [galleryPhoto, setGalleryPhoto] = useState(heroStart);
   // Eén bron voor de hoofdfoto = de galerij. Een kleurkeuze springt de galerij naar de
   // bijbehorende foto (zie de variant-knop) i.p.v. de hero vast te zetten — zo blijft de

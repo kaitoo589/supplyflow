@@ -54,14 +54,21 @@ export default function OrderRequest({ product, session, onRequireAuth, onClose,
   // Hoofdfoto-galerij: álle officiële foto's + de per-variant toegewezen foto's, zodat een
   // kleurfoto altijd gewoon ín de galerij staat (doorswipen blijft werken, ook ná een keuze).
   const variantPhotos = Object.values(product.variant_images || {}).filter(u => typeof u === "string" && u.startsWith("http"));
-  // VASTE VOLGORDE: 1) hoofdfoto (eerste die je ziet bij openen), 2) de per-maat/variant
-  // toegewezen foto's, 3) de galerij. Dedupe houdt elke foto uniek (staat de hoofdfoto ook
-  // in de galerij → alleen vooraan). Zie ook de admin (productFormModal galerij-uitleg).
-  const photos = [...new Set([product.image, ...variantPhotos, ...(product.gallery || [])].filter(u => typeof u === "string" && u.startsWith("http")))];
+  // VOLGORDE. Standaard: 1) hoofdfoto, 2) per-maat/variant-foto's, 3) galerij. Zet de admin-
+  // schakelaar "🎨 Kleurfoto's eerst" (variant_photos_first) AAN — bv. als de hoofdfoto dezelfde
+  // is als een kleurfoto — dan leiden de kleur/variant-foto's en staat de hoofdfoto NIET vooraan
+  // (achteraan toegevoegd; dedupe laat 'm vallen als 'ie al een kleurfoto is). Dedupe = elke foto uniek.
+  const ordered = product.variant_photos_first
+    ? [...variantPhotos, ...(product.gallery || []), product.image]
+    : [product.image, ...variantPhotos, ...(product.gallery || [])];
+  const photos = [...new Set(ordered.filter(u => typeof u === "string" && u.startsWith("http")))];
   // Start op de feedkaart-foto (product.image) als die er is: die is al gedecodeerd, dus
   // de hero-morph hergebruikt hetzelfde beeld i.p.v. mid-vlucht een verse full-res foto te
   // fetchen (dat gaf een hik). De galerij-strip laat alsnog alle foto's kiezen.
-  const heroStart = (product.image?.startsWith("http") ? product.image : null) || photos[0] || null;
+  // Bij "Kleurfoto's eerst" opent 'ie op de eerste kleur/variant-foto (photos[0]); anders op de
+  // feedkaart-foto (product.image, al gedecodeerd → soepele hero-morph).
+  const heroImg = product.image?.startsWith("http") ? product.image : null;
+  const heroStart = (product.variant_photos_first ? (photos[0] || heroImg) : (heroImg || photos[0])) || null;
   const [galleryPhoto, setGalleryPhoto] = useState(heroStart);
   // Eén bron voor de hoofdfoto = de galerij. Een kleurkeuze springt de galerij naar de
   // bijbehorende foto (zie de variant-knop) i.p.v. de hero vast te zetten — zo blijft de

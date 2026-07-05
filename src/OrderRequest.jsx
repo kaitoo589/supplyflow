@@ -67,9 +67,13 @@ export default function OrderRequest({ product, session, onRequireAuth, onClose,
   const deduped = [...new Set(ordered)];
   // Vangnet: geen kleur/galerij-foto's → toon dan de hoofdfoto zodat er altijd íets te zien is.
   const photos = deduped.length ? deduped : (mainHttp ? [mainHttp] : []);
-  // Hero = de eerste foto van de strip (de hoofdfoto als die in de set zit, anders de eerste
-  // kleur/galerij-foto). displayImage valt hieronder terug op de hoofdfoto.
-  const heroStart = photos[0] || mainHttp || null;
+  // Hero opent op de HOOFDFOTO (het feed-kaart-beeld, al gedecodeerd) → naadloze open-morph
+  // ZONDER flits. Cruciaal: opent 'ie op een ander beeld dan de kaart, dan fade-in't dat er
+  // overheen tijdens de morph = zichtbare glitch (vooral op telefoon). De strip zelf blijft
+  // [kleur/variant + galerij] zónder losse hoofdfoto (geen dubbel); zit de hoofdfoto niet in
+  // die set, dan is 'ie wél de hero maar geen strip-thumb — prima, een keuze/swipe springt
+  // daarna naar een strip-foto.
+  const heroStart = mainHttp || photos[0] || null;
   const [galleryPhoto, setGalleryPhoto] = useState(heroStart);
   // Eén bron voor de hoofdfoto = de galerij. Een kleurkeuze springt de galerij naar de
   // bijbehorende foto (zie de variant-knop) i.p.v. de hero vast te zetten — zo blijft de

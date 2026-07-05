@@ -6,6 +6,7 @@ import { garmentType } from "./garment";
 import {
   ffMyGroups, ffPreview, ffCreateGroup, ffJoinGroup, ffLeaveGroup,
   ffKickMember, ffSetHost, ffSetAdmin, ffSetPrivate, ffUpdateSettings, ffAddItem, ffRemoveItem, ffFetchGroup,
+  ffCartCheckout, ffCartRemove, ffCartSetQty,
   ffSetReady, ffUnready, checkGroupPrices, estimateMemberFee, ffSyncProfile,
   ffPostMessage, ffReact, ffNudge, ffFetchMessages, subscribeGroup,
   inviteLink, whatsappShare,
@@ -167,6 +168,8 @@ export default function Friends({ session, onClose, initialJoinCode, initialGrou
   // lobby
   const [openId, setOpenId] = useState(null);
   const [lobby, setLobby] = useState(null); // { group, members, items }
+  const [cartBusy, setCartBusy] = useState(false);   // gedeelde-mand checkout bezig
+  const [cartErr, setCartErr] = useState("");        // checkout-foutmelding
   const [editing, setEditing] = useState(false);
   const [editName, setEditName] = useState("");
   const [editMax, setEditMax] = useState(5);
@@ -501,6 +504,24 @@ export default function Friends({ session, onClose, initialJoinCode, initialGrou
     const myTotal = myItems.reduce((s, it) => s + (Number(it.price) || 0) * Math.max(Number(it.qty) || 1, 1), 0);
     const myFee = estimateMemberFee(members.length, myTotal);
     const myCharge = Math.round((myTotal + myFee) * 100) / 100;
+    // Gedeelde-mand checkout: ik betaal MIJN items = product + China-verzending (¥5/stuk) +
+    // QC (¥6/stuk), GEEN fee (die valt bij verzenden). 1:1 met ff_cart_checkout (server).
+    const myUnits = myItems.reduce((s, it) => s + Math.max(Number(it.qty) || 1, 1), 0);
+    const myCartCharge = Math.round((myTotal + (myUnits * 5 / 7.8) + (myUnits * 6 / 7.8)) * 100) / 100;
+    const doCartQty = async (it, q) => { if (q < 1) { await ffCartRemove(it.id); } else { await ffCartSetQty(it.id, q); } refreshLobby(); };
+    const doCheckout = async () => {
+      if (cartBusy) return;
+      setCartBusy(true); setCartErr("");
+      const r = await ffCartCheckout(g.id);
+      setCartBusy(false);
+      if (!r || !r.ok) {
+        setCartErr(r?.error === "Insufficient balance"
+          ? `Insufficient balance — you need €${Number(r.needed || 0).toFixed(2)}. Top up first.`
+          : (r?.error || "Checkout failed"));
+        return;
+      }
+      refreshLobby();   // mand nu leeg voor mij; items zijn groeps-orders (zie Orders · squad)
+    };
     const meMember = members.find((m) => m.user_id === myUid);
     const iAmReady = !!meMember?.ready;
     const meHeld = Number(meMember?.held_amount) || 0;   // het ECHTE vastgehouden bedrag (server-side)
@@ -715,9 +736,54 @@ export default function Friends({ session, onClose, initialJoinCode, initialGrou
                 )}
               </AnimatePresence>
             </div>
-            <div style={{ background: "#1A1917", borderRadius: 14, padding: "16px", textAlign: "center", color: "#9C9893", fontSize: 12.5, lineHeight: 1.55 }}>
-              🛍️ Everyone shops the feed on their own — items are <b style={{ color: "#C9C6C1" }}>bought straight into this group</b> and show up in your <b style={{ color: "#C9C6C1" }}>Orders</b> (squad view). No service fee yet — you each pay one small group fee only when the parcel ships.
-            </div>
+            {/* GEDEELDE MAND — items van ALLE leden; ieder rekent z'n eigen af bij checkout */}
+            {(lobby.items || []).length === 0 ? (
+              <div style={{ background: "#1A1917", borderRadius: 14, padding: "16px", textAlign: "center", color: "#9C9893", fontSize: 12.5, lineHeight: 1.55 }}>
+                🛍️ Nothing here yet. Everyone shops the feed and taps <b style={{ color: "#C9C6C1" }}>+ Add to {g.name}</b> — items land in this shared cart. You only pay at checkout (a small group fee is added later, when the parcel ships).
+              </div>
+            ) : (
+              <div style={{ background: "#1A1917", borderRadius: 16, padding: "12px 12px 14px" }}>
+                {(lobby.items || []).map((it) => {
+                  const mine = it.owner_id === myUid;
+                  const owner = members.find((m) => m.user_id === it.owner_id);
+                  return (
+                    <div key={it.id} style={{ display: "flex", alignItems: "center", gap: 10, background: "#161513", borderRadius: 12, padding: "9px 11px", marginBottom: 7 }}>
+                      <div style={{ width: 42, height: 42, borderRadius: 9, background: "#26211c", overflow: "hidden", flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                        {it.variant_image?.startsWith("http") ? <img src={it.variant_image} referrerPolicy="no-referrer" alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : <span style={{ fontSize: 18 }}>📦</span>}
+                      </div>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ fontSize: 12.5, fontWeight: 600, color: "#fff", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{it.product_title}</div>
+                        <div style={{ fontSize: 10.5, color: "#9C9893", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{owner ? memberLabel(owner, mine) : "Friend"}{it.kleur ? ` · ${it.kleur}` : ""} · €{(Number(it.price) || 0).toFixed(2)}</div>
+                      </div>
+                      {mine ? (
+                        <div style={{ display: "flex", alignItems: "center", gap: 6, flexShrink: 0 }}>
+                          <button onClick={() => doCartQty(it, (it.qty || 1) - 1)} style={{ width: 25, height: 25, borderRadius: "50%", background: "rgba(255,255,255,0.08)", border: "1px solid rgba(255,255,255,0.12)", color: "#C9C6C1", fontSize: 15, cursor: "pointer", lineHeight: 1 }}>−</button>
+                          <span style={{ fontSize: 12.5, fontWeight: 700, color: "#fff", minWidth: 12, textAlign: "center" }}>{it.qty || 1}</span>
+                          <button onClick={() => doCartQty(it, (it.qty || 1) + 1)} style={{ width: 25, height: 25, borderRadius: "50%", background: "rgba(255,255,255,0.08)", border: "1px solid rgba(255,255,255,0.12)", color: "#C9C6C1", fontSize: 15, cursor: "pointer", lineHeight: 1 }}>+</button>
+                        </div>
+                      ) : (
+                        <span style={{ fontSize: 11, color: "#6b6862", flexShrink: 0 }}>×{it.qty || 1}</span>
+                      )}
+                    </div>
+                  );
+                })}
+                {myItems.length > 0 ? (
+                  <>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", padding: "8px 4px 4px", fontSize: 12 }}>
+                      <span style={{ color: "#9C9893" }}>Your items ({myItems.length}) · incl. China shipping + QC</span>
+                      <span style={{ fontWeight: 700, color: "#fff", fontSize: 14 }}>€{myCartCharge.toFixed(2)}</span>
+                    </div>
+                    <button onClick={doCheckout} disabled={cartBusy} style={{ ...primaryBtn, marginTop: 4, opacity: cartBusy ? 0.6 : 1 }}>
+                      {cartBusy ? "…" : `Go to checkout → €${myCartCharge.toFixed(2)}`}
+                    </button>
+                    <div style={{ fontSize: 10.5, color: "#6b6862", textAlign: "center", marginTop: 6, lineHeight: 1.4 }}>You pay only your own items now. The group fee + shipping are split by weight later, when the parcel ships.</div>
+                    {cartErr && <div style={{ color: "#F0997B", fontSize: 11.5, marginTop: 6, textAlign: "center" }}>{cartErr}</div>}
+                  </>
+                ) : (
+                  <div style={{ fontSize: 11.5, color: "#6b6862", textAlign: "center", padding: "6px 0 2px" }}>You have no items yet — add some from the feed.</div>
+                )}
+              </div>
+            )}
 
             {/* EU €3-per-categorie douane, per persoon gesplitst — de kern van het delen-met-vrienden */}
             {(lobby.items || []).length > 0 && groupCatCount > 0 && (

@@ -428,12 +428,12 @@ export default function OrderRequest({ product, session, onRequireAuth, onClose,
             {activeGroup && (
               <>
                 <motion.div variants={fadeUp} style={{ display: "flex", alignItems: "center", gap: 6, background: "rgba(255,92,0,0.1)", border: "1px solid rgba(255,92,0,0.3)", borderRadius: 12, padding: "10px 13px", marginBottom: 10, fontSize: 12.5, color: "#B45309" }}>
-                  <Fox /> {tr("product.shoppingForGroup", "Shopping for {group} · bought into the group now, one fee at shipping", { group: activeGroup.name })}
+                  <Fox /> {tr("product.shoppingForGroupCart", "Shopping for {group} · added to the shared cart, pay at checkout", { group: activeGroup.name })}
                 </motion.div>
                 <motion.button variants={fadeUp} whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.96 }}
                   onClick={handleAddToGroup} disabled={loading || addedToGroup}
                   style={{ width: "100%", marginBottom: 8, background: addedToGroup ? "#16A34A" : "#FF5C00", color: "#fff", border: "none", borderRadius: 14, padding: "16px", fontSize: 15, fontWeight: 700, cursor: loading ? "default" : "pointer" }}>
-                  {addedToGroup ? tr("product.boughtForGroup","✓ Bought for {group}",{ group: activeGroup.name }) : loading ? tr("product.buying","Buying…") : tr("product.buyForGroup","+ Buy for {group}",{ group: activeGroup.name })}
+                  {addedToGroup ? tr("product.addedToGroupCart","✓ Added to {group}",{ group: activeGroup.name }) : loading ? tr("product.addingToGroup","Adding…") : tr("product.addToGroupCart","+ Add to {group}",{ group: activeGroup.name })}
                 </motion.button>
                 <motion.button variants={fadeUp} whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.96 }}
                   onClick={handleShareToGroup} disabled={loading}

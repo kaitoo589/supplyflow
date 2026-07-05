@@ -21,6 +21,10 @@ export const ffUpdateSettings = (id, { name, maxSize, orderWindowDays }) =>
   rpc("ff_update_settings", { p_group_id: id, p_name: name ?? null, p_max_size: maxSize ?? null, p_join_mode: null, p_order_window_days: orderWindowDays ?? null });
 export const ffAddItem        = (id, item) => rpc("ff_add_item", { p_group_id: id, p_item: item });
 export const ffRemoveItem     = (itemId) => rpc("ff_remove_item", { p_item_id: itemId });
+// Gedeelde mand: item weg / aantal aanpassen / MIJN items afrekenen (ieder betaalt eigen).
+export const ffCartRemove     = (itemId) => rpc("ff_cart_remove", { p_item_id: itemId });
+export const ffCartSetQty     = (itemId, qty) => rpc("ff_cart_set_qty", { p_item_id: itemId, p_qty: qty });
+export const ffCartCheckout   = (id) => rpc("ff_cart_checkout", { p_group_id: id });
 export const ffSyncProfile    = () => rpc("ff_sync_profile");
 export const ffSetAdmin       = (id, uid) => rpc("ff_set_admin", { p_group_id: id, p_user_id: uid });
 export const ffSetPrivate     = (id, priv) => rpc("ff_set_private", { p_group_id: id, p_private: priv });

@@ -1277,7 +1277,15 @@ function HowItWorksSheet({ onClose }) {
             <motion.div key="hiw-done" initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4, ...springSoft }}
               style={{ width: "100%", marginTop: 10 }}>
               <div style={{ position: "relative", background: "rgba(255,92,0,0.12)", border: "1px solid rgba(255,146,79,0.35)", borderRadius: 16, padding: "15px 15px 13px", marginBottom: 12 }}>
-                <div style={{ position: "absolute", top: -9, right: 12, background: "#FF5C00", color: "#fff", fontSize: 9, fontWeight: 800, letterSpacing: 0.5, textTransform: "uppercase", padding: "3px 9px", borderRadius: 20, boxShadow: "0 4px 12px rgba(255,92,0,0.45)" }}>{tr("tour.recommended", "★ Highly recommended")}</div>
+                <motion.div initial={{ scale: 0, y: -4 }} animate={{ scale: 1, y: 0 }} transition={{ delay: 0.7, type: "spring", stiffness: 480, damping: 13 }}
+                  style={{ position: "absolute", top: -12, right: 12 }}>
+                  {/* pulserend + witte ring + sterkere gloed → springt eruit tegen de donkere tour-achtergrond */}
+                  <motion.div animate={{ scale: [1, 1.08, 1], boxShadow: ["0 5px 16px rgba(255,92,0,0.5)", "0 9px 24px rgba(255,92,0,0.8)", "0 5px 16px rgba(255,92,0,0.5)"] }}
+                    transition={{ duration: 1.8, repeat: Infinity, repeatDelay: 0.9, ease: "easeInOut", delay: 1.2 }}
+                    style={{ background: "#FF5C00", color: "#fff", fontSize: 11, fontWeight: 800, letterSpacing: 0.4, textTransform: "uppercase", padding: "5px 12px", borderRadius: 20, border: "1.5px solid rgba(255,255,255,0.35)", whiteSpace: "nowrap" }}>
+                    {tr("tour.recommended", "Up to 50% cheaper")}
+                  </motion.div>
+                </motion.div>
                 <div style={{ fontSize: 13, fontWeight: 800, color: "#FF8A3D", marginBottom: 3 }}><Fox /> {tr("tour.friendsTitle", "Cheaper with Flowva Friends")}</div>
                 <div style={{ fontSize: 12.5, color: "rgba(255,255,255,0.7)", lineHeight: 1.55 }}>{tr("tour.friendsBody", "Share one parcel, split shipping costs, and save more with every friend you invite.")}</div>
               </div>
@@ -1505,14 +1513,15 @@ function PricingSheet({ onClose, arriving = false }) {
       {extra}
     </div>
   );
+  // save = besparing op de fee t.o.v. solo (8%), naar beneden afgerond zodat we nooit overdrijven.
   const friendTiers = [
-    ["Solo · 1 person", "8% · min €5", true],
-    ["2 people", "7% · min €4.50", false],
-    ["3 people", "6% · min €4.50", false],
-    ["4 people", "5.5% · min €4", false],
-    ["5 people", "5% · min €4", false],
-    ["6 people", "4.5% · min €4", false],
-    ["7+ people", "4% · min €3.50", false],
+    ["Solo · 1 person", "8% · min €5", true, ""],
+    ["2 people", "7% · min €4.50", false, "12% off"],
+    ["3 people", "6% · min €4.50", false, "25% off"],
+    ["4 people", "5.5% · min €4", false, "31% off"],
+    ["5 people", "5% · min €4", false, "37% off"],
+    ["6 people", "4.5% · min €4", false, "43% off"],
+    ["7 people", "4% · min €3.50", false, "50% off"],
   ];
   const card = { background: "#fff", border: "1px solid #ECEAE5", borderRadius: 16, padding: "14px 16px", marginBottom: 12 };
   const sectionLabel = { fontSize: 11, fontWeight: 700, letterSpacing: 0.5, color: "#A8A5A0", marginBottom: 2 };
@@ -1586,18 +1595,27 @@ function PricingSheet({ onClose, arriving = false }) {
           <div style={{ display: "flex", alignItems: "center", gap: 9, marginBottom: 8 }}>
             <span style={{ fontSize: 19 }}>👥</span>
             <div style={{ fontSize: 15.5, fontWeight: 800, color: "#111" }}>Flowva Friends</div>
-            <div style={{ marginLeft: "auto", background: "#FF5C00", color: "#fff", fontSize: 10, fontWeight: 700, padding: "3px 9px", borderRadius: 999, letterSpacing: 0.3 }}>CHEAPEST</div>
+            <div style={{ marginLeft: "auto", flexShrink: 0, whiteSpace: "nowrap", background: "#FF5C00", color: "#fff", fontSize: 10, fontWeight: 700, padding: "3px 9px", borderRadius: 999, letterSpacing: 0.3 }}>Up to 50% cheaper</div>
           </div>
           <div style={{ fontSize: 13, lineHeight: 1.6, color: "#46443F" }}>
             Shop together in one shared basket. Everything ships as <b>one parcel for the whole group</b>, so you split the international shipping and the €3-per-category customs across all friends. And international shipping is <b>cheaper per product the heavier the parcel</b> — so a bigger group helps there too.
           </div>
           <div style={{ background: "#FFF7F2", border: "1px solid #FBE2D2", borderRadius: 12, padding: "12px 13px", marginTop: 12 }}>
             <div style={{ fontSize: 12, fontWeight: 800, color: "#B8430A", marginBottom: 8 }}>Your Flowva fee drops with every friend</div>
-            {friendTiers.map(([label, fee, gray], i) => (
-              <div key={label} style={{ display: "flex", justifyContent: "space-between", fontSize: 12, padding: "4px 0", color: "#46443F", borderBottom: i < friendTiers.length - 1 ? "1px solid #FBE2D2" : "none" }}>
-                <span>{label}</span><span style={{ fontWeight: 700, color: gray ? "#8A8780" : (i === friendTiers.length - 1 ? "#FF5C00" : "#111") }}>{fee}</span>
-              </div>
-            ))}
+            {friendTiers.map(([label, fee, gray, save], i) => {
+              const best = i === friendTiers.length - 1;   // 7 personen = beste deal → uitgelicht
+              return (
+                <div key={label} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, fontSize: 12, padding: best ? "8px 10px" : "5px 1px", marginTop: best ? 6 : 0, borderRadius: best ? 10 : 0, background: best ? "#FF5C00" : "transparent", color: best ? "#fff" : "#46443F", borderBottom: !best && i < friendTiers.length - 1 ? "1px solid #FBE2D2" : "none" }}>
+                  <span style={{ fontWeight: best ? 800 : 500 }}>{label}</span>
+                  <div style={{ display: "flex", alignItems: "center", gap: 7, flexShrink: 0 }}>
+                    {save && (
+                      <span style={{ fontSize: 10, fontWeight: 800, letterSpacing: 0.2, padding: "2px 7px", borderRadius: 999, whiteSpace: "nowrap", background: best ? "#fff" : "#E7F6EC", color: best ? "#FF5C00" : "#178A46" }}>{save}</span>
+                    )}
+                    <span style={{ fontWeight: 700, whiteSpace: "nowrap", color: best ? "#fff" : (gray ? "#8A8780" : "#111") }}>{fee}</span>
+                  </div>
+                </div>
+              );
+            })}
           </div>
         </div>
 

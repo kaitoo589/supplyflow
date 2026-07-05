@@ -56,12 +56,16 @@ export default function OrderRequest({ product, session, onRequireAuth, onClose,
   const variantPhotos = Object.values(product.variant_images || {}).filter(u => typeof u === "string" && u.startsWith("http"));
   // VOLGORDE. Standaard: 1) hoofdfoto, 2) per-maat/variant-foto's, 3) galerij. Zet de admin-
   // schakelaar "🎨 Kleurfoto's eerst" (variant_photos_first) AAN — bv. als de hoofdfoto dezelfde
-  // is als een kleurfoto — dan leiden de kleur/variant-foto's en staat de hoofdfoto NIET vooraan
-  // (achteraan toegevoegd; dedupe laat 'm vallen als 'ie al een kleurfoto is). Dedupe = elke foto uniek.
+  // is als een kleurfoto — dan leiden de kleur/variant-foto's en wordt de hoofdfoto HELEMAAL
+  // weggelaten. (Kan niet op string-dedupe leunen: dezelfde foto staat vaak als een ANDER
+  // opgeslagen bestand op image vs variant → andere URL, dus dedupe ziet 'm niet als dubbel.)
   const ordered = product.variant_photos_first
-    ? [...variantPhotos, ...(product.gallery || []), product.image]
+    ? [...variantPhotos, ...(product.gallery || [])]
     : [product.image, ...variantPhotos, ...(product.gallery || [])];
-  const photos = [...new Set(ordered.filter(u => typeof u === "string" && u.startsWith("http")))];
+  const deduped = [...new Set(ordered.filter(u => typeof u === "string" && u.startsWith("http")))];
+  // Vangnet: staat de schakelaar aan maar zijn er geen variant/galerij-foto's, val terug op
+  // de hoofdfoto zodat er altijd íets te zien is.
+  const photos = deduped.length ? deduped : (product.image?.startsWith("http") ? [product.image] : []);
   // Start op de feedkaart-foto (product.image) als die er is: die is al gedecodeerd, dus
   // de hero-morph hergebruikt hetzelfde beeld i.p.v. mid-vlucht een verse full-res foto te
   // fetchen (dat gaf een hik). De galerij-strip laat alsnog alle foto's kiezen.

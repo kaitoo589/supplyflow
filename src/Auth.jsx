@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { supabase } from "./supabase";
 import { springSnappy, springSoft, pressable, collapse } from "./motion";
 import Fox from "./Fox";
+import { tr } from "./i18n";
 
 // Pagina waar de "wachtwoord vergeten"-maillink naartoe leidt (/reset-password).
 export function ResetPassword({ session }) {
@@ -14,8 +15,8 @@ export function ResetPassword({ session }) {
 
   const handleReset = async () => {
     setError(null);
-    if (password.length < 6) { setError("Password must be at least 6 characters."); return; }
-    if (password !== confirm) { setError("Passwords don't match."); return; }
+    if (password.length < 6) { setError(tr("auth.err.pwShort", "Password must be at least 6 characters.")); return; }
+    if (password !== confirm) { setError(tr("auth.err.pwMismatch", "Passwords don't match.")); return; }
     setLoading(true);
     const { error } = await supabase.auth.updateUser({ password });
     setLoading(false);
@@ -29,36 +30,36 @@ export function ResetPassword({ session }) {
     <div style={{ fontFamily: "'Inter', 'Helvetica Neue', sans-serif", background: "#F8F7F4", minHeight: "100dvh", width: "100%", maxWidth: 430, margin: "0 auto", boxSizing: "border-box" }}>
       <div style={{ background: "#0F0E0C", padding: "32px 24px 28px", textAlign: "center" }}>
         <div style={{ color: "#FF5C00", fontSize: 12, fontWeight: 700, letterSpacing: 2, textTransform: "uppercase", marginBottom: 6 }}>Flowva</div>
-        <div style={{ color: "#fff", fontSize: 22, fontWeight: 700 }}>New password</div>
+        <div style={{ color: "#fff", fontSize: 22, fontWeight: 700 }}>{tr("auth.reset.title", "New password")}</div>
       </div>
       <div style={{ padding: "24px" }}>
         {!session ? (
           <div style={{ background: "#FEF3C7", color: "#B45309", borderRadius: 10, padding: "12px 14px", fontSize: 13 }}>
-            This link has expired or is invalid. Request a new reset link from the login screen.
+            {tr("auth.reset.expired", "This link has expired or is invalid. Request a new reset link from the login screen.")}
           </div>
         ) : done ? (
           <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={springSoft} style={{ textAlign: "center" }}>
             <div style={{ fontSize: 48, marginBottom: 12 }}><Fox /></div>
-            <div style={{ fontSize: 17, fontWeight: 700, color: "#0F0E0C", marginBottom: 6 }}>Password changed!</div>
+            <div style={{ fontSize: 17, fontWeight: 700, color: "#0F0E0C", marginBottom: 6 }}>{tr("auth.reset.done", "Password changed!")}</div>
             <motion.button whileTap={{ scale: 0.97 }} onClick={() => { window.location.href = "/"; }}
               style={{ marginTop: 14, width: "100%", background: "#FF5C00", color: "#fff", border: "none", borderRadius: 12, padding: "14px", fontSize: 15, fontWeight: 700, cursor: "pointer" }}>
-              To Flowva →
+              {tr("auth.reset.toFlowva", "To Flowva →")}
             </motion.button>
           </motion.div>
         ) : (
           <>
             {error && <div style={{ background: "#FEE2E2", color: "#DC2626", borderRadius: 10, padding: "12px 14px", fontSize: 13, marginBottom: 16 }}>{error}</div>}
             <div style={{ marginBottom: 12 }}>
-              <label style={{ fontSize: 12, fontWeight: 600, color: "#555", marginBottom: 4, display: "block" }}>New password</label>
-              <input style={inputStyle} type="password" placeholder="At least 6 characters" value={password} onChange={e => setPassword(e.target.value)} />
+              <label style={{ fontSize: 12, fontWeight: 600, color: "#555", marginBottom: 4, display: "block" }}>{tr("auth.reset.title", "New password")}</label>
+              <input style={inputStyle} type="password" placeholder={tr("auth.placeholder.pw", "At least 6 characters")} value={password} onChange={e => setPassword(e.target.value)} />
             </div>
             <div style={{ marginBottom: 20 }}>
-              <label style={{ fontSize: 12, fontWeight: 600, color: "#555", marginBottom: 4, display: "block" }}>Repeat password</label>
-              <input style={inputStyle} type="password" placeholder="Once more" value={confirm} onChange={e => setConfirm(e.target.value)} />
+              <label style={{ fontSize: 12, fontWeight: 600, color: "#555", marginBottom: 4, display: "block" }}>{tr("auth.reset.repeatLabel", "Repeat password")}</label>
+              <input style={inputStyle} type="password" placeholder={tr("auth.reset.onceMore", "Once more")} value={confirm} onChange={e => setConfirm(e.target.value)} />
             </div>
             <motion.button whileTap={loading ? undefined : { scale: 0.97 }} onClick={handleReset} disabled={loading}
               style={{ width: "100%", background: loading ? "#E8E6E0" : "#FF5C00", color: "#fff", border: "none", borderRadius: 12, padding: "14px", fontSize: 15, fontWeight: 700, cursor: loading ? "default" : "pointer" }}>
-              {loading ? "One moment..." : "Save password"}
+              {loading ? tr("auth.oneMoment", "One moment...") : tr("auth.reset.save", "Save password")}
             </motion.button>
           </>
         )}
@@ -96,14 +97,14 @@ export default function Auth() {
 
   const handleForgotPassword = async () => {
     setError(null); setSuccess(null);
-    if (!form.email) { setError("Enter your email address first, then we'll send a reset link."); return; }
+    if (!form.email) { setError(tr("auth.err.enterEmailFirst", "Enter your email address first, then we'll send a reset link.")); return; }
     setLoading(true);
     const { error } = await supabase.auth.resetPasswordForEmail(form.email, {
       redirectTo: window.location.origin + "/reset-password",
     });
     setLoading(false);
     if (error) setError(error.message);
-    else setSuccess("Reset link sent! Check your email to set a new password.");
+    else setSuccess(tr("auth.success.resetSent", "Reset link sent! Check your email to set a new password."));
   };
 
   const handleRegister = async () => {
@@ -127,7 +128,7 @@ export default function Auth() {
     // 1) Expliciete fout van Supabase (bv. wachtwoord te kort, of soms "User already registered").
     if (signUpError) {
       if (/already registered|already exists|user already/i.test(signUpError.message)) {
-        setError("This email already has an account. Switch to the “Log in” tab above — or use “Forgot password?”.");
+        setError(tr("auth.err.alreadyExists", "This email already has an account. Switch to the “Log in” tab above — or use “Forgot password?”."));
       } else {
         setError(signUpError.message);
       }
@@ -140,11 +141,11 @@ export default function Auth() {
     const alreadyExists =
       data?.user && Array.isArray(data.user.identities) && data.user.identities.length === 0;
     if (alreadyExists) {
-      setError("This email already has an account. Switch to the “Log in” tab above — or use “Forgot password?”.");
+      setError(tr("auth.err.alreadyExists", "This email already has an account. Switch to the “Log in” tab above — or use “Forgot password?”."));
       return;
     }
 
-    setSuccess("Account created! Check your email to confirm.");
+    setSuccess(tr("auth.success.created", "Account created! Check your email to confirm."));
   };
 
   const inputStyle = {
@@ -190,14 +191,14 @@ export default function Auth() {
         <motion.div
           initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ ...springSoft, delay: 0.05 }}
           style={{ color: "#fff", fontSize: 22, fontWeight: 700 }}>
-          {mode === "login" ? "Welcome back" : "Create account"}
+          {mode === "login" ? tr("auth.title.login", "Welcome back") : tr("auth.title.register", "Create account")}
         </motion.div>
         <motion.div
           initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ ...springSoft, delay: 0.1 }}
           style={{ color: "#888", fontSize: 13, marginTop: 6 }}>
           {mode === "login"
-            ? "Log in to manage your orders"
-            : "Create an account to start ordering"}
+            ? tr("auth.sub.login", "Log in to manage your orders")
+            : tr("auth.sub.register", "Create an account to start ordering")}
         </motion.div>
       </div>
 
@@ -237,7 +238,7 @@ export default function Auth() {
               />
             )}
             <span style={{ position: "relative", zIndex: 1 }}>
-              {m === "login" ? "Log in" : "Register"}
+              {m === "login" ? tr("auth.tab.login", "Log in") : tr("auth.tab.register", "Register")}
             </span>
           </motion.button>
         ))}
@@ -282,24 +283,24 @@ export default function Auth() {
           <motion.div key="reg" {...collapse} style={{ overflow: "hidden" }}>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 12 }}>
               <div>
-                <label style={labelStyle}>First name</label>
+                <label style={labelStyle}>{tr("auth.label.firstName", "First name")}</label>
                 <input style={inputStyle} placeholder="Sam" value={form.voornaam} onChange={(e) => set("voornaam", e.target.value)} />
               </div>
               <div>
-                <label style={labelStyle}>Last name</label>
+                <label style={labelStyle}>{tr("auth.label.lastName", "Last name")}</label>
                 <input style={inputStyle} placeholder="Jansen" value={form.achternaam} onChange={(e) => set("achternaam", e.target.value)} />
               </div>
             </div>
 
             <div style={{ fontSize: 12, color: "#8A8780", margin: "4px 0 14px", lineHeight: 1.5 }}>
-              You can add your shipping address now in your profile, or later at checkout.
+              {tr("auth.addressHint", "You can add your shipping address now in your profile, or later at checkout.")}
             </div>
           </motion.div>
         )}
         </AnimatePresence>
 
         <div style={{ marginBottom: 12 }}>
-          <label style={labelStyle}>Email</label>
+          <label style={labelStyle}>{tr("auth.label.email", "Email")}</label>
           <input
             style={inputStyle}
             type="email"
@@ -310,11 +311,11 @@ export default function Auth() {
         </div>
 
         <div style={{ marginBottom: 20 }}>
-          <label style={labelStyle}>Password</label>
+          <label style={labelStyle}>{tr("auth.label.password", "Password")}</label>
           <input
             style={inputStyle}
             type="password"
-            placeholder="At least 6 characters"
+            placeholder={tr("auth.placeholder.pw", "At least 6 characters")}
             value={form.password}
             onChange={(e) => set("password", e.target.value)}
           />
@@ -339,30 +340,30 @@ export default function Auth() {
             WebkitTapHighlightColor: "transparent",
           }}
         >
-          {loading ? "One moment..." : mode === "login" ? "Log in" : "Create account"}
+          {loading ? tr("auth.oneMoment", "One moment...") : mode === "login" ? tr("auth.tab.login", "Log in") : tr("auth.title.register", "Create account")}
         </motion.button>
 
         <div style={{ textAlign: "center", marginTop: 14, fontSize: 11.5, color: "#A8A5A0", lineHeight: 1.5 }}>
-          {mode === "register" ? "By creating an account you agree to our " : ""}
-          <a href="/terms" target="_blank" rel="noreferrer" style={{ color: "#8A8780", textDecoration: "underline" }}>Terms</a>
+          {mode === "register" ? tr("auth.terms.agreePrefix", "By creating an account you agree to our ") : ""}
+          <a href="/terms" target="_blank" rel="noreferrer" style={{ color: "#8A8780", textDecoration: "underline" }}>{tr("auth.terms.terms", "Terms")}</a>
           {" & "}
-          <a href="/privacy" target="_blank" rel="noreferrer" style={{ color: "#8A8780", textDecoration: "underline" }}>Privacy Policy</a>.
+          <a href="/privacy" target="_blank" rel="noreferrer" style={{ color: "#8A8780", textDecoration: "underline" }}>{tr("auth.terms.privacy", "Privacy Policy")}</a>.
         </div>
 
         {mode === "login" && (
           <>
             <div style={{ textAlign: "center", marginTop: 16, fontSize: 13, color: "#888" }}>
-              No account yet?{" "}
+              {tr("auth.noAccount", "No account yet?")}{" "}
               <span
                 onClick={() => setMode("register")}
                 style={{ color: "#0F0E0C", fontWeight: 700, cursor: "pointer" }}
               >
-                Register
+                {tr("auth.tab.register", "Register")}
               </span>
             </div>
             <div style={{ textAlign: "center", marginTop: 10 }}>
               <span onClick={handleForgotPassword} style={{ fontSize: 13, color: "#6366F1", fontWeight: 600, cursor: "pointer" }}>
-                Forgot password?
+                {tr("auth.forgot", "Forgot password?")}
               </span>
             </div>
           </>

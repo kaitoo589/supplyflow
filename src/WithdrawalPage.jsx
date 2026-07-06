@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { supabase } from "./supabase";
+import { tr } from "./i18n";
 
 // Publieke EU-herroepingsknop — geen login vereist. Stuurt het verzoek naar de
 // withdrawal-request edge function (logt + bevestigingsmail).
@@ -14,13 +15,13 @@ export default function WithdrawalPage() {
   const submit = async () => {
     setError(null);
     if (!form.name.trim() || !form.orderNumber.trim() || !/.+@.+\..+/.test(form.email)) {
-      setError("Please fill in your name, order number and a valid email.");
+      setError(tr("wd.err.fillIn", "Please fill in your name, order number and a valid email."));
       return;
     }
     setSending(true);
     const { data, error } = await supabase.functions.invoke("withdrawal-request", { body: form });
     setSending(false);
-    if (error || !data?.ok) { setError(data?.error || error?.message || "Something went wrong. Please try again."); return; }
+    if (error || !data?.ok) { setError(data?.error || error?.message || tr("common.somethingWentWrong", "Something went wrong. Please try again.")); return; }
     setDone(true);
   };
 
@@ -29,34 +30,34 @@ export default function WithdrawalPage() {
       <div style={{ background: "#fff", borderRadius: 22, padding: "28px 24px", maxWidth: 420, width: "100%", boxShadow: "0 8px 40px rgba(0,0,0,0.08)" }}>
         <button onClick={() => { window.location.href = "/?tab=profile"; }}
           style={{ display: "inline-flex", alignItems: "center", gap: 5, background: "#F8F7F4", border: "1px solid #E8E6E0", borderRadius: 999, padding: "8px 15px 8px 11px", fontSize: 13, fontWeight: 700, color: "#0F0E0C", cursor: "pointer", marginBottom: 16 }}>
-          <span style={{ fontSize: 17, lineHeight: 1, marginTop: -2 }}>‹</span> Back
+          <span style={{ fontSize: 17, lineHeight: 1, marginTop: -2 }}>‹</span> {tr("common.backPlain", "Back")}
         </button>
         {done ? (
           <div style={{ textAlign: "center" }}>
             <div style={{ fontSize: 44, marginBottom: 10 }}>✅</div>
-            <div style={{ fontSize: 20, fontWeight: 800, color: "#0F0E0C", marginBottom: 8 }}>Request received</div>
+            <div style={{ fontSize: 20, fontWeight: 800, color: "#0F0E0C", marginBottom: 8 }}>{tr("wd.done.title", "Request received")}</div>
             <div style={{ fontSize: 14, color: "#555", lineHeight: 1.6, marginBottom: 18 }}>
-              We've logged your withdrawal request and emailed you a confirmation. If your item has already shipped, return it within 14 days — we'll send the return details. Once received and checked, we refund the product price to your balance.
+              {tr("wd.done.body", "We've logged your withdrawal request and emailed you a confirmation. If your item has already shipped, return it within 14 days — we'll send the return details. Once received and checked, we refund the product price to your balance.")}
             </div>
-            <a href="/" style={{ display: "inline-block", background: "#FF5C00", color: "#fff", borderRadius: 12, padding: "12px 22px", fontSize: 14, fontWeight: 700, textDecoration: "none" }}>Back to Flowva</a>
+            <a href="/" style={{ display: "inline-block", background: "#FF5C00", color: "#fff", borderRadius: 12, padding: "12px 22px", fontSize: 14, fontWeight: 700, textDecoration: "none" }}>{tr("wd.done.backTo", "Back to Flowva")}</a>
           </div>
         ) : (
           <>
-            <div style={{ fontSize: 22, fontWeight: 800, color: "#0F0E0C", marginBottom: 4 }}>Withdraw or cancel an order</div>
+            <div style={{ fontSize: 22, fontWeight: 800, color: "#0F0E0C", marginBottom: 4 }}>{tr("wd.title", "Withdraw or cancel an order")}</div>
             <div style={{ fontSize: 13.5, color: "#8A8780", lineHeight: 1.6, marginBottom: 18 }}>
-              You can withdraw within 14 days of receiving your order — no account needed. Fill this in and we'll confirm by email. See our <a href="/returns" style={{ color: "#FF5C00", fontWeight: 600 }}>returns policy</a>.
+              {tr("wd.intro.pre", "You can withdraw within 14 days of receiving your order — no account needed. Fill this in and we'll confirm by email. See our ")}<a href="/returns" style={{ color: "#FF5C00", fontWeight: 600 }}>{tr("wd.intro.link", "returns policy")}</a>{tr("wd.intro.post", ".")}
             </div>
             {error && <div style={{ background: "#FEE2E2", color: "#DC2626", borderRadius: 10, padding: "10px 14px", fontSize: 13, marginBottom: 12 }}>{error}</div>}
-            <input style={input} placeholder="Your name" value={form.name} onChange={(e) => set("name", e.target.value)} />
-            <input style={input} placeholder="Order number (e.g. SF-...)" value={form.orderNumber} onChange={(e) => set("orderNumber", e.target.value)} />
-            <input style={input} type="email" placeholder="Email" value={form.email} onChange={(e) => set("email", e.target.value)} />
-            <textarea style={{ ...input, minHeight: 80, resize: "vertical" }} placeholder="Reason (optional)" value={form.message} onChange={(e) => set("message", e.target.value)} />
+            <input style={input} placeholder={tr("wd.ph.name", "Your name")} value={form.name} onChange={(e) => set("name", e.target.value)} />
+            <input style={input} placeholder={tr("wd.ph.order", "Order number (e.g. SF-...)")} value={form.orderNumber} onChange={(e) => set("orderNumber", e.target.value)} />
+            <input style={input} type="email" placeholder={tr("auth.label.email", "Email")} value={form.email} onChange={(e) => set("email", e.target.value)} />
+            <textarea style={{ ...input, minHeight: 80, resize: "vertical" }} placeholder={tr("wd.ph.reason", "Reason (optional)")} value={form.message} onChange={(e) => set("message", e.target.value)} />
             <button onClick={submit} disabled={sending}
               style={{ width: "100%", background: sending ? "#E8E6E0" : "#FF5C00", color: "#fff", border: "none", borderRadius: 12, padding: "14px", fontSize: 15, fontWeight: 700, cursor: sending ? "default" : "pointer" }}>
-              {sending ? "Sending..." : "Submit withdrawal request"}
+              {sending ? tr("wd.sending", "Sending...") : tr("wd.submit", "Submit withdrawal request")}
             </button>
             <div style={{ fontSize: 11.5, color: "#A8A5A0", marginTop: 12, lineHeight: 1.5 }}>
-              Return shipping is paid by you unless the item is faulty. Refunds are issued after we receive and check the returned item.
+              {tr("wd.footer", "Return shipping is paid by you unless the item is faulty. Refunds are issued after we receive and check the returned item.")}
             </div>
           </>
         )}

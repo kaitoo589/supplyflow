@@ -17,7 +17,7 @@ import { WarehouseTab, TransitTab } from "./WarehouseAndHaul";
 import { motion, AnimatePresence, useDragControls, useMotionValue, useTransform, useSpring } from "framer-motion";
 import { createPortal } from "react-dom";
 import { springSnappy, springSoft, springBouncy, springMorph } from "./motion";
-import { Search, SlidersHorizontal, Bell, Home, Package, Factory, User, Users, ShoppingBag, Eye, Star, Plus, X, Plane, CreditCard, PackageCheck, Truck, Camera, ChevronUp } from "lucide-react";
+import { Search, SlidersHorizontal, Bell, Home, Package, Factory, User, Users, ShoppingBag, Eye, Star, Plus, X, Plane, CreditCard, PackageCheck, Truck, Camera, ChevronUp, ChevronDown } from "lucide-react";
 import { WordReveal, SpeechBubble } from "./MotionBits";
 import ReviewPage from "./ReviewPage";
 import { problemTypes } from "./problemTypes";
@@ -592,6 +592,7 @@ function CartGrower({ skip = false, children }) {
     <motion.div
       initial={skip ? false : { height: 0 }}
       animate={{ height: "auto" }}
+      exit={{ height: 0, transition: { duration: 0.28, ease: "easeIn" } }}   // inklappen = omgekeerde groei
       transition={{ delay: GROW_START, duration: GROW_DUR, ease: [0.16, 1, 0.3, 1] }}
       style={{ overflow: "hidden" }}
     >
@@ -685,15 +686,25 @@ function RequestListSheet({ items, onRemove, onSetQty, onClose, onSend, sending,
           klapt via de gedeelde layoutId ("cart-pop") uit de mand-balk omhoog — geen paneel
           meer dat aan de onderkant vastzit. */}
       <motion.div layoutRoot
-        initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 20, scale: 0.97 }}
+        initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}
+        exit={{ opacity: 0, y: 6, transition: { duration: 0.14, delay: 0.2, ease: "easeIn" } }}
         transition={{ type: "spring", stiffness: 420, damping: 34, mass: 0.8, opacity: { duration: 0.16, ease: "easeOut" } }}
         drag="y" dragControls={dragControls} dragListener={false}
         dragConstraints={{ top: 0, bottom: 0 }} dragElastic={{ top: 0, bottom: 0.55 }}
         onDrag={(e, info) => dragStretch.set(Math.max(0, info.offset.y))}
         onDragEnd={(e, info) => { dragStretch.set(0); if (info.offset.y > 110 || info.velocity.y > 650) (view === "placed" ? onFinish?.(false) : onClose()); }}
         style={{ position: "fixed", bottom: 86, left: 0, right: 0, margin: "0 auto", width: "calc(100% - 24px)", maxWidth: 404, boxSizing: "border-box", background: "#111111", borderRadius: 28, zIndex: 301, maxHeight: "74vh", overflowY: "auto", overscrollBehavior: "contain", boxShadow: "0 30px 80px rgba(0,0,0,0.5)", scaleY: stretchY, transformOrigin: "50% 0%" }}>
-        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1, transition: { duration: 0.12 } }} exit={{ opacity: 0, transition: { duration: 0.08 } }}
+        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1, transition: { duration: 0.12 } }}
           style={{ padding: "18px 18px 26px" }}>
+          {/* Inklap-pijltje rechtsboven (sticky, dus ook zichtbaar als de mand scrollt) —
+              spiegelbeeld van het omhoog-pijltje op de balk. Sluit vanuit elke view. */}
+          <div style={{ position: "sticky", top: 10, zIndex: 6, height: 0, display: "flex", justifyContent: "flex-end" }}>
+            <motion.button whileTap={{ scale: 0.88 }} onClick={view === "placed" ? () => onFinish?.(false) : onClose}
+              aria-label={tr("cart.collapse", "Collapse cart")}
+              style={{ width: 32, height: 32, borderRadius: "50%", background: "rgba(255,92,0,0.15)", border: "none", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", WebkitTapHighlightColor: "transparent" }}>
+              <ChevronDown size={16} color="#FF5C00" strokeWidth={2.5} />
+            </motion.button>
+          </div>
           <div onClick={view === "checkout" ? () => setView("cart") : view === "placed" ? () => onFinish?.(false) : onClose}
             onPointerDown={(e) => dragControls.start(e)}
             style={{ padding: "0 0 12px", cursor: "grab", touchAction: "none" }}>
@@ -3680,7 +3691,7 @@ export default function SupplyFlow({ session }) {
           </motion.div>
         )}
         {requestList.length > 0 && tab === "feed" && !showRequestList && !selectedProduct && !showFriends && !activeGroupShopping && !showVable && !hypeProduct && (
-          <motion.div key="cart-pop-bar" initial={{ y: 24, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 30, opacity: 0, scale: 0.96 }} whileTap={{ scaleX: 1.03, scaleY: 0.93 }} transition={springMorph}
+          <motion.div key="cart-pop-bar" initial={{ y: 24, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ opacity: 0, transition: { duration: 0.1 } }} whileTap={{ scaleX: 1.03, scaleY: 0.93 }} transition={springMorph}
             onClick={() => { setListError(null); setShowRequestList(true); }}
             style={{ position: "fixed", bottom: 86, left: 0, right: 0, margin: "0 auto", width: "calc(100% - 40px)", maxWidth: 390, background: "#111111", borderRadius: 999, overflow: "hidden", cursor: "pointer", zIndex: 301, boxShadow: "0 12px 40px rgba(17,17,17,0.35)" }}>
             <div style={{ padding: "11px 18px", display: "flex", alignItems: "center", gap: 12 }}>

@@ -617,10 +617,6 @@ function FoldReveal({ i = 0, n = 1, skip = false, children }) {
   );
 }
 
-// Open-morph van de mand: vlot en glad — balk → compacte kaart in één beweging;
-// de boom-groei van de inhoud neemt het daarna direct over.
-const springCartOpen = { type: "spring", stiffness: 320, damping: 31, mass: 0.85 };
-
 function RequestListSheet({ items, onRemove, onSetQty, onClose, onSend, sending, error, session, onEditAddress, onTopUp, onFinish, flagged, reasons }) {
   const [view, setView] = useState("cart");
   const [agreed, setAgreed] = useState(false);
@@ -688,8 +684,9 @@ function RequestListSheet({ items, onRemove, onSetQty, onClose, onSend, sending,
       {/* Zwevende mand-kaart: raakt de schermranden nergens (minimalistisch, "duur") en
           klapt via de gedeelde layoutId ("cart-pop") uit de mand-balk omhoog — geen paneel
           meer dat aan de onderkant vastzit. */}
-      <motion.div layoutId="cart-pop" layoutRoot transition={springCartOpen}
-        initial={{ opacity: 0, y: 26, scale: 0.96 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 20, scale: 0.97 }}
+      <motion.div layoutRoot
+        initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 20, scale: 0.97 }}
+        transition={{ type: "spring", stiffness: 420, damping: 34, mass: 0.8, opacity: { duration: 0.16, ease: "easeOut" } }}
         drag="y" dragControls={dragControls} dragListener={false}
         dragConstraints={{ top: 0, bottom: 0 }} dragElastic={{ top: 0, bottom: 0.55 }}
         onDrag={(e, info) => dragStretch.set(Math.max(0, info.offset.y))}
@@ -3683,7 +3680,7 @@ export default function SupplyFlow({ session }) {
           </motion.div>
         )}
         {requestList.length > 0 && tab === "feed" && !showRequestList && !selectedProduct && !showFriends && !activeGroupShopping && !showVable && !hypeProduct && (
-          <motion.div key="cart-pop-bar" layoutId="cart-pop" layoutRoot initial={{ y: 24, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 30, opacity: 0, scale: 0.96 }} whileTap={{ scaleX: 1.03, scaleY: 0.93 }} transition={springMorph}
+          <motion.div key="cart-pop-bar" initial={{ y: 24, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 30, opacity: 0, scale: 0.96 }} whileTap={{ scaleX: 1.03, scaleY: 0.93 }} transition={springMorph}
             onClick={() => { setListError(null); setShowRequestList(true); }}
             style={{ position: "fixed", bottom: 86, left: 0, right: 0, margin: "0 auto", width: "calc(100% - 40px)", maxWidth: 390, background: "#111111", borderRadius: 999, overflow: "hidden", cursor: "pointer", zIndex: 301, boxShadow: "0 12px 40px rgba(17,17,17,0.35)" }}>
             <div style={{ padding: "11px 18px", display: "flex", alignItems: "center", gap: 12 }}>

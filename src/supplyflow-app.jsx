@@ -579,30 +579,31 @@ function QuoteAcceptance({ order, session, balance, allOrders = [], onAccepted }
 
 // Aanvraaglijst: alles in één keer versturen = één service fee over de bundel.
 // De sheet deelt z'n layoutId met het zwevende balkje en morpht ervandaan open.
-// ⤵️ Vouw-open reveal voor de mand: elke regel klapt met hoogte + fade open, steeds
-// nét na de vorige — zo groeit de kaart zichtbaar mee met z'n inhoud ("vouwt open").
-// De basis-delay wacht tot de bar→kaart-morph grotendeels klaar is; de stagger is
-// gecapt zodat een volle mand niet traag wordt. `skip` (terug uit checkout, of een
-// her-mount na een qty-wissel) = initial=false → alles staat er meteen, geen animatie.
+// ✨ Reveal voor de mand-inhoud: puur transforms (y + micro-scale + blur→scherp + fade),
+// GEEN hoogte-animatie — de bar→kaart-morph doet de groei in één vloeiende beweging en
+// de regels komen er tijdens de staart van de morph getrapt "in focus" bij (App Store-
+// kaart-stijl). Stagger strak (38ms) en gecapt zodat een volle mand net zo snel voelt.
+// `skip` (terug uit checkout / her-mount na qty-wissel) = initial=false → geen animatie.
 function FoldReveal({ i = 0, skip = false, children }) {
+  const d = 0.14 + Math.min(i, 6) * 0.038;
   return (
     <motion.div
-      initial={skip ? false : { height: 0, opacity: 0 }}
-      animate={{ height: "auto", opacity: 1 }}
+      initial={skip ? false : { opacity: 0, y: 14, scale: 0.975, filter: "blur(5px)" }}
+      animate={{ opacity: 1, y: 0, scale: 1, filter: "blur(0px)" }}
       transition={{
-        height: { delay: 0.22 + Math.min(i, 7) * 0.05, duration: 0.3, ease: [0.22, 1, 0.36, 1] },
-        opacity: { delay: 0.26 + Math.min(i, 7) * 0.05, duration: 0.25, ease: "easeOut" },
+        delay: d, type: "spring", stiffness: 480, damping: 32, mass: 0.75,
+        opacity: { delay: d, duration: 0.18, ease: "easeOut" },
+        filter: { delay: d, duration: 0.22, ease: "easeOut" },
       }}
-      style={{ overflow: "hidden" }}
     >
       {children}
     </motion.div>
   );
 }
 
-// Rustigere morph voor het openen van de mand: iets lager op stiffness dan springMorph,
-// zodat de kaart omhoog glijdt i.p.v. schiet — kalm, maar nog steeds vlot (~0,5s).
-const springCartOpen = { type: "spring", stiffness: 250, damping: 33, mass: 0.95 };
+// Open-morph van de mand: vlot en glad — één ononderbroken beweging van balk naar
+// volle kaart (de reveal hierboven overlapt de staart, dus het geheel voelt snel).
+const springCartOpen = { type: "spring", stiffness: 320, damping: 31, mass: 0.85 };
 
 function RequestListSheet({ items, onRemove, onSetQty, onClose, onSend, sending, error, session, onEditAddress, onTopUp, onFinish, flagged, reasons }) {
   const [view, setView] = useState("cart");
@@ -692,7 +693,7 @@ function RequestListSheet({ items, onRemove, onSetQty, onClose, onSend, sending,
                 {/* Woord-voor-woord alleen bij de eerste open-beurt; daarna gewoon tekst. */}
                 {unfolded.current
                   ? tr("cart.title", "🛒 Shopping cart ({count})", { count: items.length })
-                  : <WordReveal text={tr("cart.title", "🛒 Shopping cart ({count})", { count: items.length })} delay={0.28} stagger={0.07} />}
+                  : <WordReveal text={tr("cart.title", "🛒 Shopping cart ({count})", { count: items.length })} delay={0.16} stagger={0.05} />}
               </div>
 
               {items.map((item, i) => {

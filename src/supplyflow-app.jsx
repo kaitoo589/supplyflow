@@ -579,30 +579,46 @@ function QuoteAcceptance({ order, session, balance, allOrders = [], onAccepted }
 
 // Aanvraaglijst: alles in één keer versturen = één service fee over de bundel.
 // De sheet deelt z'n layoutId met het zwevende balkje en morpht ervandaan open.
-// ✨ Reveal voor de mand-inhoud: puur transforms (y + micro-scale + blur→scherp + fade),
-// GEEN hoogte-animatie — de bar→kaart-morph doet de groei in één vloeiende beweging en
-// de regels komen er tijdens de staart van de morph getrapt "in focus" bij (App Store-
-// kaart-stijl). Stagger strak (38ms) en gecapt zodat een volle mand net zo snel voelt.
-// `skip` (terug uit checkout / her-mount na qty-wissel) = initial=false → geen animatie.
-function FoldReveal({ i = 0, skip = false, children }) {
-  const d = 0.14 + Math.min(i, 6) * 0.038;
+// 🌱 "Boom-groei" van de mand: de kaart opent compact (greep + titel) en de inhoud
+// groeit daarna in ÉÉN doorlopende hoogte-beweging omhoog open — geen stapjes per rij.
+// Timing-venster gedeeld door grower + reveals: GROW_START/GROW_DUR hieronder.
+const GROW_START = 0.1;   // s ná mount: groei begint (overlapt de staart van de morph)
+const GROW_DUR = 0.55;    // s: duur van de volledige groei
+
+// De groeier: wikkelt ALLE inhoud onder de titel en klapt 'm in één vloeiende curve
+// van 0 → auto open (sterke ease-out = organisch, als een boom die opschiet).
+function CartGrower({ skip = false, children }) {
   return (
     <motion.div
-      initial={skip ? false : { opacity: 0, y: 14, scale: 0.975, filter: "blur(5px)" }}
-      animate={{ opacity: 1, y: 0, scale: 1, filter: "blur(0px)" }}
-      transition={{
-        delay: d, type: "spring", stiffness: 480, damping: 32, mass: 0.75,
-        opacity: { delay: d, duration: 0.18, ease: "easeOut" },
-        filter: { delay: d, duration: 0.22, ease: "easeOut" },
-      }}
+      initial={skip ? false : { height: 0 }}
+      animate={{ height: "auto" }}
+      transition={{ delay: GROW_START, duration: GROW_DUR, ease: [0.16, 1, 0.3, 1] }}
+      style={{ overflow: "hidden" }}
     >
       {children}
     </motion.div>
   );
 }
 
-// Open-morph van de mand: vlot en glad — één ononderbroken beweging van balk naar
-// volle kaart (de reveal hierboven overlapt de staart, dus het geheel voelt snel).
+// Reveal per regel, getimed op POSITIE in het groeivenster (i van n): de regel bloeit
+// op — zachte fade + 8px rise, géén blur — precies wanneer de groeiende rand z'n plek
+// passeert. i/n normaliseert: een volle mand is even snel klaar als een kleine.
+// `skip` (terug uit checkout / her-mount na qty-wissel) = initial=false → geen animatie.
+function FoldReveal({ i = 0, n = 1, skip = false, children }) {
+  const d = GROW_START + 0.02 + (i / Math.max(n - 1, 1)) * GROW_DUR * 0.65;
+  return (
+    <motion.div
+      initial={skip ? false : { opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: d, duration: 0.28, ease: "easeOut" }}
+    >
+      {children}
+    </motion.div>
+  );
+}
+
+// Open-morph van de mand: vlot en glad — balk → compacte kaart in één beweging;
+// de boom-groei van de inhoud neemt het daarna direct over.
 const springCartOpen = { type: "spring", stiffness: 320, damping: 31, mass: 0.85 };
 
 function RequestListSheet({ items, onRemove, onSetQty, onClose, onSend, sending, error, session, onEditAddress, onTopUp, onFinish, flagged, reasons }) {
@@ -693,13 +709,14 @@ function RequestListSheet({ items, onRemove, onSetQty, onClose, onSend, sending,
                 {/* Woord-voor-woord alleen bij de eerste open-beurt; daarna gewoon tekst. */}
                 {unfolded.current
                   ? tr("cart.title", "🛒 Shopping cart ({count})", { count: items.length })
-                  : <WordReveal text={tr("cart.title", "🛒 Shopping cart ({count})", { count: items.length })} delay={0.16} stagger={0.05} />}
+                  : <WordReveal text={tr("cart.title", "🛒 Shopping cart ({count})", { count: items.length })} delay={0.12} stagger={0.05} />}
               </div>
 
+              <CartGrower skip={unfolded.current}>
               {items.map((item, i) => {
                 const held = isHeld(item);
                 return (
-                <FoldReveal key={i} i={i} skip={unfolded.current}>
+                <FoldReveal key={i} i={i} n={items.length + 4} skip={unfolded.current}>
                 <motion.div layoutId={`citem-${i}`} style={{ display: "flex", alignItems: "center", gap: 12, background: "#1A1917", borderRadius: 14, padding: "10px 12px", marginBottom: 8, opacity: held ? 0.6 : 1 }}>
                   {itemThumb(item)}
                   <div style={{ flex: 1, minWidth: 0 }}>
@@ -729,7 +746,7 @@ function RequestListSheet({ items, onRemove, onSetQty, onClose, onSend, sending,
               })}
 
               {payable.length > 0 && (
-                <FoldReveal i={items.length} skip={unfolded.current}>
+                <FoldReveal i={items.length} n={items.length + 4} skip={unfolded.current}>
                 <motion.div layout style={{ background: "#1E1D1A", borderRadius: 14, padding: "12px 14px", marginTop: 12 }}>
                   <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
                     <span style={{ fontSize: 12.5, color: "#9C9893" }}>{tr("cart.lineItems", "Items")}</span>
@@ -750,13 +767,13 @@ function RequestListSheet({ items, onRemove, onSetQty, onClose, onSend, sending,
               {errorBlock}
 
               {heldCount > 0 && (
-                <FoldReveal i={items.length + 1} skip={unfolded.current}>
+                <FoldReveal i={items.length + 1} n={items.length + 4} skip={unfolded.current}>
                 <div style={{ background: "rgba(245,158,11,0.12)", color: "#F59E0B", borderRadius: 10, padding: "10px 13px", fontSize: 12, marginTop: 10, lineHeight: 1.5 }}>
                   {tr("cart.heldBanner", "⏸ {countClause} on hold and won't be charged{rest}. Keep {pron} and check back soon, or remove {pron}. You haven't been charged.", { countClause: heldCount === 1 ? "1 item is" : `${heldCount} items are`, rest: payable.length ? " — you can still check out the rest" : "", pron: heldCount === 1 ? "it" : "them" })}
                 </div>
                 </FoldReveal>
               )}
-              <FoldReveal i={items.length + 2} skip={unfolded.current}>
+              <FoldReveal i={items.length + 2} n={items.length + 4} skip={unfolded.current}>
               <div style={{ position: "relative" }}>
                 <motion.button animate={{ scale: 1 }} transition={springBouncy}
                   whileTap={payable.length ? { scale: 0.97 } : undefined} onClick={() => payable.length && setView("checkout")} disabled={payable.length === 0}
@@ -772,12 +789,13 @@ function RequestListSheet({ items, onRemove, onSetQty, onClose, onSend, sending,
               </div>
               </FoldReveal>
 
-              <FoldReveal i={items.length + 3} skip={unfolded.current}>
+              <FoldReveal i={items.length + 3} n={items.length + 4} skip={unfolded.current}>
               <motion.button whileTap={{ scale: 0.97 }} onClick={onClose}
                 style={{ width: "100%", marginTop: 8, background: "transparent", color: "#C9C6C1", border: "1px solid rgba(255,255,255,0.15)", borderRadius: 14, padding: "13px", fontSize: 13, fontWeight: 600, cursor: "pointer", WebkitTapHighlightColor: "transparent" }}>
                 {tr("cart.continueShopping", "← Continue shopping & reduce your fee per item")}
               </motion.button>
               </FoldReveal>
+              </CartGrower>
             </motion.div>
           ) : view === "checkout" ? (
             <motion.div key="checkout">

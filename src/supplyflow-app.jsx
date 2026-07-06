@@ -701,13 +701,9 @@ function RequestListSheet({ items, onRemove, onSetQty, onClose, onSend, sending,
                     <span style={{ fontSize: 12.5, color: "#9C9893" }}>{tr("cart.lineDomestic", "Domestic shipping (¥5 × {qty})", { qty: totalQty })}</span>
                     <span style={{ fontSize: 12.5, color: "#fff", fontWeight: 600 }}>€{domestic.toFixed(2)} <span style={{ color: "#9C9893", fontWeight: 400 }}>· ¥{domesticCny}</span></span>
                   </div>
-                  <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
+                  <div style={{ display: "flex", justifyContent: "space-between" }}>
                     <span style={{ fontSize: 12.5, color: "#9C9893" }}>{tr("cart.lineQualityControl", "Quality-control (¥6 × {qty})", { qty: totalQty })}</span>
                     <span style={{ fontSize: 12.5, color: "#fff", fontWeight: 600 }}>€{qc.toFixed(2)} <span style={{ color: "#9C9893", fontWeight: 400 }}>· ¥{qcCny}</span></span>
-                  </div>
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                    <span style={{ fontSize: 12.5, color: "#9C9893" }}>{tr("cart.lineServiceFee", "Service fee")}</span>
-                    <span style={{ fontSize: 11.5, color: "#9C9893", fontStyle: "italic" }}>{tr("cart.serviceFeeLater", "later, when you ship")}</span>
                   </div>
                 </motion.div>
               )}
@@ -788,22 +784,14 @@ function RequestListSheet({ items, onRemove, onSetQty, onClose, onSend, sending,
                   <span style={{ fontSize: 12.5, color: "#9C9893" }}>{tr("cart.lineDomestic", "Domestic shipping (¥5 × {qty})", { qty: totalQty })}</span>
                   <span style={{ fontSize: 12.5, color: "#fff" }}>€{domestic.toFixed(2)} <span style={{ color: "#9C9893" }}>· ¥{domesticCny}</span></span>
                 </div>
-                <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
+                <div style={{ display: "flex", justifyContent: "space-between" }}>
                   <span style={{ fontSize: 12.5, color: "#9C9893" }}>{tr("cart.lineQualityControl", "Quality-control (¥6 × {qty})", { qty: totalQty })}</span>
                   <span style={{ fontSize: 12.5, color: "#fff" }}>€{qc.toFixed(2)} <span style={{ color: "#9C9893" }}>· ¥{qcCny}</span></span>
-                </div>
-                <div style={{ display: "flex", justifyContent: "space-between" }}>
-                  <span style={{ fontSize: 12.5, color: "#9C9893" }}>{tr("cart.lineServiceFee", "Service fee")}</span>
-                  <span style={{ fontSize: 11.5, color: "#9C9893", fontStyle: "italic" }}>{tr("cart.serviceFeeLater", "later, when you ship")}</span>
                 </div>
               </motion.div>
               <motion.div style={{ background: "#1E1D1A", borderRadius: "0 0 14px 14px", padding: "12px 14px", marginBottom: 12, borderTop: "1px solid rgba(255,255,255,0.1)", display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
                 <span style={{ fontSize: 14, fontWeight: 700, color: "#fff" }}>{tr("cart.totalNow", "Total now")}</span>
                 <span style={{ fontSize: 20, fontWeight: 800, color: "#FF5C00" }}>€{charge.toFixed(2)}</span>
-              </motion.div>
-
-              <motion.div style={{ background: "rgba(99,102,241,0.12)", borderRadius: 12, padding: "10px 13px", marginBottom: 12, fontSize: 11.5, color: "#A5B4FC", lineHeight: 1.5 }}>
-                {tr("cart.deferredFeeNote", "🚢 International shipping and a single service fee are billed later, once your items reach the warehouse and you ship your bundle — so today you only pay the factory price.")}
               </motion.div>
 
               {errorBlock}

@@ -7,7 +7,7 @@ let _cartPayToken = null;
 const cartPayToken = () => (_cartPayToken ||= (globalThis.crypto?.randomUUID?.() || `cp-${Date.now()}-${Math.random().toString(36).slice(2)}`));
 const rotateCartPayToken = () => { _cartPayToken = null; };
 import { supabase } from "./supabase";
-import { EU_COUNTRIES, normalizeCountry, EU_PROVINCES } from "./countries";
+import { EU_COUNTRIES, normalizeCountry, EU_PROVINCES, isValidPostcode, POSTCODE_EXAMPLE } from "./countries";
 import OrderRequest from "./OrderRequest";
 import Friends from "./Friends";
 import GroupModeGlow from "./GroupModeGlow";
@@ -1118,8 +1118,21 @@ function EditProfileSheet({ session, onClose }) {
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
   const inputStyle = { width: "100%", border: "1px solid #E8E6E0", borderRadius: 10, padding: "11px 13px", fontSize: 13, background: "#F8F7F4", boxSizing: "border-box", outline: "none" };
   const labelStyle = { fontSize: 12, fontWeight: 600, color: "#555", marginBottom: 4, display: "block" };
+  // ── Validatie: alle velden verplicht + postcode moet bij het land passen ──────────────
+  const blank = (v) => !String(v || "").trim();
+  const needsProvince = !!EU_PROVINCES[form.land];
+  const pcBad = !blank(form.postcode) && !isValidPostcode(form.land, form.postcode);
+  const miss = {
+    voornaam: blank(form.voornaam), achternaam: blank(form.achternaam), telefoon: blank(form.telefoon),
+    adres: blank(form.adres), postcode: blank(form.postcode), stad: blank(form.stad),
+    provincie: needsProvince && blank(form.provincie),
+  };
+  const incomplete = Object.values(miss).some(Boolean);
+  const canSave = !incomplete && !pcBad;
+  const errBorder = (bad) => bad ? { border: "1px solid #DC2626", background: "#FEF2F2" } : {};
 
   const save = async () => {
+    if (!canSave) return;
     setSaving(true); setError(null);
     const { error } = await supabase.auth.updateUser({ data: form });
     setSaving(false);
@@ -1138,22 +1151,23 @@ function EditProfileSheet({ session, onClose }) {
         <div style={{ fontSize: 18, fontWeight: 700, color: "#0F0E0C", marginBottom: 16 }}>Edit details</div>
         {error && <div style={{ background: "#FEE2E2", color: "#DC2626", borderRadius: 10, padding: "10px 14px", fontSize: 13, marginBottom: 12 }}>{error}</div>}
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 10 }}>
-          <div><label style={labelStyle}>First name</label><input style={inputStyle} value={form.voornaam} onChange={e => set("voornaam", e.target.value)} /></div>
-          <div><label style={labelStyle}>Last name</label><input style={inputStyle} value={form.achternaam} onChange={e => set("achternaam", e.target.value)} /></div>
+          <div><label style={labelStyle}>First name</label><input style={{ ...inputStyle, ...errBorder(miss.voornaam) }} value={form.voornaam} onChange={e => set("voornaam", e.target.value)} /></div>
+          <div><label style={labelStyle}>Last name</label><input style={{ ...inputStyle, ...errBorder(miss.achternaam) }} value={form.achternaam} onChange={e => set("achternaam", e.target.value)} /></div>
         </div>
-        <div style={{ marginBottom: 10 }}><label style={labelStyle}>Phone</label><input style={inputStyle} value={form.telefoon} onChange={e => set("telefoon", e.target.value)} /></div>
-        <div style={{ marginBottom: 10 }}><label style={labelStyle}>Address (street + no.)</label><input style={inputStyle} value={form.adres} onChange={e => set("adres", e.target.value)} /></div>
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 2fr", gap: 10, marginBottom: 10 }}>
-          <div><label style={labelStyle}>Postal code</label><input style={inputStyle} value={form.postcode} onChange={e => set("postcode", e.target.value)} /></div>
-          <div><label style={labelStyle}>City</label><input style={inputStyle} value={form.stad} onChange={e => set("stad", e.target.value)} /></div>
+        <div style={{ marginBottom: 10 }}><label style={labelStyle}>Phone</label><input style={{ ...inputStyle, ...errBorder(miss.telefoon) }} value={form.telefoon} onChange={e => set("telefoon", e.target.value)} /></div>
+        <div style={{ marginBottom: 10 }}><label style={labelStyle}>Address (street + no.)</label><input style={{ ...inputStyle, ...errBorder(miss.adres) }} value={form.adres} onChange={e => set("adres", e.target.value)} /></div>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 2fr", gap: 10, marginBottom: pcBad ? 4 : 10 }}>
+          <div><label style={labelStyle}>Postal code</label><input style={{ ...inputStyle, ...errBorder(miss.postcode || pcBad) }} value={form.postcode} onChange={e => set("postcode", e.target.value)} /></div>
+          <div><label style={labelStyle}>City</label><input style={{ ...inputStyle, ...errBorder(miss.stad) }} value={form.stad} onChange={e => set("stad", e.target.value)} /></div>
         </div>
+        {pcBad && <div style={{ fontSize: 11.5, color: "#DC2626", marginBottom: 10 }}>Enter a valid {form.land} postal code{POSTCODE_EXAMPLE[form.land] ? ` — e.g. ${POSTCODE_EXAMPLE[form.land]}` : ""}.</div>}
         <div style={{ marginBottom: 10 }}><label style={labelStyle}>Province</label>
           {EU_PROVINCES[form.land]
-            ? <select style={inputStyle} value={form.provincie} onChange={e => set("provincie", e.target.value)}>
+            ? <select style={{ ...inputStyle, ...errBorder(miss.provincie) }} value={form.provincie} onChange={e => set("provincie", e.target.value)}>
                 <option value="">Select your province…</option>
                 {EU_PROVINCES[form.land].map(p => <option key={p} value={p}>{p}</option>)}
               </select>
-            : <input style={inputStyle} value={form.provincie} onChange={e => set("provincie", e.target.value)} placeholder="Province / state / region" />}
+            : <input style={{ ...inputStyle, ...errBorder(miss.provincie) }} value={form.provincie} onChange={e => set("provincie", e.target.value)} placeholder="Province / state / region" />}
         </div>
         <div style={{ marginBottom: 18 }}><label style={labelStyle}>Country</label>
           <select style={inputStyle} value={form.land} onChange={e => { set("land", e.target.value); set("provincie", ""); }}>
@@ -1161,8 +1175,9 @@ function EditProfileSheet({ session, onClose }) {
             {EU_COUNTRIES.map(c => <option key={c} value={c}>{c}</option>)}
           </select>
         </div>
-        <motion.button whileTap={saving ? undefined : { scale: 0.97 }} onClick={save} disabled={saving}
-          style={{ width: "100%", background: saving ? "#E8E6E0" : "#FF5C00", color: "#fff", border: "none", borderRadius: 12, padding: "14px", fontSize: 15, fontWeight: 700, cursor: saving ? "default" : "pointer", WebkitTapHighlightColor: "transparent" }}>
+        {!canSave && <div style={{ fontSize: 11.5, color: "#92400E", marginBottom: 8, textAlign: "center" }}>{incomplete ? "Please fill in all fields to save." : "Check your postal code to save."}</div>}
+        <motion.button whileTap={saving || !canSave ? undefined : { scale: 0.97 }} onClick={save} disabled={saving || !canSave}
+          style={{ width: "100%", background: (saving || !canSave) ? "#E8E6E0" : "#FF5C00", color: (saving || !canSave) ? "#9C9893" : "#fff", border: "none", borderRadius: 12, padding: "14px", fontSize: 15, fontWeight: 700, cursor: (saving || !canSave) ? "default" : "pointer", WebkitTapHighlightColor: "transparent" }}>
           {saving ? "Saving..." : "Save"}
         </motion.button>
       </motion.div>
@@ -1746,7 +1761,7 @@ export default function SupplyFlow({ session }) {
   // 🫧 Blob-pull op de nav: houd een knop vast en beweeg → de oranje blob wordt elastisch
   // naar je vinger toe getrokken (rekt uit, wordt platter); loslaten boven een andere tab
   // = daarheen springen. Tik zonder bewegen blijft gewoon een tik.
-  const NAV_TABS = ["feed", "orders", "warehouse", "transit", "profile"];
+  const NAV_TABS = ["feed", "brands", "orders", "warehouse", "transit", "profile"];
   const navRef = useRef(null);
   const navDrag = useRef({ on: false, moved: false, startX: 0 });
   const pullRaw = useMotionValue(0);
@@ -1937,11 +1952,19 @@ export default function SupplyFlow({ session }) {
   // VABLE — eigen merk (borduurdesigns). Knop in de feed-header opent dit blad.
   // Vervang img:null door je echte foto-URL's (en VABLE_URL door je winkel-link).
   const [showVable, setShowVable] = useState(false);
+  // Tab-wissel (Feed ↔ Brands ↔ rest): drill-in/zoek/favorieten-staat resetten zodat je
+  // nooit met de fabriek-drill van de éne feed in de andere landt.
+  useEffect(() => {
+    setSelectedFactory(null); setShowFavoritesOnly(false); setSearch("");
+    setActiveCategory("All"); setActiveSub(null); setMorph(null);
+    feedScrollRef.current = 0;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tab]);
   // Scroll-behoud: bewaar de scrollpositie van de fabriek-feed bij het inzoomen op een
   // fabriek, en herstel 'm zodra je teruggaat — i.p.v. weer bovenaan te beginnen.
   const feedScrollRef = useRef(0);
   useLayoutEffect(() => {
-    if (tab === "feed" && !selectedFactory && !showFavoritesOnly && feedScrollRef.current) {
+    if ((tab === "feed" || tab === "brands") && !selectedFactory && !showFavoritesOnly && feedScrollRef.current) {
       const y = feedScrollRef.current;
       window.scrollTo(0, y);
       requestAnimationFrame(() => window.scrollTo(0, y));
@@ -2274,7 +2297,7 @@ export default function SupplyFlow({ session }) {
   useEffect(() => {
     const onStart = (e) => {
       const u = uiRef.current;
-      if (u.tab !== "feed" || u.blocked || window.scrollY > 0) return;
+      if ((u.tab !== "feed" && u.tab !== "brands") || u.blocked || window.scrollY > 0) return;
       ptrRef.current = { startY: e.touches[0].clientY, active: true };
     };
     const onMove = (e) => {
@@ -2578,6 +2601,8 @@ export default function SupplyFlow({ session }) {
   // stem-polling, PTR) — zonder memo betaalt elke render deze rekensom mee, en dat
   // vertraagt precies het frame waarin de terug-morph moet vertrekken.
   const factoryCards = useMemo(() => factories
+    // Feed toont fabrieken; Brands toont taobao-stores (zelfde tabel, store_type splitst).
+    .filter(f => tab === "brands" ? f.store_type === "taobao" : (f.store_type || "factory") !== "taobao")
     .map(f => {
       const fp = products.filter(p => belongsToFactory(p, f));
       // Kaart-plaatje: een geüploade fabrieksfoto wint, anders pakt de kaart
@@ -2599,7 +2624,7 @@ export default function SupplyFlow({ session }) {
     })
     .filter(f => f.count > 0)
     .filter(f => { const q = search.trim().toLowerCase(); return !q || (f.name || "").toLowerCase().includes(q); })
-    .sort((a, b) => (a.sort_order ?? 1e9) - (b.sort_order ?? 1e9) || (Number(b.diamonds) || 0) - (Number(a.diamonds) || 0) || (a.name || "").localeCompare(b.name || "")), [factories, products, search]);
+    .sort((a, b) => (a.sort_order ?? 1e9) - (b.sort_order ?? 1e9) || (Number(b.diamonds) || 0) - (Number(a.diamonds) || 0) || (a.name || "").localeCompare(b.name || "")), [factories, products, search, tab]);
   // Drill-in: producten van de geopende fabriek, met de gewone filters erop.
   const factoryProducts = selectedFactory
     ? visibleProducts.filter(p => belongsToFactory(p, selectedFactory))
@@ -2710,13 +2735,21 @@ export default function SupplyFlow({ session }) {
   // Fabriek-kaart = volledige telefoon-breedte, één per rij (verticaal scrollen).
   // Etalage-collage: 1 grote + 2 kleine product-foto's → je ziet meteen wat de fabriek maakt.
   const factoryCardEl = (f) => {
-    const dia = Math.max(0, Math.min(4, Number(f.diamonds) || 0));
-    const stats = [
+    const isTaobao = f.store_type === "taobao";
+    // Taobao-stores hebben geen 1688-diamant-rang → geen 💎-badge op de collage.
+    const dia = isTaobao ? 0 : Math.max(0, Math.min(4, Number(f.diamonds) || 0));
+    const stats = (isTaobao ? [
+      { label: tr("feed.brandCard.stat.rating", "Store rating"), v: f.tb_rating },
+      { label: tr("feed.brandCard.stat.followers", "Followers"), v: f.tb_followers },
+      { label: tr("feed.brandCard.stat.reviews", "Reviews"), v: f.tb_reviews },
+      { label: tr("feed.brandCard.stat.shipSpeed", "CN shipping speed"), v: f.tb_ship_speed },
+      { label: tr("feed.brandCard.stat.service", "Service score"), v: f.tb_service },
+    ] : [
       { label: tr("feed.factoryCard.stat.repurchase", "Repurchase rate"), v: f.repurchase },
       { label: tr("feed.factoryCard.stat.service", "Service score"), v: f.service },
       { label: tr("feed.factoryCard.stat.ontime", "On-time delivery"), v: f.ontime },
       { label: tr("feed.factoryCard.stat.reviews", "Positive reviews"), v: f.reviews },
-    ].filter(s => s.v);
+    ]).filter(s => s.v);
     const pv = (f.previews && f.previews.length) ? f.previews : (f.cover ? [f.cover] : []);
     const extra = Math.max(0, (f.count || 0) - 3);
     // Is dit de kaart waar de morph NU naartoe terugkeert? Zo ja: geen entree-animatie,
@@ -2871,20 +2904,25 @@ export default function SupplyFlow({ session }) {
       <AnimatePresence mode="wait" initial={false}>
 
       {/* FEED TAB */}
-      {tab === "feed" && (
-        <motion.div key="feed" {...pageTransition} style={{ padding: "10px 20px 80px" }}>
+      {(tab === "feed" || tab === "brands") && (
+        /* FEED + BRANDS delen exact dezelfde machinerie: tab "brands" toont taobao-stores
+           (store_type='taobao') i.p.v. fabrieken — zelfde kaarten, morph, drill-in en cart. */
+        <motion.div key={tab} {...pageTransition} style={{ padding: "10px 20px 80px" }}>
           <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 10 }}>
-            <div style={{ fontSize: 30, fontWeight: 800, letterSpacing: -0.6, color: "#111111", marginBottom: 2 }}>{showFavoritesOnly ? tr("feed.title.favorites", "Favorites") : selectedFactory ? selectedFactory.name : <>{tr("feed.title.factoryFeed.word1", "Factory")} <span style={{ color: "#FF5C00" }}>{tr("feed.title.factoryFeed.word2", "Feed")}</span></>}</div>
+            <div style={{ fontSize: 30, fontWeight: 800, letterSpacing: -0.6, color: "#111111", marginBottom: 2 }}>{showFavoritesOnly ? tr("feed.title.favorites", "Favorites") : selectedFactory ? selectedFactory.name : tab === "brands" ? <>{tr("feed.title.brandFeed.word1", "Brand")} <span style={{ color: "#FF5C00" }}>{tr("feed.title.brandFeed.word2", "Feed")}</span></> : <>{tr("feed.title.factoryFeed.word1", "Factory")} <span style={{ color: "#FF5C00" }}>{tr("feed.title.factoryFeed.word2", "Feed")}</span></>}</div>
             <div style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
               <motion.button data-money-btn whileTap={{ scaleX: 1.15, scaleY: 0.85 }} transition={springSnappy} onClick={() => openSheetWithArc("pricing")} aria-label={tr("feed.aria.pricingButton", "How pricing works")}
                 style={{ width: 42, height: 42, borderRadius: "50%", background: "#fff", border: "1px solid #ECEAE5", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", fontSize: 18, lineHeight: 1, WebkitTapHighlightColor: "transparent" }}>
                 {/* het emoji "vertrekt" tijdens de boogvlucht (de knop-cirkel blijft) */}
                 <span style={{ display: "inline-block", opacity: arcFlight?.kind === "pricing" ? 0 : 1, transition: "opacity .15s" }}>💸</span>
               </motion.button>
+              {/* Diamant-rang is een 1688-fabriek-ding — niet tonen op de Brands-tab */}
+              {tab !== "brands" && (
               <motion.button data-diamond-btn whileTap={{ scaleX: 1.15, scaleY: 0.85 }} transition={springSnappy} onClick={() => openSheetWithArc("diamond")} aria-label={tr("feed.aria.diamondButton", "How diamond rankings work")}
                 style={{ width: 42, height: 42, borderRadius: "50%", background: "#fff", border: "1px solid #ECEAE5", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", fontSize: 18, lineHeight: 1, WebkitTapHighlightColor: "transparent" }}>
                 <span style={{ display: "inline-block", opacity: arcFlight?.kind === "diamond" ? 0 : 1, transition: "opacity .15s" }}>💎</span>
               </motion.button>
+              )}
               <motion.button whileTap={{ scaleX: 1.15, scaleY: 0.85 }} transition={springSnappy} onClick={() => setShowFavoritesOnly((v) => !v)} aria-label={tr("feed.aria.favoritesButton", "favorites")}
                 style={{ width: 42, height: 42, borderRadius: "50%", background: showFavoritesOnly ? "#FF5C00" : "#fff", border: "1px solid #ECEAE5", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}>
                 <Star size={19} color={showFavoritesOnly ? "#fff" : "#111111"} fill={showFavoritesOnly ? "#fff" : "none"} strokeWidth={2} />
@@ -2895,7 +2933,7 @@ export default function SupplyFlow({ session }) {
               </motion.button>
             </div>
           </div>
-          <div style={{ fontSize: 13.5, color: "#8A8780", marginBottom: 16 }}>{showFavoritesOnly ? tr("feed.subtitle.favorites", "Your starred products.") : selectedFactory ? tr("feed.subtitle.factory", "Curated products from this factory.") : tr("feed.subtitle.default", "Tap a factory to explore its products.")}</div>
+          <div style={{ fontSize: 13.5, color: "#8A8780", marginBottom: 16 }}>{showFavoritesOnly ? tr("feed.subtitle.favorites", "Your starred products.") : selectedFactory ? (tab === "brands" ? tr("feed.subtitle.brand", "Curated products from this store.") : tr("feed.subtitle.factory", "Curated products from this factory.")) : tab === "brands" ? tr("feed.subtitle.brandsDefault", "Tap a store to explore its products.") : tr("feed.subtitle.default", "Tap a factory to explore its products.")}</div>
 
           {/* Terug-knop bij drill-in — duidelijke pill */}
           {selectedFactory && !showFavoritesOnly && (
@@ -2908,7 +2946,7 @@ export default function SupplyFlow({ session }) {
               whileTap={{ scale: 0.96 }}
               onClick={(e) => { const r = e.currentTarget.getBoundingClientRect(); const sf = selectedFactory; const spv = (sf.previews && sf.previews.length) ? sf.previews : (sf.cover ? [sf.cover] : []); setMorph({ from: { left: r.left, top: r.top, width: r.width, height: r.height }, target: "card", id: sf.id, previews: spv, extra: Math.max(0, (sf.count || 0) - 3), dia: Math.max(0, Math.min(4, Number(sf.diamonds) || 0)) }); setSelectedFactory(null); setSearch(""); setActiveCategory("All"); setActiveSub(null); }}
               style={{ display: "inline-flex", alignItems: "center", gap: 4, marginBottom: 16, cursor: "pointer", color: "#111", fontSize: 14, fontWeight: 700, background: "#fff", border: "1px solid #E4E1DA", borderRadius: 22, padding: "9px 16px 9px 12px", boxShadow: "0 1px 2px rgba(17,17,17,0.05), 0 4px 12px rgba(17,17,17,0.05)", WebkitTapHighlightColor: "transparent", whiteSpace: "nowrap" }}>
-              <span style={{ fontSize: 19, lineHeight: 1, marginTop: -2 }}>‹</span> {tr("feed.backToFactories", "All factories")}
+              <span style={{ fontSize: 19, lineHeight: 1, marginTop: -2 }}>‹</span> {tab === "brands" ? tr("feed.backToBrands", "All brands") : tr("feed.backToFactories", "All factories")}
             </motion.div>
           )}
           {/* === BODY: smooth fade+slide bij wisselen feed ↔ fabriek ↔ favorieten === */}
@@ -2945,7 +2983,7 @@ export default function SupplyFlow({ session }) {
                 </div>
               )}
             </>
-          ) : factories.length === 0 ? (
+          ) : tab !== "brands" && factories.length === 0 ? (
             <>
               {/* Terugval: nog geen fabrieken (SQL nog niet gedraaid) → klassieke feed */}
               {loadingProducts && <div style={{ textAlign: "center", padding: 40, color: "#999" }}>{tr("feed.loading.products", "Loading products...")}</div>}
@@ -2962,10 +3000,10 @@ export default function SupplyFlow({ session }) {
             </>
           ) : (
             <>
-              {loadingProducts && <div style={{ textAlign: "center", padding: 40, color: "#999" }}>{tr("feed.loading.factories", "Loading factories...")}</div>}
+              {loadingProducts && <div style={{ textAlign: "center", padding: 40, color: "#999" }}>{tab === "brands" ? tr("feed.loading.brands", "Loading brands...") : tr("feed.loading.factories", "Loading factories...")}</div>}
               {productsError && <div style={{ textAlign: "center", padding: 40, color: "#B45309" }}>{tr("feed.error.factories", "Couldn't load: {error}", { error: productsError })}</div>}
               {!loadingProducts && !productsError && factoryCards.length === 0 && (
-                <div style={{ textAlign: "center", padding: 40, color: "#999", lineHeight: 1.5 }}>{search ? tr("feed.empty.factoriesSearch", "No factories match your search.") : tr("feed.empty.factories", "No factories yet — check back soon.")}</div>
+                <div style={{ textAlign: "center", padding: 40, color: "#999", lineHeight: 1.5 }}>{search ? (tab === "brands" ? tr("feed.empty.brandsSearch", "No brands match your search.") : tr("feed.empty.factoriesSearch", "No factories match your search.")) : tab === "brands" ? tr("feed.empty.brands", "No brands yet — check back soon.") : tr("feed.empty.factories", "No factories yet — check back soon.")}</div>
               )}
               {!loadingProducts && !productsError && factoryCards.length > 0 && (
                 <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: 14 }}>
@@ -3655,7 +3693,7 @@ export default function SupplyFlow({ session }) {
         {infoToast && (
           <div style={{ position: "fixed", bottom: 90, left: "50%", transform: "translateX(-50%)", zIndex: 350, background: "#0F0E0C", color: "#fff", borderRadius: 999, padding: "10px 18px", fontSize: 13, fontWeight: 600, boxShadow: "0 8px 30px rgba(0,0,0,0.4)", maxWidth: "90%", textAlign: "center" }}>{infoToast}</div>
         )}
-        {activeGroupShopping && tab === "feed" && !selectedProduct && !showFriends && !showRequestList && !showVable && !hypeProduct && (
+        {activeGroupShopping && (tab === "feed" || tab === "brands") && !selectedProduct && !showFriends && !showRequestList && !showVable && !hypeProduct && (
           <motion.div layoutId="squad-pop" layoutRoot initial={{ y: 24, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 30, opacity: 0, scale: 0.96 }} whileTap={{ scale: 0.97 }} transition={springMorph}
             onClick={() => { setFriendsGroupId(activeGroup.id); setShowFriends(true); }}
             style={{ position: "fixed", bottom: 86, left: 0, right: 0, margin: "0 auto", width: "calc(100% - 40px)", maxWidth: 390, background: "#111111", borderRadius: 999, overflow: "hidden", cursor: "pointer", zIndex: 301, boxShadow: "0 12px 40px rgba(17,17,17,0.35), 0 0 12px rgba(255,92,0,0.5)", border: "1px solid rgba(255,92,0,0.6)" }}>
@@ -3675,7 +3713,7 @@ export default function SupplyFlow({ session }) {
           </motion.div>
         )}
         {/* Geplaatste/gevolgde groep: maak glashelder dat de groep op slot zit en je nu solo winkelt. */}
-        {activeGroup && !activeGroupShopping && tab === "feed" && !selectedProduct && !showFriends && !showRequestList && requestList.length === 0 && !showVable && !hypeProduct && (
+        {activeGroup && !activeGroupShopping && (tab === "feed" || tab === "brands") && !selectedProduct && !showFriends && !showRequestList && requestList.length === 0 && !showVable && !hypeProduct && (
           <motion.div initial={{ y: 24, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={springMorph}
             onClick={() => { setFriendsGroupId(activeGroup.id); setShowFriends(true); }}
             style={{ position: "fixed", bottom: 78, left: 0, right: 0, margin: "0 auto", width: "calc(100% - 40px)", maxWidth: 390, background: "#111111", borderRadius: 16, overflow: "hidden", cursor: "pointer", zIndex: 301, boxShadow: "0 12px 40px rgba(17,17,17,0.35)", border: "1px solid rgba(52,209,123,0.35)" }}>
@@ -3690,7 +3728,7 @@ export default function SupplyFlow({ session }) {
             </div>
           </motion.div>
         )}
-        {requestList.length > 0 && tab === "feed" && !showRequestList && !selectedProduct && !showFriends && !activeGroupShopping && !showVable && !hypeProduct && (
+        {requestList.length > 0 && (tab === "feed" || tab === "brands") && !showRequestList && !selectedProduct && !showFriends && !activeGroupShopping && !showVable && !hypeProduct && (
           <motion.div key="cart-pop-bar" initial={{ y: 24, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ opacity: 0, transition: { duration: 0.1 } }} whileTap={{ scaleX: 1.03, scaleY: 0.93 }} transition={springMorph}
             onClick={() => { setListError(null); setShowRequestList(true); }}
             style={{ position: "fixed", bottom: 86, left: 0, right: 0, margin: "0 auto", width: "calc(100% - 40px)", maxWidth: 390, background: "#111111", borderRadius: 999, overflow: "hidden", cursor: "pointer", zIndex: 301, boxShadow: "0 12px 40px rgba(17,17,17,0.35)" }}>
@@ -3931,6 +3969,7 @@ export default function SupplyFlow({ session }) {
         style={{ position: "fixed", zIndex: 100, bottom: 12, left: 0, right: 0, margin: "0 auto", width: "calc(100% - 28px)", maxWidth: 402, borderRadius: 999, display: "flex", padding: "6px 8px", overflow: "hidden", background: "#fff", border: "1px solid #ECEAE5", boxShadow: "0 10px 30px rgba(17,17,17,0.14)", touchAction: "none" }}>
         {[
           { id: "feed", Icon: Home, label: tr("feed.nav.feed", "Feed") },
+          { id: "brands", Icon: ShoppingBag, label: tr("feed.nav.brands", "Brands") },
           { id: "orders", Icon: Package, label: tr("common.tab.orders", "Orders") },
           { id: "warehouse", Icon: Factory, label: tr("feed.nav.warehouse", "Warehouse") },
           { id: "transit", Icon: Plane, label: tr("feed.nav.transit", "Transit") },

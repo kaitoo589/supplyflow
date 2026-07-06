@@ -579,6 +579,31 @@ function QuoteAcceptance({ order, session, balance, allOrders = [], onAccepted }
 
 // Aanvraaglijst: alles in één keer versturen = één service fee over de bundel.
 // De sheet deelt z'n layoutId met het zwevende balkje en morpht ervandaan open.
+// ⤵️ Vouw-open reveal voor de mand: elke regel klapt met hoogte + fade open, steeds
+// nét na de vorige — zo groeit de kaart zichtbaar mee met z'n inhoud ("vouwt open").
+// De basis-delay wacht tot de bar→kaart-morph grotendeels klaar is; de stagger is
+// gecapt zodat een volle mand niet traag wordt. `skip` (terug uit checkout, of een
+// her-mount na een qty-wissel) = initial=false → alles staat er meteen, geen animatie.
+function FoldReveal({ i = 0, skip = false, children }) {
+  return (
+    <motion.div
+      initial={skip ? false : { height: 0, opacity: 0 }}
+      animate={{ height: "auto", opacity: 1 }}
+      transition={{
+        height: { delay: 0.22 + Math.min(i, 7) * 0.05, duration: 0.3, ease: [0.22, 1, 0.36, 1] },
+        opacity: { delay: 0.26 + Math.min(i, 7) * 0.05, duration: 0.25, ease: "easeOut" },
+      }}
+      style={{ overflow: "hidden" }}
+    >
+      {children}
+    </motion.div>
+  );
+}
+
+// Rustigere morph voor het openen van de mand: iets lager op stiffness dan springMorph,
+// zodat de kaart omhoog glijdt i.p.v. schiet — kalm, maar nog steeds vlot (~0,5s).
+const springCartOpen = { type: "spring", stiffness: 250, damping: 33, mass: 0.95 };
+
 function RequestListSheet({ items, onRemove, onSetQty, onClose, onSend, sending, error, session, onEditAddress, onTopUp, onFinish, flagged, reasons }) {
   const [view, setView] = useState("cart");
   const [agreed, setAgreed] = useState(false);
@@ -588,6 +613,10 @@ function RequestListSheet({ items, onRemove, onSetQty, onClose, onSend, sending,
   const stretchY = useTransform(dragStretch, [0, 170], [1, 1.055]);
   useBodyScrollLock(true);                          // feed erachter niet mee laten scrollen
   const [paying, setPaying] = useState("idle");     // "idle" | "check" — betaal-morph (knop → cirkel → vinkje)
+  // Vouw-open alleen bij de éérste keer openen: daarna (terug uit checkout, of rijen
+  // die her-mounten na verwijderen) staat alles er meteen — geen herhaal-animatie.
+  const unfolded = useRef(false);
+  useEffect(() => { unfolded.current = true; }, []);
   const isHeld = (item) => !!flagged && flagged.has(item.source_url);
   const heldReason = (item) => reasons?.[item.source_url] || tr("cart.heldReasonDefault", "On hold — changed at the factory");
   const heldCount = items.filter(isHeld).length;
@@ -642,14 +671,14 @@ function RequestListSheet({ items, onRemove, onSetQty, onClose, onSend, sending,
       {/* Zwevende mand-kaart: raakt de schermranden nergens (minimalistisch, "duur") en
           klapt via de gedeelde layoutId ("cart-pop") uit de mand-balk omhoog — geen paneel
           meer dat aan de onderkant vastzit. */}
-      <motion.div layoutId="cart-pop" layoutRoot transition={springMorph}
+      <motion.div layoutId="cart-pop" layoutRoot transition={springCartOpen}
         initial={{ opacity: 0, y: 26, scale: 0.96 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 20, scale: 0.97 }}
         drag="y" dragControls={dragControls} dragListener={false}
         dragConstraints={{ top: 0, bottom: 0 }} dragElastic={{ top: 0, bottom: 0.55 }}
         onDrag={(e, info) => dragStretch.set(Math.max(0, info.offset.y))}
         onDragEnd={(e, info) => { dragStretch.set(0); if (info.offset.y > 110 || info.velocity.y > 650) (view === "placed" ? onFinish?.(false) : onClose()); }}
         style={{ position: "fixed", bottom: 86, left: 0, right: 0, margin: "0 auto", width: "calc(100% - 24px)", maxWidth: 404, boxSizing: "border-box", background: "#111111", borderRadius: 28, zIndex: 301, maxHeight: "74vh", overflowY: "auto", overscrollBehavior: "contain", boxShadow: "0 30px 80px rgba(0,0,0,0.5)", scaleY: stretchY, transformOrigin: "50% 0%" }}>
-        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1, transition: { delay: 0.16, duration: 0.2 } }} exit={{ opacity: 0, transition: { duration: 0.08 } }}
+        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1, transition: { duration: 0.12 } }} exit={{ opacity: 0, transition: { duration: 0.08 } }}
           style={{ padding: "18px 18px 26px" }}>
           <div onClick={view === "checkout" ? () => setView("cart") : view === "placed" ? () => onFinish?.(false) : onClose}
             onPointerDown={(e) => dragControls.start(e)}
@@ -659,12 +688,18 @@ function RequestListSheet({ items, onRemove, onSetQty, onClose, onSend, sending,
 
           {view === "cart" ? (
             <motion.div key="cart">
-              <div style={{ fontSize: 18, fontWeight: 700, color: "#fff", marginBottom: 14 }}>{tr("cart.title", "🛒 Shopping cart ({count})", { count: items.length })}</div>
+              <div style={{ fontSize: 18, fontWeight: 700, color: "#fff", marginBottom: 14 }}>
+                {/* Woord-voor-woord alleen bij de eerste open-beurt; daarna gewoon tekst. */}
+                {unfolded.current
+                  ? tr("cart.title", "🛒 Shopping cart ({count})", { count: items.length })
+                  : <WordReveal text={tr("cart.title", "🛒 Shopping cart ({count})", { count: items.length })} delay={0.28} stagger={0.07} />}
+              </div>
 
               {items.map((item, i) => {
                 const held = isHeld(item);
                 return (
-                <motion.div layoutId={`citem-${i}`} key={i} style={{ display: "flex", alignItems: "center", gap: 12, background: "#1A1917", borderRadius: 14, padding: "10px 12px", marginBottom: 8, opacity: held ? 0.6 : 1 }}>
+                <FoldReveal key={i} i={i} skip={unfolded.current}>
+                <motion.div layoutId={`citem-${i}`} style={{ display: "flex", alignItems: "center", gap: 12, background: "#1A1917", borderRadius: 14, padding: "10px 12px", marginBottom: 8, opacity: held ? 0.6 : 1 }}>
                   {itemThumb(item)}
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ fontSize: 13, fontWeight: 600, color: "#fff", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", textDecoration: held ? "line-through" : "none" }}>{item.product_title}</div>
@@ -688,10 +723,12 @@ function RequestListSheet({ items, onRemove, onSetQty, onClose, onSend, sending,
                   </div>
                   )}
                 </motion.div>
+                </FoldReveal>
                 );
               })}
 
               {payable.length > 0 && (
+                <FoldReveal i={items.length} skip={unfolded.current}>
                 <motion.div layout style={{ background: "#1E1D1A", borderRadius: 14, padding: "12px 14px", marginTop: 12 }}>
                   <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
                     <span style={{ fontSize: 12.5, color: "#9C9893" }}>{tr("cart.lineItems", "Items")}</span>
@@ -706,15 +743,19 @@ function RequestListSheet({ items, onRemove, onSetQty, onClose, onSend, sending,
                     <span style={{ fontSize: 12.5, color: "#fff", fontWeight: 600 }}>€{qc.toFixed(2)} <span style={{ color: "#9C9893", fontWeight: 400 }}>· ¥{qcCny}</span></span>
                   </div>
                 </motion.div>
+                </FoldReveal>
               )}
 
               {errorBlock}
 
               {heldCount > 0 && (
+                <FoldReveal i={items.length + 1} skip={unfolded.current}>
                 <div style={{ background: "rgba(245,158,11,0.12)", color: "#F59E0B", borderRadius: 10, padding: "10px 13px", fontSize: 12, marginTop: 10, lineHeight: 1.5 }}>
                   {tr("cart.heldBanner", "⏸ {countClause} on hold and won't be charged{rest}. Keep {pron} and check back soon, or remove {pron}. You haven't been charged.", { countClause: heldCount === 1 ? "1 item is" : `${heldCount} items are`, rest: payable.length ? " — you can still check out the rest" : "", pron: heldCount === 1 ? "it" : "them" })}
                 </div>
+                </FoldReveal>
               )}
+              <FoldReveal i={items.length + 2} skip={unfolded.current}>
               <div style={{ position: "relative" }}>
                 <motion.button animate={{ scale: 1 }} transition={springBouncy}
                   whileTap={payable.length ? { scale: 0.97 } : undefined} onClick={() => payable.length && setView("checkout")} disabled={payable.length === 0}
@@ -728,11 +769,14 @@ function RequestListSheet({ items, onRemove, onSetQty, onClose, onSend, sending,
                   )}
                 </motion.button>
               </div>
+              </FoldReveal>
 
+              <FoldReveal i={items.length + 3} skip={unfolded.current}>
               <motion.button whileTap={{ scale: 0.97 }} onClick={onClose}
                 style={{ width: "100%", marginTop: 8, background: "transparent", color: "#C9C6C1", border: "1px solid rgba(255,255,255,0.15)", borderRadius: 14, padding: "13px", fontSize: 13, fontWeight: 600, cursor: "pointer", WebkitTapHighlightColor: "transparent" }}>
                 {tr("cart.continueShopping", "← Continue shopping & reduce your fee per item")}
               </motion.button>
+              </FoldReveal>
             </motion.div>
           ) : view === "checkout" ? (
             <motion.div key="checkout">

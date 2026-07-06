@@ -7,7 +7,7 @@ let _cartPayToken = null;
 const cartPayToken = () => (_cartPayToken ||= (globalThis.crypto?.randomUUID?.() || `cp-${Date.now()}-${Math.random().toString(36).slice(2)}`));
 const rotateCartPayToken = () => { _cartPayToken = null; };
 import { supabase } from "./supabase";
-import { EU_COUNTRIES, normalizeCountry, NL_PROVINCES } from "./countries";
+import { EU_COUNTRIES, normalizeCountry, EU_PROVINCES } from "./countries";
 import OrderRequest from "./OrderRequest";
 import Friends from "./Friends";
 import GroupModeGlow from "./GroupModeGlow";
@@ -1121,15 +1121,15 @@ function EditProfileSheet({ session, onClose }) {
           <div><label style={labelStyle}>City</label><input style={inputStyle} value={form.stad} onChange={e => set("stad", e.target.value)} /></div>
         </div>
         <div style={{ marginBottom: 10 }}><label style={labelStyle}>Province</label>
-          {form.land === "Netherlands"
+          {EU_PROVINCES[form.land]
             ? <select style={inputStyle} value={form.provincie} onChange={e => set("provincie", e.target.value)}>
                 <option value="">Select your province…</option>
-                {NL_PROVINCES.map(p => <option key={p} value={p}>{p}</option>)}
+                {EU_PROVINCES[form.land].map(p => <option key={p} value={p}>{p}</option>)}
               </select>
             : <input style={inputStyle} value={form.provincie} onChange={e => set("provincie", e.target.value)} placeholder="Province / state / region" />}
         </div>
         <div style={{ marginBottom: 18 }}><label style={labelStyle}>Country</label>
-          <select style={inputStyle} value={form.land} onChange={e => set("land", e.target.value)}>
+          <select style={inputStyle} value={form.land} onChange={e => { set("land", e.target.value); set("provincie", ""); }}>
             {form.land && !EU_COUNTRIES.includes(form.land) && <option value={form.land}>{form.land}</option>}
             {EU_COUNTRIES.map(c => <option key={c} value={c}>{c}</option>)}
           </select>

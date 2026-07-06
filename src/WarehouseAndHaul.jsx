@@ -557,6 +557,7 @@ function NormalShippingConfirm({ session, haulItems, balance, onBack, onSuccess 
   const [quoting, setQuoting] = useState(true);
   const [chosen, setChosen] = useState(null);     // route waarop we de schatting baseren
   const [error, setError] = useState(null);
+  const [addrOk, setAddrOk] = useState(false);    // "mijn adres klopt"-bevestiging vóór betalen
   const orderIds = haulItems.map(o => o.id);
   const totalWeight = haulItems.reduce((s, o) => s + (o.weight_grams || 0), 0);
   // Douane-categorieën in dit pakket (HS6-benadering). ALLEEN voor weergave — de €3 zit al
@@ -727,8 +728,14 @@ function NormalShippingConfirm({ session, haulItems, balance, onBack, onSuccess 
         </div>
         {!canAfford && <div style={{ fontSize: 12, color: "#B45309", marginTop: 6 }}>You're €{(toPay - balance).toFixed(2)} short.</div>}
       </div>
-      <button onClick={payLive} disabled={quoting || !!error || !chosen || !canAfford || confirming}
-        style={{ width: "100%", background: quoting || error || !chosen || !canAfford || confirming ? "#E8E6E0" : "#FF5C00", color: "#fff", border: "none", borderRadius: 12, padding: "14px", fontSize: 14, fontWeight: 700, cursor: quoting || error || !chosen || !canAfford || confirming ? "default" : "pointer" }}>
+      {chosen && !error && !quoting && (
+        <label style={{ display: "flex", alignItems: "flex-start", gap: 10, marginBottom: 12, cursor: "pointer" }}>
+          <input type="checkbox" checked={addrOk} onChange={e => setAddrOk(e.target.checked)} style={{ marginTop: 1, width: 16, height: 16, accentColor: "#FF5C00", flexShrink: 0 }} />
+          <span style={{ fontSize: 12, color: "#555", lineHeight: 1.5 }}>I confirm my delivery address is correct. A parcel sent to a wrong address can't be recovered.</span>
+        </label>
+      )}
+      <button onClick={payLive} disabled={quoting || !!error || !chosen || !canAfford || confirming || !addrOk}
+        style={{ width: "100%", background: quoting || error || !chosen || !canAfford || confirming || !addrOk ? "#E8E6E0" : "#FF5C00", color: "#fff", border: "none", borderRadius: 12, padding: "14px", fontSize: 14, fontWeight: 700, cursor: quoting || error || !chosen || !canAfford || confirming || !addrOk ? "default" : "pointer" }}>
         {confirming ? "Processing..." : quoting ? "Calculating…" : error ? "Unavailable" : !canAfford ? "Insufficient balance" : `Confirm & pay €${toPay.toFixed(2)}`}
       </button>
     </div>

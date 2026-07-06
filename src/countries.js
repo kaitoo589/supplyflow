@@ -73,3 +73,37 @@ export const EU_PROVINCES = {
   "Spain": ["Andalusia", "Aragon", "Asturias", "Balearic Islands", "Basque Country", "Canary Islands", "Cantabria", "Castile and León", "Castilla-La Mancha", "Catalonia", "Community of Madrid", "Extremadura", "Galicia", "La Rioja", "Navarre", "Region of Murcia", "Valencian Community"],
   "Sweden": ["Blekinge", "Dalarna", "Gotland", "Gävleborg", "Halland", "Jämtland", "Jönköping", "Kalmar", "Kronoberg", "Norrbotten", "Skåne", "Stockholm", "Södermanland", "Uppsala", "Värmland", "Västerbotten", "Västernorrland", "Västmanland", "Västra Götaland", "Örebro", "Östergötland"],
 };
+
+// Postcode-formaat per land (SOEPEL: optionele spaties/prefix, hoofdletter-ongevoelig). Doel:
+// overduidelijke onzin/typefouten vangen zonder echte klanten te blokkeren. Landen met een losse
+// of complexe/optionele postcode (Ierland, Malta) staan er bewust NIET in → geen formaat-check.
+export const POSTCODE_FORMATS = {
+  "Netherlands": /^\d{4}\s?[A-Za-z]{2}$/, "Belgium": /^\d{4}$/, "Germany": /^\d{5}$/,
+  "France": /^\d{5}$/, "Luxembourg": /^(L-?\s?)?\d{4}$/i, "Austria": /^\d{4}$/,
+  "Bulgaria": /^\d{4}$/, "Croatia": /^\d{5}$/, "Cyprus": /^\d{4}$/,
+  "Czech Republic": /^\d{3}\s?\d{2}$/, "Denmark": /^\d{4}$/, "Estonia": /^\d{5}$/,
+  "Finland": /^\d{5}$/, "Greece": /^\d{3}\s?\d{2}$/, "Hungary": /^\d{4}$/,
+  "Italy": /^\d{5}$/, "Latvia": /^(LV-?\s?)?\d{4}$/i, "Lithuania": /^(LT-?\s?)?\d{5}$/i,
+  "Poland": /^\d{2}-?\s?\d{3}$/, "Portugal": /^\d{4}-?\s?\d{3}$/, "Romania": /^\d{6}$/,
+  "Slovakia": /^\d{3}\s?\d{2}$/, "Slovenia": /^(SI-?\s?)?\d{4}$/i, "Spain": /^\d{5}$/,
+  "Sweden": /^\d{3}\s?\d{2}$/,
+};
+
+// Voorbeeld-postcode per land, voor de foutmelding in het adresformulier.
+export const POSTCODE_EXAMPLE = {
+  "Netherlands": "1234 AB", "Belgium": "1000", "Germany": "10115", "France": "75001",
+  "Luxembourg": "1234", "Austria": "1010", "Bulgaria": "1000", "Croatia": "10000",
+  "Cyprus": "1010", "Czech Republic": "110 00", "Denmark": "1050", "Estonia": "10111",
+  "Finland": "00100", "Greece": "104 31", "Hungary": "1051", "Italy": "00100",
+  "Latvia": "LV-1050", "Lithuania": "LT-01100", "Poland": "00-001", "Portugal": "1000-001",
+  "Romania": "010011", "Slovakia": "811 01", "Slovenia": "1000", "Spain": "28001", "Sweden": "111 20",
+};
+
+// Klopt het postcode-formaat voor dit land? Leeg → true (de verplicht-check regelt leegheid apart);
+// land zonder patroon → true (soepel). Alleen een NIET-lege, fout-geformatteerde postcode → false.
+export function isValidPostcode(country, postcode) {
+  const pc = String(postcode || "").trim();
+  if (!pc) return true;
+  const re = POSTCODE_FORMATS[country];
+  return re ? re.test(pc) : true;
+}

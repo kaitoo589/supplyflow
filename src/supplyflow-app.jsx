@@ -661,18 +661,6 @@ function RequestListSheet({ items, onRemove, onSetQty, onClose, onSend, sending,
             <motion.div key="cart">
               <div style={{ fontSize: 18, fontWeight: 700, color: "#fff", marginBottom: 14 }}>{tr("cart.title", "🛒 Shopping cart ({count})", { count: items.length })}</div>
 
-              {payable.length > 0 && (() => { const cats = [...new Set(payable.map((it) => garmentType(it.product_title)))]; return (
-                <div style={{ background: "#23201C", border: "1px solid #3A332B", borderRadius: 12, padding: "11px 13px", marginBottom: 16 }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 5 }}>
-                    <span style={{ fontSize: 16 }}>🛃</span>
-                    <span style={{ fontSize: 12.5, fontWeight: 700, color: "#fff" }}>{tr("cart.customsHeader", "{n} product {cat} · €{amount} EU customs", { n: cats.length, cat: cats.length === 1 ? "category" : "categories", amount: cats.length * 3 })}</span>
-                  </div>
-                  <div style={{ fontSize: 11.5, lineHeight: 1.5, color: "#9C9893" }}>
-                    {tr("cart.customsBody", "A new EU rule charges €3 per product category, calculated inside your international shipping (charged when you ship, not now). Shopping with Flowva Friends splits this across your group.")}
-                  </div>
-                </div>
-              ); })()}
-
               {items.map((item, i) => {
                 const held = isHeld(item);
                 return (
@@ -724,17 +712,6 @@ function RequestListSheet({ items, onRemove, onSetQty, onClose, onSend, sending,
                 </motion.div>
               )}
 
-              {payable.length > 0 && (
-                <div style={{ display: "flex", gap: 10, alignItems: "flex-start", marginTop: 12 }}>
-                  <motion.span layoutId="cart-fox" style={{ fontSize: 28, flexShrink: 0 }}><Fox /></motion.span>
-                  <SpeechBubble bg="#1E1D1A" color="#C9C6C1">
-                    <span style={{ fontSize: 12.5, lineHeight: 1.6 }}>
-                      {tr("cart.feeExplainerBubble", "Good news: there's no service fee now — today you only pay the factory price. A single service fee (8% of item value, min €5) is charged once, later, when you ship your bundle. The more you bundle into one parcel, the lower it works out per item — and a group order with friends splits it even further.")}
-                    </span>
-                  </SpeechBubble>
-                </div>
-              )}
-
               {errorBlock}
 
               {heldCount > 0 && (
@@ -746,7 +723,13 @@ function RequestListSheet({ items, onRemove, onSetQty, onClose, onSend, sending,
                 <motion.button animate={{ scale: 1 }} transition={springBouncy}
                   whileTap={payable.length ? { scale: 0.97 } : undefined} onClick={() => payable.length && setView("checkout")} disabled={payable.length === 0}
                   style={{ width: "100%", marginTop: 12, background: payable.length ? "#FF5C00" : "#333", color: payable.length ? "#fff" : "#777", border: "none", borderRadius: 14, padding: "16px", fontSize: 15, fontWeight: 700, cursor: payable.length ? "pointer" : "default", WebkitTapHighlightColor: "transparent" }}>
-                  {payable.length === 0 ? tr("cart.allOnHold", "All items are on hold") : heldCount > 0 ? tr("cart.checkoutAvailable", "Check out the {n} available item{s} →", { n: payable.length, s: payable.length > 1 ? "s" : "" }) : tr("cart.goToCheckout", "Go to checkout →")}
+                  {payable.length === 0 ? tr("cart.allOnHold", "All items are on hold") : (
+                    <span style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
+                      {(heldCount > 0 ? tr("cart.checkoutAvailable", "Check out the {n} available item{s} →", { n: payable.length, s: payable.length > 1 ? "s" : "" }) : tr("cart.goToCheckout", "Go to checkout →")).replace(/\s*→\s*$/, "")}
+                      <motion.span layoutId="cart-fox" style={{ fontSize: 19, display: "inline-flex", lineHeight: 1 }}><Fox /></motion.span>
+                      <span aria-hidden="true">→</span>
+                    </span>
+                  )}
                 </motion.button>
               </div>
 

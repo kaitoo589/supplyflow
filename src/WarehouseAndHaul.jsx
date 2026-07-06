@@ -17,6 +17,18 @@ const SHIP_PER_KG = 8.5;         // per extra kg daarboven
 const BUFFER_MULTIPLIER = 1.3;   // schatting kan ~30% afwijken → buffer, rest terug
 const IMPORT_VAT = 0.21;         // NL invoer-BTW op (goederen + verzending)
 const r2 = (x) => Math.round(x * 100) / 100;
+// Korte, herkenbare carrier-naam uit de volledige BuckyDrop-kanaalnaam (bv. "YunExpress
+// clothing Registered Air Mail" → "YunExpress", "Europe DHL Duty-Prepaid Line" → "DHL").
+function carrierLabel(name) {
+  if (!name) return "";
+  if (/yun\s*express/i.test(name)) return "YunExpress";
+  if (/dhl/i.test(name)) return "DHL";
+  if (/\bems\b/i.test(name)) return "EMS";
+  if (/\beub\b/i.test(name)) return "EUB";
+  if (/\bups\b/i.test(name)) return "UPS";
+  return name;
+}
+
 function shippingEstimate(weightKg) {
   // r2 over de basis — IDENTIEK aan server shippingEstimateEur (rondt af vóór de ×1,25-buffer),
   // zodat het getoonde bedrag exact gelijk is aan wat de server afschrijft (geen 1-cent-drift).
@@ -593,6 +605,8 @@ function NormalShippingConfirm({ session, haulItems, balance, onBack, onSuccess 
   }, []);
 
   const estFreight = chosen ? chosen.priceEur : 0;
+  // Carrier-naam alleen bij een ECHTE live route tonen; bij de gewicht-schatting (ESTIMATE) niet.
+  const carrier = chosen && chosen.serviceCode !== "ESTIMATE" ? carrierLabel(chosen.name) : null;
   const buffered = r2(estFreight * LIVE_BUFFER);
   const vat = chosen ? (chosen.taxInclusive ? 0 : r2(estFreight * IMPORT_VAT)) : 0;
   // Fulfilment-toeslagen — moet 1:1 kloppen met pay_shipping_buffered (server-side): >5 stuks -> +¥2/extra
@@ -665,7 +679,7 @@ function NormalShippingConfirm({ session, haulItems, balance, onBack, onSuccess 
           <div style={{ fontSize: 13, fontWeight: 700, color: "#FF5C00", marginBottom: 4 }}>Cost overview <span style={{ color: "#666", fontWeight: 500 }}>· estimate</span></div>
           <div style={{ fontSize: 11, color: "#888", marginBottom: 12 }}>Estimated now — any difference comes back after the carrier's final bill.</div>
           <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8 }}>
-            <span style={{ fontSize: 13, color: "#888" }}>International shipping <span style={{ color: "#666" }}>· duties included</span></span>
+            <span style={{ fontSize: 13, color: "#888" }}>International shipping{carrier ? <span style={{ color: "#fff", fontWeight: 600 }}> · {carrier}</span> : null} <span style={{ color: "#666" }}>· duties included</span></span>
             <span style={{ fontSize: 13, color: "#fff" }}>€{buffered.toFixed(2)}</span>
           </div>
           {custCats.length > 0 && (

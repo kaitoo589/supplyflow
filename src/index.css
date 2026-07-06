@@ -101,3 +101,86 @@ body {
     animation: none;
   }
 }
+
+/* ============================================================
+   Geanimeerde "teken"-checkbox — Terms-consent in de checkout.
+   Naar de CSS3-checkbox van Jimmy Gillam (MIT): het vinkje tekent
+   zichzelf poot-voor-poot (korte poot eerst, dan de lange). Het
+   100px-ontwerp is geschaald naar 22px; demo-groen → merk-oranje,
+   en de rand is zichtbaar gemaakt op de donkere checkout-kaart.
+   ============================================================ */
+.fl-check-input { display: none; }
+
+.fl-check-wrap {
+  position: relative;
+  width: 22px;
+  height: 22px;
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+.fl-check-box {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100px;
+  height: 100px;
+  transform: scale(0.22);
+  transform-origin: top left;
+  box-sizing: border-box;
+  background-color: transparent;
+  border: 10px solid rgba(255, 255, 255, 0.28);
+  border-radius: 12px;
+  transition: border-color 0.2s ease;
+  cursor: pointer;
+}
+
+.fl-check-box::before,
+.fl-check-box::after {
+  box-sizing: border-box;
+  position: absolute;
+  height: 0;
+  width: 20px;
+  background-color: #FF5C00;
+  transform-origin: left top;
+  border-radius: 5px;
+  content: " ";
+}
+
+.fl-check-box::after {
+  top: 37px;
+  left: 5px;
+  transform: rotate(-45deg);
+}
+
+.fl-check-box::before {
+  top: 72px;
+  left: 41px;
+  box-shadow: 0 0 0 6px #111111;
+  transform: rotate(-135deg);
+}
+
+.fl-check-input:checked + .fl-check-box {
+  border-color: #FF5C00;
+}
+
+.fl-check-input:checked + .fl-check-box::after {
+  height: 50px;
+  animation: fl-check-bottom 0.2s ease 0s forwards;
+}
+
+.fl-check-input:checked + .fl-check-box::before {
+  height: 120px;
+  animation: fl-check-top 0.4s ease 0s forwards;
+}
+
+@keyframes fl-check-bottom {
+  0% { height: 0; }
+  100% { height: 50px; }
+}
+
+@keyframes fl-check-top {
+  0% { height: 0; }
+  50% { height: 0; }
+  100% { height: 120px; }
+}

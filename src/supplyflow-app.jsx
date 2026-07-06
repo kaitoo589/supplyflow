@@ -7,7 +7,7 @@ let _cartPayToken = null;
 const cartPayToken = () => (_cartPayToken ||= (globalThis.crypto?.randomUUID?.() || `cp-${Date.now()}-${Math.random().toString(36).slice(2)}`));
 const rotateCartPayToken = () => { _cartPayToken = null; };
 import { supabase } from "./supabase";
-import { EU_COUNTRIES } from "./countries";
+import { EU_COUNTRIES, normalizeCountry, NL_PROVINCES } from "./countries";
 import OrderRequest from "./OrderRequest";
 import Friends from "./Friends";
 import GroupModeGlow from "./GroupModeGlow";
@@ -802,7 +802,10 @@ function RequestListSheet({ items, onRemove, onSetQty, onClose, onSend, sending,
                 </div>
               )}
               <label style={{ display: "flex", alignItems: "flex-start", gap: 9, marginTop: 12, cursor: "pointer", fontSize: 11, color: "#8A8780", lineHeight: 1.55 }}>
-                <input type="checkbox" checked={agreed} onChange={(e) => setAgreed(e.target.checked)} style={{ marginTop: 2, accentColor: "#FF5C00", width: 16, height: 16, flexShrink: 0 }} />
+                <span className="fl-check-wrap">
+                  <input type="checkbox" className="fl-check-input" checked={agreed} onChange={(e) => setAgreed(e.target.checked)} />
+                  <span className="fl-check-box" />
+                </span>
                 <span>I agree to the <a href="/terms" target="_blank" rel="noreferrer" style={{ color: "#A5B4FC" }}>Terms</a> and the <a href="/returns-policy" target="_blank" rel="noreferrer" style={{ color: "#A5B4FC" }}>Returns &amp; withdrawal policy</a>, and that any refunds are credited to my Flowva balance. I have a <b style={{ color: "#C9C6C1" }}>14-day right of withdrawal</b>; for a change of mind I pay the return shipping (EU return address), faulty items are on Flowva.</span>
               </label>
               {paying === "check" ? (
@@ -1036,7 +1039,8 @@ function EditProfileSheet({ session, onClose }) {
     adres: meta.adres || "",
     postcode: meta.postcode || "",
     stad: meta.stad || "",
-    land: meta.land || "Netherlands",
+    provincie: meta.provincie || "",
+    land: normalizeCountry(meta.land) || "Netherlands",
   });
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState(null);
@@ -1071,6 +1075,14 @@ function EditProfileSheet({ session, onClose }) {
         <div style={{ display: "grid", gridTemplateColumns: "1fr 2fr", gap: 10, marginBottom: 10 }}>
           <div><label style={labelStyle}>Postal code</label><input style={inputStyle} value={form.postcode} onChange={e => set("postcode", e.target.value)} /></div>
           <div><label style={labelStyle}>City</label><input style={inputStyle} value={form.stad} onChange={e => set("stad", e.target.value)} /></div>
+        </div>
+        <div style={{ marginBottom: 10 }}><label style={labelStyle}>Province</label>
+          {form.land === "Netherlands"
+            ? <select style={inputStyle} value={form.provincie} onChange={e => set("provincie", e.target.value)}>
+                <option value="">Select your province…</option>
+                {NL_PROVINCES.map(p => <option key={p} value={p}>{p}</option>)}
+              </select>
+            : <input style={inputStyle} value={form.provincie} onChange={e => set("provincie", e.target.value)} placeholder="Province / state / region" />}
         </div>
         <div style={{ marginBottom: 18 }}><label style={labelStyle}>Country</label>
           <select style={inputStyle} value={form.land} onChange={e => set("land", e.target.value)}>

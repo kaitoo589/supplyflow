@@ -18,7 +18,7 @@ import { motion, AnimatePresence, useDragControls, useMotionValue, useTransform,
 import { createPortal } from "react-dom";
 import { springSnappy, springSoft, springBouncy, springMorph } from "./motion";
 import { Search, SlidersHorizontal, Bell, Home, Package, Factory, User, Users, ShoppingBag, Eye, Star, Plus, X, Plane, CreditCard, PackageCheck, Truck, Camera, ChevronUp, ChevronDown } from "lucide-react";
-import { WordReveal, SpeechBubble } from "./MotionBits";
+import { WordReveal, SpeechBubble, CartGrower, FoldReveal } from "./MotionBits";
 import ReviewPage from "./ReviewPage";
 import { problemTypes } from "./problemTypes";
 import { toChinese, toEnglish, hasChinese } from "./translate";
@@ -597,46 +597,8 @@ function QuoteAcceptance({ order, session, balance, allOrders = [], onAccepted }
 }
 
 // Aanvraaglijst: alles in één keer versturen = één service fee over de bundel.
-// De sheet deelt z'n layoutId met het zwevende balkje en morpht ervandaan open.
-// 🌱 "Boom-groei" van de mand: de kaart opent compact (greep + titel) en de inhoud
-// groeit daarna in ÉÉN doorlopende hoogte-beweging omhoog open — geen stapjes per rij.
-// Timing-venster gedeeld door grower + reveals: GROW_START/GROW_DUR hieronder.
-const GROW_START = 0.1;   // s ná mount: groei begint (overlapt de staart van de morph)
-const GROW_DUR = 0.55;    // s: duur van de volledige groei
-
-// De groeier: wikkelt ALLE inhoud onder de titel en klapt 'm in één vloeiende curve
-// van 0 → auto open (sterke ease-out = organisch, als een boom die opschiet).
-function CartGrower({ skip = false, children }) {
-  return (
-    <motion.div
-      initial={skip ? false : { height: 0 }}
-      animate={{ height: "auto" }}
-      exit={{ height: 0, transition: { duration: 0.28, ease: "easeIn" } }}   // inklappen = omgekeerde groei
-      transition={{ delay: GROW_START, duration: GROW_DUR, ease: [0.16, 1, 0.3, 1] }}
-      style={{ overflow: "hidden" }}
-    >
-      {children}
-    </motion.div>
-  );
-}
-
-// Reveal per regel, getimed op POSITIE in het groeivenster (i van n): de regel bloeit
-// op — zachte fade + 8px rise, géén blur — precies wanneer de groeiende rand z'n plek
-// passeert. i/n normaliseert: een volle mand is even snel klaar als een kleine.
-// `skip` (terug uit checkout / her-mount na qty-wissel) = initial=false → geen animatie.
-function FoldReveal({ i = 0, n = 1, skip = false, children }) {
-  const d = GROW_START + 0.02 + (i / Math.max(n - 1, 1)) * GROW_DUR * 0.65;
-  return (
-    <motion.div
-      initial={skip ? false : { opacity: 0, y: 8 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ delay: d, duration: 0.28, ease: "easeOut" }}
-    >
-      {children}
-    </motion.div>
-  );
-}
-
+// Boom-groei + regel-reveals komen uit MotionBits (CartGrower/FoldReveal) — gedeeld
+// met de pakket-sheet op Orders, zodat mand en pakket exact dezelfde motion hebben.
 function RequestListSheet({ items, onRemove, onSetQty, onClose, onSend, sending, error, session, onEditAddress, onTopUp, onFinish, flagged, reasons }) {
   const [view, setView] = useState("cart");
   const [agreed, setAgreed] = useState(false);

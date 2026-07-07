@@ -4,7 +4,7 @@ import { createPortal } from "react-dom";
 import { supabase } from "./supabase";
 import { motion, AnimatePresence } from "framer-motion";
 import { springBouncy, springMorph, springSoft } from "./motion";
-import { WordReveal, SpeechBubble } from "./MotionBits";
+import { WordReveal, SpeechBubble, CartGrower, FoldReveal } from "./MotionBits";
 import { Plane, MapPin, ChevronUp, ChevronDown } from "lucide-react";
 import Fox from "./Fox";
 import { garmentType } from "./garment";
@@ -1392,6 +1392,44 @@ export function ParcelSection({ session, activeGroupId = null, parcelItems = [],
   const [squadOrders, setSquadOrders] = useState([]);
   const [squadHostId, setSquadHostId] = useState(null);
   const [shipState, setShipState] = useState(null);
+  // 📦-vlucht: het doos-emoji reist bij het openen van de balk (onder) naar linksboven in
+  // de sheet — zelfde ghost-patroon als de 💸/💎-boogvlucht (geen layoutId: die zou met de
+  // hoogte-groei vechten). "pending" → meten → vliegen → "landed" → het echte emoji popt in.
+  const [boxFlight, setBoxFlight] = useState(null);
+  const barBoxRef = useRef(null);
+  const titleBoxRef = useRef(null);
+  const sheetRef = useRef(null);
+  const contentRef = useRef(null);
+  const didReveal = useRef(false);   // boom-groei alleen bij het openen, niet bij elke re-render
+
+  const openParcel = () => {
+    didReveal.current = false;
+    const r = barBoxRef.current?.getBoundingClientRect();
+    if (r) setBoxFlight({ pending: true, sx: r.left + r.width / 2, sy: r.top + r.height / 2 });
+    setOpen(true);
+  };
+  const closeSheet = () => { setOpen(false); setBoxFlight(null); };
+  useEffect(() => {
+    if (!open) return;
+    const t = setTimeout(() => { didReveal.current = true; }, 120);
+    return () => clearTimeout(t);
+  }, [open]);
+  // Meet het EINDpunt van de vlucht: de titel schuift tijdens de groei nog omhoog (de kaart
+  // is onder verankerd), dus corrigeer met de volledige groei-hoogte (gecapt op maxHeight).
+  useEffect(() => {
+    if (!open || !boxFlight?.pending) return;
+    const t = setTimeout(() => {
+      const card = sheetRef.current, icon = titleBoxRef.current;
+      if (!card || !icon) { setBoxFlight(null); return; }
+      const cr = card.getBoundingClientRect();
+      const ir = icon.getBoundingClientRect();
+      const growH = contentRef.current ? contentRef.current.offsetHeight : 0;
+      const finalH = Math.min(cr.height + growH, window.innerHeight * 0.74);
+      const dy = Math.max(0, finalH - cr.height);
+      setBoxFlight((f) => f ? { sx: f.sx, sy: f.sy, tx: ir.left + ir.width / 2, ty: ir.top + ir.height / 2 - dy, pending: false } : null);
+    }, 60);
+    return () => clearTimeout(t);
+  }, [open, boxFlight]);
 
   const fetchBalance = async () => {
     const { data } = await supabase.from("profiles").select("balance").eq("id", session.user.id).single();
@@ -1457,10 +1495,10 @@ export function ParcelSection({ session, activeGroupId = null, parcelItems = [],
         {!open && !screen && (
           <motion.div key="parcel-bar" initial={{ y: 24, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ opacity: 0, transition: { duration: 0.1 } }}
             whileTap={{ scaleX: 1.03, scaleY: 0.93 }} transition={springMorph}
-            onClick={() => setOpen(true)}
+            onClick={openParcel}
             style={{ position: "fixed", bottom: 86, left: 0, right: 0, margin: "0 auto", width: "calc(100% - 40px)", maxWidth: 390, background: "#111111", borderRadius: 999, overflow: "hidden", cursor: "pointer", zIndex: 301, boxShadow: "0 12px 40px rgba(17,17,17,0.35)" }}>
             <div style={{ padding: "11px 18px", display: "flex", alignItems: "center", gap: 12 }}>
-              <span style={{ fontSize: 18 }}>📦</span>
+              <span ref={barBoxRef} style={{ fontSize: 18 }}>📦</span>
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ fontSize: 13, fontWeight: 700, color: "#fff", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
                   {activeGroupId
@@ -1484,31 +1522,51 @@ export function ParcelSection({ session, activeGroupId = null, parcelItems = [],
       <AnimatePresence>
         {open && !screen && (
           <>
-            <motion.div key="parcel-backdrop" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setOpen(false)}
+            <motion.div key="parcel-backdrop" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={closeSheet}
               style={{ position: "fixed", inset: 0, zIndex: 300, background: "rgba(0,0,0,0.5)", backdropFilter: "blur(6px)" }} />
-            <motion.div key="parcel-sheet" initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 14, transition: { duration: 0.15 } }}
-              transition={{ type: "spring", stiffness: 420, damping: 34, mass: 0.8 }}
+            {/* Zelfde choreografie als de mand: compacte kaart fadet op de balk-plek in,
+                daarna boom-groei (CartGrower) met regel-reveals; sluiten = omgekeerde groei. */}
+            <motion.div key="parcel-sheet" ref={sheetRef} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 6, transition: { duration: 0.14, delay: 0.2, ease: "easeIn" } }}
+              transition={{ type: "spring", stiffness: 420, damping: 34, mass: 0.8, opacity: { duration: 0.16, ease: "easeOut" } }}
               style={{ position: "fixed", bottom: 86, left: 0, right: 0, margin: "0 auto", width: "calc(100% - 24px)", maxWidth: 404, boxSizing: "border-box", background: "#111111", borderRadius: 28, zIndex: 301, maxHeight: "74vh", overflowY: "auto", overscrollBehavior: "contain", boxShadow: "0 30px 80px rgba(0,0,0,0.5)", padding: "16px 18px 22px" }}>
               <div style={{ position: "sticky", top: 2, zIndex: 6, height: 0, display: "flex", justifyContent: "flex-end" }}>
-                <motion.button whileTap={{ scale: 0.88 }} onClick={() => setOpen(false)} aria-label={tr("parcel.sheet.collapse", "Collapse parcel")}
+                <motion.button whileTap={{ scale: 0.88 }} onClick={closeSheet} aria-label={tr("parcel.sheet.collapse", "Collapse parcel")}
                   style={{ width: 32, height: 32, borderRadius: "50%", background: "rgba(255,92,0,0.15)", border: "none", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", WebkitTapHighlightColor: "transparent" }}>
                   <ChevronDown size={16} color="#FF5C00" strokeWidth={2.5} />
                 </motion.button>
               </div>
-              <div style={{ fontSize: 17, fontWeight: 700, color: "#fff", margin: "4px 0 4px" }}>📦 {tr("parcel.sheet.title", "Your parcel ({count})", { count })}</div>
+              <div style={{ fontSize: 17, fontWeight: 700, color: "#fff", margin: "4px 0 4px" }}>
+                {/* het doos-emoji wacht verborgen tot de vlucht vanaf de balk erin landt */}
+                <motion.span ref={titleBoxRef} initial={false}
+                  animate={boxFlight && boxFlight !== "landed" ? { opacity: 0, scale: 0.3 } : { opacity: 1, scale: 1 }}
+                  transition={springBouncy} style={{ display: "inline-block" }}>📦</motion.span>{" "}
+                {didReveal.current
+                  ? tr("parcel.sheet.title", "Your parcel ({count})", { count })
+                  : <WordReveal text={tr("parcel.sheet.title", "Your parcel ({count})", { count })} delay={0.12} stagger={0.05} />}
+              </div>
+              <CartGrower skip={didReveal.current}>
+              <div ref={contentRef}>
+              <FoldReveal i={0} n={count + 5} skip={didReveal.current}>
               <div style={{ fontSize: 11.5, color: "#9C9893", lineHeight: 1.5, marginBottom: 12 }}>{tr("parcel.sheet.autoNote", "Items land here automatically when they arrive in the warehouse. One parcel = one shipping cost + one service fee.")}</div>
+              </FoldReveal>
 
               {activeGroupId && waitingCount > 0 && (
+                <FoldReveal i={1} n={count + 5} skip={didReveal.current}>
                 <div style={{ background: "rgba(99,102,241,0.14)", borderRadius: 12, padding: "9px 12px", marginBottom: 12, fontSize: 12, color: "#A5B4FC", lineHeight: 1.5 }}>
                   {tr("parcel.sheet.groupWaiting", "The group parcel ships once everyone's items have arrived — {count} still on the way or held out.", { count: waitingCount })}
                 </div>
+                </FoldReveal>
               )}
 
               {count === 0 && (
+                <FoldReveal i={1} n={count + 5} skip={didReveal.current}>
                 <div style={{ fontSize: 12.5, color: "#9C9893", padding: "10px 2px 4px" }}>{tr("parcel.sheet.empty", "No items in your parcel yet — they appear here when they arrive in the warehouse.")}</div>
+                </FoldReveal>
               )}
-              {parcelItems.map((o) => (
-                <div key={o.id} style={{ display: "flex", alignItems: "center", gap: 11, background: "#1A1917", borderRadius: 13, padding: "9px 11px", marginBottom: 7 }}>
+              {parcelItems.map((o, rowIdx) => (
+                <FoldReveal key={o.id} i={1 + rowIdx} n={count + 5} skip={didReveal.current}>
+                <div style={{ display: "flex", alignItems: "center", gap: 11, background: "#1A1917", borderRadius: 13, padding: "9px 11px", marginBottom: 7 }}>
                   {thumb(o)}
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ fontSize: 12.5, fontWeight: 600, color: "#fff", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{o.product_title || o.product}</div>
@@ -1519,10 +1577,11 @@ export function ParcelSection({ session, activeGroupId = null, parcelItems = [],
                       style={{ width: 26, height: 26, borderRadius: "50%", background: "rgba(255,255,255,0.08)", border: "1px solid rgba(255,255,255,0.12)", color: "#C9C6C1", fontSize: 13, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", lineHeight: 1, flexShrink: 0 }}>✕</motion.button>
                   )}
                 </div>
+                </FoldReveal>
               ))}
 
               {heldOutItems.length > 0 && (
-                <>
+                <FoldReveal i={1 + count} n={count + 5} skip={didReveal.current}>
                   <div style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: 0.5, color: "#6E6B66", margin: "10px 2px 6px" }}>{tr("parcel.sheet.heldOut", "HELD OUT — not shipping")}</div>
                   {heldOutItems.map((o) => (
                     <div key={o.id} style={{ display: "flex", alignItems: "center", gap: 11, background: "rgba(255,255,255,0.04)", borderRadius: 13, padding: "9px 11px", marginBottom: 7, opacity: 0.75 }}>
@@ -1537,10 +1596,11 @@ export function ParcelSection({ session, activeGroupId = null, parcelItems = [],
                       )}
                     </div>
                   ))}
-                </>
+                </FoldReveal>
               )}
 
               {!activeGroupId && count > 0 && (
+                <FoldReveal i={2 + count} n={count + 5} skip={didReveal.current}>
                 <div style={{ background: "#1E1D1A", borderRadius: 13, padding: "11px 13px", marginTop: 10 }}>
                   <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 5 }}>
                     <span style={{ fontSize: 12, color: "#9C9893" }}>{tr("parcel.sheet.weight", "Total weight")}</span>
@@ -1552,8 +1612,10 @@ export function ParcelSection({ session, activeGroupId = null, parcelItems = [],
                   </div>
                   <div style={{ fontSize: 10.5, color: "#8A8780", marginTop: 7, lineHeight: 1.45 }}>{tr("parcel.sheet.feeNote", "Shipping + one service fee are charged when you ship — the exact quote follows on the next screen.")}</div>
                 </div>
+                </FoldReveal>
               )}
 
+              <FoldReveal i={3 + count} n={count + 5} skip={didReveal.current}>
               {activeGroupId ? (
                 <div style={{ marginTop: 12 }}>
                   <GroupShippingPanel session={session} groupId={activeGroupId} shipment={shipState}
@@ -1562,19 +1624,35 @@ export function ParcelSection({ session, activeGroupId = null, parcelItems = [],
                 </div>
               ) : (
                 <motion.button whileTap={count ? { scale: 0.97 } : undefined} disabled={!count}
-                  onClick={() => { if (count) { setOpen(false); setScreen("confirm"); } }}
+                  onClick={() => { if (count) { closeSheet(); setScreen("confirm"); } }}
                   style={{ width: "100%", marginTop: 12, background: count ? "#FF5C00" : "#333", color: count ? "#fff" : "#777", border: "none", borderRadius: 14, padding: "15px", fontSize: 14.5, fontWeight: 700, cursor: count ? "pointer" : "default", WebkitTapHighlightColor: "transparent" }}>
                   {tr("parcel.sheet.confirm", "Confirm & ship")} →
                 </motion.button>
               )}
-              <motion.button whileTap={{ scale: 0.97 }} onClick={() => setOpen(false)}
+              </FoldReveal>
+              <FoldReveal i={4 + count} n={count + 5} skip={didReveal.current}>
+              <motion.button whileTap={{ scale: 0.97 }} onClick={closeSheet}
                 style={{ width: "100%", marginTop: 8, background: "transparent", color: "#C9C6C1", border: "1px solid rgba(255,255,255,0.15)", borderRadius: 14, padding: "12px", fontSize: 12.5, fontWeight: 600, cursor: "pointer", WebkitTapHighlightColor: "transparent" }}>
                 {tr("parcel.sheet.keepCollecting", "← Keep collecting items")}
               </motion.button>
+              </FoldReveal>
+              </div>
+              </CartGrower>
             </motion.div>
           </>
         )}
       </AnimatePresence>
+
+      {/* 📦-ghost: vliegt van de balk (onder) naar linksboven in de sheet; bij landing
+          popt het echte titel-emoji in en verdwijnt de ghost. */}
+      {typeof boxFlight === "object" && boxFlight && !boxFlight.pending && createPortal(
+        <motion.span
+          initial={{ x: boxFlight.sx - 11, y: boxFlight.sy - 11, scale: 0.85 }}
+          animate={{ x: boxFlight.tx - 11, y: boxFlight.ty - 11, scale: 1 }}
+          transition={{ type: "spring", stiffness: 300, damping: 28, mass: 0.9 }}
+          onAnimationComplete={() => setBoxFlight("landed")}
+          style={{ position: "fixed", top: 0, left: 0, fontSize: 22, zIndex: 402, pointerEvents: "none", lineHeight: 1 }}>📦</motion.span>,
+        document.body)}
 
       {/* Verzendflow — de bestaande ConfirmHaul (incl. opslag-quote-route) + succes, als overlay */}
       {screen === "confirm" && createPortal(

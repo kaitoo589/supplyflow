@@ -412,7 +412,10 @@ function TreasureMap({ activeFilter, onSelect, orders }) {
     <div style={{ margin: "10px 20px 0", background: "#fff", borderRadius: 18, boxShadow: "0 1px 2px rgba(17,17,17,0.04), 0 6px 18px rgba(17,17,17,0.05)", padding: "15px 16px 14px" }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 2 }}>
         <div>
-          <div style={{ fontSize: 13, fontWeight: 700, color: "#111111" }}>{tr("orders.journey.title", "Your orders' journey in China")}</div>
+          {/* 📦 naast de titel = de bron van de pakket-vlucht: bij het openen van de
+              pakket-sheet springt dít doosje in een boog naar linksboven in de sheet
+              (ParcelSection meet/verbergt 'm via [data-journey-box]). */}
+          <div style={{ fontSize: 13, fontWeight: 700, color: "#111111" }}>{tr("orders.journey.title", "Your orders' journey in China")} <span data-journey-box style={{ fontSize: 15, display: "inline-block", transition: "opacity 0.25s" }}>📦</span></div>
           <div style={{ fontSize: 10.5, color: "#A8A5A0" }}>{tr("orders.journey.subtitle", "Tap a checkpoint to filter")}</div>
         </div>
         <motion.button whileTap={{ scale: 0.92 }} onClick={() => onSelect("all")}

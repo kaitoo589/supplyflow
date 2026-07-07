@@ -1392,23 +1392,32 @@ export function ParcelSection({ session, activeGroupId = null, parcelItems = [],
   const [squadOrders, setSquadOrders] = useState([]);
   const [squadHostId, setSquadHostId] = useState(null);
   const [shipState, setShipState] = useState(null);
-  // 📦-vlucht: het doos-emoji reist bij het openen van de balk (onder) naar linksboven in
-  // de sheet — zelfde ghost-patroon als de 💸/💎-boogvlucht (geen layoutId: die zou met de
-  // hoogte-groei vechten). "pending" → meten → vliegen → "landed" → het echte emoji popt in.
+  // 📦-vlucht: bij het openen springt het doosje naast "Your orders' journey in China"
+  // (de reiskaart, [data-journey-box]) in een BOOG omlaag naar linksboven in de sheet —
+  // ghost-patroon zoals de 💸/💎-boogvlucht (geen layoutId: die vecht met de hoogte-groei).
+  // Het balk-doosje fadet gewoon mee weg met de balk. Bij sluiten komt het bron-doosje terug.
   const [boxFlight, setBoxFlight] = useState(null);
-  const barBoxRef = useRef(null);
   const titleBoxRef = useRef(null);
   const sheetRef = useRef(null);
   const contentRef = useRef(null);
   const didReveal = useRef(false);   // boom-groei alleen bij het openen, niet bij elke re-render
 
+  const journeyBox = () => document.querySelector("[data-journey-box]");
   const openParcel = () => {
     didReveal.current = false;
-    const r = barBoxRef.current?.getBoundingClientRect();
-    if (r) setBoxFlight({ pending: true, sx: r.left + r.width / 2, sy: r.top + r.height / 2 });
+    const src = journeyBox();
+    const r = src?.getBoundingClientRect();
+    if (r && r.width > 0) {
+      src.style.opacity = "0";   // de bron "vertrekt" — ghost neemt het over
+      setBoxFlight({ pending: true, sx: r.left + r.width / 2, sy: r.top + r.height / 2 });
+    }
     setOpen(true);
   };
-  const closeSheet = () => { setOpen(false); setBoxFlight(null); };
+  const closeSheet = () => {
+    setOpen(false); setBoxFlight(null);
+    const src = journeyBox(); if (src) src.style.opacity = "1";   // doosje keert terug op de reiskaart
+  };
+  useEffect(() => () => { const src = journeyBox(); if (src) src.style.opacity = "1"; }, []);   // vangnet bij unmount
   useEffect(() => {
     if (!open) return;
     const t = setTimeout(() => { didReveal.current = true; }, 120);
@@ -1498,7 +1507,7 @@ export function ParcelSection({ session, activeGroupId = null, parcelItems = [],
             onClick={openParcel}
             style={{ position: "fixed", bottom: 86, left: 0, right: 0, margin: "0 auto", width: "calc(100% - 40px)", maxWidth: 390, background: "#111111", borderRadius: 999, overflow: "hidden", cursor: "pointer", zIndex: 301, boxShadow: "0 12px 40px rgba(17,17,17,0.35)" }}>
             <div style={{ padding: "11px 18px", display: "flex", alignItems: "center", gap: 12 }}>
-              <span ref={barBoxRef} style={{ fontSize: 18 }}>📦</span>
+              <span style={{ fontSize: 18 }}>📦</span>
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ fontSize: 13, fontWeight: 700, color: "#fff", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
                   {activeGroupId
@@ -1643,13 +1652,18 @@ export function ParcelSection({ session, activeGroupId = null, parcelItems = [],
         )}
       </AnimatePresence>
 
-      {/* 📦-ghost: vliegt van de balk (onder) naar linksboven in de sheet; bij landing
-          popt het echte titel-emoji in en verdwijnt de ghost. */}
+      {/* 📦-ghost: springt in een BOOG (eerst iets omhoog/opzij, dan omlaag) van de
+          reiskaart naar linksboven in de sheet; bij landing popt het echte titel-emoji
+          in en verdwijnt de ghost. Boog getekend door de user: uitwijken → duiken. */}
       {typeof boxFlight === "object" && boxFlight && !boxFlight.pending && createPortal(
         <motion.span
-          initial={{ x: boxFlight.sx - 11, y: boxFlight.sy - 11, scale: 0.85 }}
-          animate={{ x: boxFlight.tx - 11, y: boxFlight.ty - 11, scale: 1 }}
-          transition={{ type: "spring", stiffness: 300, damping: 28, mass: 0.9 }}
+          initial={{ x: boxFlight.sx - 11, y: boxFlight.sy - 11, scale: 0.9, opacity: 0 }}
+          animate={{
+            x: [boxFlight.sx - 11, boxFlight.sx + 44, boxFlight.tx - 11],
+            y: [boxFlight.sy - 11, boxFlight.sy - 36, boxFlight.ty - 11],
+            scale: 1, opacity: 1,
+          }}
+          transition={{ duration: 0.6, ease: "easeInOut", times: [0, 0.3, 1], opacity: { duration: 0.12, ease: "linear" } }}
           onAnimationComplete={() => setBoxFlight("landed")}
           style={{ position: "fixed", top: 0, left: 0, fontSize: 22, zIndex: 402, pointerEvents: "none", lineHeight: 1 }}>📦</motion.span>,
         document.body)}

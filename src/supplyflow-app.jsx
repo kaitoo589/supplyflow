@@ -13,7 +13,7 @@ import Friends from "./Friends";
 import GroupModeGlow from "./GroupModeGlow";
 import { ffMyGroups } from "./ffApi";
 import { garmentType } from "./garment";
-import { WarehouseTab, TransitTab } from "./WarehouseAndHaul";
+import { TransitTab, ParcelSection } from "./WarehouseAndHaul";
 import { motion, AnimatePresence, useDragControls, useMotionValue, useTransform, useSpring } from "framer-motion";
 import { createPortal } from "react-dom";
 import { springSnappy, springSoft, springBouncy, springMorph } from "./motion";
@@ -55,13 +55,17 @@ const pageTransition = {
 const statusConfig = {
   // requested/quote_sent bestaan niet meer in de flow (direct kopen) — blijven
   // als vangnet voor eventuele oude orders, tonen als "Order placed".
+  // BuckyDrop meldt alléén "Stock-in Success" (aankomst magazijn) — tussenstatussen
+  // (bought/shipped_local) komen nooit vanzelf binnen. Klant ziet dus 2 statussen:
+  // "Order placed" (alles vóór aankomst) en "In warehouse". De DB-statussen blijven
+  // bestaan als vangnet; ze tonen allemaal als "Order placed".
   requested:            { labelKey: "orders.checkpoint.orderPlaced", label: "Order placed",                color: "#0369A1", bg: "#E0F2FE", step: 0 },
   quote_sent:           { labelKey: "orders.checkpoint.orderPlaced", label: "Order placed",                color: "#0369A1", bg: "#E0F2FE", step: 0 },
   quote_accepted:       { labelKey: "orders.checkpoint.orderPlaced", label: "Order placed",                color: "#0369A1", bg: "#E0F2FE", step: 0 },
   purchased:            { labelKey: "orders.checkpoint.orderPlaced", label: "Order placed",                color: "#0369A1", bg: "#E0F2FE", step: 0 },
-  bought:               { labelKey: "orders.status.bought", label: "Item bought successfully",    color: "#065F46", bg: "#D1FAE5", step: 1 },
-  shipped_local:        { labelKey: "orders.status.shippedLocal", label: "On its way to our warehouse", color: "#0369A1", bg: "#E0F2FE", step: 2 },
-  qc_pending:           { labelKey: "orders.status.qcPending", label: "Arrived in warehouse",          color: "#065F46", bg: "#D1FAE5", step: 3 },
+  bought:               { labelKey: "orders.checkpoint.orderPlaced", label: "Order placed",                color: "#0369A1", bg: "#E0F2FE", step: 1 },
+  shipped_local:        { labelKey: "orders.checkpoint.orderPlaced", label: "Order placed",                color: "#0369A1", bg: "#E0F2FE", step: 2 },
+  qc_pending:           { labelKey: "orders.status.qcPending", label: "In warehouse",          color: "#065F46", bg: "#D1FAE5", step: 3 },
   shipped_international: { labelKey: "orders.status.inTransit", label: "In transit",                 color: "#0369A1", bg: "#E0F2FE", step: 4 },
   delivered:            { labelKey: "orders.status.delivered", label: "Delivered",                   color: "#15803D", bg: "#DCFCE7", step: 5 },
 };
@@ -72,9 +76,7 @@ const statusConfig = {
 // niet als order-status — dus 'Shipped to you'/'Delivered' horen hier bewust NIET.
 const trackingSteps = [
   { key: "orders.checkpoint.orderPlaced", en: "Order placed" },
-  { key: "orders.checkpoint.bought", en: "Bought" },
-  { key: "orders.checkpoint.toWarehouse", en: "To warehouse" },
-  { key: "orders.status.qcPending", en: "Arrived in warehouse" },
+  { key: "orders.status.qcPending", en: "In warehouse" },
 ];
 
 // msg als key + Engels (zie statusConfig); vertaald op leestijd bij het tonen.
@@ -83,9 +85,9 @@ const foxMessages = {
   quote_sent:           { msgKey: "orders.fox.requested", msg: "We've placed your order — the agent is purchasing it for you right now.", icon: "🛒" },
   quote_accepted:       { msgKey: "orders.fox.requested", msg: "We've placed your order — the agent is purchasing it for you right now.", icon: "🛒" },
   purchased:            { msgKey: "orders.fox.requested", msg: "We've placed your order — the agent is purchasing it for you right now.", icon: "🛒" },
-  bought:               { msgKey: "orders.fox.bought", msg: "Bought! 🎉 Your item is paid for and getting ready to head to our warehouse.", icon: "✅" },
-  shipped_local:        { msgKey: "orders.fox.shippedLocal", msg: "Your item is on its way to our warehouse in China.", icon: "🚚" },
-  qc_pending:           { msgKey: "orders.fox.qcPending", msg: "Arrived & inspected! View the photos and add it to a parcel to ship.", icon: "🏭" },
+  bought:               { msgKey: "orders.fox.requested", msg: "We've placed your order — the agent is purchasing it for you right now.", icon: "🛒" },
+  shipped_local:        { msgKey: "orders.fox.requested", msg: "We've placed your order — the agent is purchasing it for you right now.", icon: "🛒" },
+  qc_pending:           { msgKey: "orders.fox.qcPending", msg: "Arrived & inspected! View the photos — it's in your parcel, ready to ship whenever you are.", icon: "🏭" },
   shipped_international: { msgKey: "orders.fox.shippedInternational", msg: "Your item shipped in a parcel — follow its journey in the In transit tab.", icon: "✈️" },
   delivered:            { msgKey: "orders.fox.delivered", msg: "Delivered — your parcel arrived! 🎉 See the full timeline in In transit.", icon: "🎉" },
 };
@@ -130,10 +132,8 @@ const extraServices = [
 // Tik op een checkpoint om je orders op die fase te filteren. De internationale
 // verzending + levering zit bewust NIET hier — dat is de In transit-tab.
 const journeyStops = [
-  { key: "purchased", labelKey: "orders.checkpoint.orderPlaced", label: "Order placed", Icon: ShoppingBag, statuses: ["requested", "quote_sent", "quote_accepted", "purchased"] },
-  { key: "bought", labelKey: "orders.checkpoint.bought", label: "Bought", Icon: PackageCheck, statuses: ["bought"] },
-  { key: "shipped_local", labelKey: "orders.checkpoint.toWarehouse", label: "To warehouse", Icon: Truck, statuses: ["shipped_local"] },
-  { key: "qc_pending", labelKey: "orders.checkpoint.arrivedQcReady", label: "Arrived & quality-control ready", Icon: Camera, statuses: ["qc_pending"] },
+  { key: "purchased", labelKey: "orders.checkpoint.orderPlaced", label: "Order placed", Icon: ShoppingBag, statuses: ["requested", "quote_sent", "quote_accepted", "purchased", "bought", "shipped_local"] },
+  { key: "qc_pending", labelKey: "orders.status.qcPending", label: "In warehouse", Icon: Factory, statuses: ["qc_pending"] },
 ];
 
 // Ronde voortgangsring (% van de reis afgelegd) rechts op de groepskaart.
@@ -155,15 +155,13 @@ function ProgressRing({ percent }) {
   );
 }
 
-// Voortgang per product — 4 stappen van 25%:
-// 25 Order placed · 50 Item bought · 75 Shipped domestically · 100 Arrived in warehouse & quality-control klaar.
-// 'aankomst in warehouse' en 'quality-control foto's klaar' vuren samen (één BuckyDrop-event) → samengevoegd tot de laatste mijlpaal.
+// Voortgang per product — 2 fasen (BuckyDrop meldt alleen de aankomst in het magazijn):
+// 50 = Order placed (besteld, onderweg naar het magazijn) · 100 = In warehouse.
 const QC_FULL_STEP = statusConfig.qc_pending.step;
 function productProgress(o) {
   const status = typeof o === "string" ? o : o?.status;
   const step = statusConfig[status]?.step ?? 0;
-  if (step >= QC_FULL_STEP) return 100;   // qc_pending (arrived & QC ready) / shipped_international / delivered
-  return [25, 50, 75][step] ?? 25;         // order placed / bought / shipped_local
+  return step >= QC_FULL_STEP ? 100 : 50;   // in warehouse (of verder) · anders onderweg
 }
 function statusLabel(o) {
   const status = typeof o === "string" ? o : o?.status;
@@ -199,9 +197,8 @@ function ProgressWheelModal({ items, onClose, onOpenItem }) {
     setSeen((s) => Math.max(s, revealed));
   };
   const milestones = [
-    { pct: 25, label: tr("orders.checkpoint.orderPlaced", "Order placed") }, { pct: 50, label: tr("orders.status.bought", "Item bought successfully") },
-    { pct: 75, label: tr("orders.progress.milestone.shippedDomestically", "Shipped domestically") },
-    { pct: 100, label: tr("orders.progress.milestone.arrivedQcReady", "Arrived in warehouse & quality-control ready") },
+    { pct: 50, label: tr("orders.checkpoint.orderPlaced", "Order placed") },
+    { pct: 100, label: tr("orders.status.qcPending", "In warehouse") },
   ];
   return createPortal(
     <>
@@ -231,7 +228,7 @@ function ProgressWheelModal({ items, onClose, onOpenItem }) {
                     <span style={{ fontSize: 12.5, fontWeight: 800, color, flexShrink: 0 }}>{pct}%</span>
                   </div>
                   <div style={{ position: "relative", height: 12, background: "#F1EFE9", borderRadius: 6, overflow: "hidden" }}>
-                    {[25, 50, 75].map((g) => (
+                    {[50].map((g) => (
                       <div key={g} style={{ position: "absolute", left: `${g}%`, top: 0, bottom: 0, width: 1, background: "#fff" }} />
                     ))}
                     <motion.div initial={{ width: 0 }} animate={{ width: `${pct}%` }} transition={{ duration: 0.7, delay: 0.06 * i, ease: "easeOut" }}
@@ -264,7 +261,7 @@ function ProgressWheelModal({ items, onClose, onOpenItem }) {
 
 // Eén bestelling (= alle items uit dezelfde aankoop). Klap open → morpht omlaag,
 // toont elk item met z'n eigen status. Statussen mogen per item verschillen.
-function OrderGroupCard({ items, onOpenItem, groupSize, onDismiss, parcel, activeFilter, onClearFilter, squad }) {
+function OrderGroupCard({ items, onOpenItem, groupSize, onDismiss, parcel, activeFilter, onClearFilter, squad, parcelStateFor, onToggleParcel }) {
   const [open, setOpen] = useState(false);
   const [wheel, setWheel] = useState(false);
   // Datum altijd dd/mm/jjjj (uit created_at; valt terug op het tekst-date-veld).
@@ -354,6 +351,27 @@ function OrderGroupCard({ items, onOpenItem, groupSize, onDismiss, parcel, activ
                       <div style={{ fontSize: 12.5, fontWeight: 600, color: "#111", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{o.product_title || o.product}</div>
                       <div style={{ fontSize: 11, color: "#A8A5A0", marginBottom: 3 }}>{tr("orders.item.pcs", "{qty} pcs", { qty: o.qty })}{o.kleur ? ` · ${o.kleur}` : ""}{squad ? "" : ` · €${(Number(o.price) || 0).toFixed(2)}`}</div>
                       <div style={{ display: "inline-block", background: s.bg, color: s.color, fontSize: 10.5, fontWeight: 700, padding: "2px 9px", borderRadius: 20 }}>{statusLabel(o)}{o.problem_type === "out_of_stock" ? <> · {tr("orders.item.outOfStock", "out of stock")} · <span style={{ color: "#15803D" }}>{tr("orders.item.refunded", "refunded")}</span></> : o.problem_type ? " · ⚠️" : ""}</div>
+                      {/* 📦 Pakket-chipje: aangekomen items zitten automatisch in je pakket;
+                          tikken = apart houden / terugzetten. "locked" = verzending al betaald. */}
+                      {parcelStateFor && (() => {
+                        const ps = parcelStateFor(o);
+                        if (!ps) return null;
+                        if (ps === "locked") return (
+                          <div style={{ display: "inline-block", background: "#DCFCE7", color: "#166534", fontSize: 10.5, fontWeight: 700, padding: "2px 9px", borderRadius: 20, marginLeft: 5 }}>📦 {tr("parcel.chip.shipped", "In parcel — shipping paid")}</div>
+                        );
+                        if (ps === "in") return (
+                          <div onClick={(e) => { e.stopPropagation(); onToggleParcel && onToggleParcel(o.id); }}
+                            style={{ display: "inline-block", background: "#FFF0E7", color: "#B8430A", fontSize: 10.5, fontWeight: 700, padding: "2px 9px", borderRadius: 20, marginLeft: 5, cursor: "pointer" }}>
+                            📦 {tr("parcel.chip.in", "In your parcel")} <span style={{ opacity: 0.6 }}>· {tr("parcel.chip.holdOutShort", "hold out")}</span>
+                          </div>
+                        );
+                        return (
+                          <div onClick={(e) => { e.stopPropagation(); onToggleParcel && onToggleParcel(o.id); }}
+                            style={{ display: "inline-block", background: "#F1EFE9", color: "#6B6862", fontSize: 10.5, fontWeight: 700, padding: "2px 9px", borderRadius: 20, marginLeft: 5, cursor: "pointer" }}>
+                            ＋ {tr("parcel.chip.addBackLong", "Add back to parcel")}
+                          </div>
+                        );
+                      })()}
                     </div>
                     {onOpenItem && <div style={{ color: "#ccc", fontSize: 16, flexShrink: 0 }}>→</div>}
                   </motion.div>
@@ -405,18 +423,19 @@ function TreasureMap({ activeFilter, onSelect, orders }) {
           )}
         </motion.button>
       </div>
-      {/* Horizontale route: 4 China-haltes, gelijkmatig verdeeld op één strakke gestippelde reislijn */}
+      {/* Horizontale route: de haltes gelijkmatig verdeeld op één strakke gestippelde reislijn.
+          Posities uit journeyStops.length berekend (edge = midden van de 1e/laatste bol). */}
       <div style={{ position: "relative", display: "flex", justifyContent: "space-between", marginTop: 16, marginBottom: 2 }}>
-        {/* de reislijn loopt op bol-hoogte (21px) van het 1e bol-midden (12.5%) naar het laatste (87.5%) */}
-        <div style={{ position: "absolute", top: 21, left: "12.5%", right: "12.5%", height: 0, borderTop: "2px dashed #FFC4A3", zIndex: 0 }} />
+        <div style={{ position: "absolute", top: 21, left: `${50 / journeyStops.length}%`, right: `${50 / journeyStops.length}%`, height: 0, borderTop: "2px dashed #FFC4A3", zIndex: 0 }} />
         {/* 🚚 rijdt bij het openen langs de route tot het verste checkpoint met orders */}
         {(() => {
           const idx = journeyStops.reduce((a, s, i) => (countFor(s.statuses) > 0 ? i : a), -1);
           if (idx < 0) return null;
+          const edge = 50 / journeyStops.length;
           return (
             <motion.span
-              initial={{ left: "12.5%", opacity: 0, y: 0 }}
-              animate={{ left: `${12.5 + idx * 25}%`, opacity: [0, 1, 1, 0], y: [0, -2, 0, -1.5, 0] }}
+              initial={{ left: `${edge}%`, opacity: 0, y: 0 }}
+              animate={{ left: `${edge + idx * (100 / journeyStops.length)}%`, opacity: [0, 1, 1, 0], y: [0, -2, 0, -1.5, 0] }}
               transition={{ duration: 1.5, delay: 0.45, ease: "easeInOut" }}
               style={{ position: "absolute", top: 5, marginLeft: -9, fontSize: 15, zIndex: 2, pointerEvents: "none" }}>
               {/* emoji kijkt standaard naar links; hij rijdt naar rechts → spiegelen */}
@@ -1761,7 +1780,7 @@ export default function SupplyFlow({ session }) {
   // 🫧 Blob-pull op de nav: houd een knop vast en beweeg → de oranje blob wordt elastisch
   // naar je vinger toe getrokken (rekt uit, wordt platter); loslaten boven een andere tab
   // = daarheen springen. Tik zonder bewegen blijft gewoon een tik.
-  const NAV_TABS = ["feed", "brands", "orders", "warehouse", "transit", "profile"];
+  const NAV_TABS = ["feed", "brands", "orders", "transit", "profile"];
   const navRef = useRef(null);
   const navDrag = useRef({ on: false, moved: false, startX: 0 });
   const pullRaw = useMotionValue(0);
@@ -1900,16 +1919,18 @@ export default function SupplyFlow({ session }) {
   // instance (App remount niet), dus dit doen we expliciet i.p.v. via unmount.
   useEffect(() => { if (session) setAuthOpen(false); }, [session]);
 
-  const [haulItems, setHaulItems] = useState(() => {
+  // 📦 Automatisch pakket (Optie B): aangekomen items zitten VANZELF in je pakket.
+  // Alleen de uitzonderingen bewaren we: ids die de klant bewust apart houdt.
+  const [parcelHeldOut, setParcelHeldOut] = useState(() => {
     try {
-      const saved = localStorage.getItem(lsKey("supplyflow_haul"));
+      const saved = localStorage.getItem(lsKey("flowva_parcel_heldout"));
       return saved ? JSON.parse(saved) : [];
     } catch { return []; }
   });
-
   useEffect(() => {
-    localStorage.setItem(lsKey("supplyflow_haul"), JSON.stringify(haulItems));
-  }, [haulItems]);
+    localStorage.setItem(lsKey("flowva_parcel_heldout"), JSON.stringify(parcelHeldOut));
+  }, [parcelHeldOut]);
+  const toggleParcelHold = (id) => setParcelHeldOut((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
 
   // Aanvraaglijst: items verzamelen en in één keer aanvragen (= één service fee).
   const [requestList, setRequestList] = useState(() => {
@@ -2570,6 +2591,24 @@ export default function SupplyFlow({ session }) {
     let date = ""; try { date = new Date(p.created_at).toLocaleDateString("en-GB"); } catch {}
     return { label: tr("orders.card.parcelLabel", "Parcel {n}", { n: p.n }), date };
   };
+  // 📦 Automatisch pakket: alle verzendbare magazijn-items van de actieve modus (solo =
+  // geen ff_group_id, groep = die groep) zitten er vanzelf in; wat de klant apart houdt
+  // (parcelHeldOut) blijft bewaard tot 'ie het terugzet. Al-betaalde (orderToParcel),
+  // dispute- en retour-items doen nooit mee — zelfde regels als de oude warehouse.
+  const parcelEligible = orders.filter((o) =>
+    o.status === "qc_pending" && !orderToParcel[o.id] &&
+    o.dispute_status !== "pending" && o.dispute_status !== "bucky_flagged" && !o.return_status &&
+    (activeGroup ? o.ff_group_id === activeGroup.id : !o.ff_group_id));
+  const parcelItems = parcelEligible.filter((o) => !parcelHeldOut.includes(o.id));
+  const parcelHeldItems = parcelEligible.filter((o) => parcelHeldOut.includes(o.id));
+  // Toestand van een item voor het pakket-chipje op de orderkaart (null = geen chip).
+  const parcelStateFor = (o) => {
+    if (o.status !== "qc_pending") return null;
+    if (orderToParcel[o.id]) return "locked";
+    if (o.dispute_status === "pending" || o.dispute_status === "bucky_flagged" || o.return_status) return null;
+    if (activeGroup ? o.ff_group_id !== activeGroup.id : o.ff_group_id) return null;   // andere modus
+    return parcelHeldOut.includes(o.id) ? "out" : "in";
+  };
   // Shop-modus geldt ALLEEN voor een 'gathering'-groep. Een geplaatste groep is "Following"
   // (volgen) — dan gedraagt de feed/cart/glow zich gewoon solo; Orders blijft wel die groep volgen.
   const activeGroupShopping = !!activeGroup && (myGroups.find((g) => g.group_id === activeGroup.id)?.status || "gathering") === "gathering";
@@ -3039,6 +3078,7 @@ export default function SupplyFlow({ session }) {
                       <OrderGroupCard key={items[0].request_group_id || items[0].id} items={items}
                         groupSize={items[0]?.ff_group_id ? (myGroups.find((g) => g.group_id === items[0].ff_group_id)?.member_count || null) : null}
                         onOpenItem={(o) => { setSelectedOrder(o); setConfirmCancel(false); }} onDismiss={dismissOrders} parcel={parcelInfoFor(items)}
+                        parcelStateFor={parcelStateFor} onToggleParcel={toggleParcelHold}
                         activeFilter={orderFilter} onClearFilter={() => setOrderFilter("all")} />
                     ))}
                 </AnimatePresence>
@@ -3117,8 +3157,10 @@ export default function SupplyFlow({ session }) {
             );
           })()}
           {(() => {
+            // 2-fasen-mapping: alles vóór aankomst = stap 0 (Order placed), qc_pending = stap 1
+            // (In warehouse), shipped/delivered = voorbij de laatste stap (alles afgevinkt).
             const rawStep = statusConfig[selectedOrder.status]?.step ?? 0;
-            const step = Math.min(rawStep, trackingSteps.length);  // shipped/delivered → alle 4 stappen klaar
+            const step = rawStep > statusConfig.qc_pending.step ? trackingSteps.length : rawStep >= statusConfig.qc_pending.step ? 1 : 0;
             return (
               <div style={{ background: "#fff", borderRadius: 18, padding: "16px 18px", marginBottom: 16, boxShadow: "0 1px 2px rgba(17,17,17,0.04), 0 6px 18px rgba(17,17,17,0.05)" }}>
                 <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 14 }}>
@@ -3161,7 +3203,7 @@ export default function SupplyFlow({ session }) {
                           <motion.span initial={{ scale: 0 }} animate={{ scale: 1 }} transition={springBouncy}
                             style={{ background: "#FF5C00", color: "#fff", fontSize: 9.5, fontWeight: 800, letterSpacing: 0.6, padding: "3px 8px", borderRadius: 7 }}>{tr("orders.detail.badge.inProgress", "IN PROGRESS")}</motion.span>
                         ))}
-                        {current && label === tr("orders.status.qcPending", "Arrived in warehouse") && (
+                        {current && label === tr("orders.status.qcPending", "In warehouse") && (
                           <div style={{ flexBasis: "100%", fontSize: 11.5, color: "#A8A5A0", marginTop: 1, lineHeight: 1.4 }}>{tr("orders.detail.arrivedQcHint", "Your item arrived and its quality-control photos are ready to view.")}</div>
                         )}
                       </div>
@@ -3313,19 +3355,13 @@ export default function SupplyFlow({ session }) {
         </motion.div>
       )}
 
-      {/* WAREHOUSE TAB */}
-      {tab === "warehouse" && (
-        <motion.div key="warehouse" {...pageTransition}>
-          {isGuest ? (
-            <div style={{ padding: "60px 30px", textAlign: "center" }}>
-              <div style={{ fontSize: 40, marginBottom: 12 }}>📦</div>
-              <div style={{ fontSize: 16, fontWeight: 700, color: "#0F0E0C", marginBottom: 6 }}>{tr("feed.warehouse.guestTitle", "Your warehouse")}</div>
-              <div style={{ fontSize: 13, color: "#8A8780", lineHeight: 1.55, maxWidth: 270, margin: "0 auto" }}>{tr("feed.warehouse.guestBody", "Items you order arrive here for quality-control photos before they ship. You'll see them here once you've ordered.")}</div>
-            </div>
-          ) : (
-            <WarehouseTab session={session} haulItems={haulItems} setHaulItems={setHaulItems} activeGroupId={activeGroup?.id || null} groupOrders={groupOrders} />
-          )}
-        </motion.div>
+      {/* 📦 Automatisch pakket — balk + sheet + verzendflow op de Orders-pagina
+          (de aparte warehouse-tab is opgegaan in Orders). Top-level gerenderd zodat de
+          fixed pakket-balk niet in een ge-transformde pagina-container zit. */}
+      {tab === "orders" && !selectedOrder && session && !isGuest && (
+        <ParcelSection session={session} activeGroupId={activeGroup?.id || null}
+          parcelItems={parcelItems} heldOutItems={parcelHeldItems} onToggleHold={toggleParcelHold}
+          onShipped={() => { fetchOrders(); fetchHauls(); fetchBalance(); }} />
       )}
 
       {/* TRANSIT TAB */}
@@ -3568,7 +3604,7 @@ export default function SupplyFlow({ session }) {
             // Wis de APPARAAT-lokale winkelstate bij uitloggen, zodat een volgend account
             // op dit toestel NIET de mand/favorieten/haul van de vorige gebruiker ziet.
             try {
-              ["supplyflow_request_list", "supplyflow_haul", "flowva_favorites", "flowva_active_group", "flowva_seen_howitworks"]
+              ["supplyflow_request_list", "supplyflow_haul", "flowva_parcel_heldout", "flowva_favorites", "flowva_active_group", "flowva_seen_howitworks"]
                 .forEach((k) => { localStorage.removeItem(lsKey(k)); localStorage.removeItem(k); });
             } catch { /* ignore */ }
             supabase.auth.signOut();
@@ -3971,7 +4007,6 @@ export default function SupplyFlow({ session }) {
           { id: "feed", Icon: Home, label: tr("feed.nav.feed", "Feed") },
           { id: "brands", Icon: ShoppingBag, label: tr("feed.nav.brands", "Brands") },
           { id: "orders", Icon: Package, label: tr("common.tab.orders", "Orders") },
-          { id: "warehouse", Icon: Factory, label: tr("feed.nav.warehouse", "Warehouse") },
           { id: "transit", Icon: Plane, label: tr("feed.nav.transit", "Transit") },
           { id: "profile", Icon: User, label: tr("feed.nav.profile", "Profile") },
         ].map(t => {
@@ -3997,7 +4032,7 @@ export default function SupplyFlow({ session }) {
               <motion.span animate={{ scale: active ? 1.12 : 1, y: active ? -1 : 0 }} transition={springSnappy}
                 style={{ position: "relative", zIndex: 1, display: "flex" }}>
                 <t.Icon size={21} color={active ? "#111111" : "#A8A5A0"} strokeWidth={active ? 2.3 : 1.8} />
-                {t.id === "warehouse" && warehouseCount > 0 && (
+                {t.id === "orders" && warehouseCount > 0 && (
                   <div style={{ position: "absolute", top: -5, right: -8, background: "#FF5C00", borderRadius: 9, minWidth: 15, height: 15, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 9, fontWeight: 700, color: "#fff", border: "2px solid #fff", padding: "0 2px", boxSizing: "content-box" }}>{warehouseCount}</div>
                 )}
               </motion.span>

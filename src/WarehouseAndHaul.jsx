@@ -1,12 +1,14 @@
 // WarehouseAndHaul.jsx
 import { useState, useEffect, useRef } from "react";
+import { createPortal } from "react-dom";
 import { supabase } from "./supabase";
 import { motion, AnimatePresence } from "framer-motion";
 import { springBouncy, springMorph, springSoft } from "./motion";
 import { WordReveal, SpeechBubble } from "./MotionBits";
-import { Plane, MapPin } from "lucide-react";
+import { Plane, MapPin, ChevronUp, ChevronDown } from "lucide-react";
 import Fox from "./Fox";
 import { garmentType } from "./garment";
+import { tr } from "./i18n";
 
 // Verzendmodel China → NL: een first-weight-blok (eerste 0,5 kg) + tarief per extra kg,
 // dan een veiligheidsbuffer (verschil komt terug) en 21% invoer-BTW (DDP — wij schieten
@@ -1373,6 +1375,222 @@ function GroupShippingPanel({ session, groupId, shipment, waitingCount, isHost, 
 // "In transit": de pakketten van de klant — betaald en verzonden, met live tracking.
 // De cron-functie track-haul vult trace_status/trace_nodes/carrier; wij tonen ze hier.
 const TRACE_LABEL = { 1: "In transit", 2: "Out for delivery", 3: "Delivered", 4: "Delivery issue", 5: "Held at customs", 6: "Returning", 7: "Returned", 8: "Return pending", 9: "Awaiting tracking" };
+// ────────────────────────────────────────────────────────────────────────────
+// 📦 ParcelSection — het automatische pakket op de samengevoegde Orders-pagina.
+// Optie B: alles wat in het magazijn aankomt zit VANZELF in je pakket; apart
+// houden kan per item (heldOut, beheerd door de parent). Onderaan een pakket-
+// balk (zelfde donkere pil als de mand-balk) → sheet met items + schatting →
+// de bestaande verzendflow (ConfirmHaul incl. opslag-quote-route + HaulSuccess).
+// Groep-modus: zelfde balk/sheet met de groeps-gate + GroupShippingPanel; items
+// worden server-side automatisch gestaged (ff_stage_box) zodat gate + squad
+// hetzelfde zien als jij.
+// ────────────────────────────────────────────────────────────────────────────
+export function ParcelSection({ session, activeGroupId = null, parcelItems = [], heldOutItems = [], onToggleHold, onShipped }) {
+  const [open, setOpen] = useState(false);
+  const [screen, setScreen] = useState(null);      // null | "confirm" | "success"
+  const [balance, setBalance] = useState(0);
+  const [squadOrders, setSquadOrders] = useState([]);
+  const [squadHostId, setSquadHostId] = useState(null);
+  const [shipState, setShipState] = useState(null);
+
+  const fetchBalance = async () => {
+    const { data } = await supabase.from("profiles").select("balance").eq("id", session.user.id).single();
+    setBalance(data?.balance || 0);
+  };
+  const fetchSquad = async () => {
+    if (!activeGroupId) { setSquadOrders([]); setSquadHostId(null); setShipState(null); return; }
+    const { data } = await supabase.rpc("ff_group_orders", { p_group_id: activeGroupId });
+    setSquadOrders(data?.orders || []);
+    setSquadHostId(data?.host_id || null);
+    const { data: s } = await supabase.rpc("ff_group_shipping_state", { p_group_id: activeGroupId });
+    setShipState(s?.shipment || null);
+  };
+  useEffect(() => {
+    fetchBalance(); fetchSquad();
+    if (!activeGroupId) return;
+    const t = setInterval(fetchSquad, 8000);   // lichte poll → staging + betaal-status live
+    return () => clearInterval(t);
+  }, [activeGroupId]);
+
+  // Auto-staging (groep): pakket-items server-side "in de doos" zetten, apart-
+  // gehouden items eruit — add/remove-diff tegen wat de server al weet.
+  const parcelKey = parcelItems.map((o) => o.id).join(",");
+  const heldKey = heldOutItems.map((o) => o.id).join(",");
+  useEffect(() => {
+    if (!activeGroupId || !squadOrders.length) return;
+    const staged = new Set(squadOrders.filter((o) => o.box_staged_at).map((o) => o.id));
+    const toStage = parcelItems.filter((o) => !staged.has(o.id)).map((o) => o.id);
+    const toUnstage = heldOutItems.filter((o) => staged.has(o.id)).map((o) => o.id);
+    if (!toStage.length && !toUnstage.length) return;
+    (async () => {
+      if (toStage.length) await supabase.rpc("ff_stage_box", { p_order_ids: toStage, p_staged: true });
+      if (toUnstage.length) await supabase.rpc("ff_stage_box", { p_order_ids: toUnstage, p_staged: false });
+      fetchSquad();
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeGroupId, parcelKey, heldKey, squadOrders]);
+
+  // Groeps-gate — zelfde regels als voorheen (de server dwingt dit óók af).
+  const COMING = ["quote_accepted", "purchased", "bought", "shipped_local"];
+  const alive = (squadOrders || []).filter((o) => !o.return_status && o.status !== "cancelled" && o.status !== "refunded");
+  const waitingCount = alive.filter((o) => COMING.includes(o.status)).length + alive.filter((o) => o.status === "qc_pending" && !o.box_staged_at).length;
+  const isHost = !activeGroupId || session.user.id === squadHostId;
+  const hostName = ((squadOrders || []).find((o) => o.user_id === squadHostId) || {}).member;
+
+  const totalWeight = parcelItems.reduce((s, o) => s + (o.weight_grams || 0), 0);
+  const est = totalWeight > 0 ? shippingEstimate(totalWeight / 1000) : null;
+  const count = parcelItems.length;
+
+  const thumb = (o) => (
+    <div style={{ width: 40, height: 40, borderRadius: 9, background: "#fff", overflow: "hidden", flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
+      {(o.qc_images?.[0] || o.variant_image) ? <img src={o.qc_images?.[0] || o.variant_image} referrerPolicy="no-referrer" alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : <span style={{ fontSize: 17 }}>📦</span>}
+    </div>
+  );
+
+  const show = count > 0 || heldOutItems.length > 0 || (activeGroupId && (waitingCount > 0 || !!shipState));
+  if (!show) return null;
+
+  return (
+    <>
+      {/* Pakket-balk — boven de nav, zelfde plek/stijl als de mand-balk op de feed */}
+      <AnimatePresence>
+        {!open && !screen && (
+          <motion.div key="parcel-bar" initial={{ y: 24, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ opacity: 0, transition: { duration: 0.1 } }}
+            whileTap={{ scaleX: 1.03, scaleY: 0.93 }} transition={springMorph}
+            onClick={() => setOpen(true)}
+            style={{ position: "fixed", bottom: 86, left: 0, right: 0, margin: "0 auto", width: "calc(100% - 40px)", maxWidth: 390, background: "#111111", borderRadius: 999, overflow: "hidden", cursor: "pointer", zIndex: 301, boxShadow: "0 12px 40px rgba(17,17,17,0.35)" }}>
+            <div style={{ padding: "11px 18px", display: "flex", alignItems: "center", gap: 12 }}>
+              <span style={{ fontSize: 18 }}>📦</span>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontSize: 13, fontWeight: 700, color: "#fff", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                  {activeGroupId
+                    ? `${tr("parcel.bar.titleGroup", "Group parcel")} · ${waitingCount > 0 ? tr("parcel.bar.waiting", "waiting for {count} item{s}", { count: waitingCount, s: waitingCount > 1 ? "s" : "" }) : tr("parcel.bar.ready", "ready to ship")}`
+                    : tr("parcel.bar.title", "Your parcel · {count} item{s}", { count, s: count === 1 ? "" : "s" })}
+                </div>
+                <div style={{ fontSize: 11.5, color: "#9C9893" }}>
+                  {!activeGroupId && est != null ? `~€${est.toFixed(2)} · ` : ""}{tr("parcel.bar.subtitle", "Tap to review & ship")} <Fox />
+                </div>
+              </div>
+              <motion.div animate={{ y: [0, -3, 0] }} transition={{ duration: 1.4, repeat: Infinity, ease: "easeInOut" }}
+                style={{ width: 30, height: 30, borderRadius: "50%", background: "rgba(255,92,0,0.15)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                <ChevronUp size={16} color="#FF5C00" strokeWidth={2.5} />
+              </motion.div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Pakket-sheet — donkere kaart, inklap-pijltje rechtsboven (zoals de mand) */}
+      <AnimatePresence>
+        {open && !screen && (
+          <>
+            <motion.div key="parcel-backdrop" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setOpen(false)}
+              style={{ position: "fixed", inset: 0, zIndex: 300, background: "rgba(0,0,0,0.5)", backdropFilter: "blur(6px)" }} />
+            <motion.div key="parcel-sheet" initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 14, transition: { duration: 0.15 } }}
+              transition={{ type: "spring", stiffness: 420, damping: 34, mass: 0.8 }}
+              style={{ position: "fixed", bottom: 86, left: 0, right: 0, margin: "0 auto", width: "calc(100% - 24px)", maxWidth: 404, boxSizing: "border-box", background: "#111111", borderRadius: 28, zIndex: 301, maxHeight: "74vh", overflowY: "auto", overscrollBehavior: "contain", boxShadow: "0 30px 80px rgba(0,0,0,0.5)", padding: "16px 18px 22px" }}>
+              <div style={{ position: "sticky", top: 2, zIndex: 6, height: 0, display: "flex", justifyContent: "flex-end" }}>
+                <motion.button whileTap={{ scale: 0.88 }} onClick={() => setOpen(false)} aria-label={tr("parcel.sheet.collapse", "Collapse parcel")}
+                  style={{ width: 32, height: 32, borderRadius: "50%", background: "rgba(255,92,0,0.15)", border: "none", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", WebkitTapHighlightColor: "transparent" }}>
+                  <ChevronDown size={16} color="#FF5C00" strokeWidth={2.5} />
+                </motion.button>
+              </div>
+              <div style={{ fontSize: 17, fontWeight: 700, color: "#fff", margin: "4px 0 4px" }}>📦 {tr("parcel.sheet.title", "Your parcel ({count})", { count })}</div>
+              <div style={{ fontSize: 11.5, color: "#9C9893", lineHeight: 1.5, marginBottom: 12 }}>{tr("parcel.sheet.autoNote", "Items land here automatically when they arrive in the warehouse. One parcel = one shipping cost + one service fee.")}</div>
+
+              {activeGroupId && waitingCount > 0 && (
+                <div style={{ background: "rgba(99,102,241,0.14)", borderRadius: 12, padding: "9px 12px", marginBottom: 12, fontSize: 12, color: "#A5B4FC", lineHeight: 1.5 }}>
+                  {tr("parcel.sheet.groupWaiting", "The group parcel ships once everyone's items have arrived — {count} still on the way or held out.", { count: waitingCount })}
+                </div>
+              )}
+
+              {count === 0 && (
+                <div style={{ fontSize: 12.5, color: "#9C9893", padding: "10px 2px 4px" }}>{tr("parcel.sheet.empty", "No items in your parcel yet — they appear here when they arrive in the warehouse.")}</div>
+              )}
+              {parcelItems.map((o) => (
+                <div key={o.id} style={{ display: "flex", alignItems: "center", gap: 11, background: "#1A1917", borderRadius: 13, padding: "9px 11px", marginBottom: 7 }}>
+                  {thumb(o)}
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: 12.5, fontWeight: 600, color: "#fff", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{o.product_title || o.product}</div>
+                    <div style={{ fontSize: 11, color: "#9C9893" }}>{o.weight_grams ? `${o.weight_grams} g` : `${o.qty || 1} pcs`}</div>
+                  </div>
+                  {onToggleHold && (
+                    <motion.button whileTap={{ scale: 0.85 }} onClick={() => onToggleHold(o.id)} aria-label={tr("parcel.chip.holdOut", "Hold out of parcel")}
+                      style={{ width: 26, height: 26, borderRadius: "50%", background: "rgba(255,255,255,0.08)", border: "1px solid rgba(255,255,255,0.12)", color: "#C9C6C1", fontSize: 13, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", lineHeight: 1, flexShrink: 0 }}>✕</motion.button>
+                  )}
+                </div>
+              ))}
+
+              {heldOutItems.length > 0 && (
+                <>
+                  <div style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: 0.5, color: "#6E6B66", margin: "10px 2px 6px" }}>{tr("parcel.sheet.heldOut", "HELD OUT — not shipping")}</div>
+                  {heldOutItems.map((o) => (
+                    <div key={o.id} style={{ display: "flex", alignItems: "center", gap: 11, background: "rgba(255,255,255,0.04)", borderRadius: 13, padding: "9px 11px", marginBottom: 7, opacity: 0.75 }}>
+                      {thumb(o)}
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ fontSize: 12.5, fontWeight: 600, color: "#C9C6C1", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{o.product_title || o.product}</div>
+                        <div style={{ fontSize: 11, color: "#8A8780" }}>{o.weight_grams ? `${o.weight_grams} g` : `${o.qty || 1} pcs`}</div>
+                      </div>
+                      {onToggleHold && (
+                        <motion.button whileTap={{ scale: 0.92 }} onClick={() => onToggleHold(o.id)}
+                          style={{ flexShrink: 0, background: "rgba(255,92,0,0.15)", color: "#FF5C00", border: "none", borderRadius: 999, padding: "6px 11px", fontSize: 11, fontWeight: 700, cursor: "pointer" }}>{tr("parcel.chip.addBack", "＋ Add back")}</motion.button>
+                      )}
+                    </div>
+                  ))}
+                </>
+              )}
+
+              {!activeGroupId && count > 0 && (
+                <div style={{ background: "#1E1D1A", borderRadius: 13, padding: "11px 13px", marginTop: 10 }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 5 }}>
+                    <span style={{ fontSize: 12, color: "#9C9893" }}>{tr("parcel.sheet.weight", "Total weight")}</span>
+                    <span style={{ fontSize: 12, color: "#fff", fontWeight: 600 }}>{totalWeight > 0 ? `${(totalWeight / 1000).toFixed(2)} kg` : "—"}</span>
+                  </div>
+                  <div style={{ display: "flex", justifyContent: "space-between" }}>
+                    <span style={{ fontSize: 12, color: "#9C9893" }}>{tr("parcel.sheet.estShipping", "Estimated shipping")}</span>
+                    <span style={{ fontSize: 12, color: "#fff", fontWeight: 600 }}>{est != null ? `~€${est.toFixed(2)}` : "—"}</span>
+                  </div>
+                  <div style={{ fontSize: 10.5, color: "#8A8780", marginTop: 7, lineHeight: 1.45 }}>{tr("parcel.sheet.feeNote", "Shipping + one service fee are charged when you ship — the exact quote follows on the next screen.")}</div>
+                </div>
+              )}
+
+              {activeGroupId ? (
+                <div style={{ marginTop: 12 }}>
+                  <GroupShippingPanel session={session} groupId={activeGroupId} shipment={shipState}
+                    waitingCount={waitingCount} isHost={isHost} hostName={hostName} haulCount={count}
+                    onRefresh={() => { fetchSquad(); onShipped?.(); }} />
+                </div>
+              ) : (
+                <motion.button whileTap={count ? { scale: 0.97 } : undefined} disabled={!count}
+                  onClick={() => { if (count) { setOpen(false); setScreen("confirm"); } }}
+                  style={{ width: "100%", marginTop: 12, background: count ? "#FF5C00" : "#333", color: count ? "#fff" : "#777", border: "none", borderRadius: 14, padding: "15px", fontSize: 14.5, fontWeight: 700, cursor: count ? "pointer" : "default", WebkitTapHighlightColor: "transparent" }}>
+                  {tr("parcel.sheet.confirm", "Confirm & ship")} →
+                </motion.button>
+              )}
+              <motion.button whileTap={{ scale: 0.97 }} onClick={() => setOpen(false)}
+                style={{ width: "100%", marginTop: 8, background: "transparent", color: "#C9C6C1", border: "1px solid rgba(255,255,255,0.15)", borderRadius: 14, padding: "12px", fontSize: 12.5, fontWeight: 600, cursor: "pointer", WebkitTapHighlightColor: "transparent" }}>
+                {tr("parcel.sheet.keepCollecting", "← Keep collecting items")}
+              </motion.button>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
+
+      {/* Verzendflow — de bestaande ConfirmHaul (incl. opslag-quote-route) + succes, als overlay */}
+      {screen === "confirm" && createPortal(
+        <div style={{ position: "fixed", inset: 0, zIndex: 320, background: "#F8F7F4", overflowY: "auto", WebkitOverflowScrolling: "touch" }}>
+          <ConfirmHaul session={session} haulItems={parcelItems} balance={balance}
+            onBack={() => { setScreen(null); setOpen(true); fetchBalance(); }}
+            onSuccess={() => setScreen("success")} />
+        </div>, document.body)}
+      {screen === "success" && createPortal(
+        <div style={{ position: "fixed", inset: 0, zIndex: 320, background: "#F8F7F4", overflowY: "auto", WebkitOverflowScrolling: "touch" }}>
+          <HaulSuccess haulItems={parcelItems} onDone={() => { setScreen(null); setOpen(false); onShipped?.(); }} />
+        </div>, document.body)}
+    </>
+  );
+}
+
 export function TransitTab({ session, orders = [], activeGroupId = null }) {
   const [hauls, setHauls] = useState([]);
   const [loading, setLoading] = useState(true);

@@ -584,15 +584,8 @@ export default function Friends({ session, onClose, initialJoinCode, initialGrou
                 "remove member" hebben hierdoor tijdelijk geen knop — komt terug bij de
                 admin-herinrichting waar de user later op terugkomt. */}
 
-            {/* personal fee savings (exact) */}
-            {myFeeSavings > 0 && (
-              <div style={{ marginTop: 12, background: "linear-gradient(180deg,#26211c,#1A1917)", border: "1px solid rgba(255,92,0,0.2)", borderRadius: 14, padding: "12px 14px", display: "flex", alignItems: "center", gap: 10 }}>
-                <span style={{ fontSize: 22 }}>💸</span>
-                <div style={{ fontSize: 12.5, color: "#C9C6C1", lineHeight: 1.45 }}>
-                  <b style={{ color: "#FF8A3D" }}>You save €{myFeeSavings.toFixed(2)}</b> in <b style={{ color: "#FF8A3D" }}>fees</b> by ordering in this group instead of solo{members.length >= 2 ? "" : " — it grows as friends join"}.
-                </div>
-              </div>
-            )}
+            {/* "You save €X in fees"-banner VERWIJDERD (user 2026-07-20) — de besparing
+                staat al in de invite-kaart ("you all save up to 50%"). */}
 
             {/* shared cart — met de squad-teller ernaast (de losse ledenlijst is weg) */}
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", margin: "16px 2px 8px" }}>
@@ -678,16 +671,22 @@ export default function Friends({ session, onClose, initialJoinCode, initialGrou
                 )}
               </AnimatePresence>
             </div>
-            {/* GEDEELDE MAND — items van ALLE leden; ieder rekent z'n eigen af bij checkout */}
-            {(lobby.items || []).length === 0 ? (
-              <div style={{ background: "#1A1917", borderRadius: 14, padding: "16px", textAlign: "center", color: "#9C9893", fontSize: 12.5, lineHeight: 1.55 }}>
-                🛍️ Nothing here yet. Everyone shops the feed and taps <b style={{ color: "#C9C6C1" }}>+ Add to {g.name}</b> — items land in this shared cart. You only pay at checkout (a small group fee is added later, when the parcel ships).
+            {/* GEDEELDE MAND — items van ALLE leden; ieder rekent z'n eigen af bij checkout.
+                Ook bij een LEGE mand tonen we de ledenlijst (user 2026-07-20), met de
+                uitleg-regel eronder — geen aparte lege-staat meer zonder namen. */}
+            {(lobby.items || []).length === 0 && (
+              <div style={{ background: "#1A1917", borderRadius: 14, padding: "13px 15px", marginBottom: 8, textAlign: "center", color: "#9C9893", fontSize: 12, lineHeight: 1.55 }}>
+                🛍️ Everyone shops the feed and taps <b style={{ color: "#C9C6C1" }}>+ Add to {g.name}</b> — items land in this shared cart. You only pay at checkout.
               </div>
-            ) : (
+            )}
+            {(
               <div style={{ background: "#1A1917", borderRadius: 16, padding: "12px 12px 14px" }}>
-                {/* Per lid gegroepeerd: naam (+ admin-embleem) als kopje, daaronder z'n items. */}
-                {members.filter((m) => (itemsByOwner[m.user_id] || []).length > 0).map((owner) => {
+                {/* Per lid gegroepeerd: naam (+ admin-embleem) als kopje, daaronder z'n items.
+                    ÁLLE leden staan er altijd (user 2026-07-20) — een lid zonder items krijgt
+                    "nothing in the basket yet" i.p.v. onzichtbaar te zijn. */}
+                {members.map((owner) => {
                   const ownerSelf = owner.user_id === myUid;
+                  const ownerItems = itemsByOwner[owner.user_id] || [];
                   return (
                     <div key={"grp-" + owner.user_id} style={{ marginBottom: 12 }}>
                       <div style={{ display: "flex", alignItems: "center", gap: 8, margin: "2px 2px 7px" }}>
@@ -695,7 +694,12 @@ export default function Friends({ session, onClose, initialJoinCode, initialGrou
                         <span style={{ fontSize: 12.5, fontWeight: 700, color: "#fff" }}>{memberLabel(owner, ownerSelf)}</span>
                         {owner.role === "admin" && <span style={{ color: "#FF5C00", fontSize: 10.5, fontWeight: 700 }}>admin</span>}
                       </div>
-                      {(itemsByOwner[owner.user_id] || []).map((it) => {
+                      {ownerItems.length === 0 && (
+                        <div style={{ background: "#161513", borderRadius: 12, padding: "10px 12px", marginBottom: 7, fontSize: 11.5, color: "#6b6862" }}>
+                          {ownerSelf ? "You have nothing in the basket yet" : "Nothing in the basket yet"}
+                        </div>
+                      )}
+                      {ownerItems.map((it) => {
                         const mine = it.owner_id === myUid;
                         return (
                           <div key={it.id} style={{ display: "flex", alignItems: "center", gap: 10, background: "#161513", borderRadius: 12, padding: "9px 11px", marginBottom: 7 }}>
@@ -723,11 +727,23 @@ export default function Friends({ session, onClose, initialJoinCode, initialGrou
                 })}
                 {myItems.length > 0 ? (
                   <>
-                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", padding: "8px 4px 4px", fontSize: 12 }}>
-                      <span style={{ color: "#9C9893" }}>Your items ({myItems.length}) · incl. China shipping + QC</span>
-                      <span style={{ fontWeight: 700, color: "#fff", fontSize: 14 }}>€{myCartCharge.toFixed(2)}</span>
+                    {/* Zelfde kosten-uitsplitsing als de solo-cart (user 2026-07-20):
+                        Items / Domestic (¥5/stuk) / QC (¥6/stuk) — 1:1 met ff_cart_checkout. */}
+                    <div style={{ background: "#161513", borderRadius: 14, padding: "12px 14px", marginTop: 4 }}>
+                      <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
+                        <span style={{ fontSize: 12.5, color: "#9C9893" }}>Your items ({myItems.length})</span>
+                        <span style={{ fontSize: 12.5, color: "#fff", fontWeight: 600 }}>€{myTotal.toFixed(2)}</span>
+                      </div>
+                      <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
+                        <span style={{ fontSize: 12.5, color: "#9C9893" }}>Domestic shipping (¥5 × {myUnits})</span>
+                        <span style={{ fontSize: 12.5, color: "#fff", fontWeight: 600 }}>€{(myUnits * 5 / 7.8).toFixed(2)} <span style={{ color: "#9C9893", fontWeight: 400 }}>· ¥{myUnits * 5}</span></span>
+                      </div>
+                      <div style={{ display: "flex", justifyContent: "space-between" }}>
+                        <span style={{ fontSize: 12.5, color: "#9C9893" }}>Quality-control (¥6 × {myUnits})</span>
+                        <span style={{ fontSize: 12.5, color: "#fff", fontWeight: 600 }}>€{(myUnits * 6 / 7.8).toFixed(2)} <span style={{ color: "#9C9893", fontWeight: 400 }}>· ¥{myUnits * 6}</span></span>
+                      </div>
                     </div>
-                    <button onClick={doCheckout} disabled={cartBusy} style={{ ...primaryBtn, marginTop: 4, opacity: cartBusy ? 0.6 : 1 }}>
+                    <button onClick={doCheckout} disabled={cartBusy} style={{ ...primaryBtn, marginTop: 8, opacity: cartBusy ? 0.6 : 1 }}>
                       {cartBusy ? "…" : `Go to checkout → €${myCartCharge.toFixed(2)}`}
                     </button>
                     <div style={{ fontSize: 10.5, color: "#6b6862", textAlign: "center", marginTop: 6, lineHeight: 1.4 }}>You pay only your own items now. The group fee + shipping are split by weight later, when the parcel ships.</div>

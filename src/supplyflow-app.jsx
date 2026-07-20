@@ -311,7 +311,7 @@ function ItemInspectSheet({ item, isOwn, onReady, onHoldOut, onClose }) {
           {item.weight_grams ? <span style={{ background: "#F1EFE9", color: "#6B6862", fontSize: 11, fontWeight: 700, padding: "4px 11px", borderRadius: 20 }}>⚖️ {item.weight_grams} g</span> : null}
           {arrived && (ready
             ? <span style={{ background: "#DCFCE7", color: "#166534", fontSize: 11, fontWeight: 700, padding: "4px 11px", borderRadius: 20 }}>📦 {tr("parcel.row.ready", "Ready")}</span>
-            : <span style={{ background: "#FEF3C7", color: "#92400E", fontSize: 11, fontWeight: 700, padding: "4px 11px", borderRadius: 20 }}>⏳ {tr("parcel.row.notConfirmed", "not confirmed yet")}</span>)}
+            : <span style={{ background: "#FEF3C7", color: "#92400E", fontSize: 11, fontWeight: 700, padding: "4px 11px", borderRadius: 20 }}>⏳ {tr("parcel.chip.unready", "Unready")}</span>)}
         </div>
         {/* Foto's — quality-control + maten; tik = fullscreen */}
         {qc.length > 0 && (
@@ -344,14 +344,10 @@ function ItemInspectSheet({ item, isOwn, onReady, onHoldOut, onClose }) {
           </div>
         )}
         {/* Actie: eigen item → Ready bevestigen; andermans item → status van hun bevestiging */}
+        {/* Ready = FINAL (user 2026-07-20): de "Hold out of the parcel"-link ná Ready is weg. */}
         {arrived && isOwn && !paid && !blocked && (ready ? (
           <div style={{ background: "#ECFDF5", border: "1px solid #A7F3D0", borderRadius: 14, padding: "12px 14px", textAlign: "center" }}>
             <div style={{ fontSize: 13, fontWeight: 700, color: "#065F46" }}>{tr("inspect.readyDone", "✓ Ready — ships with the group parcel")}</div>
-            {onHoldOut && (
-              <button onClick={() => { onHoldOut(item); close(); }} style={{ marginTop: 6, background: "none", border: "none", fontSize: 11.5, fontWeight: 600, color: "#8A8780", textDecoration: "underline", cursor: "pointer" }}>
-                {tr("inspect.holdOutLink", "Hold out of the parcel")}
-              </button>
-            )}
           </div>
         ) : (
           <div>
@@ -622,17 +618,17 @@ function OrderGroupCard({ items, onOpenItem, groupSize, onDismiss, parcel, activ
                             📦 {tr("parcel.chip.in", "In your parcel")} <span style={{ opacity: 0.6 }}>· {tr("parcel.chip.holdOutShort", "hold out")}</span>
                           </div>
                         );
-                        // Groep: bevestigd na foto-inspectie → groen; nog inspecteren → amber, tik opent het item.
+                        // Groep: bevestigd na foto-inspectie → groen en FINAL (user 2026-07-20:
+                        // geen hold-out meer vanaf Ready); nog inspecteren → amber, tik opent het item.
                         if (ps === "ready") return (
-                          <div onClick={(e) => { e.stopPropagation(); onToggleParcel && onToggleParcel(o.id); }}
-                            style={{ display: "inline-block", background: "#DCFCE7", color: "#166534", fontSize: 10.5, fontWeight: 700, padding: "2px 9px", borderRadius: 20, marginLeft: 5, cursor: "pointer" }}>
-                            📦 {tr("parcel.chip.ready", "Ready")} <span style={{ opacity: 0.6 }}>· {tr("parcel.chip.holdOutShort", "hold out")}</span>
+                          <div style={{ display: "inline-block", background: "#DCFCE7", color: "#166534", fontSize: 10.5, fontWeight: 700, padding: "2px 9px", borderRadius: 20, marginLeft: 5 }}>
+                            📦 {tr("parcel.chip.ready", "Ready")}
                           </div>
                         );
                         if (ps === "confirm") return (
                           <div onClick={(e) => { e.stopPropagation(); onOpenItem && onOpenItem(o); }}
                             style={{ display: "inline-block", background: "#FEF3C7", color: "#92400E", fontSize: 10.5, fontWeight: 700, padding: "2px 9px", borderRadius: 20, marginLeft: 5, cursor: "pointer" }}>
-                            👀 {tr("parcel.chip.confirm", "Inspect & confirm")}
+                            ⏳ {tr("parcel.chip.unreadyConfirm", "Unready — inspect & confirm")}
                           </div>
                         );
                         return (
@@ -642,6 +638,14 @@ function OrderGroupCard({ items, onOpenItem, groupSize, onDismiss, parcel, activ
                           </div>
                         );
                       })()}
+                      {/* GROEPSGENOTEN: 3-status-systeem (Order placed → Unready → Ready).
+                          Aangekomen item = "Unready" tot de eigenaar zelf Ready drukt (box_staged_at).
+                          Niet klikbaar — alleen de eigenaar bevestigt z'n eigen item. */}
+                      {squad && o.status === "qc_pending" && (
+                        <div style={{ display: "inline-block", background: o.box_staged_at ? "#DCFCE7" : "#FEF3C7", color: o.box_staged_at ? "#166534" : "#92400E", fontSize: 10.5, fontWeight: 700, padding: "2px 9px", borderRadius: 20, marginLeft: 5 }}>
+                          {o.box_staged_at ? <>✓ {tr("parcel.row.ready", "Ready")}</> : <>⏳ {tr("parcel.chip.unready", "Unready")}</>}
+                        </div>
+                      )}
                       {/* 📸 Quality-control-embleem — PUUR afgeleid van qc_images (die alleen door
                           BuckyDrop's webhook/QC-sync gevuld worden). Foto's binnen = blauw "ready";
                           nog niet = rood "awaiting". Nooit een verzonnen vlag. Alleen bij aankomst. */}

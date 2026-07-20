@@ -1477,6 +1477,21 @@ export function ParcelSection({ session, activeGroupId = null, parcelItems = [],
   // dat staat in de eigen "held out"-sectie). Solo: gewoon je eigen pakket-items.
   const heldIds = new Set(heldOutItems.map((o) => o.id));
   const groupArrived = activeGroupId ? alive.filter((o) => o.status === "qc_pending" && !heldIds.has(o.id)) : [];
+  // GROEP-weergave (user 2026-07-20): ÁLLE items van álle leden, gegroepeerd per lid,
+  // met het 3-status-systeem: Order placed → Unready (aangekomen) → Ready (bevestigd).
+  // Eigen sectie bovenaan. Inspecteren/bevestigen gebeurt in de orderlijst, niet hier.
+  const memberSections = (() => {
+    if (!activeGroupId) return [];
+    const byUser = new Map();
+    for (const o of alive) {
+      if (heldIds.has(o.id)) continue;
+      if (!byUser.has(o.user_id)) byUser.set(o.user_id, { userId: o.user_id, name: o.member, items: [] });
+      byUser.get(o.user_id).items.push(o);
+    }
+    const list = [...byUser.values()];
+    list.sort((a, b) => (a.userId === session.user.id ? -1 : b.userId === session.user.id ? 1 : 0));
+    return list;
+  })();
 
   const totalWeight = parcelItems.reduce((s, o) => s + (o.weight_grams || 0), 0);
   const est = totalWeight > 0 ? shippingEstimate(totalWeight / 1000) : null;
@@ -1556,7 +1571,7 @@ export function ParcelSection({ session, activeGroupId = null, parcelItems = [],
               <FoldReveal i={0} n={count + 5} skip={didReveal.current}>
               <div style={{ fontSize: 11.5, color: "#9C9893", lineHeight: 1.5, marginBottom: 12 }}>
                 {activeGroupId
-                  ? tr("parcel.sheet.autoNoteGroup", "Everyone's items land here when they arrive. Tap an item to inspect the photos and hit Ready on your own — the parcel ships once every item is confirmed.")
+                  ? tr("parcel.sheet.autoNoteGroup2", "Everyone's items land here when they arrive. Inspect & confirm your own items from the orders list — the parcel ships once every item is Ready.")
                   : tr("parcel.sheet.autoNote", "Items land here automatically when they arrive in the warehouse. One parcel = one shipping cost + one service fee.")}
               </div>
               </FoldReveal>
@@ -1574,36 +1589,43 @@ export function ParcelSection({ session, activeGroupId = null, parcelItems = [],
                 <div style={{ fontSize: 12.5, color: "#9C9893", padding: "10px 2px 4px" }}>{tr("parcel.sheet.empty", "No items in your parcel yet — they appear here when they arrive in the warehouse.")}</div>
                 </FoldReveal>
               )}
-              {/* GROEP: ieders aangekomen items — naam + Ready-status; tik = foto's inspecteren.
-                  Eigen niet-bevestigde items krijgen de Ready-nudge; bevestigde een ✕ (apart houden). */}
-              {activeGroupId && groupArrived.map((o, rowIdx) => {
-                const own = o.user_id === session.user.id;
-                const ready = !!o.box_staged_at;
+              {/* GROEP (user 2026-07-20): álle items van álle leden, per lid gegroepeerd.
+                  Rijen zijn NIET klikbaar — inspecteren/Ready gebeurt in de orderlijst.
+                  3 statussen: Order placed (onderweg) → Unready (aangekomen) → Ready (bevestigd).
+                  Eigen Ready-items houden de ✕ (apart houden). */}
+              {activeGroupId && memberSections.map((sec, secIdx) => {
+                const own = sec.userId === session.user.id;
                 return (
-                  <FoldReveal key={o.id} i={1 + rowIdx} n={count + 5} skip={didReveal.current}>
-                  <motion.div whileTap={onInspectItem ? { scale: 0.98 } : undefined} onClick={() => onInspectItem && onInspectItem(o)}
-                    style={{ display: "flex", alignItems: "center", gap: 11, background: "#1A1917", borderRadius: 13, padding: "9px 11px", marginBottom: 7, cursor: onInspectItem ? "pointer" : "default" }}>
-                    {thumb(o)}
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ fontSize: 12.5, fontWeight: 600, color: "#fff", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{o.product_title || o.product}</div>
-                      <div style={{ fontSize: 11, color: "#9C9893" }}>
-                        {own ? tr("parcel.row.you", "You") : (o.member || tr("inspect.friendFallback", "Friend"))}{o.weight_grams ? ` · ${o.weight_grams} g` : ""}
-                      </div>
+                  <FoldReveal key={sec.userId} i={1 + secIdx} n={count + 5} skip={didReveal.current}>
+                  <div style={{ marginBottom: 10 }}>
+                    <div style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: 0.5, color: "#8A8780", margin: "6px 2px 6px", textTransform: "uppercase" }}>
+                      {own ? tr("parcel.row.you", "You") : (sec.name || tr("inspect.friendFallback", "Friend"))}
                     </div>
-                    {ready ? (
-                      <span style={{ flexShrink: 0, display: "flex", alignItems: "center", gap: 6 }}>
-                        <span style={{ background: "rgba(16,185,129,0.16)", color: "#34D399", fontSize: 10.5, fontWeight: 700, padding: "4px 9px", borderRadius: 999 }}>✓ {tr("parcel.row.ready", "Ready")}</span>
-                        {own && onToggleHold && (
-                          <motion.button whileTap={{ scale: 0.85 }} onClick={(e) => { e.stopPropagation(); onToggleHold(o.id); }} aria-label={tr("parcel.chip.holdOut", "Hold out of parcel")}
-                            style={{ width: 26, height: 26, borderRadius: "50%", background: "rgba(255,255,255,0.08)", border: "1px solid rgba(255,255,255,0.12)", color: "#C9C6C1", fontSize: 13, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", lineHeight: 1, flexShrink: 0 }}>✕</motion.button>
-                        )}
-                      </span>
-                    ) : own ? (
-                      <span style={{ flexShrink: 0, background: "#FF5C00", color: "#fff", fontSize: 10.5, fontWeight: 700, padding: "5px 11px", borderRadius: 999 }}>👀 {tr("parcel.row.inspect", "Inspect")}</span>
-                    ) : (
-                      <span style={{ flexShrink: 0, background: "rgba(245,158,11,0.16)", color: "#FBBF24", fontSize: 10.5, fontWeight: 700, padding: "4px 9px", borderRadius: 999 }}>⏳ {tr("parcel.row.notConfirmed", "not confirmed yet")}</span>
-                    )}
-                  </motion.div>
+                    {sec.items.map((o) => {
+                      const arrived = o.status === "qc_pending";
+                      const ready = arrived && !!o.box_staged_at;
+                      return (
+                        <div key={o.id}
+                          style={{ display: "flex", alignItems: "center", gap: 11, background: "#1A1917", borderRadius: 13, padding: "9px 11px", marginBottom: 7 }}>
+                          {thumb(o)}
+                          <div style={{ flex: 1, minWidth: 0 }}>
+                            <div style={{ fontSize: 12.5, fontWeight: 600, color: "#fff", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{o.product_title || o.product}</div>
+                            <div style={{ fontSize: 11, color: "#9C9893" }}>
+                              {tr("orders.item.pcs", "{qty} pcs", { qty: o.qty || 1 })}{o.weight_grams ? ` · ${o.weight_grams} g` : ""}
+                            </div>
+                          </div>
+                          {/* Ready = FINAL (user 2026-07-20): geen ✕/hold-out meer naast Ready. */}
+                          {ready ? (
+                            <span style={{ flexShrink: 0, background: "rgba(16,185,129,0.16)", color: "#34D399", fontSize: 10.5, fontWeight: 700, padding: "4px 9px", borderRadius: 999 }}>✓ {tr("parcel.row.ready", "Ready")}</span>
+                          ) : arrived ? (
+                            <span style={{ flexShrink: 0, background: "rgba(245,158,11,0.16)", color: "#FBBF24", fontSize: 10.5, fontWeight: 700, padding: "4px 9px", borderRadius: 999 }}>⏳ {tr("parcel.chip.unready", "Unready")}</span>
+                          ) : (
+                            <span style={{ flexShrink: 0, background: "rgba(56,189,248,0.14)", color: "#7DD3FC", fontSize: 10.5, fontWeight: 700, padding: "4px 9px", borderRadius: 999 }}>{tr("orders.checkpoint.orderPlaced", "Order placed")}</span>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
                   </FoldReveal>
                 );
               })}

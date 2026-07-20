@@ -1,5 +1,5 @@
 // Auto-gegenereerd woordenboek — kernscherm-vertalingen (7 talen; Engels = de inline fallback in de code).
-// Niet met de hand bewerken: aangevuld via scratchpad-scripts (laatst: add-refund-i18n.mjs, Request a refund + QC-view).
+// Niet met de hand bewerken: aangevuld via scratchpad-scripts (laatst: add-unready-i18n.mjs, 3-status Unready).
 export default {
   "nl": {
     "feed.header.balanceLabel": "Saldo",
@@ -446,6 +446,9 @@ export default {
     "refund.sending": "Versturen…",
     "refund.empty": "Beschrijf eerst het probleem",
     "refund.failed": "Versturen mislukt — probeer het opnieuw",
+    "parcel.chip.unready": "Nog niet bevestigd",
+    "parcel.chip.unreadyConfirm": "Nog niet bevestigd — inspecteer & bevestig",
+    "parcel.sheet.autoNoteGroup2": "Ieders items landen hier zodra ze aankomen. Inspecteer & bevestig je eigen items via de orderlijst — het pakket verzendt pas als elk item Ready is.",
   },
   "de": {
     "feed.header.balanceLabel": "Guthaben",
@@ -892,6 +895,9 @@ export default {
     "refund.sending": "Wird gesendet…",
     "refund.empty": "Bitte beschreibe zuerst das Problem",
     "refund.failed": "Senden fehlgeschlagen — bitte erneut versuchen",
+    "parcel.chip.unready": "Noch nicht bestätigt",
+    "parcel.chip.unreadyConfirm": "Noch nicht bestätigt — prüfen & bestätigen",
+    "parcel.sheet.autoNoteGroup2": "Die Artikel aller landen hier, sobald sie ankommen. Prüfe & bestätige deine eigenen Artikel über die Bestellliste — das Paket wird erst verschickt, wenn jeder Artikel Ready ist.",
   },
   "fr": {
     "feed.header.balanceLabel": "Solde",
@@ -1338,6 +1344,9 @@ export default {
     "refund.sending": "Envoi…",
     "refund.empty": "Veuillez d'abord décrire le problème",
     "refund.failed": "Échec de l'envoi — veuillez réessayer",
+    "parcel.chip.unready": "Pas encore confirmé",
+    "parcel.chip.unreadyConfirm": "Pas encore confirmé — inspecter & confirmer",
+    "parcel.sheet.autoNoteGroup2": "Les articles de chacun arrivent ici dès leur réception. Inspectez et confirmez vos propres articles depuis la liste des commandes — le colis part seulement quand chaque article est Ready.",
   },
   "es": {
     "feed.header.balanceLabel": "Saldo",
@@ -1784,6 +1793,9 @@ export default {
     "refund.sending": "Enviando…",
     "refund.empty": "Primero describe el problema",
     "refund.failed": "No se pudo enviar — inténtalo de nuevo",
+    "parcel.chip.unready": "Sin confirmar",
+    "parcel.chip.unreadyConfirm": "Sin confirmar — inspecciona y confirma",
+    "parcel.sheet.autoNoteGroup2": "Los artículos de todos llegan aquí cuando arriban. Inspecciona y confirma tus propios artículos desde la lista de pedidos — el paquete se envía solo cuando cada artículo está Ready.",
   },
   "it": {
     "feed.header.balanceLabel": "Saldo",
@@ -2230,6 +2242,9 @@ export default {
     "refund.sending": "Invio…",
     "refund.empty": "Descrivi prima il problema",
     "refund.failed": "Invio non riuscito — riprova",
+    "parcel.chip.unready": "Non ancora confermato",
+    "parcel.chip.unreadyConfirm": "Non ancora confermato — ispeziona e conferma",
+    "parcel.sheet.autoNoteGroup2": "Gli articoli di tutti arrivano qui appena giungono. Ispeziona e conferma i tuoi articoli dalla lista degli ordini — il pacco parte solo quando ogni articolo è Ready.",
   },
   "pl": {
     "feed.header.balanceLabel": "Saldo",
@@ -2676,6 +2691,9 @@ export default {
     "refund.sending": "Wysyłanie…",
     "refund.empty": "Najpierw opisz problem",
     "refund.failed": "Nie udało się wysłać — spróbuj ponownie",
+    "parcel.chip.unready": "Jeszcze niepotwierdzone",
+    "parcel.chip.unreadyConfirm": "Jeszcze niepotwierdzone — obejrzyj i potwierdź",
+    "parcel.sheet.autoNoteGroup2": "Rzeczy wszystkich lądują tutaj, gdy dotrą. Obejrzyj i potwierdź swoje rzeczy z listy zamówień — paczka wyruszy dopiero, gdy każdy przedmiot będzie Ready.",
   },
   "pt": {
     "feed.header.balanceLabel": "Saldo",
@@ -3122,5 +3140,8 @@ export default {
     "refund.sending": "A enviar…",
     "refund.empty": "Descreve primeiro o problema",
     "refund.failed": "Não foi possível enviar — tenta novamente",
+    "parcel.chip.unready": "Ainda não confirmado",
+    "parcel.chip.unreadyConfirm": "Ainda não confirmado — inspeciona e confirma",
+    "parcel.sheet.autoNoteGroup2": "Os artigos de todos chegam aqui assim que arribam. Inspeciona e confirma os teus próprios artigos na lista de encomendas — a encomenda só é enviada quando cada artigo estiver Ready.",
   },
 };

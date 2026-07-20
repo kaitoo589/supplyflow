@@ -456,23 +456,42 @@ function DefectChoice({ order, onResolved }) {
   );
 }
 
-// Solo-klant meldt zelf een probleem met een geïnspecteerd item vanaf de QC-pagina.
-// Knop → tekstveld → submit_dispute (zet dispute_status='pending' + omschrijving).
-// Zodra 'pending', verbergt de QC-pagina deze knop en toont ze het "onder review"-blok;
-// admin ziet de melding + omschrijving in het AgentPanel en keurt goed/af.
+// Klant meldt zelf een probleem met een geïnspecteerd item vanaf de QC-pagina (solo én groep).
+// Knop → tekstveld + optionele eigen bewijs-foto's → submit_dispute (dispute_status='pending'
+// + omschrijving + dispute_images). Zodra 'pending', verbergt de QC-pagina deze knop en toont
+// ze het "onder review"-blok; admin ziet melding + foto's in AgentPanel/Problems en keurt goed/af.
 function RefundRequest({ order, onSubmitted }) {
   const [open, setOpen] = useState(false);
   const [text, setText] = useState("");
+  const [images, setImages] = useState([]);
+  const [uploading, setUploading] = useState(false);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState("");
+  const fileRef = useRef(null);
+  const uploadImages = async (files) => {
+    setUploading(true); setErr("");
+    const urls = [];
+    for (const file of Array.from(files)) {
+      const ext = file.name.split(".").pop();
+      // Random-suffix tegen naam-botsing bij meerdere foto's in dezelfde milliseconde.
+      const fileName = `dispute-${order.id}-${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
+      const { error } = await supabase.storage.from("product-images").upload(fileName, file);
+      if (!error) {
+        const { data } = supabase.storage.from("product-images").getPublicUrl(fileName);
+        urls.push(data.publicUrl);
+      }
+    }
+    setImages((prev) => [...prev, ...urls]);
+    setUploading(false);
+  };
   const submit = async () => {
     const desc = text.trim();
     if (!desc) { setErr(tr("refund.empty", "Please describe the problem first")); return; }
     setBusy(true); setErr("");
-    const { data, error } = await supabase.rpc("submit_dispute", { p_order_id: order.id, p_description: desc });
+    const { data, error } = await supabase.rpc("submit_dispute", { p_order_id: order.id, p_description: desc, p_images: images });
     setBusy(false);
     if (error || data?.ok === false) { setErr(error?.message || data?.error || tr("refund.failed", "Could not send — please try again")); return; }
-    onSubmitted?.({ dispute_status: "pending", dispute_description: desc });
+    onSubmitted?.({ dispute_status: "pending", dispute_description: desc, dispute_images: images });
   };
   if (!open) {
     return (
@@ -488,13 +507,31 @@ function RefundRequest({ order, onSubmitted }) {
       <textarea value={text} onChange={(e) => setText(e.target.value)} rows={4} autoFocus
         placeholder={tr("refund.placeholder", "Describe the problem so we can review it…")}
         style={{ width: "100%", boxSizing: "border-box", resize: "vertical", border: "1px solid #E2E0DA", borderRadius: 10, padding: "10px 12px", fontSize: 13.5, fontFamily: "inherit", color: "#0F0E0C", outline: "none" }} />
+      {/* Eigen bewijs-foto's (optioneel) — versterkt de beoordeling in admin. */}
+      <input ref={fileRef} type="file" accept="image/*" multiple style={{ display: "none" }}
+        onChange={(e) => { if (e.target.files?.length) uploadImages(e.target.files); e.target.value = ""; }} />
+      {images.length > 0 && (
+        <div style={{ display: "flex", gap: 7, marginTop: 10, flexWrap: "wrap" }}>
+          {images.map((url, i) => (
+            <div key={i} style={{ position: "relative", width: 62, height: 62, borderRadius: 10, overflow: "hidden", background: "#F3F1ED" }}>
+              <img src={url} referrerPolicy="no-referrer" alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+              <button onClick={() => setImages((prev) => prev.filter((_, idx) => idx !== i))} aria-label={tr("refund.removePhoto", "Remove photo")}
+                style={{ position: "absolute", top: 3, right: 3, width: 18, height: 18, borderRadius: "50%", background: "rgba(0,0,0,0.65)", color: "#fff", border: "none", fontSize: 10, lineHeight: 1, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>✕</button>
+            </div>
+          ))}
+        </div>
+      )}
+      <button onClick={() => fileRef.current?.click()} disabled={uploading || busy}
+        style={{ width: "100%", marginTop: 10, background: "#F8F7F4", color: "#6B6862", border: "1.5px dashed #D8D5CE", borderRadius: 10, padding: "10px", fontSize: 12.5, fontWeight: 700, cursor: uploading ? "wait" : "pointer" }}>
+        {uploading ? tr("refund.uploading", "Uploading…") : `📷 ${tr("refund.addPhotos", "Add photos (optional)")}`}
+      </button>
       <div style={{ display: "flex", gap: 10, marginTop: 10 }}>
         <button onClick={() => { setOpen(false); setErr(""); }} disabled={busy}
           style={{ flex: 1, background: "#F3F1ED", color: "#6B6862", border: "none", borderRadius: 10, padding: "11px", fontSize: 13.5, fontWeight: 700, cursor: busy ? "default" : "pointer", opacity: busy ? 0.6 : 1 }}>
           {tr("refund.cancel", "Cancel")}
         </button>
-        <button onClick={submit} disabled={busy}
-          style={{ flex: 1, background: "#DC2626", color: "#fff", border: "none", borderRadius: 10, padding: "11px", fontSize: 13.5, fontWeight: 700, cursor: busy ? "default" : "pointer", opacity: busy ? 0.6 : 1 }}>
+        <button onClick={submit} disabled={busy || uploading}
+          style={{ flex: 1, background: "#DC2626", color: "#fff", border: "none", borderRadius: 10, padding: "11px", fontSize: 13.5, fontWeight: 700, cursor: (busy || uploading) ? "default" : "pointer", opacity: (busy || uploading) ? 0.6 : 1 }}>
           {busy ? tr("refund.sending", "Sending…") : tr("refund.send", "Send request")}
         </button>
       </div>
@@ -3555,20 +3592,23 @@ export default function SupplyFlow({ session }) {
                   inspecteren van de foto's kan de klant hier een probleem melden → "Request a refund"
                   (submit_dispute → zichtbaar in admin). Verborgen zodra er al een defect/dispute/
                   retour/probleem loopt — dan staat het bijbehorende blok hierboven al. */}
-              {selectedOrder.ff_group_id ? (
-                selectedOrder.dispute_status || selectedOrder.return_status || selectedOrder.problem_type ? null
-                : selectedOrder.box_staged_at ? (
-                  <div style={{ marginTop: 10, background: "#ECFDF5", border: "1px solid #A7F3D0", borderRadius: 12, padding: "12px", textAlign: "center", fontSize: 13, fontWeight: 700, color: "#065F46" }}>
-                    {tr("inspect.readyDone", "✓ Ready — ships with the group parcel")}
-                  </div>
-                ) : (
-                  <button onClick={() => markParcelReady(selectedOrder)} style={{ width: "100%", marginTop: 10, background: "#FF5C00", color: "#fff", border: "none", borderRadius: 12, padding: "12px", fontSize: 14, fontWeight: 700, cursor: "pointer" }}>
-                    {tr("inspect.readyBtn", "✓ Looks good — Ready to ship")}
-                  </button>
-                )
-              ) : (selectedOrder.dispute_status || selectedOrder.return_status || selectedOrder.problem_type) ? null : (
-                <RefundRequest order={selectedOrder}
-                  onSubmitted={(patch) => { setSelectedOrder((cur) => (cur ? { ...cur, ...patch } : cur)); fetchOrders(); }} />
+              {(selectedOrder.dispute_status || selectedOrder.return_status || selectedOrder.problem_type) ? null : (
+                <>
+                  {/* GROEP: eerst de Ready-flow (bevestigen voor het groepspakket)… */}
+                  {selectedOrder.ff_group_id && (selectedOrder.box_staged_at ? (
+                    <div style={{ marginTop: 10, background: "#ECFDF5", border: "1px solid #A7F3D0", borderRadius: 12, padding: "12px", textAlign: "center", fontSize: 13, fontWeight: 700, color: "#065F46" }}>
+                      {tr("inspect.readyDone", "✓ Ready — ships with the group parcel")}
+                    </div>
+                  ) : (
+                    <button onClick={() => markParcelReady(selectedOrder)} style={{ width: "100%", marginTop: 10, background: "#FF5C00", color: "#fff", border: "none", borderRadius: 12, padding: "12px", fontSize: 14, fontWeight: 700, cursor: "pointer" }}>
+                      {tr("inspect.readyBtn", "✓ Looks good — Ready to ship")}
+                    </button>
+                  ))}
+                  {/* …en daaronder — solo én groep (user 2026-07-21) — de klacht-ingang:
+                      Request a refund met tekst + eigen bewijs-foto's → zichtbaar in admin. */}
+                  <RefundRequest order={selectedOrder}
+                    onSubmitted={(patch) => { setSelectedOrder((cur) => (cur ? { ...cur, ...patch } : cur)); fetchOrders(); }} />
+                </>
               )}
             </div>
           )}

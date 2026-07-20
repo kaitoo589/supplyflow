@@ -2,7 +2,6 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { springMorph } from "./motion";
 import Fox from "./Fox";
-import { garmentType } from "./garment";
 import {
   ffMyGroups, ffPreview, ffCreateGroup, ffJoinGroup, ffLeaveGroup,
   ffKickMember, ffSetHost, ffSetAdmin, ffSetPrivate, ffUpdateSettings, ffAddItem, ffRemoveItem, ffFetchGroup,
@@ -492,12 +491,6 @@ export default function Friends({ session, onClose, initialJoinCode, initialGrou
     const isAdmin = g && g.admin_id === myUid;
     const itemsByOwner = (lobby?.items || []).reduce((acc, it) => { (acc[it.owner_id] ||= []).push(it); return acc; }, {});
     const isPlaced = g && g.status !== "gathering";
-    // Bestel-venster-klok (Fase 3): vanaf de eerste groep-aankoop. Waarschuwing op dag = venster,
-    // opslag begint na +5 dagen marge (informatief; de kosten-berekening bij verzenden komt later).
-    const winDays = g?.order_window_days || 15;
-    const daysSinceFirst = g?.first_purchase_at ? Math.floor((Date.now() - new Date(g.first_purchase_at).getTime()) / 86400000) : null;
-    const daysToOrder = daysSinceFirst != null ? (winDays + 5) - daysSinceFirst : null;
-    const showWinWarn = daysSinceFirst != null && daysSinceFirst >= winDays;
     const members = lobby?.members || [];
     const readyCount = members.filter((m) => m.ready).length;
     const myItems = (lobby?.items || []).filter((it) => it.owner_id === myUid);
@@ -533,17 +526,6 @@ export default function Friends({ session, onClose, initialJoinCode, initialGrou
     // Uitnodig-balk: hoeveel plekken vrij + of de groep vol is.
     const isFull = !!g && members.length >= (g.max_size || 7);
     const spotsLeft = g ? Math.max(0, (g.max_size || 7) - members.length) : 0;
-    // EU €3-per-categorie douane, GEDEELD per categorie over de leden die 'm hebben.
-    // Jouw aandeel = som over jouw categorieën van €3 ÷ (aantal leden met die categorie).
-    // Puur transparant: dit zit al in de DDP-verzendprijs, niet bovenop de fee-hold.
-    const memberCatList = {}; // user_id -> [categorieën]
-    members.forEach((m) => { memberCatList[m.user_id] = [...new Set((itemsByOwner[m.user_id] || []).map((it) => garmentType(it.product_title)))]; });
-    const catHolders = {}; // categorie -> aantal leden dat 'm heeft
-    members.forEach((m) => memberCatList[m.user_id].forEach((c) => { catHolders[c] = (catHolders[c] || 0) + 1; }));
-    const groupCatCount = Object.keys(catHolders).length;
-    const memberCustoms = {}; // user_id -> €
-    members.forEach((m) => { memberCustoms[m.user_id] = Math.round(memberCatList[m.user_id].reduce((s, c) => s + 3 / catHolders[c], 0) * 100) / 100; });
-    const groupCustomsTotal = groupCatCount * 3;
     body = (
       <>
         {header(g ? g.name : "Group", initialGroupId ? onClose : () => { setErr(""); openIdRef.current = null; setView("list"); loadGroups(); },
@@ -596,51 +578,11 @@ export default function Friends({ session, onClose, initialJoinCode, initialGrou
               <div style={{ textAlign: "center", background: "#1A1917", border: "1px solid #2c2b29", borderRadius: 12, padding: "11px", marginBottom: 14, fontSize: 12.5, fontWeight: 700, color: "#34D17B" }}>🎉 Squad full — {members.length}/{g.max_size} friends</div>
             )}
 
-            {/* members */}
-            <div style={{ fontSize: 12, color: "#9C9893", margin: "0 2px 8px" }}>
-              Squad · {members.length}/{g.max_size}
-            </div>
-            {members.map((m) => {
-              const self = m.user_id === myUid;
-              const mCount = (itemsByOwner[m.user_id] || []).length;
-              const nudgeCooled = Date.now() - (nudgedAt[m.user_id] || 0) < 60000;
-              return (
-                <div key={m.id} style={{ display: "flex", alignItems: "center", gap: 11, padding: "8px 0" }}>
-                  <Avatar name={m.display_name} url={avatarOf(m)} seed={m.user_id} />
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontSize: 13.5, fontWeight: 600 }}>
-                      {memberLabel(m, self)}
-                      {m.role === "admin" && <span style={{ color: "#FF5C00", fontSize: 11, marginLeft: 6 }}>admin</span>}
-                      {g.host_id === m.user_id && <span style={{ color: "#9C9893", fontSize: 11, marginLeft: 6 }}>🏠 host</span>}
-                    </div>
-                    {(g.host_id === m.user_id) && <div style={{ fontSize: 11, color: "#9C9893" }}>receives the parcel</div>}
-                  </div>
-                  <div style={{ display: "flex", alignItems: "center", gap: 6, flexShrink: 0 }}>
-                    {!self && (
-                      <button disabled={nudgeCooled} onClick={() => doNudge(m.user_id)}
-                        style={{ background: nudgeCooled ? "#1E1D1A" : "rgba(255,92,0,0.14)", border: "none", color: nudgeCooled ? "#6b6862" : "#FF5C00", borderRadius: 8, padding: "5px 9px", fontSize: 11, fontWeight: 700, cursor: nudgeCooled ? "default" : "pointer" }}>
-                        {nudgeCooled ? "nudged ✓" : "👋 nudge"}
-                      </button>
-                    )}
-                    {isAdmin && !self && !isPlaced && (
-                      <>
-                        <button onClick={async () => { if (!window.confirm(`Make ${memberLabel(m, false)} the admin? They take over the group and receive the parcel — you can't undo this yourself.`)) return; const r = await ffSetAdmin(g.id, m.user_id); if (r && !r.ok) setErr(r.error); refreshLobby(); }} style={{ background: "rgba(255,92,0,0.12)", border: "none", color: "#FF5C00", borderRadius: 8, padding: "5px 9px", fontSize: 11, cursor: "pointer" }}>make admin</button>
-                        <button onClick={async () => { const r = await ffKickMember(g.id, m.user_id); if (r && !r.ok) setErr(r.error); refreshLobby(); }} style={{ background: "rgba(226,75,74,0.14)", border: "none", color: "#E24B4A", borderRadius: 8, padding: "5px 9px", fontSize: 11, cursor: "pointer" }}>remove</button>
-                      </>
-                    )}
-                  </div>
-                </div>
-              );
-            })}
-
-            {/* bestel-venster-waarschuwing (Fase 3) */}
-            {showWinWarn && (
-              <div style={{ marginTop: 12, background: daysToOrder > 0 ? "rgba(224,165,0,0.12)" : "rgba(226,75,74,0.12)", border: `1px solid ${daysToOrder > 0 ? "rgba(224,165,0,0.4)" : "rgba(226,75,74,0.4)"}`, borderRadius: 14, padding: "12px 14px", fontSize: 12, color: daysToOrder > 0 ? "#E0A500" : "#F0997B", lineHeight: 1.5 }}>
-                ⏳ Your group's first order was {daysSinceFirst} days ago. {daysToOrder > 0
-                  ? <>Buy anything else within <b>{daysToOrder} day{daysToOrder === 1 ? "" : "s"}</b> to avoid extra storage costs on the items already waiting.</>
-                  : <>Storage is now adding up on the items already waiting — the host should ship the parcel soon.</>}
-              </div>
-            )}
+            {/* Ledenlijst is weg (user-keuze 2026-07-12): namen staan al bij hun items in de
+                gedeelde mand; de teller staat naast "Shared cart". Nudge-UI mee verwijderd
+                (doNudge/ff-nudge-plumbing blijft bestaan voor later). LET OP: "make admin" en
+                "remove member" hebben hierdoor tijdelijk geen knop — komt terug bij de
+                admin-herinrichting waar de user later op terugkomt. */}
 
             {/* personal fee savings (exact) */}
             {myFeeSavings > 0 && (
@@ -652,9 +594,9 @@ export default function Friends({ session, onClose, initialJoinCode, initialGrou
               </div>
             )}
 
-            {/* shared cart */}
+            {/* shared cart — met de squad-teller ernaast (de losse ledenlijst is weg) */}
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", margin: "16px 2px 8px" }}>
-              <span style={{ fontSize: 12, color: "#9C9893" }}>Shared cart</span>
+              <span style={{ fontSize: 12, color: "#9C9893" }}>Shared cart · Squad · {members.length}/{g.max_size}</span>
               <motion.button whileTap={{ scale: 0.9 }} transition={springMorph} onClick={() => setChatOpen((v) => !v)} aria-label="Squad chat"
                 style={{ position: "relative", display: "flex", alignItems: "center", gap: 6, background: chatOpen ? "#FF5C00" : "#1A1917", border: "1px solid #2c2b29", borderRadius: 999, padding: "5px 11px", cursor: "pointer", color: chatOpen ? "#fff" : "#C9C6C1", WebkitTapHighlightColor: "transparent" }}>
                 <span style={{ fontSize: 13, lineHeight: 1 }}>💬</span>
@@ -743,27 +685,39 @@ export default function Friends({ session, onClose, initialJoinCode, initialGrou
               </div>
             ) : (
               <div style={{ background: "#1A1917", borderRadius: 16, padding: "12px 12px 14px" }}>
-                {(lobby.items || []).map((it) => {
-                  const mine = it.owner_id === myUid;
-                  const owner = members.find((m) => m.user_id === it.owner_id);
+                {/* Per lid gegroepeerd: naam (+ admin-embleem) als kopje, daaronder z'n items. */}
+                {members.filter((m) => (itemsByOwner[m.user_id] || []).length > 0).map((owner) => {
+                  const ownerSelf = owner.user_id === myUid;
                   return (
-                    <div key={it.id} style={{ display: "flex", alignItems: "center", gap: 10, background: "#161513", borderRadius: 12, padding: "9px 11px", marginBottom: 7 }}>
-                      <div style={{ width: 42, height: 42, borderRadius: 9, background: "#26211c", overflow: "hidden", flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
-                        {it.variant_image?.startsWith("http") ? <img src={it.variant_image} referrerPolicy="no-referrer" alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : <span style={{ fontSize: 18 }}>📦</span>}
+                    <div key={"grp-" + owner.user_id} style={{ marginBottom: 12 }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 8, margin: "2px 2px 7px" }}>
+                        <Avatar name={owner.display_name} url={avatarOf(owner)} size={22} seed={owner.user_id} />
+                        <span style={{ fontSize: 12.5, fontWeight: 700, color: "#fff" }}>{memberLabel(owner, ownerSelf)}</span>
+                        {owner.role === "admin" && <span style={{ color: "#FF5C00", fontSize: 10.5, fontWeight: 700 }}>admin</span>}
                       </div>
-                      <div style={{ flex: 1, minWidth: 0 }}>
-                        <div style={{ fontSize: 12.5, fontWeight: 600, color: "#fff", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{it.product_title}</div>
-                        <div style={{ fontSize: 10.5, color: "#9C9893", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{owner ? memberLabel(owner, mine) : "Friend"}{it.kleur ? ` · ${it.kleur}` : ""} · €{(Number(it.price) || 0).toFixed(2)}</div>
-                      </div>
-                      {mine ? (
-                        <div style={{ display: "flex", alignItems: "center", gap: 6, flexShrink: 0 }}>
-                          <button onClick={() => doCartQty(it, (it.qty || 1) - 1)} style={{ width: 25, height: 25, borderRadius: "50%", background: "rgba(255,255,255,0.08)", border: "1px solid rgba(255,255,255,0.12)", color: "#C9C6C1", fontSize: 15, cursor: "pointer", lineHeight: 1 }}>−</button>
-                          <span style={{ fontSize: 12.5, fontWeight: 700, color: "#fff", minWidth: 12, textAlign: "center" }}>{it.qty || 1}</span>
-                          <button onClick={() => doCartQty(it, (it.qty || 1) + 1)} style={{ width: 25, height: 25, borderRadius: "50%", background: "rgba(255,255,255,0.08)", border: "1px solid rgba(255,255,255,0.12)", color: "#C9C6C1", fontSize: 15, cursor: "pointer", lineHeight: 1 }}>+</button>
-                        </div>
-                      ) : (
-                        <span style={{ fontSize: 11, color: "#6b6862", flexShrink: 0 }}>×{it.qty || 1}</span>
-                      )}
+                      {(itemsByOwner[owner.user_id] || []).map((it) => {
+                        const mine = it.owner_id === myUid;
+                        return (
+                          <div key={it.id} style={{ display: "flex", alignItems: "center", gap: 10, background: "#161513", borderRadius: 12, padding: "9px 11px", marginBottom: 7 }}>
+                            <div style={{ width: 42, height: 42, borderRadius: 9, background: "#26211c", overflow: "hidden", flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                              {it.variant_image?.startsWith("http") ? <img src={it.variant_image} referrerPolicy="no-referrer" alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : <span style={{ fontSize: 18 }}>📦</span>}
+                            </div>
+                            <div style={{ flex: 1, minWidth: 0 }}>
+                              <div style={{ fontSize: 12.5, fontWeight: 600, color: "#fff", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{it.product_title}</div>
+                              <div style={{ fontSize: 10.5, color: "#9C9893", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{it.kleur ? `${it.kleur} · ` : ""}€{(Number(it.price) || 0).toFixed(2)}</div>
+                            </div>
+                            {mine ? (
+                              <div style={{ display: "flex", alignItems: "center", gap: 6, flexShrink: 0 }}>
+                                <button onClick={() => doCartQty(it, (it.qty || 1) - 1)} style={{ width: 25, height: 25, borderRadius: "50%", background: "rgba(255,255,255,0.08)", border: "1px solid rgba(255,255,255,0.12)", color: "#C9C6C1", fontSize: 15, cursor: "pointer", lineHeight: 1 }}>−</button>
+                                <span style={{ fontSize: 12.5, fontWeight: 700, color: "#fff", minWidth: 12, textAlign: "center" }}>{it.qty || 1}</span>
+                                <button onClick={() => doCartQty(it, (it.qty || 1) + 1)} style={{ width: 25, height: 25, borderRadius: "50%", background: "rgba(255,255,255,0.08)", border: "1px solid rgba(255,255,255,0.12)", color: "#C9C6C1", fontSize: 15, cursor: "pointer", lineHeight: 1 }}>+</button>
+                              </div>
+                            ) : (
+                              <span style={{ fontSize: 11, color: "#6b6862", flexShrink: 0 }}>×{it.qty || 1}</span>
+                            )}
+                          </div>
+                        );
+                      })}
                     </div>
                   );
                 })}
@@ -785,48 +739,6 @@ export default function Friends({ session, onClose, initialJoinCode, initialGrou
               </div>
             )}
 
-            {/* EU €3-per-categorie douane, per persoon gesplitst — de kern van het delen-met-vrienden */}
-            {(lobby.items || []).length > 0 && groupCatCount > 0 && (
-              <div style={{ marginTop: 14, background: "linear-gradient(180deg,#211c18,#1A1917)", border: "1px solid rgba(255,92,0,0.22)", borderRadius: 16, padding: "14px" }}>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
-                  <span style={{ fontSize: 13, fontWeight: 800, color: "#fff" }}>🛃 EU customs · split with your squad</span>
-                  <span style={{ fontSize: 11.5, color: "#9C9893" }}>{groupCatCount} {groupCatCount === 1 ? "category" : "categories"} · €{groupCustomsTotal.toFixed(2)}</span>
-                </div>
-                <div style={{ fontSize: 11, color: "#9C9893", lineHeight: 1.5, marginBottom: 11 }}>
-                  A new EU rule adds <b style={{ color: "#C9C6C1" }}>€3 per product category</b>, paid inside your international shipping. Each category's €3 is split across everyone who ordered it — <b style={{ color: "#FF8A3D" }}>order the same things as your friends and it gets cheaper for all of you.</b>
-                </div>
-                {members.filter((m) => memberCatList[m.user_id].length > 0).map((m) => {
-                  const self = m.user_id === myUid;
-                  return (
-                    <div key={"cust-" + m.id} style={{ display: "flex", alignItems: "flex-start", gap: 9, padding: "8px 0", borderTop: "1px solid #2c2b29" }}>
-                      <Avatar name={m.display_name} url={avatarOf(m)} size={24} seed={m.user_id} />
-                      <div style={{ flex: 1, minWidth: 0 }}>
-                        <div style={{ fontSize: 12, color: self ? "#fff" : "#C9C6C1", fontWeight: self ? 700 : 500, marginBottom: 4 }}>{memberLabel(m, self)}</div>
-                        <div style={{ display: "flex", flexWrap: "wrap", gap: 4 }}>
-                          {memberCatList[m.user_id].map((c) => (
-                            <span key={c} style={{ fontSize: 9.5, color: "#C9C6C1", background: "rgba(255,255,255,0.06)", padding: "2px 7px", borderRadius: 6, whiteSpace: "nowrap" }}>
-                              {c} · {catHolders[c] > 1
-                                ? <span style={{ color: "#34D17B", fontWeight: 700 }}>shared ÷{catHolders[c]} = €{(3 / catHolders[c]).toFixed(2)}</span>
-                                : <span style={{ color: "#9C9893" }}>€3.00</span>}
-                            </span>
-                          ))}
-                        </div>
-                      </div>
-                      <span style={{ fontSize: 14, fontWeight: 800, color: self ? "#FF8A3D" : "#fff", flexShrink: 0 }}>€{memberCustoms[m.user_id].toFixed(2)}</span>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-
-
-            {/* actions */}
-            <div style={{ marginTop: 18, background: "#1A1917", borderRadius: 16, padding: "16px", textAlign: "center" }}>
-              <div style={{ fontSize: 13.5, fontWeight: 700, color: "#fff", marginBottom: 6 }}>One parcel, split by weight</div>
-              <div style={{ fontSize: 12, color: "#9C9893", lineHeight: 1.55 }}>
-                As your squad's items reach the warehouse, the <b style={{ color: "#C9C6C1" }}>host</b> arranges one shared parcel (in the <b style={{ color: "#C9C6C1" }}>In transit</b> tab). You each pay your weight share of shipping plus one small group fee — the more friends, the lower the fee.
-              </div>
-            </div>
 
             <AnimatePresence>{showFeeInfo && <FeeInfo onClose={() => setShowFeeInfo(false)} members={members.length} myTotal={myTotal} myFee={myFee} />}</AnimatePresence>
             <AnimatePresence>{showAdminInfo && <AdminInfo onClose={() => setShowAdminInfo(false)} adminName={(members.find((m) => m.role === "admin") || {}).display_name} />}</AnimatePresence>

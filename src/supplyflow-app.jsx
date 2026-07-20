@@ -259,6 +259,254 @@ function ProgressWheelModal({ items, onClose, onOpenItem }) {
   );
 }
 
+// 🔍 Flowva Friends — item-inspectiesheet: elk squad-/pakket-item is te openen door
+// de HELE squad (product, status, gewicht, quality-control- & meetfoto's — foto's
+// tikken = fullscreen). Voor je EIGEN aangekomen item staat hier de Ready-knop:
+// "in de doos" gebeurt automatisch bij aankomst, maar iedereen bevestigt met Ready
+// dat de foto's zijn geïnspecteerd — pas dan kan het groepspakket verzenden
+// (box_staged_at via ff_stage_box; de server-gate telt alleen Ready-items).
+// Bewust GEEN prijzen van andermans items (zelfde regel als de squad-kaart).
+function ItemInspectSheet({ item, isOwn, onReady, onHoldOut, onClose }) {
+  const [zoom, setZoom] = useState(null);      // url → fullscreen foto-viewer
+  const [busy, setBusy] = useState(false);
+  // Eigen exit-beheer (NIET via AnimatePresence: exit-animaties door een portal heen
+  // maken de unmount onbetrouwbaar → onzichtbare backdrop bleef clicks blokkeren).
+  // Vaste timeout i.p.v. onAnimationComplete: die callback bleek ook niet betrouwbaar
+  // te vuren — de unmount moet gegarandeerd zijn (backdrop staat al op pointerEvents:none).
+  const [leaving, setLeaving] = useState(false);
+  const closeTimer = useRef(null);
+  const close = () => { if (leaving) return; setLeaving(true); closeTimer.current = setTimeout(onClose, 380); };
+  useEffect(() => () => clearTimeout(closeTimer.current), []);
+  const s = statusConfig[item.status] || statusConfig.purchased;
+  const qc = Array.isArray(item.qc_images) ? item.qc_images : [];
+  const meas = Array.isArray(item.measurement_images) ? item.measurement_images : [];
+  const arrived = item.status === "qc_pending";
+  const blocked = item.dispute_status === "pending" || item.dispute_status === "bucky_flagged" || !!item.return_status || !!item.problem_type;
+  const ready = !!item.box_staged_at;
+  const paid = !!item.group_shipping_paid;
+  const doReady = async () => { if (busy) return; setBusy(true); await onReady?.(item); setBusy(false); };
+  return createPortal(
+    <>
+      <motion.div initial={{ opacity: 0 }} animate={{ opacity: leaving ? 0 : 1 }} onClick={() => (zoom ? setZoom(null) : close())}
+        style={{ position: "fixed", inset: 0, background: "rgba(15,14,12,0.55)", zIndex: 420, backdropFilter: "blur(3px)", WebkitBackdropFilter: "blur(3px)", pointerEvents: leaving ? "none" : "auto" }} />
+      <motion.div initial={{ y: "104%" }} animate={{ y: leaving ? "104%" : 0 }} transition={springMorph}
+        style={{ position: "fixed", bottom: 0, left: 0, right: 0, margin: "0 auto", maxWidth: 430, background: "#FAF9F6", borderRadius: "24px 24px 0 0", zIndex: 421, maxHeight: "86vh", overflowY: "auto", overscrollBehavior: "contain", padding: "14px 18px calc(20px + env(safe-area-inset-bottom))" }}>
+        <div style={{ width: 38, height: 4.5, borderRadius: 999, background: "#E3E1DB", margin: "0 auto 14px" }} />
+        {/* Kop: van wie + product */}
+        <div style={{ display: "flex", alignItems: "center", gap: 11, marginBottom: 14 }}>
+          <div style={{ width: 52, height: 52, borderRadius: 12, background: "#fff", border: "1px solid #EDEBE5", overflow: "hidden", flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
+            {item.variant_image ? <img src={item.variant_image} referrerPolicy="no-referrer" alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : <span style={{ fontSize: 22 }}>📦</span>}
+          </div>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontSize: 11, fontWeight: 700, color: "#A8A5A0" }}>
+              {isOwn ? tr("inspect.yourItem", "Your item") : tr("inspect.memberItem", "{name}'s item", { name: item.member || tr("inspect.friendFallback", "Friend") })}
+            </div>
+            <div style={{ fontSize: 14, fontWeight: 700, color: "#0F0E0C", lineHeight: 1.3 }}>{item.product_title || item.product}</div>
+            <div style={{ fontSize: 11.5, color: "#8A8780", marginTop: 1 }}>{tr("orders.item.pcs", "{qty} pcs", { qty: item.qty || 1 })}{item.kleur ? ` · ${item.kleur}` : ""}</div>
+          </div>
+        </div>
+        {/* Status + gewicht */}
+        <div style={{ display: "flex", alignItems: "center", gap: 7, flexWrap: "wrap", marginBottom: 14 }}>
+          <span style={{ background: s.bg, color: s.color, fontSize: 11, fontWeight: 700, padding: "4px 11px", borderRadius: 20 }}>{statusLabel(item)}</span>
+          {item.weight_grams ? <span style={{ background: "#F1EFE9", color: "#6B6862", fontSize: 11, fontWeight: 700, padding: "4px 11px", borderRadius: 20 }}>⚖️ {item.weight_grams} g</span> : null}
+          {arrived && (ready
+            ? <span style={{ background: "#DCFCE7", color: "#166534", fontSize: 11, fontWeight: 700, padding: "4px 11px", borderRadius: 20 }}>📦 {tr("parcel.row.ready", "Ready")}</span>
+            : <span style={{ background: "#FEF3C7", color: "#92400E", fontSize: 11, fontWeight: 700, padding: "4px 11px", borderRadius: 20 }}>⏳ {tr("parcel.row.notConfirmed", "not confirmed yet")}</span>)}
+        </div>
+        {/* Foto's — quality-control + maten; tik = fullscreen */}
+        {qc.length > 0 && (
+          <div style={{ marginBottom: 14 }}>
+            <div style={{ fontSize: 12.5, fontWeight: 700, color: "#0F0E0C", marginBottom: 8 }}>{tr("orders.detail.qcPics.title", "Quality-control pictures")}</div>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 7 }}>
+              {qc.map((url, i) => (
+                <motion.div key={i} whileTap={{ scale: 0.96 }} onClick={() => setZoom(url)} style={{ borderRadius: 12, overflow: "hidden", aspectRatio: "1", background: "#F3F1ED", cursor: "zoom-in" }}>
+                  <img src={url} referrerPolicy="no-referrer" alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                </motion.div>
+              ))}
+            </div>
+          </div>
+        )}
+        {meas.length > 0 && (
+          <div style={{ marginBottom: 14 }}>
+            <div style={{ fontSize: 12.5, fontWeight: 700, color: "#0F0E0C", marginBottom: 8 }}>{tr("inspect.measureTitle", "Measurement photos")}</div>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 6 }}>
+              {meas.map((url, i) => (
+                <motion.div key={i} whileTap={{ scale: 0.96 }} onClick={() => setZoom(url)} style={{ borderRadius: 10, overflow: "hidden", aspectRatio: "1", background: "#F3F1ED", cursor: "zoom-in" }}>
+                  <img src={url} referrerPolicy="no-referrer" alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                </motion.div>
+              ))}
+            </div>
+          </div>
+        )}
+        {qc.length === 0 && meas.length === 0 && (
+          <div style={{ background: "#fff", border: "1px solid #EDEBE5", borderRadius: 12, padding: "13px 15px", fontSize: 12.5, color: "#8A8780", lineHeight: 1.5, marginBottom: 14 }}>
+            {tr("inspect.noPhotos", "No photos yet — they'll appear right after the warehouse check.")}
+          </div>
+        )}
+        {/* Actie: eigen item → Ready bevestigen; andermans item → status van hun bevestiging */}
+        {arrived && isOwn && !paid && !blocked && (ready ? (
+          <div style={{ background: "#ECFDF5", border: "1px solid #A7F3D0", borderRadius: 14, padding: "12px 14px", textAlign: "center" }}>
+            <div style={{ fontSize: 13, fontWeight: 700, color: "#065F46" }}>{tr("inspect.readyDone", "✓ Ready — ships with the group parcel")}</div>
+            {onHoldOut && (
+              <button onClick={() => { onHoldOut(item); close(); }} style={{ marginTop: 6, background: "none", border: "none", fontSize: 11.5, fontWeight: 600, color: "#8A8780", textDecoration: "underline", cursor: "pointer" }}>
+                {tr("inspect.holdOutLink", "Hold out of the parcel")}
+              </button>
+            )}
+          </div>
+        ) : (
+          <div>
+            <div style={{ fontSize: 12, color: "#8A8780", lineHeight: 1.5, marginBottom: 9 }}>{tr("inspect.confirmHint", "Check the photos — is everything right? Hit Ready so your squad can ship.")}</div>
+            <motion.button whileTap={{ scale: 0.97 }} disabled={busy} onClick={doReady}
+              style={{ width: "100%", background: busy ? "#E8E6E0" : "#FF5C00", color: busy ? "#A8A5A0" : "#fff", border: "none", borderRadius: 14, padding: "14px", fontSize: 14, fontWeight: 700, cursor: busy ? "wait" : "pointer", WebkitTapHighlightColor: "transparent" }}>
+              {busy ? tr("inspect.readyBusy", "Confirming…") : tr("inspect.readyBtn", "✓ Looks good — Ready to ship")}
+            </motion.button>
+          </div>
+        ))}
+        {arrived && isOwn && paid && (
+          <div style={{ background: "#DCFCE7", borderRadius: 14, padding: "12px 14px", textAlign: "center", fontSize: 12.5, fontWeight: 700, color: "#166534" }}>📦 {tr("parcel.chip.shipped", "In parcel — shipping paid")}</div>
+        )}
+        {arrived && !isOwn && (
+          <div style={{ background: ready ? "#ECFDF5" : "#FFF7ED", border: `1px solid ${ready ? "#A7F3D0" : "#FCD9B6"}`, borderRadius: 14, padding: "12px 14px", textAlign: "center", fontSize: 12.5, fontWeight: 600, color: ready ? "#065F46" : "#92400E" }}>
+            {ready
+              ? tr("inspect.otherReady", "✓ {name} confirmed this item — ready to ship", { name: item.member || tr("inspect.friendFallback", "Friend") })
+              : tr("inspect.otherNotReady", "⏳ {name} hasn't hit Ready on this item yet", { name: item.member || tr("inspect.friendFallback", "Friend") })}
+          </div>
+        )}
+      </motion.div>
+      {/* Fullscreen foto-viewer */}
+      <AnimatePresence>
+        {zoom && (
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setZoom(null)}
+            style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.92)", zIndex: 430, display: "flex", alignItems: "center", justifyContent: "center", cursor: "zoom-out" }}>
+            <img src={zoom} referrerPolicy="no-referrer" alt="" style={{ maxWidth: "96vw", maxHeight: "90vh", objectFit: "contain", borderRadius: 8 }} />
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </>,
+    document.body
+  );
+}
+
+// ⚠️ Defect-keuze (bucky_flagged) — de klant kiest hier direct in het Track order-scherm:
+// retour voor volledige refund of accepteren-zoals-het-is. Dit zat vroeger alleen in de
+// warehouse-modal, maar die tab is opgegaan in Orders en de modal is onbereikbaar geworden —
+// de klant kon dus nérgens meer kiezen. Zelfde RPC's als toen: accept_qc_result /
+// request_item_return (veilige fabriek-retour + refund, server-side).
+function DefectChoice({ order, onResolved }) {
+  const [busy, setBusy] = useState(false);
+  const [confirmReturn, setConfirmReturn] = useState(false);
+  const [err, setErr] = useState("");
+  const acceptDefect = async () => {
+    setBusy(true); setErr("");
+    const { data, error } = await supabase.rpc("accept_qc_result", { p_order_id: order.id });
+    setBusy(false);
+    if (error || data?.ok === false) { setErr(error?.message || data?.error || "Could not accept"); return; }
+    onResolved?.({ dispute_status: null, problem_type: null });
+  };
+  const returnDefect = async () => {
+    setBusy(true); setErr("");
+    const { data, error } = await supabase.rpc("request_item_return", { p_order_id: order.id, p_reason: "Returned after quality-control flagged a defect" });
+    setBusy(false);
+    if (error || data?.ok === false) { setErr(error?.message || data?.error || "Could not request return"); return; }
+    onResolved?.({ return_status: data?.return_status || "requested" });
+  };
+  if (order.return_status) {
+    return (
+      <div style={{ textAlign: "center", color: "#B45309", fontSize: 13, fontWeight: 600, padding: "12px", background: "#fff", borderRadius: 12 }}>
+        {tr("defect.returnInProgress", "↩ Return in progress")}
+      </div>
+    );
+  }
+  return (
+    <>
+      {order.problem_type && (
+        <div style={{ display: "inline-block", background: "#fff", color: "#B45309", fontSize: 11.5, fontWeight: 700, padding: "4px 11px", borderRadius: 20, marginBottom: 10 }}>
+          {tr("defect.reason", "Reported issue: {reason}", { reason: order.problem_type })}
+        </div>
+      )}
+      {order.agent_defect_images?.length > 0 && (
+        <div style={{ marginBottom: 12 }}>
+          <div style={{ fontSize: 11, fontWeight: 700, color: "#B45309", marginBottom: 8, letterSpacing: 1 }}>{tr("defect.agentPics", "ADDITIONAL PICTURES PROVIDED BY THE AGENT")}</div>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+            {order.agent_defect_images.map((url, i) => (
+              <div key={i} style={{ borderRadius: 10, overflow: "hidden", aspectRatio: "1" }}>
+                <img src={url} referrerPolicy="no-referrer" alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+      {order.agent_notitie && (
+        <div style={{ marginBottom: 12 }}>
+          <div style={{ fontSize: 11, fontWeight: 700, color: "#B45309", marginBottom: 8, letterSpacing: 1 }}>{tr("defect.agentMsg", "AGENT MESSAGE")}</div>
+          <div style={{ display: "flex", gap: 10, alignItems: "flex-start" }}>
+            <div style={{ width: 30, height: 30, borderRadius: "50%", background: "#fff", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16, flexShrink: 0 }}><Fox /></div>
+            <div style={{ fontSize: 13, color: "#92400E", lineHeight: 1.55 }}>{order.agent_notitie}</div>
+          </div>
+        </div>
+      )}
+      <div style={{ display: "flex", gap: 10 }}>
+        <button onClick={acceptDefect} disabled={busy}
+          style={{ flex: 1, background: "#FF5C00", color: "#fff", border: "none", borderRadius: 12, padding: "12px", fontSize: 13.5, fontWeight: 700, cursor: busy ? "default" : "pointer", opacity: busy ? 0.6 : 1 }}>
+          {tr("defect.accept", "✓ Accept as-is")}
+        </button>
+        <button onClick={() => (confirmReturn ? returnDefect() : setConfirmReturn(true))} disabled={busy}
+          style={{ flex: 1, background: confirmReturn ? "#DC2626" : "#FEE2E2", color: confirmReturn ? "#fff" : "#DC2626", border: "none", borderRadius: 12, padding: "12px", fontSize: 13.5, fontWeight: 700, cursor: busy ? "default" : "pointer", opacity: busy ? 0.6 : 1 }}>
+          {confirmReturn ? tr("defect.returnConfirm", "Sure? Return & refund") : tr("defect.return", "↩ Return for refund")}
+        </button>
+      </div>
+      {err && <div style={{ marginTop: 8, fontSize: 12, color: "#B91C1C", textAlign: "center" }}>{err}</div>}
+    </>
+  );
+}
+
+// Solo-klant meldt zelf een probleem met een geïnspecteerd item vanaf de QC-pagina.
+// Knop → tekstveld → submit_dispute (zet dispute_status='pending' + omschrijving).
+// Zodra 'pending', verbergt de QC-pagina deze knop en toont ze het "onder review"-blok;
+// admin ziet de melding + omschrijving in het AgentPanel en keurt goed/af.
+function RefundRequest({ order, onSubmitted }) {
+  const [open, setOpen] = useState(false);
+  const [text, setText] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState("");
+  const submit = async () => {
+    const desc = text.trim();
+    if (!desc) { setErr(tr("refund.empty", "Please describe the problem first")); return; }
+    setBusy(true); setErr("");
+    const { data, error } = await supabase.rpc("submit_dispute", { p_order_id: order.id, p_description: desc });
+    setBusy(false);
+    if (error || data?.ok === false) { setErr(error?.message || data?.error || tr("refund.failed", "Could not send — please try again")); return; }
+    onSubmitted?.({ dispute_status: "pending", dispute_description: desc });
+  };
+  if (!open) {
+    return (
+      <button onClick={() => setOpen(true)}
+        style={{ width: "100%", marginTop: 10, background: "#FEE2E2", color: "#DC2626", border: "none", borderRadius: 12, padding: "12px", fontSize: 14, fontWeight: 700, cursor: "pointer", WebkitTapHighlightColor: "transparent" }}>
+        {tr("refund.button", "Request a refund")}
+      </button>
+    );
+  }
+  return (
+    <div style={{ marginTop: 12, background: "#fff", border: "1px solid #E8E6E0", borderRadius: 14, padding: 14 }}>
+      <div style={{ fontSize: 13.5, fontWeight: 700, color: "#0F0E0C", marginBottom: 8 }}>{tr("refund.title", "What's wrong with your item?")}</div>
+      <textarea value={text} onChange={(e) => setText(e.target.value)} rows={4} autoFocus
+        placeholder={tr("refund.placeholder", "Describe the problem so we can review it…")}
+        style={{ width: "100%", boxSizing: "border-box", resize: "vertical", border: "1px solid #E2E0DA", borderRadius: 10, padding: "10px 12px", fontSize: 13.5, fontFamily: "inherit", color: "#0F0E0C", outline: "none" }} />
+      <div style={{ display: "flex", gap: 10, marginTop: 10 }}>
+        <button onClick={() => { setOpen(false); setErr(""); }} disabled={busy}
+          style={{ flex: 1, background: "#F3F1ED", color: "#6B6862", border: "none", borderRadius: 10, padding: "11px", fontSize: 13.5, fontWeight: 700, cursor: busy ? "default" : "pointer", opacity: busy ? 0.6 : 1 }}>
+          {tr("refund.cancel", "Cancel")}
+        </button>
+        <button onClick={submit} disabled={busy}
+          style={{ flex: 1, background: "#DC2626", color: "#fff", border: "none", borderRadius: 10, padding: "11px", fontSize: 13.5, fontWeight: 700, cursor: busy ? "default" : "pointer", opacity: busy ? 0.6 : 1 }}>
+          {busy ? tr("refund.sending", "Sending…") : tr("refund.send", "Send request")}
+        </button>
+      </div>
+      {err && <div style={{ marginTop: 8, fontSize: 12, color: "#B91C1C", textAlign: "center" }}>{err}</div>}
+    </div>
+  );
+}
+
 // Eén bestelling (= alle items uit dezelfde aankoop). Klap open → morpht omlaag,
 // toont elk item met z'n eigen status. Statussen mogen per item verschillen.
 function OrderGroupCard({ items, onOpenItem, groupSize, onDismiss, parcel, activeFilter, onClearFilter, squad, parcelStateFor, onToggleParcel }) {
@@ -303,15 +551,18 @@ function OrderGroupCard({ items, onOpenItem, groupSize, onDismiss, parcel, activ
           <div style={{ fontSize: 13.5, fontWeight: 700, color: "#111", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
             {(allInTransit && !squad) ? (parcel?.label || tr("orders.card.parcelFallback", "Parcel")) : `${items[0].product_title || items[0].product}${items.length > 1 ? ` ${tr("orders.card.plusMore", "+{count} more", { count: items.length - 1 })}` : ""}`}
           </div>
-          {!allInTransit && !squad && (
-            <div style={{ display: "flex", alignItems: "baseline", gap: 5, marginTop: 2 }}>
-              <span style={{ fontSize: 13, fontWeight: 800, color: "#111" }}>€{total.toFixed(2)}</span>
-              <span style={{ fontSize: 10, color: "#A8A5A0" }}>{tr("orders.card.feeAtShipping", "+ fee at shipping")}</span>
-            </div>
-          )}
-          <div style={{ fontSize: 11, color: (!squad && anyProblem) ? "#B45309" : allDelivered ? "#15803D" : "#8A8780", marginTop: 1, fontWeight: allDelivered ? 700 : 400 }}>
-            {squad ? (allDelivered ? tr("orders.status.delivered", "Delivered") : allInTransit ? tr("orders.status.inTransit", "In transit") : tr("orders.card.atWarehouse", "{atWarehouse}/{total} at warehouse", { atWarehouse, total: items.length })) : (anyProblem ? tr("orders.card.actionNeeded", "⚠️ Action needed") : allDelivered ? tr("orders.card.deliveredToYou", "Delivered to you") : allInTransit ? tr("orders.card.shippedTrackInTransit", "Shipped — track in In transit") : tr("orders.card.atWarehouse", "{atWarehouse}/{total} at warehouse", { atWarehouse, total: items.length }))}
-          </div>
+          {/* Prijs-regel (€ + fee at shipping) VERWIJDERD van de kaart (user 2026-07-20):
+              de prijs staat al op de uitgeklapte itemregel + in de pakket-sheet. */}
+          {/* Statusregel: alleen nog écht informatieve staten. "N/N at warehouse" is
+              weggehaald (redundant met de 100%-ring + "In warehouse"-chip). Alerts blijven. */}
+          {(() => {
+            const line = squad
+              ? (allDelivered ? tr("orders.status.delivered", "Delivered") : allInTransit ? tr("orders.status.inTransit", "In transit") : "")
+              : (anyProblem ? tr("orders.card.actionNeeded", "⚠️ Action needed") : allDelivered ? tr("orders.card.deliveredToYou", "Delivered to you") : allInTransit ? tr("orders.card.shippedTrackInTransit", "Shipped — track in In transit") : "");
+            return line ? (
+              <div style={{ fontSize: 11, color: (!squad && anyProblem) ? "#B45309" : allDelivered ? "#15803D" : "#8A8780", marginTop: 1, fontWeight: allDelivered ? 700 : 400 }}>{line}</div>
+            ) : null;
+          })()}
         </div>
         {allDelivered ? (
           <div style={{ flexShrink: 0, display: "flex", alignItems: "center", gap: 5, background: "#DCFCE7", color: "#15803D", borderRadius: 999, padding: "6px 11px 6px 9px", fontSize: 11, fontWeight: 800, whiteSpace: "nowrap" }}>
@@ -359,10 +610,29 @@ function OrderGroupCard({ items, onOpenItem, groupSize, onDismiss, parcel, activ
                         if (ps === "locked") return (
                           <div style={{ display: "inline-block", background: "#DCFCE7", color: "#166534", fontSize: 10.5, fontWeight: 700, padding: "2px 9px", borderRadius: 20, marginLeft: 5 }}>📦 {tr("parcel.chip.shipped", "In parcel — shipping paid")}</div>
                         );
+                        // SOLO: puur info — item zit altijd in het pakket (geen hold-out).
+                        if (ps === "in_solo") return (
+                          <div style={{ display: "inline-block", background: "#FFF0E7", color: "#B8430A", fontSize: 10.5, fontWeight: 700, padding: "2px 9px", borderRadius: 20, marginLeft: 5 }}>
+                            📦 {tr("parcel.chip.in", "In your parcel")}
+                          </div>
+                        );
                         if (ps === "in") return (
                           <div onClick={(e) => { e.stopPropagation(); onToggleParcel && onToggleParcel(o.id); }}
                             style={{ display: "inline-block", background: "#FFF0E7", color: "#B8430A", fontSize: 10.5, fontWeight: 700, padding: "2px 9px", borderRadius: 20, marginLeft: 5, cursor: "pointer" }}>
                             📦 {tr("parcel.chip.in", "In your parcel")} <span style={{ opacity: 0.6 }}>· {tr("parcel.chip.holdOutShort", "hold out")}</span>
+                          </div>
+                        );
+                        // Groep: bevestigd na foto-inspectie → groen; nog inspecteren → amber, tik opent het item.
+                        if (ps === "ready") return (
+                          <div onClick={(e) => { e.stopPropagation(); onToggleParcel && onToggleParcel(o.id); }}
+                            style={{ display: "inline-block", background: "#DCFCE7", color: "#166534", fontSize: 10.5, fontWeight: 700, padding: "2px 9px", borderRadius: 20, marginLeft: 5, cursor: "pointer" }}>
+                            📦 {tr("parcel.chip.ready", "Ready")} <span style={{ opacity: 0.6 }}>· {tr("parcel.chip.holdOutShort", "hold out")}</span>
+                          </div>
+                        );
+                        if (ps === "confirm") return (
+                          <div onClick={(e) => { e.stopPropagation(); onOpenItem && onOpenItem(o); }}
+                            style={{ display: "inline-block", background: "#FEF3C7", color: "#92400E", fontSize: 10.5, fontWeight: 700, padding: "2px 9px", borderRadius: 20, marginLeft: 5, cursor: "pointer" }}>
+                            👀 {tr("parcel.chip.confirm", "Inspect & confirm")}
                           </div>
                         );
                         return (
@@ -372,28 +642,37 @@ function OrderGroupCard({ items, onOpenItem, groupSize, onDismiss, parcel, activ
                           </div>
                         );
                       })()}
+                      {/* 📸 Quality-control-embleem — PUUR afgeleid van qc_images (die alleen door
+                          BuckyDrop's webhook/QC-sync gevuld worden). Foto's binnen = blauw "ready";
+                          nog niet = rood "awaiting". Nooit een verzonnen vlag. Alleen bij aankomst. */}
+                      {o.status === "qc_pending" && (
+                        <div style={{ marginTop: 5 }}>
+                          {o.qc_images?.length > 0 ? (
+                            // Duidelijke klik-actie → opent de Quality-control pictures-pagina.
+                            <span onClick={(e) => { e.stopPropagation(); onOpenItem && onOpenItem(o); }}
+                              style={{ display: "inline-flex", alignItems: "center", gap: 4, background: "#E0F2FE", color: "#0369A1", fontSize: 10.5, fontWeight: 700, padding: "3px 10px", borderRadius: 20, cursor: onOpenItem ? "pointer" : "default" }}>
+                              📸 {tr("orders.item.qcView", "View quality-control pictures")} →
+                            </span>
+                          ) : (
+                            <span style={{ display: "inline-block", background: "#FEF2F2", color: "#DC2626", fontSize: 10.5, fontWeight: 700, padding: "2px 9px", borderRadius: 20 }}>
+                              ⏳ {tr("orders.item.qcAwaiting", "Awaiting quality-control pictures")}
+                            </span>
+                          )}
+                        </div>
+                      )}
                     </div>
-                    {onOpenItem && <div style={{ color: "#ccc", fontSize: 16, flexShrink: 0 }}>→</div>}
+                    {/* "→"-pijltje VERWIJDERD (user 2026-07-20): de "View quality-control
+                        pictures →"-knop is nu de duidelijke tik-actie; de rij blijft klikbaar. */}
                   </motion.div>
                 );
               })}
-              {filterStatuses ? (
+              {/* Prijs-uitsplitsing (Items/Service fee/Total paid) hier VERWIJDERD (user 2026-07-20):
+                  die staat al in het pakket-overzicht (parcel-sheet). Alleen de filter-resetknop blijft. */}
+              {filterStatuses && (
                 <motion.button whileTap={{ scale: 0.97 }} onClick={(e) => { e.stopPropagation(); onClearFilter && onClearFilter(); }}
                   style={{ width: "100%", marginTop: 4, background: "#111", color: "#fff", border: "none", borderRadius: 12, padding: "11px", fontSize: 12.5, fontWeight: 700, cursor: "pointer", WebkitTapHighlightColor: "transparent" }}>
                   {tr("orders.filter.all", "All orders")}
                 </motion.button>
-              ) : squad ? null : (
-                <div style={{ marginTop: 4, padding: "10px 12px", background: "#FAF9F6", borderRadius: 12, border: "1px solid #EFEDE7" }}>
-                  <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, color: "#6B6862", marginBottom: 5 }}>
-                    <span>{tr("orders.card.itemsLine", "Items ({count})", { count: items.length })}</span><span>€{subtotal.toFixed(2)}</span>
-                  </div>
-                  <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, color: "#6B6862", marginBottom: 7 }}>
-                    <span>{isGroupOrder ? tr("orders.card.groupFee", "Group fee") : tr("orders.card.serviceFee", "Service fee")}</span><span>{tr("orders.card.atShippingValue", "at shipping")}</span>
-                  </div>
-                  <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13.5, fontWeight: 800, color: "#111", borderTop: "1px solid #EAE7E0", paddingTop: 7 }}>
-                    <span>{tr("orders.card.totalPaid", "Total paid")}</span><span>€{total.toFixed(2)}</span>
-                  </div>
-                </div>
               )}
             </div>
           </motion.div>
@@ -604,7 +883,7 @@ function QuoteAcceptance({ order, session, balance, allOrders = [], onAccepted }
 // met de pakket-sheet op Orders, zodat mand en pakket exact dezelfde motion hebben.
 function RequestListSheet({ items, onRemove, onSetQty, onClose, onSend, sending, error, session, onEditAddress, onTopUp, onFinish, flagged, reasons }) {
   const [view, setView] = useState("cart");
-  const [agreed, setAgreed] = useState(false);
+  const [agreed, setAgreed] = useState(false);   // 1 vinkje: Terms + retour + "adres klopt"
   const dragControls = useDragControls();           // rubber-band: sheet omlaag trekken om te sluiten
   // Gel-rek: hoe verder je trekt, hoe meer de kaart uitrekt (bovenkant "plakt").
   const dragStretch = useMotionValue(0);
@@ -633,6 +912,10 @@ function RequestListSheet({ items, onRemove, onSetQty, onClose, onSend, sending,
   const addrName = `${m.voornaam || ""} ${m.achternaam || ""}`.trim();
   const cityLine = [m.postcode, m.stad].filter(Boolean).join(" ");
   const hasAddress = !!(m.adres && m.stad);
+  // Onlogisch adres blokkeren bij checkout: de postcode moet bij het land passen
+  // (dezelfde bron als het adres-formulier). Vangt óók oude/foute adressen die vóór
+  // de formulier-check zijn opgeslagen (bv. land Bulgarije + Nederlandse postcode).
+  const addrValid = hasAddress && isValidPostcode(m.land, m.postcode);
   const lowBalance = /balance|saldo/i.test(error || "");
 
   // Bevestig & betaal → bij succes eerst de knop-morph (cirkel + vinkje dat tekent),
@@ -814,6 +1097,12 @@ function RequestListSheet({ items, onRemove, onSetQty, onClose, onSend, sending,
                 ) : (
                   <div style={{ fontSize: 12.5, color: "#F59E0B" }}>{tr("cart.noAddress", "⚠️ No shipping address yet — tap Edit to add one.")}</div>
                 )}
+                {/* Onlogisch adres (postcode past niet bij het land) → rode blokkade + Edit. */}
+                {hasAddress && !addrValid && (
+                  <div style={{ marginTop: 10, background: "rgba(220,38,38,0.14)", border: "1px solid rgba(220,38,38,0.4)", borderRadius: 10, padding: "9px 11px", fontSize: 11.5, color: "#F0997B", lineHeight: 1.5 }}>
+                    {tr("cart.addrMismatch", "⚠️ This address looks off — the postal code doesn't match {country}. Tap Edit and fix it before ordering.", { country: m.land || tr("cart.theCountry", "the country") })}
+                  </div>
+                )}
               </motion.div>
 
               {items.map((item, i) => {
@@ -861,7 +1150,7 @@ function RequestListSheet({ items, onRemove, onSetQty, onClose, onSend, sending,
                   <input type="checkbox" className="fl-check-input" checked={agreed} onChange={(e) => setAgreed(e.target.checked)} />
                   <span className="fl-check-box" />
                 </span>
-                <span>I agree to the <a href="/terms" target="_blank" rel="noreferrer" style={{ color: "#A5B4FC" }}>Terms</a> and the <a href="/returns-policy" target="_blank" rel="noreferrer" style={{ color: "#A5B4FC" }}>Returns &amp; withdrawal policy</a>, and that any refunds are credited to my Flowva balance. I have a <b style={{ color: "#C9C6C1" }}>14-day right of withdrawal</b>; for a change of mind I pay the return shipping (EU return address), faulty items are on Flowva.</span>
+                <span>I confirm <b style={{ color: "#C9C6C1" }}>my delivery address above is correct</b>, and I agree to the <a href="/terms" target="_blank" rel="noreferrer" style={{ color: "#A5B4FC" }}>Terms</a> and <a href="/returns-policy" target="_blank" rel="noreferrer" style={{ color: "#A5B4FC" }}>Returns &amp; withdrawal policy</a>. Refunds go to my Flowva balance, and I have a <b style={{ color: "#C9C6C1" }}>14-day right of withdrawal</b>.</span>
               </label>
               {paying === "check" ? (
                 /* Betaald → de knop wordt een cirkel waarin het vinkje zichzelf tekent */
@@ -876,8 +1165,8 @@ function RequestListSheet({ items, onRemove, onSetQty, onClose, onSend, sending,
                 </div>
               ) : (
                 <>
-                  <motion.button whileTap={sending || !hasAddress || !payable.length || !agreed ? undefined : { scale: 0.97 }} onClick={confirmAndPay} disabled={sending || !hasAddress || payable.length === 0 || !agreed}
-                    style={{ width: "100%", marginTop: 10, background: sending ? "#333" : (!hasAddress || !payable.length || !agreed) ? "#444" : "#FF5C00", color: "#fff", border: "none", borderRadius: 14, padding: "16px", fontSize: 15, fontWeight: 700, cursor: sending || !hasAddress || !payable.length || !agreed ? "default" : "pointer", WebkitTapHighlightColor: "transparent" }}>
+                  <motion.button whileTap={sending || !hasAddress || !addrValid || !payable.length || !agreed ? undefined : { scale: 0.97 }} onClick={confirmAndPay} disabled={sending || !hasAddress || !addrValid || payable.length === 0 || !agreed}
+                    style={{ width: "100%", marginTop: 10, background: sending ? "#333" : (!hasAddress || !addrValid || !payable.length || !agreed) ? "#444" : "#FF5C00", color: "#fff", border: "none", borderRadius: 14, padding: "16px", fontSize: 15, fontWeight: 700, cursor: sending || !hasAddress || !addrValid || !payable.length || !agreed ? "default" : "pointer", WebkitTapHighlightColor: "transparent" }}>
                     {sending ? tr("cart.processingPayment", "Processing payment…") : !hasAddress ? tr("cart.addAddressToContinue", "Add an address to continue") : payable.length === 0 ? tr("cart.allOnHold", "All items are on hold") : !agreed ? tr("cart.tickBoxToContinue", "Tick the box to continue") : heldCount > 0 ? tr("cart.payForRest", "Order & pay €{amount} for the rest →", { amount: charge.toFixed(2) }) : tr("cart.payButton", "Order & pay €{amount} →", { amount: charge.toFixed(2) })}
                   </motion.button>
 
@@ -1895,7 +2184,34 @@ export default function SupplyFlow({ session }) {
   useEffect(() => {
     localStorage.setItem(lsKey("flowva_parcel_heldout"), JSON.stringify(parcelHeldOut));
   }, [parcelHeldOut]);
-  const toggleParcelHold = (id) => setParcelHeldOut((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
+  // Apart houden / terugzetten. GROEP: sync direct met de server (box_staged_at):
+  // apart = niet Ready (uit de doos); terugzetten = weer Ready (de klant heeft de
+  // foto's al gezien via de sheet). Solo blijft puur client-side zoals voorheen.
+  const toggleParcelHold = (id) => {
+    const wasHeld = parcelHeldOut.includes(id);
+    setParcelHeldOut((prev) => (wasHeld ? prev.filter((x) => x !== id) : [...prev, id]));
+    const o = orders.find((x) => x.id === id);
+    if (o?.ff_group_id) {
+      supabase.rpc("ff_stage_box", { p_order_ids: [id], p_staged: wasHeld }).then(() => fetchOrders());
+    }
+  };
+  // ✓ Ready (Flowva Friends): de klant bevestigt na het inspecteren van de foto's dat
+  // het item mee mag in het groepspakket → box_staged_at (server telt alleen Ready-items
+  // in de verzend-gate + gewichtssplitsing). Haalt het item ook uit "apart gehouden".
+  const markParcelReady = async (o) => {
+    const { data } = await supabase.rpc("ff_stage_box", { p_order_ids: [o.id], p_staged: true });
+    if (data?.ok) {
+      setParcelHeldOut((prev) => prev.filter((x) => x !== o.id));
+      setInspectItem((cur) => (cur && cur.id === o.id ? { ...cur, box_staged_at: new Date().toISOString() } : cur));
+      setSelectedOrder((cur) => (cur && cur.id === o.id ? { ...cur, box_staged_at: new Date().toISOString() } : cur));
+      fetchOrders();
+    }
+  };
+  // Sheet openen — eigen items verrijken vanuit `orders` (heeft dispute-/probleem-velden).
+  const openInspectItem = (o) => {
+    const own = orders.find((x) => x.id === o.id);
+    setInspectItem(own ? { ...o, ...own } : o);
+  };
 
   // Aanvraaglijst: items verzamelen en in één keer aanvragen (= één service fee).
   const [requestList, setRequestList] = useState(() => {
@@ -1915,6 +2231,9 @@ export default function SupplyFlow({ session }) {
   const [showFriends, setShowFriends] = useState(false);
   const [groupOrders, setGroupOrders] = useState([]);   // alle orders van de actieve groep (alleen-lezen)
   const [squadWheel, setSquadWheel] = useState(null);   // squad-item waarvan de voortgangscirkel openstaat
+  // 🔍 Item-inspectiesheet (Friends): squad-/pakket-item dat openstaat. Eigen items
+  // verrijken we vanuit `orders` (RPC-rijen missen dispute-/probleem-velden).
+  const [inspectItem, setInspectItem] = useState(null);
   // Geleverde orders die de klant zelf uit de lijst heeft weggehaald (✕). Per-device in localStorage —
   // het is puur een weergave-voorkeur; de order/het pakket blijft gewoon in de In transit-tab vindbaar.
   const [dismissedOrders, setDismissedOrders] = useState(() => {
@@ -2564,15 +2883,24 @@ export default function SupplyFlow({ session }) {
     o.status === "qc_pending" && !orderToParcel[o.id] &&
     o.dispute_status !== "pending" && o.dispute_status !== "bucky_flagged" && !o.return_status &&
     (activeGroup ? o.ff_group_id === activeGroup.id : !o.ff_group_id));
-  const parcelItems = parcelEligible.filter((o) => !parcelHeldOut.includes(o.id));
-  const parcelHeldItems = parcelEligible.filter((o) => parcelHeldOut.includes(o.id));
+  // SOLO: hold-out is verwijderd (user-keuze 2026-07-20) — alles zit ALTIJD in het pakket.
+  // Alleen de GROEP-modus houdt nog apart-houden (onderdeel van de Ready-flow).
+  const parcelItems = activeGroup ? parcelEligible.filter((o) => !parcelHeldOut.includes(o.id)) : parcelEligible;
+  const parcelHeldItems = activeGroup ? parcelEligible.filter((o) => parcelHeldOut.includes(o.id)) : [];
   // Toestand van een item voor het pakket-chipje op de orderkaart (null = geen chip).
+  // GROEP: "in de doos" is automatisch bij aankomst, maar de klant bevestigt met Ready
+  // (na foto-inspectie) → extra states "ready" (bevestigd) en "confirm" (nog inspecteren).
+  // SOLO: "in_solo" = puur info (in je pakket), niet klikbaar, geen hold-out.
   const parcelStateFor = (o) => {
     if (o.status !== "qc_pending") return null;
     if (orderToParcel[o.id]) return "locked";
     if (o.dispute_status === "pending" || o.dispute_status === "bucky_flagged" || o.return_status) return null;
     if (activeGroup ? o.ff_group_id !== activeGroup.id : o.ff_group_id) return null;   // andere modus
-    return parcelHeldOut.includes(o.id) ? "out" : "in";
+    if (activeGroup) {
+      if (parcelHeldOut.includes(o.id)) return "out";
+      return o.box_staged_at ? "ready" : "confirm";
+    }
+    return "in_solo";
   };
   // Shop-modus geldt ALLEEN voor een 'gathering'-groep. Een geplaatste groep is "Following"
   // (volgen) — dan gedraagt de feed/cart/glow zich gewoon solo; Orders blijft wel die groep volgen.
@@ -2880,7 +3208,7 @@ export default function SupplyFlow({ session }) {
                     <div style={{ padding: "20px 14px", textAlign: "center", fontSize: 13, color: "#aaa" }}><Fox /> {tr("feed.notifs.empty", "No new notifications")}</div>
                   )}
                   {warehouseCount > 0 && (
-                    <div onClick={() => { setShowNotifs(false); setTab("warehouse"); }}
+                    <div onClick={() => { setShowNotifs(false); setTab("orders"); /* magazijn = onderdeel van Orders sinds de merge */ }}
                       style={{ display: "flex", alignItems: "center", gap: 10, padding: "11px 14px", borderBottom: "1px solid #F0EEE8", cursor: "pointer" }}>
                       <span style={{ fontSize: 17 }}>🏭</span>
                       <span style={{ fontSize: 12.5, color: "#333", lineHeight: 1.4, flex: 1 }}>{tr("feed.notifs.warehouseRow", "{count} product{s} in your warehouse", { count: warehouseCount, s: warehouseCount > 1 ? "s" : "" })}</span>
@@ -3068,6 +3396,7 @@ export default function SupplyFlow({ session }) {
                               <div style={{ fontSize: 12.5, fontWeight: 700, color: "#0F0E0C" }}>{m0.member}</div>
                             </div>
                             <OrderGroupCard items={memberOrders} groupSize={null} squad
+                              onOpenItem={openInspectItem}
                               activeFilter={orderFilter} onClearFilter={() => setOrderFilter("all")} />
                           </motion.div>
                         );
@@ -3075,7 +3404,7 @@ export default function SupplyFlow({ session }) {
                     </AnimatePresence>
                   );
                 })()}
-                <div style={{ fontSize: 11, color: "#A8A5A0", margin: "2px 2px 0", lineHeight: 1.4 }}>{tr("orders.squad.viewOnlyNote", "👀 Your squad's order statuses — view only. You're only notified about your own items.")}</div>
+                <div style={{ fontSize: 11, color: "#A8A5A0", margin: "2px 2px 0", lineHeight: 1.4 }}>{tr("orders.squad.inspectNote", "👀 Tap any item to see its journey and inspect the photos. You're only notified about your own items.")}</div>
               </div>
             )}
             {visibleOrders.filter(matchesFilter).length === 0 && !(activeGroup && groupOrders.some((o) => o.user_id !== session.user.id && matchesFilter(o))) && (
@@ -3104,80 +3433,10 @@ export default function SupplyFlow({ session }) {
           <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 16 }}>
             <motion.button whileTap={{ scale: 0.9 }} onClick={() => setSelectedOrder(null)}
               style={{ width: 36, height: 36, borderRadius: "50%", background: "#fff", border: "1px solid #ECEAE5", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", fontSize: 16, color: "#111111", WebkitTapHighlightColor: "transparent" }}>←</motion.button>
-            <div style={{ fontSize: 15, fontWeight: 700, color: "#111111" }}>{tr("orders.detail.title", "Track order")}</div>
+            <div style={{ fontSize: 15, fontWeight: 700, color: "#111111" }}>{tr("orders.detail.qcPics.title", "Quality-control pictures")}</div>
           </div>
-          {(() => {
-            const fp = products.find(p => p.title === (selectedOrder.product_title || selectedOrder.product));
-            const heroImg = selectedOrder.variant_image || (fp?.image?.startsWith("http") ? fp.image : null);
-            return (
-              <div style={{ background: "#fff", borderRadius: 16, padding: "13px 16px", marginBottom: 12, boxShadow: "0 1px 2px rgba(17,17,17,0.04), 0 6px 18px rgba(17,17,17,0.05)", display: "flex", alignItems: "center", gap: 12 }}>
-                <div style={{ width: 52, height: 52, borderRadius: 11, background: "#F3F1ED", border: "1px solid #F0EEE8", overflow: "hidden", flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
-                  {heroImg ? <img src={heroImg} referrerPolicy="no-referrer" alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : <span style={{ fontSize: 22 }}>📦</span>}
-                </div>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontSize: 14, fontWeight: 700, color: "#111111", marginBottom: 2 }}>{selectedOrder.product_title || selectedOrder.product}</div>
-                  <div style={{ fontSize: 12, color: "#A8A5A0" }}>{tr("orders.detail.idPcs", "{orderId} · {qty} pcs", { orderId: selectedOrder.id, qty: selectedOrder.qty })}{selectedOrder.kleur ? ` · ${selectedOrder.kleur}` : ""}</div>
-                </div>
-              </div>
-            );
-          })()}
-          {(() => {
-            // 2-fasen-mapping: alles vóór aankomst = stap 0 (Order placed), qc_pending = stap 1
-            // (In warehouse), shipped/delivered = voorbij de laatste stap (alles afgevinkt).
-            const rawStep = statusConfig[selectedOrder.status]?.step ?? 0;
-            const step = rawStep > statusConfig.qc_pending.step ? trackingSteps.length : rawStep >= statusConfig.qc_pending.step ? 1 : 0;
-            return (
-              <div style={{ background: "#fff", borderRadius: 18, padding: "16px 18px", marginBottom: 16, boxShadow: "0 1px 2px rgba(17,17,17,0.04), 0 6px 18px rgba(17,17,17,0.05)" }}>
-                <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 14 }}>
-                  <span style={{ fontSize: 13, fontWeight: 700, color: "#111111" }}>{tr("orders.detail.status", "Status")}</span>
-                  <span style={{ fontSize: 12, color: "#A8A5A0" }}>{tr("orders.detail.stepOf", "Step {current} of {total}", { current: Math.min(step + 1, trackingSteps.length), total: trackingSteps.length })}</span>
-                </div>
-                {trackingSteps.map((st, i) => {
-                  const label = tr(st.key, st.en);
-                  const done = i < step;
-                  const current = i === step;
-                  const last = i === trackingSteps.length - 1;
-                  return (
-                    <div key={i} style={{ display: "flex", gap: 13 }}>
-                      <div style={{ display: "flex", flexDirection: "column", alignItems: "center", width: 22, flexShrink: 0 }}>
-                        {current ? (
-                          <div style={{ position: "relative", width: 22, height: 22 }}>
-                            <motion.div animate={{ scale: [0.9, 1.6], opacity: [0.45, 0] }} transition={{ duration: 1.7, repeat: Infinity, ease: "easeOut" }}
-                              style={{ position: "absolute", inset: 0, borderRadius: "50%", border: "2px solid #FF5C00", willChange: "transform, opacity" }} />
-                            <div style={{ width: 22, height: 22, borderRadius: "50%", border: "2px solid #111111", background: "#fff", display: "flex", alignItems: "center", justifyContent: "center", boxSizing: "border-box" }}>
-                              <div style={{ width: 8, height: 8, borderRadius: "50%", background: "#111111" }} />
-                            </div>
-                          </div>
-                        ) : (
-                          <div style={{ width: 22, height: 22, borderRadius: "50%", background: done ? "#111111" : "#EDEBE6", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontSize: 11, fontWeight: 700, flexShrink: 0 }}>
-                            {done ? "✓" : ""}
-                          </div>
-                        )}
-                        {!last && <div style={{ width: 2, flex: 1, minHeight: 16, background: done ? "#111111" : "#EDEBE6", margin: "3px 0", borderRadius: 1 }} />}
-                      </div>
-                      <div style={{ paddingBottom: last ? 2 : 18, paddingTop: 2, display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-                        <span style={{ fontSize: 13.5, fontWeight: current ? 700 : done ? 600 : 500, color: done || current ? "#111111" : "#B7B4AE" }}>{label}</span>
-                        {current && (selectedOrder.problem_type === "out_of_stock" ? (
-                          <>
-                            <motion.span initial={{ scale: 0 }} animate={{ scale: 1 }} transition={springBouncy}
-                              style={{ background: "#FEE2E2", color: "#DC2626", fontSize: 9.5, fontWeight: 800, letterSpacing: 0.6, padding: "3px 8px", borderRadius: 7 }}>{tr("orders.detail.badge.outOfStock", "OUT OF STOCK")}</motion.span>
-                            <motion.span initial={{ scale: 0 }} animate={{ scale: 1 }} transition={springBouncy}
-                              style={{ background: "#DCFCE7", color: "#15803D", fontSize: 9.5, fontWeight: 800, letterSpacing: 0.6, padding: "3px 8px", borderRadius: 7 }}>{tr("orders.detail.badge.refunded", "REFUNDED")}</motion.span>
-                          </>
-                        ) : (
-                          <motion.span initial={{ scale: 0 }} animate={{ scale: 1 }} transition={springBouncy}
-                            style={{ background: "#FF5C00", color: "#fff", fontSize: 9.5, fontWeight: 800, letterSpacing: 0.6, padding: "3px 8px", borderRadius: 7 }}>{tr("orders.detail.badge.inProgress", "IN PROGRESS")}</motion.span>
-                        ))}
-                        {current && label === tr("orders.status.qcPending", "In warehouse") && (
-                          <div style={{ flexBasis: "100%", fontSize: 11.5, color: "#A8A5A0", marginTop: 1, lineHeight: 1.4 }}>{tr("orders.detail.arrivedQcHint", "Your item arrived and its quality-control photos are ready to view.")}</div>
-                        )}
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            );
-          })()}
+          {/* Productkop + statusblok VERWIJDERD (user 2026-07-20): dit scherm is nu puur de
+              Quality-control pictures. Het product staat al bij de foto's ("Your order"-badge). */}
           {/* Probleem gemeld door agent */}
           {selectedOrder.problem_type === "out_of_stock" ? (
             <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} transition={springSoft}
@@ -3216,14 +3475,14 @@ export default function SupplyFlow({ session }) {
             </motion.div>
           ) : null}
 
-          {/* Door BuckyDrop gemeld defect: stuur de klant naar de warehouse om te kiezen (retour/accept). */}
+          {/* Door BuckyDrop gemeld defect: de klant kiest HIER (retour/accept) — de oude
+              "Review in your warehouse"-knop wees naar de verdwenen warehouse-tab. */}
           {selectedOrder.dispute_status === "bucky_flagged" && (
             <div style={{ background: "#FFF7ED", border: "1.5px solid #F59E0B", borderRadius: 14, padding: 16, marginBottom: 16 }}>
               <div style={{ fontSize: 14, fontWeight: 700, color: "#B45309", marginBottom: 4 }}>{tr("orders.detail.buckyFlagged.title", "⚠️ Quality-control flagged a possible defect")}</div>
               <div style={{ fontSize: 13, color: "#92400E", lineHeight: 1.5, marginBottom: 12 }}>{tr("orders.detail.buckyFlagged.body", "Our warehouse spotted something off with your item. Review the photos and choose to return it for a full refund or accept it as-is.")}</div>
-              <button onClick={() => { setSelectedOrder(null); setTab("warehouse"); }} style={{ width: "100%", background: "#FF5C00", color: "#fff", border: "none", borderRadius: 12, padding: "12px", fontSize: 14, fontWeight: 700, cursor: "pointer" }}>
-                {tr("orders.detail.buckyFlagged.cta", "Review in your warehouse →")}
-              </button>
+              <DefectChoice order={selectedOrder}
+                onResolved={(patch) => { setSelectedOrder((cur) => (cur ? { ...cur, ...patch } : cur)); fetchOrders(); }} />
             </div>
           )}
           {/* Eigen klant-melding: in behandeling, of afgewezen met standaardbericht */}
@@ -3239,21 +3498,7 @@ export default function SupplyFlow({ session }) {
               <div style={{ fontSize: 13, color: "#555", lineHeight: 1.55 }}>{selectedOrder.dispute_response}</div>
             </div>
           )}
-          {(() => {
-            const fm = foxMessages[selectedOrder.status];
-            const fmMsg = fm ? tr(fm.msgKey, fm.msg) : undefined;
-            return fm ? (
-              <div style={{ display: "flex", alignItems: "flex-start", gap: 12, background: "#111111", borderRadius: 18, padding: "15px 16px", marginBottom: 16 }}>
-                <div style={{ width: 34, height: 34, borderRadius: "50%", background: "rgba(255,255,255,0.08)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 17, flexShrink: 0 }}><Fox /></div>
-                <div style={{ flex: 1 }}>
-                  <div style={{ fontSize: 12.5, fontWeight: 700, color: "#FF5C00", marginBottom: 4 }}>{statusLabel(selectedOrder)}</div>
-                  <div style={{ fontSize: 13, color: "#C9C6C1", lineHeight: 1.55 }}>
-                    <WordReveal key={selectedOrder.status} text={fmMsg} stagger={0.025} />
-                  </div>
-                </div>
-              </div>
-            ) : null;
-          })()}
+          {/* Vos-statusbanner VERWIJDERD (user 2026-07-20): dit scherm toont enkel de QC-foto's. */}
 
           {selectedOrder.status === "qc_pending" && selectedOrder.qc_images?.length > 0 && (
             <div style={{ marginBottom: 20 }}>
@@ -3281,14 +3526,46 @@ export default function SupplyFlow({ session }) {
                   </div>
                 ))}
               </div>
+              {/* Measurement-foto's (Garment Measurement Service) — apart blok zodat de klant
+                  ALLE foto's ziet die BuckyDrop maakte (QC + measurement), niet alleen de QC-set. */}
+              {selectedOrder.measurement_images?.length > 0 && (
+                <div style={{ marginTop: 16 }}>
+                  <div style={{ fontSize: 14, fontWeight: 600, color: "#0F0E0C", marginBottom: 12 }}>{tr("orders.detail.measPics.title", "Measurement pictures")}</div>
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+                    {selectedOrder.measurement_images.map((url, i) => (
+                      <div key={i} style={{ borderRadius: 12, overflow: "hidden", aspectRatio: "1" }}>
+                        <img src={url} referrerPolicy="no-referrer" alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
               {selectedOrder.weight_grams && (
                 <div style={{ marginTop: 10, background: "#F0FDF4", borderRadius: 10, padding: "10px 14px", fontSize: 13, color: "#065F46", fontWeight: 600 }}>
                   {tr("orders.detail.qcPics.weightLine", "⚖️ Weight: {grams}g · shipping is charged per parcel — bundle to save", { grams: selectedOrder.weight_grams })}
                 </div>
               )}
-              <button onClick={() => setTab("warehouse")} style={{ width: "100%", marginTop: 10, background: "#FF5C00", color: "#fff", border: "none", borderRadius: 12, padding: "12px", fontSize: 14, fontWeight: 700, cursor: "pointer" }}>
-                {tr("orders.detail.qcPics.addToParcel", "🏭 Add to parcel →")}
-              </button>
+              {/* GROEP: item zit automatisch in het groepspakket — hier bevestigt de klant met
+                  Ready dat de foto's zijn geïnspecteerd (gate: pas verzenden als iedereen Ready is).
+                  SOLO: item zit al automatisch in het pakket (geen "Add to parcel" meer). Na het
+                  inspecteren van de foto's kan de klant hier een probleem melden → "Request a refund"
+                  (submit_dispute → zichtbaar in admin). Verborgen zodra er al een defect/dispute/
+                  retour/probleem loopt — dan staat het bijbehorende blok hierboven al. */}
+              {selectedOrder.ff_group_id ? (
+                selectedOrder.dispute_status || selectedOrder.return_status || selectedOrder.problem_type ? null
+                : selectedOrder.box_staged_at ? (
+                  <div style={{ marginTop: 10, background: "#ECFDF5", border: "1px solid #A7F3D0", borderRadius: 12, padding: "12px", textAlign: "center", fontSize: 13, fontWeight: 700, color: "#065F46" }}>
+                    {tr("inspect.readyDone", "✓ Ready — ships with the group parcel")}
+                  </div>
+                ) : (
+                  <button onClick={() => markParcelReady(selectedOrder)} style={{ width: "100%", marginTop: 10, background: "#FF5C00", color: "#fff", border: "none", borderRadius: 12, padding: "12px", fontSize: 14, fontWeight: 700, cursor: "pointer" }}>
+                    {tr("inspect.readyBtn", "✓ Looks good — Ready to ship")}
+                  </button>
+                )
+              ) : (selectedOrder.dispute_status || selectedOrder.return_status || selectedOrder.problem_type) ? null : (
+                <RefundRequest order={selectedOrder}
+                  onSubmitted={(patch) => { setSelectedOrder((cur) => (cur ? { ...cur, ...patch } : cur)); fetchOrders(); }} />
+              )}
             </div>
           )}
           {(selectedOrder.status === "shipped_international" || selectedOrder.status === "delivered") && (
@@ -3325,7 +3602,9 @@ export default function SupplyFlow({ session }) {
           fixed pakket-balk niet in een ge-transformde pagina-container zit. */}
       {tab === "orders" && !selectedOrder && session && !isGuest && (
         <ParcelSection session={session} activeGroupId={activeGroup?.id || null}
-          parcelItems={parcelItems} heldOutItems={parcelHeldItems} onToggleHold={toggleParcelHold}
+          parcelItems={parcelItems} heldOutItems={parcelHeldItems}
+          onToggleHold={activeGroup ? toggleParcelHold : undefined}
+          onInspectItem={openInspectItem}
           onShipped={() => { fetchOrders(); fetchHauls(); fetchBalance(); }} />
       )}
 
@@ -3896,6 +4175,13 @@ export default function SupplyFlow({ session }) {
         {showDiamond && <DiamondSheet onClose={() => setShowDiamond(false)} arriving={arcFlight?.kind === "diamond"} />}
         {squadWheel && <ProgressWheelModal items={[squadWheel]} onClose={() => setSquadWheel(null)} />}
       </AnimatePresence>
+      {/* 🔍 Item-inspectiesheet (Friends): squad-breed foto's inspecteren + eigen Ready-bevestiging.
+          Bewust BUITEN AnimatePresence — de sheet regelt z'n eigen exit-animatie (portal-issue). */}
+      {inspectItem && (
+        <ItemInspectSheet key={inspectItem.id} item={inspectItem} isOwn={inspectItem.user_id === session?.user?.id}
+          onReady={markParcelReady} onHoldOut={(o) => { if (!parcelHeldOut.includes(o.id)) toggleParcelHold(o.id); }}
+          onClose={() => setInspectItem(null)} />
+      )}
 
       {/* Review-pagina */}
       <AnimatePresence>

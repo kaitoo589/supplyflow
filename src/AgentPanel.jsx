@@ -114,6 +114,11 @@ function OrderDetail({ order: initialOrder, onBack, onUpdate }) {
   const [quoteNote, setQuoteNote] = useState(order.quote_note || "");
   const [defectNote, setDefectNote] = useState(order.agent_notitie || "");
   const [defectUploading, setDefectUploading] = useState(false);
+  // Klant-dispute ("Request a refund") afhandelen: approve = refund + fabrieksretour,
+  // reject = afwijzen met bericht. rejectMode toont het berichtveld; confirmApprove = 2e tik.
+  const [rejectMode, setRejectMode] = useState(false);
+  const [rejectMsg, setRejectMsg] = useState("");
+  const [confirmApprove, setConfirmApprove] = useState(false);
 
   const quotedPriceEur = quotedPrice ? parseFloat(quotedPrice) * eurRate : 0;
   const quotedLocalShippingEur = quotedLocalShipping ? parseFloat(quotedLocalShipping) * eurRate : 0;
@@ -179,6 +184,22 @@ function OrderDetail({ order: initialOrder, onBack, onUpdate }) {
       onUpdate(updated);
     }
     setSaving(false);
+  };
+
+  // Klant-dispute afhandelen via admin_resolve_dispute (SECURITY DEFINER, admin-only).
+  // Approve → productprijs terug naar klant-saldo + order geannuleerd + fabrieksretour aangevraagd.
+  // Reject  → dispute_status='rejected' + jouw bericht in de order-chat (klant krijgt melding).
+  const resolveDispute = async (approve, message) => {
+    setSaving(true);
+    const { data, error } = await supabase.rpc("admin_resolve_dispute", { p_order_id: order.id, p_approve: approve, p_message: message || null });
+    setSaving(false);
+    if (error || data?.ok === false) { alert("Kon de melding niet afhandelen: " + (error?.message || data?.error || "onbekende fout")); return; }
+    const updated = approve
+      ? { ...order, dispute_status: "approved", status: "cancelled", return_status: "requested", dispute_response: null }
+      : { ...order, dispute_status: "rejected", dispute_response: message || null };
+    setOrder(updated);
+    onUpdate(updated);
+    setRejectMode(false); setRejectMsg(""); setConfirmApprove(false);
   };
 
   const updateStatus = async (newStatus) => {
@@ -537,6 +558,35 @@ function OrderDetail({ order: initialOrder, onBack, onUpdate }) {
                 {order.dispute_images.map((url, i) => (
                   <img key={i} src={url} alt="" style={{ width: 60, height: 60, borderRadius: 8, objectFit: "cover" }} />
                 ))}
+              </div>
+            )}
+            {/* Afhandelen: goedkeuren (refund + fabrieksretour) of afwijzen met bericht. */}
+            {!rejectMode ? (
+              <div style={{ display: "flex", gap: 8, marginTop: 14 }}>
+                <button onClick={() => (confirmApprove ? resolveDispute(true) : setConfirmApprove(true))} disabled={saving}
+                  style={{ flex: 1, background: "#16A34A", color: "#fff", border: "none", borderRadius: 10, padding: "11px 8px", fontSize: 13, fontWeight: 700, cursor: saving ? "default" : "pointer", opacity: saving ? 0.6 : 1 }}>
+                  {confirmApprove ? "Sure? Refund + return 确认退款退货" : "✓ Approve refund 批准退款"}
+                </button>
+                <button onClick={() => { setRejectMode(true); setConfirmApprove(false); }} disabled={saving}
+                  style={{ flex: 1, background: "#FEE2E2", color: "#DC2626", border: "none", borderRadius: 10, padding: "11px 8px", fontSize: 13, fontWeight: 700, cursor: saving ? "default" : "pointer", opacity: saving ? 0.6 : 1 }}>
+                  ✕ Decline 拒绝
+                </button>
+              </div>
+            ) : (
+              <div style={{ marginTop: 14 }}>
+                <textarea value={rejectMsg} onChange={(e) => setRejectMsg(e.target.value)} rows={3}
+                  placeholder="Message to the customer (why it's declined) 给客户的说明"
+                  style={{ width: "100%", boxSizing: "border-box", resize: "vertical", border: "1px solid #E2E0DA", borderRadius: 10, padding: "10px 12px", fontSize: 13, fontFamily: "inherit", color: "#0F0E0C", outline: "none" }} />
+                <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
+                  <button onClick={() => { setRejectMode(false); setRejectMsg(""); }} disabled={saving}
+                    style={{ flex: 1, background: "#F3F1ED", color: "#6B6862", border: "none", borderRadius: 10, padding: "11px 8px", fontSize: 13, fontWeight: 700, cursor: saving ? "default" : "pointer", opacity: saving ? 0.6 : 1 }}>
+                    Back 返回
+                  </button>
+                  <button onClick={() => resolveDispute(false, rejectMsg.trim())} disabled={saving || !rejectMsg.trim()}
+                    style={{ flex: 1, background: "#DC2626", color: "#fff", border: "none", borderRadius: 10, padding: "11px 8px", fontSize: 13, fontWeight: 700, cursor: (saving || !rejectMsg.trim()) ? "default" : "pointer", opacity: (saving || !rejectMsg.trim()) ? 0.6 : 1 }}>
+                    Send decline 发送
+                  </button>
+                </div>
               </div>
             )}
           </div>

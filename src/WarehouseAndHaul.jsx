@@ -1302,12 +1302,12 @@ function GroupShippingPanel({ session, groupId, shipment, waitingCount, isHost, 
     if (haulCount === 0 && waitingCount === 0) return null;
     if (waitingCount > 0) {
       return <div style={{ ...wrap, textAlign: "center", color: "#92400E", background: "#FFF7ED", borderColor: "#FCD9B6", fontSize: 13 }}>
-        ⏳ Waiting for your squad — {waitingCount} item{waitingCount === 1 ? "" : "s"} still on the way or not in the box yet. Everything ships in one parcel.
+        ⏳ Waiting for your squad — {waitingCount} item{waitingCount === 1 ? "" : "s"} still on the way or not confirmed Ready yet. Everything ships in one parcel.
       </div>;
     }
     if (!isHost) {
       return <div style={{ ...wrap, textAlign: "center", fontSize: 13, color: "#6b6b6b" }}>
-        ✓ Everyone's in the box. The host{hostName ? ` (${hostName})` : ""} locks the shipping quote, then you each pay your share.
+        ✓ Everyone hit Ready — the box is complete. The host{hostName ? ` (${hostName})` : ""} locks the shipping quote, then you each pay your share.
       </div>;
     }
     if (channels === null) {
@@ -1381,11 +1381,13 @@ const TRACE_LABEL = { 1: "In transit", 2: "Out for delivery", 3: "Delivered", 4:
 // houden kan per item (heldOut, beheerd door de parent). Onderaan een pakket-
 // balk (zelfde donkere pil als de mand-balk) → sheet met items + schatting →
 // de bestaande verzendflow (ConfirmHaul incl. opslag-quote-route + HaulSuccess).
-// Groep-modus: zelfde balk/sheet met de groeps-gate + GroupShippingPanel; items
-// worden server-side automatisch gestaged (ff_stage_box) zodat gate + squad
-// hetzelfde zien als jij.
+// GROEP-modus: de sheet toont het HELE groepspakket (ieders aangekomen items, met
+// naam + Ready-status; tik = inspectiesheet met foto's via onInspectItem). Items
+// gaan automatisch "in de doos" bij aankomst, maar elk lid bevestigt z'n eigen
+// items met Ready ná foto-inspectie (ff_stage_box → box_staged_at) — de server-
+// gate laat pas verzenden als ALLES Ready is. Geen stille auto-staging meer.
 // ────────────────────────────────────────────────────────────────────────────
-export function ParcelSection({ session, activeGroupId = null, parcelItems = [], heldOutItems = [], onToggleHold, onShipped }) {
+export function ParcelSection({ session, activeGroupId = null, parcelItems = [], heldOutItems = [], onToggleHold, onInspectItem, onShipped }) {
   const [open, setOpen] = useState(false);
   const [screen, setScreen] = useState(null);      // null | "confirm" | "success"
   const [balance, setBalance] = useState(0);
@@ -1459,34 +1461,26 @@ export function ParcelSection({ session, activeGroupId = null, parcelItems = [],
     return () => clearInterval(t);
   }, [activeGroupId]);
 
-  // Auto-staging (groep): pakket-items server-side "in de doos" zetten, apart-
-  // gehouden items eruit — add/remove-diff tegen wat de server al weet.
-  const parcelKey = parcelItems.map((o) => o.id).join(",");
-  const heldKey = heldOutItems.map((o) => o.id).join(",");
-  useEffect(() => {
-    if (!activeGroupId || !squadOrders.length) return;
-    const staged = new Set(squadOrders.filter((o) => o.box_staged_at).map((o) => o.id));
-    const toStage = parcelItems.filter((o) => !staged.has(o.id)).map((o) => o.id);
-    const toUnstage = heldOutItems.filter((o) => staged.has(o.id)).map((o) => o.id);
-    if (!toStage.length && !toUnstage.length) return;
-    (async () => {
-      if (toStage.length) await supabase.rpc("ff_stage_box", { p_order_ids: toStage, p_staged: true });
-      if (toUnstage.length) await supabase.rpc("ff_stage_box", { p_order_ids: toUnstage, p_staged: false });
-      fetchSquad();
-    })();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeGroupId, parcelKey, heldKey, squadOrders]);
+  // GEEN stille auto-staging meer: box_staged_at wordt gezet door de expliciete
+  // Ready-bevestiging van het lid zelf (na foto-inspectie), via de parent
+  // (markParcelReady/toggleParcelHold in de app) — niet hier.
 
-  // Groeps-gate — zelfde regels als voorheen (de server dwingt dit óók af).
+  // Groeps-gate — zelfde regels als voorheen (de server dwingt dit óók af):
+  // wachten = nog onderweg + aangekomen-maar-nog-niet-Ready (incl. apart gehouden).
   const COMING = ["quote_accepted", "purchased", "bought", "shipped_local"];
   const alive = (squadOrders || []).filter((o) => !o.return_status && o.status !== "cancelled" && o.status !== "refunded");
   const waitingCount = alive.filter((o) => COMING.includes(o.status)).length + alive.filter((o) => o.status === "qc_pending" && !o.box_staged_at).length;
   const isHost = !activeGroupId || session.user.id === squadHostId;
   const hostName = ((squadOrders || []).find((o) => o.user_id === squadHostId) || {}).member;
 
+  // GROEP: het pakket toont ieders aangekomen items (behalve wat jij zelf apart houdt —
+  // dat staat in de eigen "held out"-sectie). Solo: gewoon je eigen pakket-items.
+  const heldIds = new Set(heldOutItems.map((o) => o.id));
+  const groupArrived = activeGroupId ? alive.filter((o) => o.status === "qc_pending" && !heldIds.has(o.id)) : [];
+
   const totalWeight = parcelItems.reduce((s, o) => s + (o.weight_grams || 0), 0);
   const est = totalWeight > 0 ? shippingEstimate(totalWeight / 1000) : null;
-  const count = parcelItems.length;
+  const count = activeGroupId ? groupArrived.length : parcelItems.length;
 
   const thumb = (o) => (
     <div style={{ width: 40, height: 40, borderRadius: 9, background: "#fff", overflow: "hidden", flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
@@ -1550,20 +1544,27 @@ export function ParcelSection({ session, activeGroupId = null, parcelItems = [],
                 <motion.span ref={titleBoxRef} initial={false}
                   animate={boxFlight && boxFlight !== "landed" ? { opacity: 0, scale: 0.3 } : { opacity: 1, scale: 1 }}
                   transition={springBouncy} style={{ display: "inline-block" }}>📦</motion.span>{" "}
-                {didReveal.current
-                  ? tr("parcel.sheet.title", "Your parcel ({count})", { count })
-                  : <WordReveal text={tr("parcel.sheet.title", "Your parcel ({count})", { count })} delay={0.12} stagger={0.05} />}
+                {(() => {
+                  const title = activeGroupId
+                    ? tr("parcel.sheet.titleGroup", "Group parcel ({count})", { count })
+                    : tr("parcel.sheet.title", "Your parcel ({count})", { count });
+                  return didReveal.current ? title : <WordReveal text={title} delay={0.12} stagger={0.05} />;
+                })()}
               </div>
               <CartGrower skip={didReveal.current}>
               <div ref={contentRef}>
               <FoldReveal i={0} n={count + 5} skip={didReveal.current}>
-              <div style={{ fontSize: 11.5, color: "#9C9893", lineHeight: 1.5, marginBottom: 12 }}>{tr("parcel.sheet.autoNote", "Items land here automatically when they arrive in the warehouse. One parcel = one shipping cost + one service fee.")}</div>
+              <div style={{ fontSize: 11.5, color: "#9C9893", lineHeight: 1.5, marginBottom: 12 }}>
+                {activeGroupId
+                  ? tr("parcel.sheet.autoNoteGroup", "Everyone's items land here when they arrive. Tap an item to inspect the photos and hit Ready on your own — the parcel ships once every item is confirmed.")
+                  : tr("parcel.sheet.autoNote", "Items land here automatically when they arrive in the warehouse. One parcel = one shipping cost + one service fee.")}
+              </div>
               </FoldReveal>
 
               {activeGroupId && waitingCount > 0 && (
                 <FoldReveal i={1} n={count + 5} skip={didReveal.current}>
                 <div style={{ background: "rgba(99,102,241,0.14)", borderRadius: 12, padding: "9px 12px", marginBottom: 12, fontSize: 12, color: "#A5B4FC", lineHeight: 1.5 }}>
-                  {tr("parcel.sheet.groupWaiting", "The group parcel ships once everyone's items have arrived — {count} still on the way or held out.", { count: waitingCount })}
+                  {tr("parcel.sheet.groupWaitingReady", "The group parcel ships once every item has arrived and everyone hit Ready — {count} to go.", { count: waitingCount })}
                 </div>
                 </FoldReveal>
               )}
@@ -1573,7 +1574,40 @@ export function ParcelSection({ session, activeGroupId = null, parcelItems = [],
                 <div style={{ fontSize: 12.5, color: "#9C9893", padding: "10px 2px 4px" }}>{tr("parcel.sheet.empty", "No items in your parcel yet — they appear here when they arrive in the warehouse.")}</div>
                 </FoldReveal>
               )}
-              {parcelItems.map((o, rowIdx) => (
+              {/* GROEP: ieders aangekomen items — naam + Ready-status; tik = foto's inspecteren.
+                  Eigen niet-bevestigde items krijgen de Ready-nudge; bevestigde een ✕ (apart houden). */}
+              {activeGroupId && groupArrived.map((o, rowIdx) => {
+                const own = o.user_id === session.user.id;
+                const ready = !!o.box_staged_at;
+                return (
+                  <FoldReveal key={o.id} i={1 + rowIdx} n={count + 5} skip={didReveal.current}>
+                  <motion.div whileTap={onInspectItem ? { scale: 0.98 } : undefined} onClick={() => onInspectItem && onInspectItem(o)}
+                    style={{ display: "flex", alignItems: "center", gap: 11, background: "#1A1917", borderRadius: 13, padding: "9px 11px", marginBottom: 7, cursor: onInspectItem ? "pointer" : "default" }}>
+                    {thumb(o)}
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontSize: 12.5, fontWeight: 600, color: "#fff", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{o.product_title || o.product}</div>
+                      <div style={{ fontSize: 11, color: "#9C9893" }}>
+                        {own ? tr("parcel.row.you", "You") : (o.member || tr("inspect.friendFallback", "Friend"))}{o.weight_grams ? ` · ${o.weight_grams} g` : ""}
+                      </div>
+                    </div>
+                    {ready ? (
+                      <span style={{ flexShrink: 0, display: "flex", alignItems: "center", gap: 6 }}>
+                        <span style={{ background: "rgba(16,185,129,0.16)", color: "#34D399", fontSize: 10.5, fontWeight: 700, padding: "4px 9px", borderRadius: 999 }}>✓ {tr("parcel.row.ready", "Ready")}</span>
+                        {own && onToggleHold && (
+                          <motion.button whileTap={{ scale: 0.85 }} onClick={(e) => { e.stopPropagation(); onToggleHold(o.id); }} aria-label={tr("parcel.chip.holdOut", "Hold out of parcel")}
+                            style={{ width: 26, height: 26, borderRadius: "50%", background: "rgba(255,255,255,0.08)", border: "1px solid rgba(255,255,255,0.12)", color: "#C9C6C1", fontSize: 13, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", lineHeight: 1, flexShrink: 0 }}>✕</motion.button>
+                        )}
+                      </span>
+                    ) : own ? (
+                      <span style={{ flexShrink: 0, background: "#FF5C00", color: "#fff", fontSize: 10.5, fontWeight: 700, padding: "5px 11px", borderRadius: 999 }}>👀 {tr("parcel.row.inspect", "Inspect")}</span>
+                    ) : (
+                      <span style={{ flexShrink: 0, background: "rgba(245,158,11,0.16)", color: "#FBBF24", fontSize: 10.5, fontWeight: 700, padding: "4px 9px", borderRadius: 999 }}>⏳ {tr("parcel.row.notConfirmed", "not confirmed yet")}</span>
+                    )}
+                  </motion.div>
+                  </FoldReveal>
+                );
+              })}
+              {!activeGroupId && parcelItems.map((o, rowIdx) => (
                 <FoldReveal key={o.id} i={1 + rowIdx} n={count + 5} skip={didReveal.current}>
                 <div style={{ display: "flex", alignItems: "center", gap: 11, background: "#1A1917", borderRadius: 13, padding: "9px 11px", marginBottom: 7 }}>
                   {thumb(o)}

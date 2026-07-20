@@ -1258,7 +1258,7 @@ export function WarehouseTab({ session, haulItems: allHaulItems = [], setHaulIte
 //    z'n gewichtsaandeel → laatste betaling verzendt administratief naar het host-adres. ──
 function GroupShippingPanel({ session, groupId, shipment, waitingCount, isHost, hostName, haulCount, onRefresh }) {
   const [busy, setBusy] = useState(false);
-  const [channels, setChannels] = useState(null); // null = dicht, array = kanaal-keuze
+  const [pick, setPick] = useState(null); // null = dicht; object = auto-gekozen route ter bevestiging
   const [msg, setMsg] = useState("");
   const myId = session.user.id;
 
@@ -1272,14 +1272,20 @@ function GroupShippingPanel({ session, groupId, shipment, waitingCount, isHost, 
     setBusy(false);
     if (error || !data?.ok) { setMsg(data?.error || error?.message || "Could not get a shipping quote"); return; }
     if (!data.channels?.length) { setMsg(data.isSandbox ? "Sandbox: no live channels yet" : "No shipping options available right now"); return; }
-    setChannels(data.channels);
+    // AUTO-KEUZE, identiek aan solo (user 2026-07-21: geen keuzelijst meer): YunExpress
+    // (Vera's hoofdlijn) → DHL (reserve) → goedkoopste DDP. BuckyDrop bepaalt bij het echte
+    // verzenden tóch zelf de route (dashboard-prioriteit); dit is waar de schatting op rust.
+    const ddp = data.channels.filter((c) => c.taxInclusive);
+    const chosen = ddp.find((c) => /yun\s*express|yunexpress/i.test(c.name)) || ddp.find((c) => /dhl/i.test(c.name)) || ddp[0];
+    if (!chosen) { setMsg("No duty-paid shipping option is available right now. Please try again in a little while."); return; }
+    setPick(chosen);
   };
   const lock = async (serviceCode) => {
     setBusy(true); setMsg("");
     const { data, error } = await supabase.functions.invoke("haul-shipping-group", { body: { action: "lock", groupId, serviceCode } });
     setBusy(false);
     if (error || !data?.ok) { setMsg(data?.error || error?.message || "Could not lock the quote"); return; }
-    setChannels(null); onRefresh();
+    setPick(null); onRefresh();
   };
   const pay = async () => {
     setBusy(true); setMsg("");
@@ -1310,23 +1316,29 @@ function GroupShippingPanel({ session, groupId, shipment, waitingCount, isHost, 
         ✓ Everyone hit Ready — the box is complete. The host{hostName ? ` (${hostName})` : ""} locks the shipping quote, then you each pay your share.
       </div>;
     }
-    if (channels === null) {
+    if (pick === null) {
       return <div style={{ marginBottom: 20 }}>
-        <button disabled={busy} onClick={getQuote} style={darkBtn(busy)}>{busy ? "Getting quote…" : "Lock shipping quote & open split →"}</button>
+        <button disabled={busy} onClick={getQuote} style={darkBtn(busy)}>{busy ? "Getting quote…" : "Arrange shipping →"}</button>
         {err}
       </div>;
     }
+    // BEVESTIG-KAART (user 2026-07-21, vervangt de keuzelijst): zelfde opzet als solo —
+    // de route staat vast (auto-gekozen), de host bevestigt alleen nog.
     return <div style={wrap}>
-      <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 4 }}>Choose the shipping option</div>
-      <div style={{ fontSize: 11, color: "#9C9893", marginBottom: 10 }}>One combined parcel to {hostName || "the host"}. The cost is split across everyone by weight.</div>
-      {channels.map((c) => (
-        <button key={c.serviceCode} disabled={busy} onClick={() => lock(c.serviceCode)}
-          style={{ width: "100%", textAlign: "left", background: "#F8F7F4", border: "1px solid #E8E6E0", borderRadius: 12, padding: "10px 12px", marginBottom: 8, cursor: busy ? "wait" : "pointer", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-          <span><span style={{ fontWeight: 600, fontSize: 13 }}>{c.name}</span>{c.maxDays ? <span style={{ fontSize: 11, color: "#9C9893" }}> · {c.minDays}-{c.maxDays} days</span> : null}</span>
-          <span style={{ fontWeight: 700, fontSize: 13 }}>~{eur(c.priceEur)}</span>
-        </button>
-      ))}
-      <button onClick={() => { setChannels(null); setMsg(""); }} style={{ width: "100%", background: "none", border: "none", color: "#9C9893", fontSize: 12, padding: 6, cursor: "pointer" }}>Cancel</button>
+      <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 4 }}>Confirm shipping</div>
+      <div style={{ fontSize: 11, color: "#9C9893", marginBottom: 10 }}>One combined parcel to {hostName || "the host"}. Everyone then pays their own share, split by weight.</div>
+      <div style={{ background: "#F8F7F4", border: "1px solid #E8E6E0", borderRadius: 12, padding: "11px 13px", marginBottom: 10, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+        <span>
+          <span style={{ fontWeight: 700, fontSize: 13 }}>{pick.name}</span>
+          <span style={{ fontSize: 11, color: "#9C9893" }}>{pick.maxDays ? ` · ${pick.minDays}-${pick.maxDays} days` : ""} · duties included</span>
+        </span>
+        <span style={{ fontWeight: 700, fontSize: 13.5 }}>~{eur(pick.priceEur)}</span>
+      </div>
+      <div style={{ fontSize: 11, color: "#9C9893", lineHeight: 1.5, marginBottom: 10 }}>
+        This is the estimate for the whole parcel — after you confirm, everyone (including you) pays their own weight share within 72 hours. Any difference with the carrier's final bill comes back as a refund.
+      </div>
+      <button disabled={busy} onClick={() => lock(pick.serviceCode)} style={darkBtn(busy)}>{busy ? "Confirming…" : "Confirm & open the split →"}</button>
+      <button onClick={() => { setPick(null); setMsg(""); }} style={{ width: "100%", background: "none", border: "none", color: "#9C9893", fontSize: 12, padding: 6, cursor: "pointer", marginTop: 4 }}>Cancel</button>
       {err}
     </div>;
   }

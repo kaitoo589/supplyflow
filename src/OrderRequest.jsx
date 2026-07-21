@@ -61,9 +61,12 @@ export default function OrderRequest({ product, session, onRequireAuth, onClose,
   // (veilig, geen duplicaat); zit 'ie er niet in, dan is 't vrijwel altijd zo'n niet-matchbaar
   // duplicaat → laat 'm weg (de kleur/galerij dekt 'm al). Zo nooit een dubbele foto — op elk
   // product, zonder iets in te stellen.
-  const setPhotos = [...variantPhotos, ...(product.gallery || [])].filter(u => typeof u === "string" && u.startsWith("http"));
+  // MODELFOTO'S (admin M-knop, product.model_images): absolute voorrang — deze staan
+  // ALTIJD vooraan in de strip, vóór de kleur/variant-foto's én de hoofdfoto.
+  const modelPhotos = (product.model_images || []).filter(u => typeof u === "string" && u.startsWith("http"));
+  const setPhotos = [...modelPhotos, ...variantPhotos, ...(product.gallery || []).filter(u => !modelPhotos.includes(u))].filter(u => typeof u === "string" && u.startsWith("http"));
   const mainHttp = product.image?.startsWith("http") ? product.image : null;
-  const ordered = (mainHttp && setPhotos.includes(mainHttp)) ? [mainHttp, ...setPhotos] : setPhotos;
+  const ordered = (mainHttp && setPhotos.includes(mainHttp)) ? [...modelPhotos, mainHttp, ...setPhotos] : setPhotos;
   const deduped = [...new Set(ordered)];
   // Vangnet: geen kleur/galerij-foto's → toon dan de hoofdfoto zodat er altijd íets te zien is.
   const photos = deduped.length ? deduped : (mainHttp ? [mainHttp] : []);

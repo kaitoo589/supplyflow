@@ -2895,7 +2895,7 @@ export default function SupplyFlow({ session }) {
       /^out of stock \/ unavailable/i.test(o.bd_error || "") || /^buckydrop cancelled the order/i.test(o.bd_error || "") || /^factory defect/i.test(o.bd_error || "") || /^support refund/i.test(o.bd_error || "")));
     // Flowva support-berichten (belletje + inbox-sheet). Template_key → vertaalde tekst client-side.
     const { data: sup } = await supabase.from("support_messages")
-      .select("id, order_id, product_title, template_key, read, created_at")
+      .select("id, order_id, product_title, template_key, group_name, read, created_at")
       .eq("user_id", session.user.id).order("created_at", { ascending: false }).limit(20);
     setSupportMsgs(sup || []);
   };
@@ -3024,7 +3024,9 @@ export default function SupplyFlow({ session }) {
   // Zo zijn Orders/Warehouse/Transit twee duidelijk gescheiden modussen.
   // Solo/standaard-modus toont ALLE orders (ook groep-orders) zodat een geplaatste
   // groep-order altijd zichtbaar/volgbaar is; groep-modus blijft op die groep gefocust.
-  const visibleOrders = orders.filter((o) => (activeGroup ? o.ff_group_id === activeGroup.id : true) && !dismissedOrders.has(o.id));
+  // STRIKTE modus-scheiding (user 2026-07-22): solo toont alléén solo-orders; een groep
+  // alléén die groep. (Vervangt de 2026-06-26-keuze waarbij solo alles toonde.)
+  const visibleOrders = orders.filter((o) => (activeGroup ? o.ff_group_id === activeGroup.id : !o.ff_group_id) && !dismissedOrders.has(o.id));
   // Parcels genummerd op volgorde van aanmaak (Parcel 1 = oudste). order_id → { n, created_at }.
   const orderToParcel = {};
   hauls.forEach((h, i) => { (Array.isArray(h.items) ? h.items : []).forEach((id) => { orderToParcel[id] = { n: i + 1, created_at: h.created_at }; }); });
@@ -3441,6 +3443,12 @@ export default function SupplyFlow({ session }) {
                     {(() => { try { return new Date(m.created_at).toLocaleString("en-GB", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" }); } catch { return ""; } })()}
                   </div>
                   <div style={{ fontSize: 13.5, color: "#111111", lineHeight: 1.55 }}>{supportText(m)}</div>
+                  {/* Modus-context (user 2026-07-22): waar is het item besteld + waar kijk je. */}
+                  <div style={{ marginTop: 8, fontSize: 11.5, color: "#8A8780", lineHeight: 1.5, borderTop: "1px solid #F0EEE8", paddingTop: 8 }}>
+                    {m.group_name
+                      ? tr("support.ctx.group", "Item ordered in Flowva Friends group: {group} — switch to Flowva Friends to see the status of this item.", { group: m.group_name })
+                      : tr("support.ctx.solo", "Item ordered in Flowva solo — switch to solo shopping to see the status of this item.")}
+                  </div>
                 </div>
               ))}
             </motion.div>

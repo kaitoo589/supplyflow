@@ -131,3 +131,58 @@ begin
 end; $$;
 revoke all on function public.admin_refund_stuck(text, text) from public, anon;
 grant execute on function public.admin_refund_stuck(text, text) to authenticated;
+
+-- ============================================================================
+-- ADDENDUM 2026-07-22 (GEDRAAID via MCP): modus-context op support-berichten.
+-- group_name op support_messages (null = solo) + backfill; admin_stuck_message
+-- en admin_refund_stuck vullen 'm voortaan mee. De klant-app toont onder elk
+-- bericht: "Item ordered in Flowva Friends group: X — switch to ..." of de
+-- solo-variant. Definities hieronder VERVANGEN die hierboven (create or replace).
+-- ============================================================================
+alter table public.support_messages add column if not exists group_name text;
+
+update public.support_messages sm
+   set group_name = g.name
+  from public.orders o
+  join public.flowva_groups g on g.id = o.ff_group_id
+ where sm.order_id = o.id and sm.group_name is null;
+
+create or replace function public.admin_stuck_message(p_order_id text)
+returns json language plpgsql security definer set search_path = public as $$
+declare v_order record; v_group text;
+begin
+  if (select role from public.profiles where id = auth.uid()) is distinct from 'admin' then
+    return json_build_object('ok', false, 'error', 'not admin');
+  end if;
+  select * into v_order from public.orders where id = p_order_id;
+  if not found then return json_build_object('ok', false, 'error', 'order niet gevonden'); end if;
+  select g.name into v_group from public.flowva_groups g where g.id = v_order.ff_group_id;
+  insert into public.support_messages (user_id, order_id, product_title, template_key, group_name)
+  values (v_order.user_id, v_order.id, coalesce(v_order.product_title, v_order.product), 'delay', v_group);
+  return json_build_object('ok', true);
+end; $$;
+grant execute on function public.admin_stuck_message(text) to authenticated;
+
+create or replace function public.admin_refund_stuck(p_order_id text, p_template_key text)
+returns json language plpgsql security definer set search_path = public as $$
+declare v_order record; v_refund json; v_group text;
+begin
+  if (select role from public.profiles where id = auth.uid()) is distinct from 'admin' then
+    return json_build_object('ok', false, 'error', 'not admin');
+  end if;
+  if p_template_key not in ('never_shipped','unavailable','unknown_refund') then
+    return json_build_object('ok', false, 'error', 'ongeldige template');
+  end if;
+  select * into v_order from public.orders where id = p_order_id for update;
+  if not found then return json_build_object('ok', false, 'error', 'order niet gevonden'); end if;
+  if v_order.status = 'cancelled' then return json_build_object('ok', true, 'already', true); end if;
+  v_refund := public.refund_order(p_order_id, 'Support refund — ' || p_template_key);
+  if coalesce((v_refund->>'ok')::boolean, false) is not true then
+    return json_build_object('ok', false, 'error', coalesce(v_refund->>'error', 'refund mislukt'));
+  end if;
+  select g.name into v_group from public.flowva_groups g where g.id = v_order.ff_group_id;
+  insert into public.support_messages (user_id, order_id, product_title, template_key, group_name)
+  values (v_order.user_id, v_order.id, coalesce(v_order.product_title, v_order.product), p_template_key, v_group);
+  return json_build_object('ok', true, 'refunded', true);
+end; $$;
+grant execute on function public.admin_refund_stuck(text, text) to authenticated;

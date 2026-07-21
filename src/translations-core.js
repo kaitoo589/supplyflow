@@ -1,5 +1,5 @@
 // Auto-gegenereerd woordenboek — kernscherm-vertalingen (7 talen; Engels = de inline fallback in de code).
-// Niet met de hand bewerken: aangevuld via scratchpad-scripts (laatst: add-newbadge-i18n.mjs).
+// Niet met de hand bewerken: aangevuld via scratchpad-scripts (laatst: add-supportctx-i18n.mjs).
 export default {
   "nl": {
     "feed.header.balanceLabel": "Saldo",
@@ -472,6 +472,8 @@ export default {
     "orders.notif.supportRow": "Flowva support · {count} bericht(en)",
     "orders.squad.host": "Host",
     "support.newBadge": "Nieuw bericht",
+    "support.ctx.group": "Item besteld in Flowva Friends-groep: {group} — wissel naar Flowva Friends om de status van dit item te zien.",
+    "support.ctx.solo": "Item solo besteld — wissel naar solo shopping om de status van dit item te zien.",
   },
   "de": {
     "feed.header.balanceLabel": "Guthaben",
@@ -944,6 +946,8 @@ export default {
     "orders.notif.supportRow": "Flowva-Support · {count} Nachricht(en)",
     "orders.squad.host": "Host",
     "support.newBadge": "Neue Nachricht",
+    "support.ctx.group": "Artikel bestellt in Flowva-Friends-Gruppe: {group} — wechsle zu Flowva Friends, um den Status zu sehen.",
+    "support.ctx.solo": "Artikel solo bestellt — wechsle zu Solo-Shopping, um den Status zu sehen.",
   },
   "fr": {
     "feed.header.balanceLabel": "Solde",
@@ -1416,6 +1420,8 @@ export default {
     "orders.notif.supportRow": "Support Flowva · {count} message(s)",
     "orders.squad.host": "Hôte",
     "support.newBadge": "Nouveau message",
+    "support.ctx.group": "Article commandé dans le groupe Flowva Friends : {group} — passez sur Flowva Friends pour voir le statut de cet article.",
+    "support.ctx.solo": "Article commandé en solo — passez en solo shopping pour voir le statut de cet article.",
   },
   "es": {
     "feed.header.balanceLabel": "Saldo",
@@ -1888,6 +1894,8 @@ export default {
     "orders.notif.supportRow": "Soporte Flowva · {count} mensaje(s)",
     "orders.squad.host": "Anfitrión",
     "support.newBadge": "Mensaje nuevo",
+    "support.ctx.group": "Artículo pedido en el grupo de Flowva Friends: {group} — cambia a Flowva Friends para ver el estado de este artículo.",
+    "support.ctx.solo": "Artículo pedido en solo — cambia a solo shopping para ver el estado de este artículo.",
   },
   "it": {
     "feed.header.balanceLabel": "Saldo",
@@ -2360,6 +2368,8 @@ export default {
     "orders.notif.supportRow": "Supporto Flowva · {count} messaggio/i",
     "orders.squad.host": "Host",
     "support.newBadge": "Nuovo messaggio",
+    "support.ctx.group": "Articolo ordinato nel gruppo Flowva Friends: {group} — passa a Flowva Friends per vedere lo stato di questo articolo.",
+    "support.ctx.solo": "Articolo ordinato in solo — passa allo shopping solo per vedere lo stato di questo articolo.",
   },
   "pl": {
     "feed.header.balanceLabel": "Saldo",
@@ -2832,6 +2842,8 @@ export default {
     "orders.notif.supportRow": "Wsparcie Flowva · wiadomości: {count}",
     "orders.squad.host": "Gospodarz",
     "support.newBadge": "Nowa wiadomość",
+    "support.ctx.group": "Przedmiot zamówiony w grupie Flowva Friends: {group} — przełącz się na Flowva Friends, aby zobaczyć status.",
+    "support.ctx.solo": "Przedmiot zamówiony solo — przełącz się na zakupy solo, aby zobaczyć status.",
   },
   "pt": {
     "feed.header.balanceLabel": "Saldo",
@@ -3304,5 +3316,7 @@ export default {
     "orders.notif.supportRow": "Suporte Flowva · {count} mensagem(ns)",
     "orders.squad.host": "Anfitrião",
     "support.newBadge": "Nova mensagem",
+    "support.ctx.group": "Artigo encomendado no grupo Flowva Friends: {group} — muda para o Flowva Friends para veres o estado deste artigo.",
+    "support.ctx.solo": "Artigo encomendado a solo — muda para solo shopping para veres o estado deste artigo.",
   },
 };

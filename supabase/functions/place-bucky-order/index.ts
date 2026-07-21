@@ -206,45 +206,47 @@ Deno.serve(async (req) => {
     const info = (res?.info ?? "").toString();
 
     // Is dit een DEFINITIEVE "item niet beschikbaar"-afwijzing (uitverkocht / geen sku /
-    // uit de handel)? Alleen dán de klant terugbetalen. Omdat elke mand-regel een EIGEN
-    // order + eigen BuckyDrop-shop-order is, raakt dit ALLEEN dit item — de rest van de
-    // bestelling (andere order-rijen) loopt gewoon door.
+    // uit de handel)? Omdat elke mand-regel een EIGEN order + eigen BuckyDrop-shop-order is,
+    // raakt dit ALLEEN dit item — de rest van de bestelling (andere order-rijen) loopt door.
     const isUnavailable =
       (code !== null && OUT_OF_STOCK_CODES.has(code)) || UNAVAILABLE_RE.test(info);
 
     if (isUnavailable) {
-      await admin.rpc("refund_order", {
-        p_order_id: order.id,
-        p_reason: `Out of stock / unavailable: ${info || "item no longer available"}`,
-      });
-      // AUTO-LEREN: markeer precies deze variant als uitverkocht op het product, zodat
-      // volgende klanten 'm vooraf grijs/geblokkeerd zien (zelfde oos_variants-veld als
-      // de handmatige admin-toggle). Eén prop → losse optie-chip; meerdere props → een
-      // combo-regel (alleen die combinatie blokkeert, losse opties blijven kiesbaar).
-      // Listings tonen vaak nep-voorraad (bv. 8888), dus de order-afwijzing is de enige
-      // betrouwbare bron — alleen de éérste koper merkt het (en krijgt alles terug).
+      // 🚨 NOODREM (user 2026-07-21): als er in de laatste 30 min óók al andere
+      // producten als "niet beschikbaar" zijn geweigerd, is dit vrijwel zeker een
+      // BuckyDrop-storing (zoals 2026-07-20: 7 orders in 15 min met dezelfde fout op
+      // producten die gewoon op voorraad waren) en géén echte uitverkoop. Dan een
+      // 🚨-stempel → zichtbaar in het admin-noodremvak, herpogen met de ▶-knop aldaar.
+      // Drempel: dit product + 2 ándere producten = 3 verschillende in 30 min.
+      await admin.from("orders").update({ bd_rejected_at: new Date().toISOString() }).eq("id", order.id);
+      let outage = false;
       try {
-        const props = (Array.isArray(sku.props) ? sku.props : []).filter((p: any) => p?.name && p?.value);
-        if (props.length && product.id != null) {
-          const stamp = new Date().toISOString(); // 'since' → de admin-timer ("⛔ uitverkocht · Nd")
-          const entry = props.length === 1
-            ? { name: props[0].name, value: props[0].value, since: stamp }
-            : { combo: props.map((p: any) => ({ name: p.name, value: p.value })), since: stamp };
-          const cur = Array.isArray((product as any).oos_variants) ? (product as any).oos_variants : [];
-          // Dedupe zónder 'since', anders groeit de lijst bij elke herhaalde afwijzing.
-          const dup = props.length === 1
-            ? cur.some((e: any) => e?.name === (entry as any).name && e?.value === (entry as any).value)
-            : cur.some((e: any) => JSON.stringify(e?.combo ?? null) === JSON.stringify((entry as any).combo));
-          if (!dup) {
-            await admin.from("products").update({ oos_variants: [...cur, entry] }).eq("id", product.id);
-          }
-        }
-      } catch (e) {
-        console.error("oos auto-mark failed:", (e as Error).message);
+        const windowStart = new Date(Date.now() - 30 * 60_000).toISOString();
+        const { data: recent } = await admin
+          .from("orders")
+          .select("source_url")
+          .gte("bd_rejected_at", windowStart)
+          .neq("id", order.id);
+        const otherProducts = new Set(
+          (recent ?? []).map((r: any) => r.source_url).filter((u: string) => u && u !== order.source_url),
+        );
+        outage = otherProducts.size >= 2;
+      } catch { /* telling mislukt → behandel als gewone out-of-stock (order blijft hangen) */ }
+      if (outage) {
+        return await fail(
+          order.id,
+          `🚨 Bestel-storing vermoed: meerdere verschillende producten kort na elkaar geweigerd — klant is NIET terugbetaald, order wacht op herpoging. Laatste fout: ${info || `code ${code}`}`,
+        );
       }
-      return new Response(
-        JSON.stringify({ ok: false, refunded: true, outOfStock: true, reason: info }),
-        { status: 200, headers: { "Content-Type": "application/json" } },
+      // GEEN auto-refund + GEEN auto-uitverkocht-markering meer (user 2026-07-22): een
+      // geweigerd item wordt NIET automatisch terugbetaald en de variant NIET automatisch
+      // als uitverkocht gemarkeerd. De order blijft betaald wachten op 'quote_accepted' en
+      // verschijnt na 5 dagen vanzelf in HANGENDE ORDERS, waar de admin 'm met de hand
+      // afhandelt (refund of herpoging). Verschijnt NIET in het 🚨-noodremvak — dat filtert
+      // op de 🚨-prefix. Automatiseren kan terugkomen bij meer volume.
+      return await fail(
+        order.id,
+        `Item unavailable / out of stock: ${info || `code ${code}`} — order wacht op admin (na 5 dagen in Hangende orders)`,
       );
     }
 
@@ -262,9 +264,14 @@ Deno.serve(async (req) => {
   // Gelukt: ordernummer opslaan en status → purchased (triggert ook de "Gekocht"-push).
   // NIET fire-and-forget: de fabrieksbestelling bestaat nu echt (shopOrderNo), dus als deze
   // schrijf faalt moeten we shop_order_no tóch vastleggen (anti dubbele plaatsing) + flaggen.
-  // We leggen ook de ¥-kost vast (inkoop × aantal + ¥9,9 fulfilment) zodat de admin-wallet
-  // automatisch kan aftellen wat er van de BuckyDrop-wallet af ging.
-  const costCny = (Number(price) || 0) * (order.qty || 1) + 9.9;
+  // We leggen ook de ¥-kost vast zodat de admin-wallet automatisch kan aftellen wat er bij het
+  // INKOPEN van de BuckyDrop-wallet af ging. BuckyDrop schrijft bij de bestelling af:
+  //   product × aantal + China-binnenlandverzending (¥5/stuk) + quality-control (¥6/stuk).
+  // ¥5/¥6 = exact dezelfde tarieven als de klant-kant (pay_cart), zodat wallet-aftrek en
+  // klant-boeking op elkaar aansluiten. LET OP: de ¥9,9(+) fulfilment-fee zit hier BEWUST NIET
+  // in — die wordt pas bij de INTERNATIONALE verzending afgeschreven (samen met de service fee).
+  const qty = order.qty || 1;
+  const costCny = (Number(price) || 0) * qty + qty * 5 + qty * 6;
   const chargedAt = new Date().toISOString();
   const { error: finalErr } = await admin
     .from("orders")

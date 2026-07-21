@@ -1,5 +1,5 @@
 // Auto-gegenereerd woordenboek — kernscherm-vertalingen (7 talen; Engels = de inline fallback in de code).
-// Niet met de hand bewerken: aangevuld via scratchpad-scripts (laatst: add-defect-i18n.mjs).
+// Niet met de hand bewerken: aangevuld via scratchpad-scripts (laatst: add-refundcard-i18n.mjs).
 export default {
   "nl": {
     "feed.header.balanceLabel": "Saldo",
@@ -457,6 +457,9 @@ export default {
     "defect.acceptedDone": "✓ Genoteerd — je item wordt zo verzonden",
     "defect.refundedDone": "✓ Volledig terugbetaald — sorry voor de fabrieksfout",
     "orders.notif.defectRefund": "“{productName}” had een fabrieksfout — volledig terugbetaald, sorry!",
+    "orders.refunded.reasonDefect": "fabrieksfout — volledig terugbetaald",
+    "orders.refunded.reasonOos": "uitverkocht — volledig terugbetaald",
+    "orders.refunded.reasonUnsent": "kon niet worden verzonden — volledig terugbetaald",
   },
   "de": {
     "feed.header.balanceLabel": "Guthaben",
@@ -914,6 +917,9 @@ export default {
     "defect.acceptedDone": "✓ Notiert — dein Artikel wird so versendet",
     "defect.refundedDone": "✓ Vollständig erstattet — entschuldige den Fabrikfehler",
     "orders.notif.defectRefund": "„{productName}“ hatte einen Fabrikfehler — vollständig erstattet, sorry!",
+    "orders.refunded.reasonDefect": "Fabrikfehler — vollständig erstattet",
+    "orders.refunded.reasonOos": "ausverkauft — vollständig erstattet",
+    "orders.refunded.reasonUnsent": "konnte nicht versendet werden — vollständig erstattet",
   },
   "fr": {
     "feed.header.balanceLabel": "Solde",
@@ -1371,6 +1377,9 @@ export default {
     "defect.acceptedDone": "✓ Noté — votre article sera expédié tel quel",
     "defect.refundedDone": "✓ Intégralement remboursé — désolé pour le défaut d'usine",
     "orders.notif.defectRefund": "« {productName} » avait un défaut d'usine — intégralement remboursé, désolé !",
+    "orders.refunded.reasonDefect": "défaut d'usine — intégralement remboursé",
+    "orders.refunded.reasonOos": "en rupture de stock — intégralement remboursé",
+    "orders.refunded.reasonUnsent": "n'a pas pu être expédié — intégralement remboursé",
   },
   "es": {
     "feed.header.balanceLabel": "Saldo",
@@ -1828,6 +1837,9 @@ export default {
     "defect.acceptedDone": "✓ Anotado — tu artículo se enviará tal cual",
     "defect.refundedDone": "✓ Reembolso completo — perdón por el fallo de fábrica",
     "orders.notif.defectRefund": "«{productName}» tenía un defecto de fábrica — reembolso completo, ¡perdón!",
+    "orders.refunded.reasonDefect": "defecto de fábrica — reembolso completo",
+    "orders.refunded.reasonOos": "agotado — reembolso completo",
+    "orders.refunded.reasonUnsent": "no se pudo enviar — reembolso completo",
   },
   "it": {
     "feed.header.balanceLabel": "Saldo",
@@ -2285,6 +2297,9 @@ export default {
     "defect.acceptedDone": "✓ Registrato — il tuo articolo verrà spedito così com'è",
     "defect.refundedDone": "✓ Rimborso completo — scusa per il difetto di fabbrica",
     "orders.notif.defectRefund": "“{productName}” aveva un difetto di fabbrica — rimborso completo, scusa!",
+    "orders.refunded.reasonDefect": "difetto di fabbrica — rimborso completo",
+    "orders.refunded.reasonOos": "esaurito — rimborso completo",
+    "orders.refunded.reasonUnsent": "non spedibile — rimborso completo",
   },
   "pl": {
     "feed.header.balanceLabel": "Saldo",
@@ -2742,6 +2757,9 @@ export default {
     "defect.acceptedDone": "✓ Zapisane — Twój przedmiot zostanie wysłany bez zmian",
     "defect.refundedDone": "✓ Pełny zwrot pieniędzy — przepraszamy za wadę fabryczną",
     "orders.notif.defectRefund": "„{productName}” miał wadę fabryczną — pełny zwrot, przepraszamy!",
+    "orders.refunded.reasonDefect": "wada fabryczna — pełny zwrot pieniędzy",
+    "orders.refunded.reasonOos": "wyprzedane — pełny zwrot pieniędzy",
+    "orders.refunded.reasonUnsent": "nie można było wysłać — pełny zwrot pieniędzy",
   },
   "pt": {
     "feed.header.balanceLabel": "Saldo",
@@ -3199,5 +3217,8 @@ export default {
     "defect.acceptedDone": "✓ Anotado — o teu artigo será enviado tal como está",
     "defect.refundedDone": "✓ Reembolso total — desculpa pelo defeito de fábrica",
     "orders.notif.defectRefund": "“{productName}” tinha um defeito de fábrica — reembolso total, desculpa!",
+    "orders.refunded.reasonDefect": "defeito de fábrica — reembolso total",
+    "orders.refunded.reasonOos": "esgotado — reembolso total",
+    "orders.refunded.reasonUnsent": "não pôde ser enviado — reembolso total",
   },
 };

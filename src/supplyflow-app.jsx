@@ -3488,6 +3488,23 @@ export default function SupplyFlow({ session }) {
                 <div style={{ fontSize: 11, color: "#A8A5A0", margin: "2px 2px 0", lineHeight: 1.4 }}>{tr("orders.squad.inspectNote", "👀 Tap any item to see its journey and inspect the photos. You're only notified about your own items.")}</div>
               </div>
             )}
+            {/* Gerefunde (geannuleerde) items blijven 14 dagen zichtbaar als grijze kaart met
+                REFUNDED-badge (user 2026-07-21) — voorheen verdwenen ze spoorloos uit de lijst. */}
+            {orderFilter === "all" && refundNotices.map((o) => (
+              <div key={"refund-" + o.id} style={{ position: "relative", background: "#F1EFE9", border: "1px solid #E3E0D9", borderRadius: 16, marginBottom: 10, padding: "13px 15px", opacity: 0.85 }}>
+                <div style={{ position: "absolute", top: 11, right: 12, background: "#DCFCE7", color: "#15803D", fontSize: 9.5, fontWeight: 800, letterSpacing: 0.6, padding: "3px 8px", borderRadius: 7 }}>{tr("orders.detail.badge.refunded", "REFUNDED")}</div>
+                <div style={{ fontSize: 11, color: "#A8A5A0" }}>{(() => { try { return new Date(o.created_at).toLocaleDateString("en-GB"); } catch { return ""; } })()}</div>
+                <div style={{ fontSize: 13.5, fontWeight: 700, color: "#6B6862", paddingRight: 82, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{o.product_title || o.product}</div>
+                <div style={{ fontSize: 11.5, color: "#8A8780", marginTop: 2 }}>
+                  {o.kleur ? `${o.kleur} · ` : ""}
+                  {/^factory defect/i.test(o.bd_error || "")
+                    ? tr("orders.refunded.reasonDefect", "factory defect — fully refunded")
+                    : /^out of stock/i.test(o.bd_error || "")
+                      ? tr("orders.refunded.reasonOos", "out of stock — fully refunded")
+                      : tr("orders.refunded.reasonUnsent", "could not be sent — fully refunded")}
+                </div>
+              </div>
+            ))}
             {visibleOrders.filter(matchesFilter).length === 0 && !(activeGroup && groupOrders.some((o) => o.user_id !== session.user.id && matchesFilter(o))) && (
               <div style={{ textAlign: "center", padding: "60px 0", color: "#aaa" }}>
                 <div style={{ position: "relative", display: "inline-block", fontSize: 48, marginBottom: 12, lineHeight: 1 }}>

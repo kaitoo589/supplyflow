@@ -2192,6 +2192,9 @@ export default function SupplyFlow({ session }) {
   const [showNotifs, setShowNotifs] = useState(false);
   const [confirmCancel, setConfirmCancel] = useState(false);
   const [orders, setOrders] = useState([]);
+  // Auto-gerefunde (geannuleerde) orders voor het belletje: out-of-stock / niet-verzonden.
+  const [refundNotices, setRefundNotices] = useState([]);
+  const [seenRefundIds, setSeenRefundIds] = useState([]);
   const [balance, setBalance] = useState(0);
   const [orderSuccess, setOrderSuccess] = useState(false);
   const [successProduct, setSuccessProduct] = useState(null);
@@ -2225,6 +2228,18 @@ export default function SupplyFlow({ session }) {
   useEffect(() => {
     localStorage.setItem(lsKey("flowva_parcel_heldout"), JSON.stringify(parcelHeldOut));
   }, [parcelHeldOut]);
+  // Belletje: refund-meldingen (out-of-stock / niet verzonden) die de klant al wegtikte —
+  // per account bewaard, zodat de melding niet eeuwig blijft staan.
+  useEffect(() => {
+    try { setSeenRefundIds(JSON.parse(localStorage.getItem(lsKey("flowva_seen_refunds")) || "[]")); } catch { setSeenRefundIds([]); }
+  }, [uid]);
+  const dismissRefundNotice = (id) => {
+    setSeenRefundIds((cur) => {
+      const next = cur.includes(id) ? cur : [...cur, id];
+      try { localStorage.setItem(lsKey("flowva_seen_refunds"), JSON.stringify(next)); } catch {}
+      return next;
+    });
+  };
   // Apart houden / terugzetten. GROEP: sync direct met de server (box_staged_at):
   // apart = niet Ready (uit de doos); terugzetten = weer Ready (de klant heeft de
   // foto's al gezien via de sheet). Solo blijft puur client-side zoals voorheen.
@@ -2795,6 +2810,17 @@ export default function SupplyFlow({ session }) {
   const fetchOrders = async () => {
     const { data } = await supabase.from("orders").select("*").eq("user_id", session.user.id).not("status", "in", "(cancelled,forfeited)").order("created_at", { ascending: false });
     setOrders(data || []);
+    // Auto-gerefunde orders (out-of-stock / niet verzonden) worden geannuleerd en verdwijnen
+    // uit de lijst — maar de klant MOET weten dat 'ie z'n geld terugkreeg (belletje-melding,
+    // user 2026-07-21). bd_error draagt de reden (gezet door refund_order); we tonen alleen
+    // de laatste 14 dagen en filteren op de twee bekende automatische redenen.
+    const { data: refunded } = await supabase.from("orders")
+      .select("id, product_title, product, kleur, bd_error, created_at")
+      .eq("user_id", session.user.id).eq("status", "cancelled").not("bd_error", "is", null)
+      .gte("created_at", new Date(Date.now() - 14 * 864e5).toISOString())
+      .order("created_at", { ascending: false });
+    setRefundNotices((refunded || []).filter((o) =>
+      /^out of stock \/ unavailable/i.test(o.bd_error || "") || /^buckydrop cancelled the order/i.test(o.bd_error || "")));
   };
   // Parcels (oudste eerst) — zelfde set + nummering als de In transit-tab.
   const fetchHauls = async () => {
@@ -2884,6 +2910,15 @@ export default function SupplyFlow({ session }) {
   ).values()];
   // Meldingen afgeleid uit je orders: probleem, offerte klaar, agent reageerde, pakket bezorgd.
   const notifications = [
+    // Auto-gerefunde orders (user 2026-07-21): out-of-stock of niet-verzonden → klant ziet
+    // dat 'ie z'n geld terugkreeg. Wegtikbaar (dismiss), anders blijft 'ie 14 dagen staan.
+    ...refundNotices.filter((o) => !seenRefundIds.includes(o.id)).map((o) => ({
+      icon: "⛔",
+      text: /^out of stock/i.test(o.bd_error || "")
+        ? tr("orders.notif.oosRefund", "“{productName}” is out of stock — you received a refund", { productName: o.product_title || o.product })
+        : tr("orders.notif.unsentRefund", "“{productName}” could not be sent — the reason is unclear and you received a refund", { productName: o.product_title || o.product }),
+      dismissId: o.id,
+    })),
     ...flaggedInCart.map((it) => ({ icon: "⏸️", text: `On hold: ${it.product_title} — ${flaggedReasons[it.source_url] || "changed at the factory"}`, cart: true })),
     ...orders.filter(o => o.problem_type).map(o => ({ icon: "⚠️", text: tr("orders.notif.actionNeeded", "Action needed: issue with {productName}", { productName: o.product_title || o.product }), order: o })),
     ...orders.filter(o => o.status === "qc_pending" && o.arrived_at && Math.floor((Date.now() - new Date(o.arrived_at).getTime()) / 86400000) >= 24).map(o => {
@@ -3257,11 +3292,13 @@ export default function SupplyFlow({ session }) {
                     </div>
                   )}
                   {notifications.map((n, i) => (
-                    <div key={i} onClick={() => { setShowNotifs(false); if (n.cart) { setShowRequestList(true); } else { setTab("orders"); setSelectedOrder(n.order); } }}
+                    // Refund-melding (dismissId): tikken = gelezen/wegtikken (er is geen order
+                    // meer om te openen — die is geannuleerd + terugbetaald). Anders: navigeren.
+                    <div key={n.dismissId || i} onClick={() => { if (n.dismissId) { dismissRefundNotice(n.dismissId); return; } setShowNotifs(false); if (n.cart) { setShowRequestList(true); } else { setTab("orders"); setSelectedOrder(n.order); } }}
                       style={{ display: "flex", alignItems: "center", gap: 10, padding: "11px 14px", borderBottom: i < notifications.length - 1 ? "1px solid #F0EEE8" : "none", cursor: "pointer" }}>
                       <span style={{ fontSize: 17 }}>{n.icon}</span>
                       <span style={{ fontSize: 12.5, color: "#333", lineHeight: 1.4, flex: 1 }}>{n.text}</span>
-                      <span style={{ color: "#ccc", fontSize: 14 }}>→</span>
+                      <span style={{ color: "#ccc", fontSize: 14 }}>{n.dismissId ? "✕" : "→"}</span>
                     </div>
                   ))}
                 </motion.div>

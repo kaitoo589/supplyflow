@@ -34,21 +34,6 @@ export const ffShareProduct   = (id, product) => rpc("ff_share_product", { p_gro
 export const ffSetReady       = (id) => rpc("ff_set_ready", { p_group_id: id });
 export const ffUnready        = (id) => rpc("ff_unready",   { p_group_id: id });
 
-// Price-guard vóór ready: dezelfde edge function als de solo-checkout. Geeft de
-// gewijzigde source_urls terug zodat de lobby die items "on hold" kan tonen.
-// Onbereikbaar → fail-open (ff_set_ready + Fase-5 vangen het alsnog af).
-export async function checkGroupPrices(items) {
-  try {
-    const { data } = await supabase.functions.invoke("check-cart-prices", {
-      body: { items: (items || []).map((it) => ({ source_url: it.source_url, kleur: it.kleur })) },
-    });
-    if (data?.anyChanged) {
-      return { changed: true, urls: (data.items || []).filter((x) => x.changed).map((x) => x.source_url) };
-    }
-  } catch { /* fail-open */ }
-  return { changed: false, urls: [] };
-}
-
 // Spiegelt public.ff_member_fee — ALLEEN voor weergave; de echte fee komt server-side.
 // Houd in sync met flowva-friends-money.sql.
 export function estimateMemberFee(size, total) {

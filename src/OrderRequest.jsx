@@ -110,17 +110,8 @@ export default function OrderRequest({ product, session, onRequireAuth, onClose,
     if (!item) return;
     setLoading(true);
     setError(null);
-    // Live prijscheck vóór afschrijven — zelfde guard als de winkelwagen.
-    try {
-      const { data: chk } = await supabase.functions.invoke("check-cart-prices", {
-        body: { items: [{ source_url: item.source_url, kleur: item.kleur }] },
-      });
-      if (chk?.anyChanged) {
-        setLoading(false);
-        setError(tr("product.priceChangedOnHold","This item's supplier price just changed, so it's temporarily on hold. We're updating it — please check back soon."));
-        return;
-      }
-    } catch { /* check onbereikbaar → fail-open */ }
+    // De automatische live-prijscheck is bewust verwijderd (user 2026-07-21, simpel
+    // houden) — de admin ververst prijzen handmatig; een geweigerde order refundt vanzelf.
     // Instant checkout: koop dit item direct af (server-side pay_cart).
     const { data, error } = await supabase.rpc("pay_cart", { p_items: [item], p_idem: buyPayToken() });
     if (!error) rotateBuyPayToken();   // server antwoordde → volgende poging vers token

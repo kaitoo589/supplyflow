@@ -2591,29 +2591,11 @@ export default function SupplyFlow({ session }) {
     setSendingList(true);
     setListError(null);
 
-    // Live BuckyDrop-check vóór afschrijven. Bekende holds (de klant zag ze al) slaan we
-    // over en we rekenen de rest af; NIEUW ontdekte holds tonen we eerst (review) en pas
-    // bij de volgende tik betalen we de beschikbare items.
-    const previouslyHeld = new Set(flaggedUrls);
-    let heldSet = new Set(flaggedUrls);
-    try {
-      const { data: chk } = await supabase.functions.invoke("check-cart-prices", {
-        body: { items: requestList.map((it) => ({ source_url: it.source_url, kleur: it.kleur })) },
-      });
-      if (chk?.anyChanged) {
-        const changed = (chk.items || []).filter((x) => x.changed);
-        const urls = changed.map((x) => x.source_url);
-        heldSet = new Set([...flaggedUrls, ...urls]);
-        setFlaggedUrls([...heldSet]);
-        setFlaggedReasons((prev) => {
-          const next = { ...prev };
-          changed.forEach((x) => { if (x.reason) next[x.source_url] = x.reason; });
-          return next;
-        });
-        // Nieuw ontdekte holds → eerst tonen, nog niet betalen.
-        if (urls.some((u) => !previouslyHeld.has(u))) { setSendingList(false); return false; }
-      }
-    } catch { /* check onbereikbaar → fail-open; pay_cart + post-pay refund vangen het af */ }
+    // Holds komen alleen nog van de handmatige admin-vlag (price_alert, gelezen bij het
+    // openen van de winkelwagen). De automatische live-prijscheck bij checkout is bewust
+    // verwijderd (user 2026-07-21, simpel houden): de admin ververst prijzen handmatig
+    // via "prijzen & voorraad"; een geweigerde order wordt sowieso auto-terugbetaald.
+    const heldSet = new Set(flaggedUrls);
 
     // Reken alleen de NIET-held items af; held items blijven in de cart voor later.
     const payable = requestList.filter((it) => !it.source_url || !heldSet.has(it.source_url));

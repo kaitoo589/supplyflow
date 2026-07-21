@@ -6,7 +6,7 @@ import {
   ffMyGroups, ffPreview, ffCreateGroup, ffJoinGroup, ffLeaveGroup,
   ffKickMember, ffSetHost, ffSetAdmin, ffSetPrivate, ffUpdateSettings, ffAddItem, ffRemoveItem, ffFetchGroup,
   ffCartCheckout, ffCartRemove, ffCartSetQty,
-  ffSetReady, ffUnready, checkGroupPrices, estimateMemberFee, ffSyncProfile,
+  ffSetReady, ffUnready, estimateMemberFee, ffSyncProfile,
   ffPostMessage, ffReact, ffNudge, ffFetchMessages, subscribeGroup,
   inviteLink, whatsappShare,
 } from "./ffApi";
@@ -175,7 +175,6 @@ export default function Friends({ session, onClose, initialJoinCode, initialGrou
   const [editWindow, setEditWindow] = useState(15);
   // ready-up (Fase 3)
   const [readyBusy, setReadyBusy] = useState(false);
-  const [flaggedUrls, setFlaggedUrls] = useState([]);
   // social (Fase 4)
   const [messages, setMessages] = useState([]);
   const [chatInput, setChatInput] = useState("");
@@ -314,19 +313,13 @@ export default function Friends({ session, onClose, initialJoinCode, initialGrou
     setEditing(false); refreshLobby();
   }
 
-  // "Confirm & pay": eerst de price-guard (zoals solo-checkout), dan ff_set_ready
-  // (server-side prijs + geld vasthouden; plaatst de groep zodra iedereen ready is).
+  // "Confirm & pay": ff_set_ready (server-side prijs + geld vasthouden; plaatst de
+  // groep zodra iedereen ready is). De automatische price-guard vooraf is bewust
+  // verwijderd (user 2026-07-21, simpel houden) — admin ververst prijzen handmatig.
   async function doReady() {
     if (!lobby?.group) return;
     setErr(""); setReadyBusy(true);
     try {
-      const myItems = (lobby.items || []).filter((it) => it.owner_id === myUid);
-      const chk = await checkGroupPrices(myItems);
-      setFlaggedUrls(chk.urls);   // vervang (niet stapelen) → on-hold verdwijnt zodra de prijs weer klopt
-      if (chk.changed) {
-        setErr("A supplier price just changed — that item is on hold. Remove it (or check back soon) and try again. You haven't been charged.");
-        return;
-      }
       const r = await ffSetReady(lobby.group.id);
       if (!r.ok) {
         setErr(r.error === "Insufficient balance"
@@ -520,7 +513,6 @@ export default function Friends({ session, onClose, initialJoinCode, initialGrou
     const meHeld = Number(meMember?.held_amount) || 0;   // het ECHTE vastgehouden bedrag (server-side)
     const priceUnknown = myItems.some((it) => it.price == null || isNaN(Number(it.price)));  // prijs nog niet bekend → niet laten betalen
     const isSolo = members.length === 1;
-    const someFlagged = myItems.some((it) => flaggedUrls.includes(it.source_url));
     // JOUW fee-besparing: wat je solo aan fee zou betalen vs. in deze groep (exact).
     const myFeeSavings = myTotal > 0 ? Math.round((estimateMemberFee(1, myTotal) - myFee) * 100) / 100 : 0;
     // Uitnodig-balk: hoeveel plekken vrij + of de groep vol is.

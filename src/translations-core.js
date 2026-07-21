@@ -1,5 +1,5 @@
 // Auto-gegenereerd woordenboek — kernscherm-vertalingen (7 talen; Engels = de inline fallback in de code).
-// Niet met de hand bewerken: aangevuld via scratchpad-scripts (laatst: add-fase2-i18n.mjs).
+// Niet met de hand bewerken: aangevuld via scratchpad-scripts (laatst: add-groupparcel-i18n.mjs).
 export default {
   "nl": {
     "feed.header.balanceLabel": "Saldo",
@@ -484,6 +484,12 @@ export default {
     "support.tpl.denySizeMatch": "De maat en variant van “{productName}” komen exact overeen met wat je bij het afrekenen koos, dus we kunnen dit niet als fout aanmerken. Het wordt gewoon verzonden.",
     "support.tpl.denyMinorVariation": "Kleine afwijkingen in kleur of afwerking kunnen voorkomen en vallen binnen de normale productienormen — “{productName}” geldt niet als defect. Het wordt gewoon verzonden.",
     "support.tpl.denyEvidence": "Het aangeleverde bewijs voor “{productName}” is niet genoeg om een defect vast te stellen. Stuur een nieuw verzoek met duidelijkere foto's als je wilt dat we nog eens kijken — anders wordt het gewoon verzonden.",
+    "parcel.row.defectAction": "Defect — actie nodig",
+    "parcel.row.underReview": "In behandeling",
+    "parcel.row.tapUndo": "tik om ongedaan te maken",
+    "parcel.row.tapReady": "Tik: Ready",
+    "parcel.sheet.groupActionTitle": "Actie nodig",
+    "parcel.sheet.groupActionBody": "{count} item{s} in deze groep heeft aandacht nodig (een defect of een refund-verzoek) — het pakket kan pas weg als dat is opgelost via de orderlijst.",
   },
   "de": {
     "feed.header.balanceLabel": "Guthaben",
@@ -968,6 +974,12 @@ export default {
     "support.tpl.denySizeMatch": "Größe und Variante von „{productName}“ entsprechen exakt deiner Auswahl beim Checkout, daher können wir dies nicht als Fehler werten. Er wird normal versendet.",
     "support.tpl.denyMinorVariation": "Kleine Abweichungen in Farbe oder Verarbeitung können vorkommen und liegen im normalen Produktionsrahmen — „{productName}“ gilt nicht als defekt. Er wird normal versendet.",
     "support.tpl.denyEvidence": "Die eingereichten Nachweise für „{productName}“ reichen nicht aus, um einen Fehler zu bestätigen. Sende eine neue Anfrage mit klareren Fotos — sonst wird der Artikel normal versendet.",
+    "parcel.row.defectAction": "Defekt — Aktion nötig",
+    "parcel.row.underReview": "In Prüfung",
+    "parcel.row.tapUndo": "zum Rückgängigmachen tippen",
+    "parcel.row.tapReady": "Tippen: Ready",
+    "parcel.sheet.groupActionTitle": "Aktion nötig",
+    "parcel.sheet.groupActionBody": "{count} Artikel in dieser Gruppe braucht Aufmerksamkeit (ein Defekt oder eine Rückerstattungsanfrage) — das Paket kann erst versendet werden, wenn das über die Bestellliste gelöst ist.",
   },
   "fr": {
     "feed.header.balanceLabel": "Solde",
@@ -1452,6 +1464,12 @@ export default {
     "support.tpl.denySizeMatch": "La taille et la variante de « {productName} » correspondent exactement à votre choix lors de la commande — nous ne pouvons pas considérer cela comme un défaut. Il sera expédié normalement.",
     "support.tpl.denyMinorVariation": "De légères variations de couleur ou de finition peuvent survenir et restent dans les normes de production — « {productName} » n'est pas considéré comme défectueux. Il sera expédié normalement.",
     "support.tpl.denyEvidence": "Les preuves fournies pour « {productName} » ne suffisent pas à confirmer un défaut. Envoyez une nouvelle demande avec des photos plus claires — sinon l'article sera expédié normalement.",
+    "parcel.row.defectAction": "Défaut — action requise",
+    "parcel.row.underReview": "En cours d'examen",
+    "parcel.row.tapUndo": "toucher pour annuler",
+    "parcel.row.tapReady": "Toucher : Ready",
+    "parcel.sheet.groupActionTitle": "Action requise",
+    "parcel.sheet.groupActionBody": "{count} article{s} de ce groupe nécessite une attention (un défaut ou une demande de remboursement) — le colis ne peut pas partir tant que ce n'est pas résolu depuis la liste des commandes.",
   },
   "es": {
     "feed.header.balanceLabel": "Saldo",
@@ -1936,6 +1954,12 @@ export default {
     "support.tpl.denySizeMatch": "La talla y la variante de «{productName}» coinciden exactamente con lo elegido al pagar, así que no podemos tratarlo como un fallo. Se enviará con normalidad.",
     "support.tpl.denyMinorVariation": "Pequeñas variaciones de color o acabado pueden ocurrir y entran dentro de los estándares normales de producción — «{productName}» no se considera defectuoso. Se enviará con normalidad.",
     "support.tpl.denyEvidence": "Las pruebas aportadas de «{productName}» no bastan para confirmar un defecto. Envía una nueva solicitud con fotos más claras si quieres que lo revisemos de nuevo — si no, se enviará con normalidad.",
+    "parcel.row.defectAction": "Defecto — acción necesaria",
+    "parcel.row.underReview": "En revisión",
+    "parcel.row.tapUndo": "toca para deshacer",
+    "parcel.row.tapReady": "Toca: Ready",
+    "parcel.sheet.groupActionTitle": "Acción necesaria",
+    "parcel.sheet.groupActionBody": "{count} artículo{s} de este grupo necesita atención (un defecto o una solicitud de reembolso) — el paquete no puede enviarse hasta que se resuelva desde la lista de pedidos.",
   },
   "it": {
     "feed.header.balanceLabel": "Saldo",
@@ -2420,6 +2444,12 @@ export default {
     "support.tpl.denySizeMatch": "Taglia e variante di “{productName}” corrispondono esattamente a quanto scelto al checkout, quindi non possiamo considerarlo un errore. Verrà spedito normalmente.",
     "support.tpl.denyMinorVariation": "Piccole variazioni di colore o finitura possono verificarsi e rientrano nei normali standard di produzione — “{productName}” non è considerato difettoso. Verrà spedito normalmente.",
     "support.tpl.denyEvidence": "Le prove fornite per “{productName}” non bastano a confermare un difetto. Invia una nuova richiesta con foto più chiare se vuoi che ricontrolliamo — altrimenti verrà spedito normalmente.",
+    "parcel.row.defectAction": "Difetto — azione necessaria",
+    "parcel.row.underReview": "In revisione",
+    "parcel.row.tapUndo": "tocca per annullare",
+    "parcel.row.tapReady": "Tocca: Ready",
+    "parcel.sheet.groupActionTitle": "Azione necessaria",
+    "parcel.sheet.groupActionBody": "{count} articolo{s} di questo gruppo richiede attenzione (un difetto o una richiesta di rimborso) — il pacco non può partire finché non è risolto dalla lista degli ordini.",
   },
   "pl": {
     "feed.header.balanceLabel": "Saldo",
@@ -2904,6 +2934,12 @@ export default {
     "support.tpl.denySizeMatch": "Rozmiar i wariant „{productName}” dokładnie odpowiadają wyborowi przy zakupie, więc nie możemy uznać tego za błąd. Zostanie wysłany normalnie.",
     "support.tpl.denyMinorVariation": "Drobne różnice w kolorze lub wykończeniu mogą wystąpić i mieszczą się w normalnych standardach produkcji — „{productName}” nie jest uznawany za wadliwy. Zostanie wysłany normalnie.",
     "support.tpl.denyEvidence": "Dostarczone dowody dotyczące „{productName}” nie wystarczają do potwierdzenia wady. Wyślij nowe zgłoszenie z wyraźniejszymi zdjęciami — w przeciwnym razie przedmiot zostanie wysłany normalnie.",
+    "parcel.row.defectAction": "Wada — wymaga działania",
+    "parcel.row.underReview": "W trakcie sprawdzania",
+    "parcel.row.tapUndo": "dotknij, aby cofnąć",
+    "parcel.row.tapReady": "Dotknij: Ready",
+    "parcel.sheet.groupActionTitle": "Wymaga działania",
+    "parcel.sheet.groupActionBody": "{count} przedmiot{s} w tej grupie wymaga uwagi (wada lub prośba o zwrot) — paczka nie może zostać wysłana, dopóki nie zostanie to rozwiązane na liście zamówień.",
   },
   "pt": {
     "feed.header.balanceLabel": "Saldo",
@@ -3388,5 +3424,11 @@ export default {
     "support.tpl.denySizeMatch": "O tamanho e a variante de “{productName}” correspondem exatamente ao que escolheste no checkout, por isso não podemos tratar isto como falha. Será enviado normalmente.",
     "support.tpl.denyMinorVariation": "Pequenas variações de cor ou acabamento podem ocorrer e estão dentro dos padrões normais de produção — “{productName}” não é considerado defeituoso. Será enviado normalmente.",
     "support.tpl.denyEvidence": "As provas fornecidas sobre “{productName}” não chegam para confirmar um defeito. Envia um novo pedido com fotos mais claras se quiseres que voltemos a ver — caso contrário, será enviado normalmente.",
+    "parcel.row.defectAction": "Defeito — ação necessária",
+    "parcel.row.underReview": "Em análise",
+    "parcel.row.tapUndo": "toca para desfazer",
+    "parcel.row.tapReady": "Toca: Ready",
+    "parcel.sheet.groupActionTitle": "Ação necessária",
+    "parcel.sheet.groupActionBody": "{count} artigo{s} deste grupo precisa de atenção (um defeito ou um pedido de reembolso) — a encomenda só pode ser enviada quando isso for resolvido na lista de pedidos.",
   },
 };

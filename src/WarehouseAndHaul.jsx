@@ -1399,7 +1399,7 @@ const TRACE_LABEL = { 1: "In transit", 2: "Out for delivery", 3: "Delivered", 4:
 // items met Ready ná foto-inspectie (ff_stage_box → box_staged_at) — de server-
 // gate laat pas verzenden als ALLES Ready is. Geen stille auto-staging meer.
 // ────────────────────────────────────────────────────────────────────────────
-export function ParcelSection({ session, activeGroupId = null, parcelItems = [], heldOutItems = [], pendingRefunds = [], onToggleHold, onInspectItem, onShipped }) {
+export function ParcelSection({ session, activeGroupId = null, parcelItems = [], heldOutItems = [], pendingRefunds = [], refreshSignal = 0, onToggleHold, onInspectItem, onShipped }) {
   const [open, setOpen] = useState(false);
   const [screen, setScreen] = useState(null);      // null | "confirm" | "success"
   const [balance, setBalance] = useState(0);
@@ -1473,6 +1473,21 @@ export function ParcelSection({ session, activeGroupId = null, parcelItems = [],
     return () => clearInterval(t);
   }, [activeGroupId]);
 
+  // Sync-fix (user 2026-07-21): als de klant elders "Ready" drukt (bv. onderaan de
+  // Quality-control-foto's), bumpt de parent refreshSignal → haal de groep-status
+  // meteen opnieuw op i.p.v. tot de 8s-poll te wachten.
+  useEffect(() => {
+    if (activeGroupId && refreshSignal) fetchSquad();
+  }, [refreshSignal]);
+
+  // Eigen groep-item Ready/Unready zetten vanuit het pakket zelf (user 2026-07-21).
+  // ff_stage_box staat alleen je EIGEN items toe; daarna direct de groep-status verversen.
+  const stageOwn = async (orderId, staged) => {
+    if (!activeGroupId) return;
+    await supabase.rpc("ff_stage_box", { p_order_ids: [orderId], p_staged: staged });
+    fetchSquad();
+  };
+
   // GEEN stille auto-staging meer: box_staged_at wordt gezet door de expliciete
   // Ready-bevestiging van het lid zelf (na foto-inspectie), via de parent
   // (markParcelReady/toggleParcelHold in de app) — niet hier.
@@ -1482,6 +1497,9 @@ export function ParcelSection({ session, activeGroupId = null, parcelItems = [],
   const COMING = ["quote_accepted", "purchased", "bought", "shipped_local"];
   const alive = (squadOrders || []).filter((o) => !o.return_status && o.status !== "cancelled" && o.status !== "refunded");
   const waitingCount = alive.filter((o) => COMING.includes(o.status)).length + alive.filter((o) => o.status === "qc_pending" && !o.box_staged_at).length;
+  // Groep-items met een probleem (defect gemeld of lopend refund-verzoek) — die blokkeren
+  // het pakket tot de eigenaar ze afhandelt (user 2026-07-21).
+  const actionItems = alive.filter((o) => o.dispute_status === "bucky_flagged" || o.dispute_status === "pending");
   const isHost = !activeGroupId || session.user.id === squadHostId;
   const hostName = ((squadOrders || []).find((o) => o.user_id === squadHostId) || {}).member;
 
@@ -1589,6 +1607,19 @@ export function ParcelSection({ session, activeGroupId = null, parcelItems = [],
               </div>
               </FoldReveal>
 
+              {/* ⚠️ Action needed (user 2026-07-21): één of meer groep-items hebben een defect
+                  of een lopend refund-verzoek — het pakket kan pas weg als dat is opgelost. */}
+              {activeGroupId && actionItems.length > 0 && (
+                <FoldReveal i={1} n={count + 5} skip={didReveal.current}>
+                <div style={{ background: "rgba(245,158,11,0.12)", border: "1px solid rgba(245,158,11,0.35)", borderRadius: 12, padding: "10px 12px", marginBottom: 12 }}>
+                  <div style={{ fontSize: 12.5, fontWeight: 700, color: "#FBBF24", marginBottom: 2 }}>⚠️ {tr("parcel.sheet.groupActionTitle", "Action needed")}</div>
+                  <div style={{ fontSize: 11.5, color: "#D9B87A", lineHeight: 1.5 }}>
+                    {tr("parcel.sheet.groupActionBody", "{count} item{s} in this group needs attention (a defect or a refund request) — the parcel can't ship until it's resolved from the orders list.", { count: actionItems.length, s: actionItems.length > 1 ? "s" : "" })}
+                  </div>
+                </div>
+                </FoldReveal>
+              )}
+
               {activeGroupId && waitingCount > 0 && (
                 <FoldReveal i={1} n={count + 5} skip={didReveal.current}>
                 <div style={{ background: "rgba(99,102,241,0.14)", borderRadius: 12, padding: "9px 12px", marginBottom: 12, fontSize: 12, color: "#A5B4FC", lineHeight: 1.5 }}>
@@ -1621,9 +1652,16 @@ export function ParcelSection({ session, activeGroupId = null, parcelItems = [],
                     {sec.items.map((o) => {
                       const arrived = o.status === "qc_pending";
                       const ready = arrived && !!o.box_staged_at;
+                      // Iets mis met dit item? (user 2026-07-21) — defect gemeld door QC, of een
+                      // lopend refund-verzoek van de eigenaar. Blokkeert het groepspakket tot het
+                      // is opgelost; de eigenaar handelt het af via de orderlijst / QC-foto's.
+                      const flagged = o.dispute_status === "bucky_flagged";
+                      const reviewing = o.dispute_status === "pending";
+                      const needsAction = flagged || reviewing;
+                      const locked = !!o.group_shipping_paid;
                       return (
                         <div key={o.id}
-                          style={{ display: "flex", alignItems: "center", gap: 11, background: "#1A1917", borderRadius: 13, padding: "9px 11px", marginBottom: 7 }}>
+                          style={{ display: "flex", alignItems: "center", gap: 11, background: "#1A1917", borderRadius: 13, padding: "9px 11px", marginBottom: 7, border: needsAction ? "1px solid rgba(245,158,11,0.4)" : "1px solid transparent" }}>
                           {thumb(o)}
                           <div style={{ flex: 1, minWidth: 0 }}>
                             <div style={{ fontSize: 12.5, fontWeight: 600, color: "#fff", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{o.product_title || o.product}</div>
@@ -1631,8 +1669,22 @@ export function ParcelSection({ session, activeGroupId = null, parcelItems = [],
                               {tr("orders.item.pcs", "{qty} pcs", { qty: o.qty || 1 })}{o.weight_grams ? ` · ${o.weight_grams} g` : ""}
                             </div>
                           </div>
-                          {/* Ready = FINAL (user 2026-07-20): geen ✕/hold-out meer naast Ready. */}
-                          {ready ? (
+                          {/* Prioriteit: probleem > Ready-toggle > status-chip. */}
+                          {needsAction ? (
+                            <span style={{ flexShrink: 0, background: "rgba(245,158,11,0.16)", color: "#FBBF24", fontSize: 10, fontWeight: 700, padding: "4px 9px", borderRadius: 999, textAlign: "right", lineHeight: 1.3, maxWidth: 120 }}>
+                              ⚠️ {flagged ? tr("parcel.row.defectAction", "Defect — action needed") : tr("parcel.row.underReview", "Under review")}
+                            </span>
+                          ) : own && arrived ? (
+                            // EIGEN aangekomen item: klikbare Ready/Unready-toggle (user 2026-07-21).
+                            // Een al-betaald item mag niet meer terug uit de doos → dan vast Ready.
+                            <motion.button whileTap={locked ? undefined : { scale: 0.94 }} disabled={locked}
+                              onClick={() => { if (!locked) stageOwn(o.id, !ready); }}
+                              style={{ flexShrink: 0, background: ready ? "rgba(16,185,129,0.16)" : "#FF5C00", color: ready ? "#34D399" : "#fff", border: "none", fontSize: 10.5, fontWeight: 700, padding: "5px 11px", borderRadius: 999, cursor: locked ? "default" : "pointer", WebkitTapHighlightColor: "transparent", lineHeight: 1.2, textAlign: "center" }}>
+                              {ready
+                                ? <>✓ {tr("parcel.row.ready", "Ready")}{!locked && <span style={{ opacity: 0.7, fontWeight: 600 }}> · {tr("parcel.row.tapUndo", "tap to undo")}</span>}</>
+                                : <>{tr("parcel.row.tapReady", "Tap: Ready")}</>}
+                            </motion.button>
+                          ) : ready ? (
                             <span style={{ flexShrink: 0, background: "rgba(16,185,129,0.16)", color: "#34D399", fontSize: 10.5, fontWeight: 700, padding: "4px 9px", borderRadius: 999 }}>✓ {tr("parcel.row.ready", "Ready")}</span>
                           ) : arrived ? (
                             <span style={{ flexShrink: 0, background: "rgba(245,158,11,0.16)", color: "#FBBF24", fontSize: 10.5, fontWeight: 700, padding: "4px 9px", borderRadius: 999 }}>⏳ {tr("parcel.chip.unready", "Unready")}</span>

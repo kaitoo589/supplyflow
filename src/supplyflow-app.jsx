@@ -2309,6 +2309,9 @@ export default function SupplyFlow({ session }) {
   useEffect(() => {
     localStorage.setItem(lsKey("flowva_parcel_heldout"), JSON.stringify(parcelHeldOut));
   }, [parcelHeldOut]);
+  // Sync-tikker: bumpen zodra de klant elders een groep-item Ready/Unready zet, zodat de
+  // group parcel (eigen squad-poll) meteen ververst i.p.v. tot de 8s-poll te wachten.
+  const [parcelRefresh, setParcelRefresh] = useState(0);
   // Belletje: refund-meldingen (out-of-stock / niet verzonden) die de klant al wegtikte —
   // per account bewaard, zodat de melding niet eeuwig blijft staan.
   useEffect(() => {
@@ -2329,7 +2332,7 @@ export default function SupplyFlow({ session }) {
     setParcelHeldOut((prev) => (wasHeld ? prev.filter((x) => x !== id) : [...prev, id]));
     const o = orders.find((x) => x.id === id);
     if (o?.ff_group_id) {
-      supabase.rpc("ff_stage_box", { p_order_ids: [id], p_staged: wasHeld }).then(() => fetchOrders());
+      supabase.rpc("ff_stage_box", { p_order_ids: [id], p_staged: wasHeld }).then(() => { fetchOrders(); setParcelRefresh((n) => n + 1); });
     }
   };
   // ✓ Ready (Flowva Friends): de klant bevestigt na het inspecteren van de foto's dat
@@ -2342,6 +2345,7 @@ export default function SupplyFlow({ session }) {
       setInspectItem((cur) => (cur && cur.id === o.id ? { ...cur, box_staged_at: new Date().toISOString() } : cur));
       setSelectedOrder((cur) => (cur && cur.id === o.id ? { ...cur, box_staged_at: new Date().toISOString() } : cur));
       fetchOrders();
+      setParcelRefresh((n) => n + 1);
     }
   };
   // Sheet openen — eigen items verrijken vanuit `orders` (heeft dispute-/probleem-velden).
@@ -3874,6 +3878,7 @@ export default function SupplyFlow({ session }) {
         <ParcelSection session={session} activeGroupId={activeGroup?.id || null}
           parcelItems={parcelItems} heldOutItems={parcelHeldItems}
           pendingRefunds={parcelPendingRefunds}
+          refreshSignal={parcelRefresh}
           onToggleHold={activeGroup ? toggleParcelHold : undefined}
           onInspectItem={openInspectItem}
           onShipped={() => { fetchOrders(); fetchHauls(); fetchBalance(); }} />

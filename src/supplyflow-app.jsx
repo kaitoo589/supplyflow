@@ -172,7 +172,7 @@ const PRODUCT_COLORS = ["#FF5C00", "#6366F1", "#16A34A", "#EAB308", "#EC4899"];
 
 // Tik op de ring → groot voortgangswiel: elk product een concentrische boog die
 // zich vult richting QC (= vol). Mijlpaal-streepjes tonen waar het % op slaat.
-function ProgressWheelModal({ items, onClose, onOpenItem }) {
+function ProgressWheelModal({ items, onClose, onOpenItem, refundedItems = [] }) {
   const scrollable = items.length > 8;
   const bars = items;
   const listRef = useRef(null);
@@ -237,6 +237,19 @@ function ProgressWheelModal({ items, onClose, onOpenItem }) {
                 </div>
               );
             })}
+            {/* Gerefunde items van deze aankoop (user 2026-07-22): grijs, geen balk, REFUNDED-label. */}
+            {refundedItems.map((o) => (
+              <div key={"ref-" + o.id}>
+                <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 5, opacity: 0.75 }}>
+                  <div style={{ width: 26, height: 26, borderRadius: 7, background: "#fff", border: "1px solid #F0EEE8", overflow: "hidden", flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                    {o.variant_image ? <img src={o.variant_image} referrerPolicy="no-referrer" alt="" style={{ width: "100%", height: "100%", objectFit: "cover", filter: "grayscale(60%)" }} /> : <span style={{ fontSize: 14 }}>📦</span>}
+                  </div>
+                  <span style={{ flex: 1, minWidth: 0, fontSize: 12, fontWeight: 600, color: "#8A8780", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{o.product_title || o.product}</span>
+                  <span style={{ fontSize: 9.5, fontWeight: 800, letterSpacing: 0.5, color: "#15803D", background: "#DCFCE7", padding: "2px 7px", borderRadius: 6, flexShrink: 0 }}>{tr("orders.detail.badge.refunded", "REFUNDED")}</span>
+                </div>
+                <div style={{ position: "relative", height: 12, background: "#F1EFE9", borderRadius: 6 }} />
+              </div>
+            ))}
           </div>
           {scrollable && items.length - seen > 0 && (
             <div style={{ marginTop: 8, textAlign: "center", fontSize: 11.5, fontWeight: 600, color: "#A8A5A0" }}>
@@ -561,7 +574,7 @@ function RefundRequest({ order, onSubmitted }) {
 
 // Eén bestelling (= alle items uit dezelfde aankoop). Klap open → morpht omlaag,
 // toont elk item met z'n eigen status. Statussen mogen per item verschillen.
-function OrderGroupCard({ items, onOpenItem, groupSize, onDismiss, parcel, activeFilter, onClearFilter, squad, parcelStateFor, onToggleParcel }) {
+function OrderGroupCard({ items, onOpenItem, groupSize, onDismiss, parcel, activeFilter, onClearFilter, squad, parcelStateFor, onToggleParcel, refundedItems = [] }) {
   const [open, setOpen] = useState(false);
   const [wheel, setWheel] = useState(false);
   // Datum altijd dd/mm/jjjj (uit created_at; valt terug op het tekst-date-veld).
@@ -726,6 +739,22 @@ function OrderGroupCard({ items, onOpenItem, groupSize, onDismiss, parcel, activ
                   </motion.div>
                 );
               })}
+              {/* Gerefunde items van deze aankoop (user 2026-07-22): blijven zichtbaar in de
+                  kaart, grijs, met de inbox-chip — de reden staat in Flowva support (belletje). */}
+              {!filterStatuses && refundedItems.map((o) => (
+                <div key={"ref-" + o.id} style={{ display: "flex", alignItems: "center", gap: 10, background: "#F1EFE9", borderRadius: 12, padding: "9px 11px", marginBottom: 6, opacity: 0.85 }}>
+                  <div style={{ width: 38, height: 38, borderRadius: 8, background: "#fff", border: "1px solid #EBE9E3", overflow: "hidden", flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                    {o.variant_image ? <img src={o.variant_image} referrerPolicy="no-referrer" alt="" style={{ width: "100%", height: "100%", objectFit: "cover", filter: "grayscale(60%)" }} /> : <span style={{ fontSize: 17 }}>📦</span>}
+                  </div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: 12.5, fontWeight: 600, color: "#8A8780", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{o.product_title || o.product}</div>
+                    <div style={{ fontSize: 11, color: "#B5B2AC", marginBottom: 3 }}>{tr("orders.item.pcs", "{qty} pcs", { qty: o.qty || 1 })}{o.kleur ? ` · ${o.kleur}` : ""}</div>
+                    <div style={{ display: "inline-block", background: "#DCFCE7", color: "#15803D", fontSize: 10.5, fontWeight: 700, padding: "2px 9px", borderRadius: 20 }}>
+                      {tr("orders.item.refundedInbox", "Refunded — couldn't proceed, check your inbox")}
+                    </div>
+                  </div>
+                </div>
+              ))}
               {/* Prijs-uitsplitsing (Items/Service fee/Total paid) hier VERWIJDERD (user 2026-07-20):
                   die staat al in het pakket-overzicht (parcel-sheet). Alleen de filter-resetknop blijft. */}
               {filterStatuses && (
@@ -739,7 +768,7 @@ function OrderGroupCard({ items, onOpenItem, groupSize, onDismiss, parcel, activ
         )}
       </AnimatePresence>
       <AnimatePresence>
-        {wheel && <ProgressWheelModal items={items} onClose={() => setWheel(false)} onOpenItem={onOpenItem} />}
+        {wheel && <ProgressWheelModal items={items} refundedItems={refundedItems} onClose={() => setWheel(false)} onOpenItem={onOpenItem} />}
       </AnimatePresence>
     </motion.div>
   );
@@ -2214,6 +2243,23 @@ export default function SupplyFlow({ session }) {
   // Auto-gerefunde (geannuleerde) orders voor het belletje: out-of-stock / niet-verzonden.
   const [refundNotices, setRefundNotices] = useState([]);
   const [seenRefundIds, setSeenRefundIds] = useState([]);
+  // Flowva support: berichten van de admin (templates) + de inbox-sheet.
+  const [supportMsgs, setSupportMsgs] = useState([]);
+  const [showSupport, setShowSupport] = useState(false);
+  const openSupport = async () => {
+    setShowNotifs(false); setShowSupport(true);
+    // Openen = gelezen: server-side markeren + lokaal bijwerken (badge telt direct af).
+    try { await supabase.rpc("support_mark_all_read"); } catch {}
+    setSupportMsgs((cur) => cur.map((m) => ({ ...m, read: true })));
+  };
+  // Template_key → vertaalde berichttekst (8 talen; Engels = fallback).
+  const supportText = (m) => {
+    const p = { productName: m.product_title || "your item" };
+    if (m.template_key === "delay") return tr("support.tpl.delay", "“{productName}” is delayed at the factory — we're keeping an eye on it, please allow a few more days.", p);
+    if (m.template_key === "never_shipped") return tr("support.tpl.neverShipped", "The factory never shipped “{productName}”. You've been fully refunded — sorry about this.", p);
+    if (m.template_key === "unavailable") return tr("support.tpl.unavailable", "“{productName}” turned out to be unavailable after all. You've been fully refunded.", p);
+    return tr("support.tpl.unknownRefund", "Something went wrong with “{productName}” and we couldn't resolve it. To be safe, you've been fully refunded.", p);
+  };
   const [balance, setBalance] = useState(0);
   const [orderSuccess, setOrderSuccess] = useState(false);
   const [successProduct, setSuccessProduct] = useState(null);
@@ -2816,12 +2862,17 @@ export default function SupplyFlow({ session }) {
     // user 2026-07-21). bd_error draagt de reden (gezet door refund_order); we tonen alleen
     // de laatste 14 dagen en filteren op de twee bekende automatische redenen.
     const { data: refunded } = await supabase.from("orders")
-      .select("id, product_title, product, kleur, bd_error, created_at, ff_group_id")
+      .select("id, product_title, product, kleur, qty, price, variant_image, bd_error, created_at, ff_group_id, request_group_id")
       .eq("user_id", session.user.id).eq("status", "cancelled").not("bd_error", "is", null)
       .gte("created_at", new Date(Date.now() - 14 * 864e5).toISOString())
       .order("created_at", { ascending: false });
     setRefundNotices((refunded || []).filter((o) =>
-      /^out of stock \/ unavailable/i.test(o.bd_error || "") || /^buckydrop cancelled the order/i.test(o.bd_error || "") || /^factory defect/i.test(o.bd_error || "")));
+      /^out of stock \/ unavailable/i.test(o.bd_error || "") || /^buckydrop cancelled the order/i.test(o.bd_error || "") || /^factory defect/i.test(o.bd_error || "") || /^support refund/i.test(o.bd_error || "")));
+    // Flowva support-berichten (belletje + inbox-sheet). Template_key → vertaalde tekst client-side.
+    const { data: sup } = await supabase.from("support_messages")
+      .select("id, order_id, product_title, template_key, read, created_at")
+      .eq("user_id", session.user.id).order("created_at", { ascending: false }).limit(20);
+    setSupportMsgs(sup || []);
   };
   // Parcels (oudste eerst) — zelfde set + nummering als de In transit-tab.
   const fetchHauls = async () => {
@@ -2911,9 +2962,16 @@ export default function SupplyFlow({ session }) {
   ).values()];
   // Meldingen afgeleid uit je orders: probleem, offerte klaar, agent reageerde, pakket bezorgd.
   const notifications = [
+    // Flowva support-berichten (admin-templates): ongelezen = regel in het belletje → opent de inbox.
+    ...supportMsgs.filter((m) => !m.read).map((m) => ({
+      icon: "💬",
+      text: tr("orders.notif.supportMsg", "Flowva support left a message"),
+      support: true,
+    })),
     // Auto-gerefunde orders (user 2026-07-21): out-of-stock of niet-verzonden → klant ziet
     // dat 'ie z'n geld terugkreeg. Wegtikbaar (dismiss), anders blijft 'ie 14 dagen staan.
-    ...refundNotices.filter((o) => !seenRefundIds.includes(o.id)).map((o) => ({
+    // Support-refunds NIET hier (het support-bericht hierboven ís de melding).
+    ...refundNotices.filter((o) => !seenRefundIds.includes(o.id) && !/^support refund/i.test(o.bd_error || "")).map((o) => ({
       icon: /^factory defect/i.test(o.bd_error || "") ? "↩" : "⛔",
       text: /^factory defect/i.test(o.bd_error || "")
         ? tr("orders.notif.defectRefund", "“{productName}” had a factory defect — fully refunded, sorry!", { productName: o.product_title || o.product })
@@ -2954,6 +3012,14 @@ export default function SupplyFlow({ session }) {
     let date = ""; try { date = new Date(p.created_at).toLocaleDateString("en-GB"); } catch {}
     return { label: tr("orders.card.parcelLabel", "Parcel {n}", { n: p.n }), date };
   };
+  // Gerefunde items (user 2026-07-21/22): hoort de aankoop-groep nog een levende kaart te
+  // hebben, dan tonen we het refunded item ÍN die kaart (met inbox-chip); is de hele aankoop
+  // weg, dan als losse grijze kaart. Altijd binnen de actieve modus (solo vs die ene groep).
+  const modeRefunds = refundNotices.filter((o) => (activeGroup ? o.ff_group_id === activeGroup.id : !o.ff_group_id));
+  const liveGroupKeys = new Set(visibleOrders.map((o) => o.request_group_id || o.id));
+  const refundedByGroup = {};
+  modeRefunds.forEach((o) => { const k = o.request_group_id || o.id; (refundedByGroup[k] = refundedByGroup[k] || []).push(o); });
+  const standaloneRefunds = modeRefunds.filter((o) => !liveGroupKeys.has(o.request_group_id || o.id));
   // 📦 Automatisch pakket: alle verzendbare magazijn-items van de actieve modus (solo =
   // geen ff_group_id, groep = die groep) zitten er vanzelf in; wat de klant apart houdt
   // (parcelHeldOut) blijft bewaard tot 'ie het terugzet. Al-betaalde (orderToParcel),
@@ -3297,7 +3363,7 @@ export default function SupplyFlow({ session }) {
                   {notifications.map((n, i) => (
                     // Refund-melding (dismissId): tikken = gelezen/wegtikken (er is geen order
                     // meer om te openen — die is geannuleerd + terugbetaald). Anders: navigeren.
-                    <div key={n.dismissId || i} onClick={() => { if (n.dismissId) { dismissRefundNotice(n.dismissId); return; } setShowNotifs(false); if (n.cart) { setShowRequestList(true); } else { setTab("orders"); setSelectedOrder(n.order); } }}
+                    <div key={n.dismissId || i} onClick={() => { if (n.support) { openSupport(); return; } if (n.dismissId) { dismissRefundNotice(n.dismissId); return; } setShowNotifs(false); if (n.cart) { setShowRequestList(true); } else { setTab("orders"); setSelectedOrder(n.order); } }}
                       style={{ display: "flex", alignItems: "center", gap: 10, padding: "11px 14px", borderBottom: i < notifications.length - 1 ? "1px solid #F0EEE8" : "none", cursor: "pointer" }}>
                       <span style={{ fontSize: 17 }}>{n.icon}</span>
                       <span style={{ fontSize: 12.5, color: "#333", lineHeight: 1.4, flex: 1 }}>{n.text}</span>
@@ -3312,6 +3378,34 @@ export default function SupplyFlow({ session }) {
       </div>
 
       {/* Warehouse-banner verwijderd — de warehouse-melding leeft nu in het belletje + het Warehouse-nav-badge. */}
+
+      {/* 💬 FLOWVA SUPPORT — inbox met admin-berichten (vaste templates, 8 talen).
+          Geopend vanuit het belletje ("Flowva support left a message"); openen = gelezen. */}
+      <AnimatePresence>
+        {showSupport && (
+          <>
+            <motion.div key="support-backdrop" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setShowSupport(false)}
+              style={{ position: "fixed", inset: 0, zIndex: 380, background: "rgba(17,17,17,0.5)", backdropFilter: "blur(6px)" }} />
+            <motion.div key="support-sheet" initial={{ y: "104%" }} animate={{ y: 0 }} exit={{ y: "104%" }} transition={springMorph}
+              style={{ position: "fixed", bottom: 0, left: 0, right: 0, margin: "0 auto", maxWidth: 430, background: "#FAF9F6", borderRadius: "24px 24px 0 0", zIndex: 381, maxHeight: "78vh", overflowY: "auto", overscrollBehavior: "contain", padding: "14px 18px calc(22px + env(safe-area-inset-bottom))" }}>
+              <div style={{ width: 38, height: 4.5, borderRadius: 999, background: "#E3E1DB", margin: "0 auto 14px" }} />
+              <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 14 }}>
+                <div style={{ width: 34, height: 34, borderRadius: "50%", background: "#111111", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16 }}><Fox /></div>
+                <div style={{ fontSize: 16, fontWeight: 800, color: "#111111" }}>{tr("support.title", "Flowva support")}</div>
+              </div>
+              {supportMsgs.length === 0 && (
+                <div style={{ textAlign: "center", padding: "26px 0", fontSize: 13, color: "#A8A5A0" }}>{tr("support.empty", "No messages yet")}</div>
+              )}
+              {supportMsgs.map((m) => (
+                <div key={m.id} style={{ background: "#fff", border: "1px solid #ECEAE5", borderRadius: 14, padding: "13px 15px", marginBottom: 10 }}>
+                  <div style={{ fontSize: 11, color: "#A8A5A0", marginBottom: 5 }}>{(() => { try { return new Date(m.created_at).toLocaleDateString("en-GB"); } catch { return ""; } })()}{m.order_id ? ` · ${m.order_id}` : ""}</div>
+                  <div style={{ fontSize: 13.5, color: "#111111", lineHeight: 1.55 }}>{supportText(m)}</div>
+                </div>
+              ))}
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
 
       {/* Tab-inhoud met vloeiende overgangen */}
       <AnimatePresence mode="wait" initial={false}>
@@ -3453,6 +3547,7 @@ export default function SupplyFlow({ session }) {
                         groupSize={items[0]?.ff_group_id ? (myGroups.find((g) => g.group_id === items[0].ff_group_id)?.member_count || null) : null}
                         onOpenItem={(o) => { setSelectedOrder(o); setConfirmCancel(false); }} onDismiss={dismissOrders} parcel={parcelInfoFor(items)}
                         parcelStateFor={parcelStateFor} onToggleParcel={toggleParcelHold}
+                        refundedItems={refundedByGroup[items[0].request_group_id || items[0].id] || []}
                         activeFilter={orderFilter} onClearFilter={() => setOrderFilter("all")} />
                     ))}
                 </AnimatePresence>
@@ -3492,7 +3587,7 @@ export default function SupplyFlow({ session }) {
                 REFUNDED-badge (user 2026-07-21) — voorheen verdwenen ze spoorloos uit de lijst.
                 MODUS-SCHEIDING (user): solo toont alleen solo-refunds; groep-modus alleen
                 de refunds van díé groep. */}
-            {orderFilter === "all" && refundNotices.filter((o) => (activeGroup ? o.ff_group_id === activeGroup.id : !o.ff_group_id)).map((o) => (
+            {orderFilter === "all" && standaloneRefunds.map((o) => (
               <div key={"refund-" + o.id} style={{ position: "relative", background: "#F1EFE9", border: "1px solid #E3E0D9", borderRadius: 16, marginBottom: 10, padding: "13px 15px", opacity: 0.85 }}>
                 <div style={{ position: "absolute", top: 11, right: 12, background: "#DCFCE7", color: "#15803D", fontSize: 9.5, fontWeight: 800, letterSpacing: 0.6, padding: "3px 8px", borderRadius: 7 }}>{tr("orders.detail.badge.refunded", "REFUNDED")}</div>
                 <div style={{ fontSize: 11, color: "#A8A5A0" }}>{(() => { try { return new Date(o.created_at).toLocaleDateString("en-GB"); } catch { return ""; } })()}</div>
@@ -3503,7 +3598,9 @@ export default function SupplyFlow({ session }) {
                     ? tr("orders.refunded.reasonDefect", "factory defect — fully refunded")
                     : /^out of stock/i.test(o.bd_error || "")
                       ? tr("orders.refunded.reasonOos", "out of stock — fully refunded")
-                      : tr("orders.refunded.reasonUnsent", "could not be sent — fully refunded")}
+                      : /^support refund/i.test(o.bd_error || "")
+                        ? tr("orders.refunded.reasonSupport", "couldn't proceed — fully refunded, see your inbox")
+                        : tr("orders.refunded.reasonUnsent", "could not be sent — fully refunded")}
                 </div>
               </div>
             ))}

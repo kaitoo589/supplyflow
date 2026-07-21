@@ -2357,12 +2357,20 @@ export default function SupplyFlow({ session }) {
   const [inspectItem, setInspectItem] = useState(null);
   // Geleverde orders die de klant zelf uit de lijst heeft weggehaald (✕). Per-device in localStorage —
   // het is puur een weergave-voorkeur; de order/het pakket blijft gewoon in de In transit-tab vindbaar.
+  // Weggeruimde (afgeleverde) kaarten. BUG-FIX 2026-07-22: was één lijst per TOESTEL
+  // (key zonder uid) — wisselen van testaccount verborg andermans kaarten. Nu per
+  // account, met migratie van de oude key; fetchOrders schoont niet-afgeleverde ids
+  // er automatisch uit (zelfherstellend voor toestellen waar 't al misging).
   const [dismissedOrders, setDismissedOrders] = useState(() => {
-    try { return new Set(JSON.parse(localStorage.getItem("flowva_dismissed_orders") || "[]")); } catch { return new Set(); }
+    try {
+      const own = localStorage.getItem(lsKey("flowva_dismissed_orders"));
+      if (own != null) return new Set(JSON.parse(own));
+      return new Set(JSON.parse(localStorage.getItem("flowva_dismissed_orders") || "[]"));
+    } catch { return new Set(); }
   });
   const dismissOrders = (ids) => setDismissedOrders((prev) => {
     const next = new Set(prev); ids.forEach((id) => next.add(id));
-    try { localStorage.setItem("flowva_dismissed_orders", JSON.stringify([...next])); } catch {}
+    try { localStorage.setItem(lsKey("flowva_dismissed_orders"), JSON.stringify([...next])); } catch {}
     return next;
   });
   const [hauls, setHauls] = useState([]);   // parcels — voor "Parcel N"-nummering in de Orders-tab
@@ -2857,6 +2865,16 @@ export default function SupplyFlow({ session }) {
   const fetchOrders = async () => {
     const { data } = await supabase.from("orders").select("*").eq("user_id", session.user.id).not("status", "in", "(cancelled,forfeited)").order("created_at", { ascending: false });
     setOrders(data || []);
+    // Zelfherstel (bug-fix 2026-07-22): "weggeruimd" hoort alleen bij AFGELEVERDE kaarten.
+    // Staat een levende, niet-afgeleverde order tóch in het weggeruimd-lijstje (oude
+    // toestel-brede key / account-wissel), haal 'm eruit zodat de kaart weer verschijnt.
+    setDismissedOrders((prev) => {
+      const wrong = (data || []).filter((o) => prev.has(o.id) && o.status !== "delivered").map((o) => o.id);
+      if (!wrong.length) return prev;
+      const next = new Set(prev); wrong.forEach((id) => next.delete(id));
+      try { localStorage.setItem(lsKey("flowva_dismissed_orders"), JSON.stringify([...next])); } catch {}
+      return next;
+    });
     // Auto-gerefunde orders (out-of-stock / niet verzonden) worden geannuleerd en verdwijnen
     // uit de lijst — maar de klant MOET weten dat 'ie z'n geld terugkreeg (belletje-melding,
     // user 2026-07-21). bd_error draagt de reden (gezet door refund_order); we tonen alleen

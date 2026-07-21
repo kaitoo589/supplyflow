@@ -1,4 +1,18 @@
 -- ============================================================
+-- ⛔ UITGESCHAKELD (user 2026-07-21) — NIET MEER DRAAIEN
+-- ============================================================
+-- Op verzoek van de user is ELKE automatische refund verwijderd: een order die
+-- misgaat (out of stock e.d.) wordt NIET meer automatisch terugbetaald, maar
+-- blijft betaald hangen en verschijnt na 5 dagen in HANGENDE ORDERS, waar de
+-- admin 'm met de hand afhandelt. Automatiseren komt eventueel terug bij meer
+-- volume. De trigger + functie hieronder zijn via MCP GEDROPT:
+--   drop trigger if exists auto_refund_out_of_stock_trg on public.orders;
+--   drop function if exists public.auto_refund_on_out_of_stock();
+-- (De auto-refund in place-bucky-order is óók verwijderd — zie v48.)
+-- Dit bestand blijft als historie; draai het NIET opnieuw.
+-- ============================================================
+--
+-- [OORSPRONKELIJKE SPEC — niet meer actief]
 -- Flowva — automatische refund bij "out of stock"
 -- ============================================================
 -- Regel: zodra de agent een order op problem_type = 'out_of_stock' zet,

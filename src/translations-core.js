@@ -1,5 +1,5 @@
 // Auto-gegenereerd woordenboek — kernscherm-vertalingen (7 talen; Engels = de inline fallback in de code).
-// Niet met de hand bewerken: aangevuld via scratchpad-scripts (laatst: add-supportrow-i18n.mjs).
+// Niet met de hand bewerken: aangevuld via scratchpad-scripts (laatst: add-host-i18n.mjs).
 export default {
   "nl": {
     "feed.header.balanceLabel": "Saldo",
@@ -470,6 +470,7 @@ export default {
     "support.tpl.unavailable": "“{productName}” bleek toch niet leverbaar. Je bent volledig terugbetaald.",
     "support.tpl.unknownRefund": "Er ging iets mis met “{productName}” dat we niet konden oplossen. Voor de zekerheid ben je volledig terugbetaald.",
     "orders.notif.supportRow": "Flowva support · {count} bericht(en)",
+    "orders.squad.host": "Host",
   },
   "de": {
     "feed.header.balanceLabel": "Guthaben",
@@ -940,6 +941,7 @@ export default {
     "support.tpl.unavailable": "„{productName}“ war doch nicht lieferbar. Du wurdest vollständig erstattet.",
     "support.tpl.unknownRefund": "Bei „{productName}“ ist etwas schiefgelaufen, das wir nicht lösen konnten. Zur Sicherheit wurdest du vollständig erstattet.",
     "orders.notif.supportRow": "Flowva-Support · {count} Nachricht(en)",
+    "orders.squad.host": "Host",
   },
   "fr": {
     "feed.header.balanceLabel": "Solde",
@@ -1410,6 +1412,7 @@ export default {
     "support.tpl.unavailable": "« {productName} » s'est avéré indisponible. Vous avez été intégralement remboursé.",
     "support.tpl.unknownRefund": "Un problème insoluble est survenu avec « {productName} ». Par précaution, vous avez été intégralement remboursé.",
     "orders.notif.supportRow": "Support Flowva · {count} message(s)",
+    "orders.squad.host": "Hôte",
   },
   "es": {
     "feed.header.balanceLabel": "Saldo",
@@ -1880,6 +1883,7 @@ export default {
     "support.tpl.unavailable": "«{productName}» resultó no estar disponible. Has recibido un reembolso completo.",
     "support.tpl.unknownRefund": "Algo salió mal con «{productName}» y no pudimos resolverlo. Por seguridad, has recibido un reembolso completo.",
     "orders.notif.supportRow": "Soporte Flowva · {count} mensaje(s)",
+    "orders.squad.host": "Anfitrión",
   },
   "it": {
     "feed.header.balanceLabel": "Saldo",
@@ -2350,6 +2354,7 @@ export default {
     "support.tpl.unavailable": "“{productName}” è risultato non disponibile. Sei stato completamente rimborsato.",
     "support.tpl.unknownRefund": "Qualcosa è andato storto con “{productName}” e non siamo riusciti a risolverlo. Per sicurezza sei stato completamente rimborsato.",
     "orders.notif.supportRow": "Supporto Flowva · {count} messaggio/i",
+    "orders.squad.host": "Host",
   },
   "pl": {
     "feed.header.balanceLabel": "Saldo",
@@ -2820,6 +2825,7 @@ export default {
     "support.tpl.unavailable": "„{productName}” okazał się niedostępny. Otrzymałeś pełny zwrot pieniędzy.",
     "support.tpl.unknownRefund": "Coś poszło nie tak z „{productName}” i nie mogliśmy tego rozwiązać. Na wszelki wypadek otrzymałeś pełny zwrot pieniędzy.",
     "orders.notif.supportRow": "Wsparcie Flowva · wiadomości: {count}",
+    "orders.squad.host": "Gospodarz",
   },
   "pt": {
     "feed.header.balanceLabel": "Saldo",
@@ -3290,5 +3296,6 @@ export default {
     "support.tpl.unavailable": "“{productName}” afinal não estava disponível. Foste totalmente reembolsado.",
     "support.tpl.unknownRefund": "Algo correu mal com “{productName}” e não conseguimos resolver. Por segurança, foste totalmente reembolsado.",
     "orders.notif.supportRow": "Suporte Flowva · {count} mensagem(ns)",
+    "orders.squad.host": "Anfitrião",
   },
 };

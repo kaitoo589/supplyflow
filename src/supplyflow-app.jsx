@@ -2351,6 +2351,7 @@ export default function SupplyFlow({ session }) {
   // Flowva Friends: groep-sheet + actieve groep om "voor te shoppen".
   const [showFriends, setShowFriends] = useState(false);
   const [groupOrders, setGroupOrders] = useState([]);   // alle orders van de actieve groep (alleen-lezen)
+  const [groupHostId, setGroupHostId] = useState(null); // host van de actieve groep → 🏠-badge in de squad-lijst
   const [squadWheel, setSquadWheel] = useState(null);   // squad-item waarvan de voortgangscirkel openstaat
   // 🔍 Item-inspectiesheet (Friends): squad-/pakket-item dat openstaat. Eigen items
   // verrijken we vanuit `orders` (RPC-rijen missen dispute-/probleem-velden).
@@ -2538,10 +2539,10 @@ export default function SupplyFlow({ session }) {
   // Alleen-lezen: alle orders van de actieve groep (ieders status). Geen meldingen —
   // die blijven via `orders` (alleen je eigen items).
   useEffect(() => {
-    if (!activeGroup) { setGroupOrders([]); return; }
+    if (!activeGroup) { setGroupOrders([]); setGroupHostId(null); return; }
     let on = true;
     supabase.rpc("ff_group_orders", { p_group_id: activeGroup.id }).then(({ data }) => {
-      if (on && data?.ok) setGroupOrders(data.orders || []);
+      if (on && data?.ok) { setGroupOrders(data.orders || []); setGroupHostId(data.host_id || null); }
     });
     return () => { on = false; };
   }, [activeGroup?.id, tab]);
@@ -3600,6 +3601,10 @@ export default function SupplyFlow({ session }) {
                                 {m0.avatar_url ? <img src={m0.avatar_url} referrerPolicy="no-referrer" alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : <span style={{ fontSize: 11, fontWeight: 700, color: "#fff" }}>{(m0.member || "?").charAt(0).toUpperCase()}</span>}
                               </div>
                               <div style={{ fontSize: 12.5, fontWeight: 700, color: "#0F0E0C" }}>{m0.member}</div>
+                              {/* Host-badge (user 2026-07-22): duidelijk wie het groepspakket ontvangt. */}
+                              {m0.user_id === groupHostId && (
+                                <span style={{ background: "#FFF0E7", color: "#B8430A", fontSize: 10, fontWeight: 800, letterSpacing: 0.4, padding: "2px 8px", borderRadius: 20 }}>🏠 {tr("orders.squad.host", "Host")}</span>
+                              )}
                             </div>
                             <OrderGroupCard items={memberOrders} groupSize={null} squad
                               onOpenItem={openInspectItem}

@@ -1610,8 +1610,12 @@ export function ParcelSection({ session, activeGroupId = null, parcelItems = [],
                 return (
                   <FoldReveal key={sec.userId} i={1 + secIdx} n={count + 5} skip={didReveal.current}>
                   <div style={{ marginBottom: 10 }}>
-                    <div style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: 0.5, color: "#8A8780", margin: "6px 2px 6px", textTransform: "uppercase" }}>
+                    <div style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: 0.5, color: "#8A8780", margin: "6px 2px 6px", textTransform: "uppercase", display: "flex", alignItems: "center", gap: 7 }}>
                       {own ? tr("parcel.row.you", "You") : (sec.name || tr("inspect.friendFallback", "Friend"))}
+                      {/* Host-badge (user 2026-07-22): het pakket gaat naar dit lid. */}
+                      {sec.userId === squadHostId && (
+                        <span style={{ background: "rgba(255,92,0,0.16)", color: "#FF8A3D", fontSize: 9.5, fontWeight: 800, padding: "2px 8px", borderRadius: 20, textTransform: "none" }}>🏠 {tr("orders.squad.host", "Host")}</span>
+                      )}
                     </div>
                     {sec.items.map((o) => {
                       const arrived = o.status === "qc_pending";

@@ -94,6 +94,9 @@ $$;
 grant execute on function public.defect_return_refund(text) to authenticated;
 
 -- 4) Admin: lijst van gedetecteerde defecten (onopgeruimd) + opruim-knop.
+--    Flowva Friends-context (2026-07-21): groepsnaam + de groep-ADMIN (=host) —
+--    BuckyDrop bestelt naar het adres+mail van de admin, dus dát is de mail
+--    die je in het cockpit-vak wil zien/kopiëren bij groep-orders.
 create or replace function public.admin_list_defects()
 returns json language plpgsql security definer set search_path = public as $$
 begin
@@ -110,6 +113,10 @@ begin
       'qc_images', o.qc_images,
       'status', o.status,
       'is_group', o.ff_group_id is not null,
+      'group_name', g.name,
+      'group_admin_name', case when o.ff_group_id is not null then
+        coalesce(nullif(trim(coalesce(h.raw_user_meta_data->>'voornaam','') || ' ' || coalesce(h.raw_user_meta_data->>'achternaam','')), ''), 'Onbekend') end,
+      'group_admin_email', h.email,
       'group_locked', o.ff_group_id is not null and (
         coalesce(o.group_shipping_paid, false)
         or exists (select 1 from public.ff_group_shipments s
@@ -122,6 +129,8 @@ begin
     ) order by o.defect_detected_at desc)
     from public.orders o
     left join auth.users u on u.id = o.user_id
+    left join auth.users h on h.id = o.host_user_id
+    left join public.flowva_groups g on g.id = o.ff_group_id
     where o.defect_detected_at is not null and o.defect_resolved_at is null
   ), '[]'::json));
 end;

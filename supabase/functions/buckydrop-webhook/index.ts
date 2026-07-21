@@ -79,6 +79,18 @@ function findPics(node: any): string[] | null {
   }
   return null;
 }
+// Verzamel defect-meldingen ergens in de body. HARDE LES (2026-07-12, order
+// FF-1783288701233): een écht magazijn-defect ("Wrong color") kwam binnen met
+// confirmType:null — het signaal zat in poOrderDetails[].defectTypeList[]
+// (defectsType + defectsInstructionsEn/Cn). Alleen op confirmType checken mist dus
+// echte defecten; deze helper vangt beide.
+function findDefectList(node: any, out: any[] = []): any[] {
+  if (!node || typeof node !== "object") return out;
+  if (Array.isArray(node)) { for (const n of node) findDefectList(n, out); return out; }
+  if (Array.isArray(node.defectTypeList)) out.push(...node.defectTypeList.filter(Boolean));
+  for (const k of Object.keys(node)) findDefectList(node[k], out);
+  return out;
+}
 
 Deno.serve(async (req) => {
   if (req.method !== "POST") return new Response("Method not allowed", { status: 405 });
@@ -87,10 +99,16 @@ Deno.serve(async (req) => {
   const body = (payload?.notifyBody ?? {}) as Record<string, any>;
 
   const signOk = !!payload && verifySign(header) && (!header.appCode || String(header.appCode) === APP_CODE);
+  // Replay-begrenzing (audit 2026-07-12): negeer een (geldig ondertekende) melding die
+  // ouder is dan 7 dagen of >2u in de toekomst ligt. Echte webhooks komen binnen seconden
+  // binnen → dit weigert nooit een legitieme melding, maar kapt oud-replay af.
+  // Geen timestamp aanwezig → niet blokkeren (BuckyDrop stuurt 'm normaal wel mee).
+  const ts = Number(header?.timestamp);
+  const fresh = !ts || (Date.now() - ts < 7 * 864e5 && ts - Date.now() < 2 * 36e5);
   let matched = "";
-  let action = "ignored";
+  let action = signOk && !fresh ? "stale (ignored)" : "ignored";
 
-  if (payload && signOk) {
+  if (payload && signOk && fresh) {
     const isParcel = body.packageCode != null || header.packageCode != null || body.pkgNormalStatus != null;
     if (isParcel) {
       const mapped = PKG_STATUS_MAP[Number(body.pkgNormalStatus)];
@@ -107,14 +125,36 @@ Deno.serve(async (req) => {
       const pics = findPics(body);
       if (partnerOrderNo) {
         matched = partnerOrderNo;
-        // Defect-/inspectiefoto's → op de bestelling + probleem markeren.
-        if (pics) {
-          await admin.from("orders").update({
-            qc_images: pics,
-            ...(body.confirmType || po?.confirmType ? { dispute_status: "bucky_flagged", problem_type: String(body.confirmType ?? po?.confirmType ?? "defect") } : {}),
-          }).eq("id", partnerOrderNo);
-          action = `photos (${pics.length})`;
+        // Defect-signaal: defectTypeList (het échte kanaal, zie helper) óf confirmType.
+        // Label = de Engelse omschrijving ("Wrong color") — dat ziet de klant.
+        const defects = findDefectList(body);
+        const defectLabel = defects.length
+          ? String(defects[0]?.defectsInstructionsEn || defects[0]?.defectsInstructionsCn || "defect")
+          : (body.confirmType || po?.confirmType) ? String(body.confirmType ?? po?.confirmType) : "";
+        if (pics || defectLabel) {
+          // Huidige staat éérst lezen: (a) nooit een lopende dispute-afhandeling
+          // overschrijven (zelfde regel als fetch-weight), (b) al-gerehoste foto's op
+          // eigen storage niet terugzetten naar verlopende WMS-links.
+          const { data: cur } = await admin.from("orders").select("dispute_status, qc_images").eq("id", partnerOrderNo).maybeSingle();
+          if (cur) {
+            const update: Record<string, unknown> = {};
+            const curQc = Array.isArray(cur.qc_images) ? cur.qc_images.filter((u: unknown) => typeof u === "string") : [];
+            const hasOwnStorage = curQc.some((u: string) => u.includes(`${new URL(SUPABASE_URL).host}/storage/`));
+            if (pics && !hasOwnStorage) update.qc_images = pics;
+            if (defectLabel && !cur.dispute_status) {
+              update.dispute_status = "bucky_flagged";
+              update.problem_type = defectLabel;
+              // Defect-cockpit (2026-07-21): blijvend detectie-stempel → admin-lijst + stopwatch.
+              update.defect_detected_at = new Date().toISOString();
+            }
+            if (Object.keys(update).length) await admin.from("orders").update(update).eq("id", partnerOrderNo);
+          }
+          action = `${pics ? `photos (${pics.length})` : ""}${pics && defectLabel ? " + " : ""}${defectLabel ? `defect: ${defectLabel}` : ""}`;
         }
+        // FOTO-GEDREVEN "In warehouse" (user-keuze 2026-07-13): QC-foto's binnen = aangekomen,
+        // ook als de PO-status nog op inbound (7) staat i.p.v. stock-in (9). setOrderStatus is
+        // forward-only en zet arrived_at, dus dit loopt nooit terug of dubbel.
+        if (pics) { const r = await setOrderStatus(partnerOrderNo, "qc_pending"); if (action.startsWith("photos")) action += ` (${r})`; }
         if (poStatus === 8) {
           await admin.rpc("refund_order", { p_order_id: partnerOrderNo, p_reason: "BuckyDrop cancelled the order" });
           action = "cancelled + refund";
@@ -127,10 +167,13 @@ Deno.serve(async (req) => {
     }
   }
 
-  // Altijd rauw loggen (ook bij ongeldige handtekening) — om de echte structuur te zien.
+  // Loggen. Bij een GELDIGE sign de volledige payload (voor debug/structuur); bij een
+  // ONGELDIGE sign GEEN rauwe attacker-payload opslaan (anti-bloat + geen opgeslagen
+  // vreemde inhoud) — alleen een marker zodat je ziet dát er een afgewezen call was.
   await admin.from("bucky_notifications").insert({
     notify_type: String(header?.notifyType ?? ""),
-    matched, action, sign_ok: signOk, payload,
+    matched, action, sign_ok: signOk,
+    payload: signOk ? payload : { suppressed: true, notifyType: header?.notifyType ?? null },
   }).then(() => {}, () => {});
 
   // BuckyDrop verwacht (vermoedelijk) een 200 met success. Bij ongeldige sign: 401.

@@ -392,20 +392,39 @@ function DefectChoice({ order, onResolved }) {
   const [busy, setBusy] = useState(false);
   const [confirmReturn, setConfirmReturn] = useState(false);
   const [err, setErr] = useState("");
+  // Variant A (user 2026-07-21): Return = DIRECTE volledige refund (defect_return_refund).
+  // 'done' houdt de bevestiging in beeld nadat de server al is bijgewerkt.
+  const [done, setDone] = useState(null); // null | 'accepted' | 'refunded'
   const acceptDefect = async () => {
     setBusy(true); setErr("");
     const { data, error } = await supabase.rpc("accept_qc_result", { p_order_id: order.id });
     setBusy(false);
     if (error || data?.ok === false) { setErr(error?.message || data?.error || "Could not accept"); return; }
-    onResolved?.({ dispute_status: null, problem_type: null });
+    setDone("accepted");
+    onResolved?.({});
   };
   const returnDefect = async () => {
     setBusy(true); setErr("");
-    const { data, error } = await supabase.rpc("request_item_return", { p_order_id: order.id, p_reason: "Returned after quality-control flagged a defect" });
+    const { data, error } = await supabase.rpc("defect_return_refund", { p_order_id: order.id });
     setBusy(false);
-    if (error || data?.ok === false) { setErr(error?.message || data?.error || "Could not request return"); return; }
-    onResolved?.({ return_status: data?.return_status || "requested" });
+    if (error || data?.ok === false) { setErr(error?.message || data?.error || "Could not process the return"); return; }
+    setDone("refunded");
+    onResolved?.({});
   };
+  if (done === "accepted") {
+    return (
+      <div style={{ textAlign: "center", color: "#065F46", fontSize: 13, fontWeight: 700, padding: "12px", background: "#ECFDF5", border: "1px solid #A7F3D0", borderRadius: 12 }}>
+        {tr("defect.acceptedDone", "✓ Got it — your item ships as-is")}
+      </div>
+    );
+  }
+  if (done === "refunded") {
+    return (
+      <div style={{ textAlign: "center", color: "#065F46", fontSize: 13, fontWeight: 700, padding: "12px", background: "#ECFDF5", border: "1px solid #A7F3D0", borderRadius: 12 }}>
+        {tr("defect.refundedDone", "✓ Fully refunded — sorry about the factory fault")}
+      </div>
+    );
+  }
   if (order.return_status) {
     return (
       <div style={{ textAlign: "center", color: "#B45309", fontSize: 13, fontWeight: 600, padding: "12px", background: "#fff", borderRadius: 12 }}>
@@ -2820,7 +2839,7 @@ export default function SupplyFlow({ session }) {
       .gte("created_at", new Date(Date.now() - 14 * 864e5).toISOString())
       .order("created_at", { ascending: false });
     setRefundNotices((refunded || []).filter((o) =>
-      /^out of stock \/ unavailable/i.test(o.bd_error || "") || /^buckydrop cancelled the order/i.test(o.bd_error || "")));
+      /^out of stock \/ unavailable/i.test(o.bd_error || "") || /^buckydrop cancelled the order/i.test(o.bd_error || "") || /^factory defect/i.test(o.bd_error || "")));
   };
   // Parcels (oudste eerst) — zelfde set + nummering als de In transit-tab.
   const fetchHauls = async () => {
@@ -2913,10 +2932,12 @@ export default function SupplyFlow({ session }) {
     // Auto-gerefunde orders (user 2026-07-21): out-of-stock of niet-verzonden → klant ziet
     // dat 'ie z'n geld terugkreeg. Wegtikbaar (dismiss), anders blijft 'ie 14 dagen staan.
     ...refundNotices.filter((o) => !seenRefundIds.includes(o.id)).map((o) => ({
-      icon: "⛔",
-      text: /^out of stock/i.test(o.bd_error || "")
-        ? tr("orders.notif.oosRefund", "“{productName}” is out of stock — you received a refund", { productName: o.product_title || o.product })
-        : tr("orders.notif.unsentRefund", "“{productName}” could not be sent — the reason is unclear and you received a refund", { productName: o.product_title || o.product }),
+      icon: /^factory defect/i.test(o.bd_error || "") ? "↩" : "⛔",
+      text: /^factory defect/i.test(o.bd_error || "")
+        ? tr("orders.notif.defectRefund", "“{productName}” had a factory defect — fully refunded, sorry!", { productName: o.product_title || o.product })
+        : /^out of stock/i.test(o.bd_error || "")
+          ? tr("orders.notif.oosRefund", "“{productName}” is out of stock — you received a refund", { productName: o.product_title || o.product })
+          : tr("orders.notif.unsentRefund", "“{productName}” could not be sent — the reason is unclear and you received a refund", { productName: o.product_title || o.product }),
       dismissId: o.id,
     })),
     ...flaggedInCart.map((it) => ({ icon: "⏸️", text: `On hold: ${it.product_title} — ${flaggedReasons[it.source_url] || "changed at the factory"}`, cart: true })),

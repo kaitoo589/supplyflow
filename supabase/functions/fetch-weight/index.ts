@@ -23,6 +23,15 @@ const WEBHOOK_SECRET = Deno.env.get("WEBHOOK_SECRET")!;
 const admin = createClient(SUPABASE_URL, SERVICE_KEY);
 const md5Hex = (s: string) => createHash("md5").update(s, "utf8").digest("hex");
 
+// Constant-time vergelijk (geen timing-side-channel op het secret).
+function timingSafeEq(a: string, b: string): boolean {
+  const ea = new TextEncoder().encode(a), eb = new TextEncoder().encode(b);
+  if (ea.length !== eb.length) return false;
+  let r = 0;
+  for (let i = 0; i < ea.length; i++) r |= ea[i] ^ eb[i];
+  return r === 0;
+}
+
 async function buckyPost(path: string, bodyObj: unknown) {
   const body = JSON.stringify(bodyObj ?? {});
   const ts = Date.now().toString();
@@ -65,6 +74,18 @@ function collectServices(node: any, out: any[] = []): any[] {
   if (Array.isArray(node)) { for (const n of node) collectServices(n, out); return out; }
   if (node.assembleName != null || Array.isArray(node.operationPhotoList)) out.push(node);
   for (const k of Object.keys(node)) collectServices(node[k], out);
+  return out;
+}
+// Verzamel defect-meldingen (defectTypeList) waar ook in de respons. HARDE LES
+// (2026-07-12, FF-1783288701233): een écht "Wrong color"-defect had confirmType:null
+// én alle service-taken op Success — het enige signaal was poOrderDetails[].
+// defectTypeList[] (defectsType + defectsInstructionsEn/Cn). Zonder deze check
+// bereikt zo'n defect de klant dus nooit.
+function findDefectList(node: any, out: any[] = []): any[] {
+  if (!node || typeof node !== "object") return out;
+  if (Array.isArray(node)) { for (const n of node) findDefectList(n, out); return out; }
+  if (Array.isArray(node.defectTypeList)) out.push(...node.defectTypeList.filter(Boolean));
+  for (const k of Object.keys(node)) findDefectList(node[k], out);
   return out;
 }
 
@@ -155,6 +176,13 @@ async function syncOrder(order: OrderRow, debug = false) {
   // PO-niveau defect (zelfde signaal als de webhook gebruikt).
   const po = findPO(data);
   if (po?.confirmType) { defect = true; defectLabel = defectLabel || String(po.confirmType); }
+  // defectTypeList = het échte defect-kanaal (zie helper) — de Engelse omschrijving
+  // ("Wrong color") wint als label: dat is wat de klant te zien krijgt.
+  const defectList = findDefectList(data);
+  if (defectList.length) {
+    defect = true;
+    defectLabel = String(defectList[0]?.defectsInstructionsEn || defectList[0]?.defectsInstructionsCn || defectLabel || "defect");
+  }
 
   // Bestaande EXTERNE qc-foto's (via de webhook binnengekomen WMS-links) nemen we mee in de
   // rehost zodat ze niet stukgaan; velden die al gevuld zijn met eigen-storage-foto's laten we staan.
@@ -178,6 +206,8 @@ async function syncOrder(order: OrderRow, debug = false) {
   if (defect && !order.dispute_status) {
     update.dispute_status = "bucky_flagged";
     update.problem_type = defectLabel || "defect";
+    // Defect-cockpit (2026-07-21): blijvend detectie-stempel → admin-lijst + stopwatch.
+    update.defect_detected_at = new Date().toISOString();
     if (defectUrls.length) {
       update.agent_defect_images = dedupe(await Promise.all(dedupe(defectUrls).map((u) => rehost(u, order.id))));
     }
@@ -189,6 +219,17 @@ async function syncOrder(order: OrderRow, debug = false) {
   if (mapped && order.status !== "cancelled" && (RANK[mapped] ?? 0) > (RANK[order.status ?? ""] ?? 0)) {
     update.status = mapped;
     if (mapped === "qc_pending" && !order.arrived_at) update.arrived_at = new Date().toISOString();
+  }
+
+  // 5) FOTO-GEDREVEN "In warehouse" (user-keuze 2026-07-13): zodra er QC-foto's zijn, telt het
+  //    item als aangekomen — ook als BuckyDrop's PO-status nog op inbound (7) staat i.p.v.
+  //    stock-in (9). Zo loopt de status nooit achter op wat de klant al kan zien. Forward-only.
+  const haveQc = (Array.isArray(update.qc_images) && (update.qc_images as string[]).length > 0)
+    || (Array.isArray(order.qc_images) && (order.qc_images as string[]).filter(isHttp).length > 0);
+  const effStatus = (update.status as string) ?? order.status ?? "";
+  if (haveQc && order.status !== "cancelled" && (RANK["qc_pending"] ?? 0) > (RANK[effStatus] ?? 0)) {
+    update.status = "qc_pending";
+    if (!order.arrived_at && !update.arrived_at) update.arrived_at = new Date().toISOString();
   }
 
   if (Object.keys(update).length === 0) { out.skip = "up-to-date"; return out; }
@@ -203,7 +244,7 @@ const ORDER_COLS = "id, shop_order_no, status, weight_grams, qc_images, measurem
 
 Deno.serve(async (req) => {
   if (req.method !== "POST") return new Response("Method not allowed", { status: 405 });
-  if (req.headers.get("x-webhook-secret") !== WEBHOOK_SECRET) return new Response("Unauthorized", { status: 401 });
+  if (!WEBHOOK_SECRET || !timingSafeEq(req.headers.get("x-webhook-secret") ?? "", WEBHOOK_SECRET)) return new Response("Unauthorized", { status: 401 });
 
   const body = await req.json().catch(() => null);
   const json = (o: unknown) => new Response(JSON.stringify(o), { headers: { "Content-Type": "application/json" } });
@@ -220,7 +261,20 @@ Deno.serve(async (req) => {
       const missingPhotos = qc.length === 0 || qc.every((u) => !onOwnStorage(u));
       return !o.weight_grams || missingPhotos || o.status !== "qc_pending";
     };
-    const todo = (rows ?? []).filter(needsSync).slice(0, 25) as OrderRow[];
+    // Het measurement-foto-gat: de Garment-Measurement-foto's kunnen DAGEN ná de eerste sync
+    // binnenkomen, terwijl de order dan al gewicht + QC-foto's heeft en dus uit needsSync viel.
+    // Daarom blijven qc_pending-orders die nog GEEN measurement-foto's hebben meedraaien —
+    // dit STOPT vanzelf zodra de foto's binnen zijn (measDone), dus geen eeuwige polling; met
+    // een ruim 21-dagen-vangnet voor orders die ze nooit krijgen. (Late defects komen via de
+    // webhook binnen; zolang measurement ontbreekt wordt de order tóch her-gefetcht, dus die
+    // pikt een laat defect meteen mee.) Lagere prioriteit dan needsSync.
+    const RECENT_MS = 21 * 864e5;
+    const recentlyArrived = (o: OrderRow) => !!o.arrived_at && (Date.now() - new Date(o.arrived_at).getTime() < RECENT_MS);
+    const measDone = (o: OrderRow) => (Array.isArray(o.measurement_images) ? o.measurement_images.filter(isHttp) : []).length > 0;
+    const recheck = (o: OrderRow) => !needsSync(o) && o.status === "qc_pending" && !measDone(o) && recentlyArrived(o);
+    const missing = (rows ?? []).filter(needsSync) as OrderRow[];
+    const rechecks = (rows ?? []).filter(recheck) as OrderRow[];
+    const todo = [...missing, ...rechecks].slice(0, 25);
     const results = [];
     for (const o of todo) results.push(await syncOrder(o));
     return json({ ok: true, checked: rows?.length ?? 0, synced: results });

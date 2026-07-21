@@ -1,5 +1,5 @@
 // Auto-gegenereerd woordenboek — kernscherm-vertalingen (7 talen; Engels = de inline fallback in de code).
-// Niet met de hand bewerken: aangevuld via scratchpad-scripts (laatst: add-refund-notif-i18n.mjs).
+// Niet met de hand bewerken: aangevuld via scratchpad-scripts (laatst: add-defect-i18n.mjs).
 export default {
   "nl": {
     "feed.header.balanceLabel": "Saldo",
@@ -454,6 +454,9 @@ export default {
     "refund.removePhoto": "Foto verwijderen",
     "orders.notif.oosRefund": "“{productName}” is uitverkocht — je hebt je geld teruggekregen",
     "orders.notif.unsentRefund": "“{productName}” kon niet worden verzonden — de reden is onduidelijk en je hebt je geld teruggekregen",
+    "defect.acceptedDone": "✓ Genoteerd — je item wordt zo verzonden",
+    "defect.refundedDone": "✓ Volledig terugbetaald — sorry voor de fabrieksfout",
+    "orders.notif.defectRefund": "“{productName}” had een fabrieksfout — volledig terugbetaald, sorry!",
   },
   "de": {
     "feed.header.balanceLabel": "Guthaben",
@@ -908,6 +911,9 @@ export default {
     "refund.removePhoto": "Foto entfernen",
     "orders.notif.oosRefund": "„{productName}“ ist ausverkauft — du hast eine Rückerstattung erhalten",
     "orders.notif.unsentRefund": "„{productName}“ konnte nicht versendet werden — der Grund ist unklar und du hast eine Rückerstattung erhalten",
+    "defect.acceptedDone": "✓ Notiert — dein Artikel wird so versendet",
+    "defect.refundedDone": "✓ Vollständig erstattet — entschuldige den Fabrikfehler",
+    "orders.notif.defectRefund": "„{productName}“ hatte einen Fabrikfehler — vollständig erstattet, sorry!",
   },
   "fr": {
     "feed.header.balanceLabel": "Solde",
@@ -1362,6 +1368,9 @@ export default {
     "refund.removePhoto": "Supprimer la photo",
     "orders.notif.oosRefund": "« {productName} » est en rupture de stock — vous avez été remboursé",
     "orders.notif.unsentRefund": "« {productName} » n'a pas pu être expédié — la raison est inconnue et vous avez été remboursé",
+    "defect.acceptedDone": "✓ Noté — votre article sera expédié tel quel",
+    "defect.refundedDone": "✓ Intégralement remboursé — désolé pour le défaut d'usine",
+    "orders.notif.defectRefund": "« {productName} » avait un défaut d'usine — intégralement remboursé, désolé !",
   },
   "es": {
     "feed.header.balanceLabel": "Saldo",
@@ -1816,6 +1825,9 @@ export default {
     "refund.removePhoto": "Eliminar foto",
     "orders.notif.oosRefund": "«{productName}» está agotado — has recibido un reembolso",
     "orders.notif.unsentRefund": "«{productName}» no se pudo enviar — el motivo no está claro y has recibido un reembolso",
+    "defect.acceptedDone": "✓ Anotado — tu artículo se enviará tal cual",
+    "defect.refundedDone": "✓ Reembolso completo — perdón por el fallo de fábrica",
+    "orders.notif.defectRefund": "«{productName}» tenía un defecto de fábrica — reembolso completo, ¡perdón!",
   },
   "it": {
     "feed.header.balanceLabel": "Saldo",
@@ -2270,6 +2282,9 @@ export default {
     "refund.removePhoto": "Rimuovi foto",
     "orders.notif.oosRefund": "“{productName}” è esaurito — hai ricevuto un rimborso",
     "orders.notif.unsentRefund": "“{productName}” non è stato spedito — il motivo non è chiaro e hai ricevuto un rimborso",
+    "defect.acceptedDone": "✓ Registrato — il tuo articolo verrà spedito così com'è",
+    "defect.refundedDone": "✓ Rimborso completo — scusa per il difetto di fabbrica",
+    "orders.notif.defectRefund": "“{productName}” aveva un difetto di fabbrica — rimborso completo, scusa!",
   },
   "pl": {
     "feed.header.balanceLabel": "Saldo",
@@ -2724,6 +2739,9 @@ export default {
     "refund.removePhoto": "Usuń zdjęcie",
     "orders.notif.oosRefund": "„{productName}” jest wyprzedany — otrzymałeś zwrot pieniędzy",
     "orders.notif.unsentRefund": "„{productName}” nie mógł zostać wysłany — powód jest niejasny, a Ty otrzymałeś zwrot pieniędzy",
+    "defect.acceptedDone": "✓ Zapisane — Twój przedmiot zostanie wysłany bez zmian",
+    "defect.refundedDone": "✓ Pełny zwrot pieniędzy — przepraszamy za wadę fabryczną",
+    "orders.notif.defectRefund": "„{productName}” miał wadę fabryczną — pełny zwrot, przepraszamy!",
   },
   "pt": {
     "feed.header.balanceLabel": "Saldo",
@@ -3178,5 +3196,8 @@ export default {
     "refund.removePhoto": "Remover foto",
     "orders.notif.oosRefund": "“{productName}” está esgotado — recebeste um reembolso",
     "orders.notif.unsentRefund": "“{productName}” não pôde ser enviado — o motivo não é claro e recebeste um reembolso",
+    "defect.acceptedDone": "✓ Anotado — o teu artigo será enviado tal como está",
+    "defect.refundedDone": "✓ Reembolso total — desculpa pelo defeito de fábrica",
+    "orders.notif.defectRefund": "“{productName}” tinha um defeito de fábrica — reembolso total, desculpa!",
   },
 };

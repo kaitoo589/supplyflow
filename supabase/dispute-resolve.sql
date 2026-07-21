@@ -27,7 +27,7 @@ begin
       select o.id, o.user_id, o.product, o.product_title, o.kleur, o.qty,
              coalesce(o.quoted_total, o.price, 0) as amount,
              o.status, o.dispute_status, o.dispute_description, o.dispute_images,
-             o.qc_images, o.problem_type, o.date, o.dispute_requested_at
+             o.qc_images, o.measurement_images, o.problem_type, o.date, o.dispute_requested_at
       from public.orders o
       where o.dispute_status = 'pending'
       order by o.dispute_requested_at desc nulls last, o.id desc

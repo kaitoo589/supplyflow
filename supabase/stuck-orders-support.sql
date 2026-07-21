@@ -52,6 +52,7 @@ begin
       'created_at', o.created_at,
       'days', floor(extract(epoch from (now() - o.created_at)) / 86400),
       'stuck_extensions', o.stuck_extensions,
+      'delay_msgs', (select count(*) from public.support_messages sm where sm.order_id = o.id and sm.template_key = 'delay'),
       'is_group', o.ff_group_id is not null,
       'group_name', g.name,
       'group_admin_name', case when o.ff_group_id is not null then

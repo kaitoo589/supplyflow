@@ -2246,12 +2246,18 @@ export default function SupplyFlow({ session }) {
   // Flowva support: berichten van de admin (templates) + de inbox-sheet.
   const [supportMsgs, setSupportMsgs] = useState([]);
   const [showSupport, setShowSupport] = useState(false);
+  // "New message"-badge (user 2026-07-22): alleen bij de EERSTE keer lezen — we onthouden
+  // welke berichten ongelezen waren op het moment van openen; volgende keer is 'ie weg.
+  const [freshSupportIds, setFreshSupportIds] = useState([]);
   const openSupport = async () => {
-    setShowNotifs(false); setShowSupport(true);
+    setShowNotifs(false);
+    setFreshSupportIds(supportMsgs.filter((m) => !m.read).map((m) => m.id));
+    setShowSupport(true);
     // Openen = gelezen: server-side markeren + lokaal bijwerken (badge telt direct af).
     try { await supabase.rpc("support_mark_all_read"); } catch {}
     setSupportMsgs((cur) => cur.map((m) => ({ ...m, read: true })));
   };
+  const closeSupport = () => { setShowSupport(false); setFreshSupportIds([]); };
   // Template_key → vertaalde berichttekst (8 talen; Engels = fallback).
   const supportText = (m) => {
     const p = { productName: m.product_title || "your item" };
@@ -3410,7 +3416,7 @@ export default function SupplyFlow({ session }) {
       <AnimatePresence>
         {showSupport && (
           <>
-            <motion.div key="support-backdrop" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setShowSupport(false)}
+            <motion.div key="support-backdrop" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={closeSupport}
               style={{ position: "fixed", inset: 0, zIndex: 380, background: "rgba(17,17,17,0.5)", backdropFilter: "blur(6px)" }} />
             <motion.div key="support-sheet" initial={{ y: "104%" }} animate={{ y: 0 }} exit={{ y: "104%" }} transition={springMorph}
               style={{ position: "fixed", bottom: 0, left: 0, right: 0, margin: "0 auto", maxWidth: 430, background: "#FAF9F6", borderRadius: "24px 24px 0 0", zIndex: 381, maxHeight: "78vh", overflowY: "auto", overscrollBehavior: "contain", padding: "14px 18px calc(22px + env(safe-area-inset-bottom))" }}>
@@ -3423,10 +3429,14 @@ export default function SupplyFlow({ session }) {
                 <div style={{ textAlign: "center", padding: "26px 0", fontSize: 13, color: "#A8A5A0" }}>{tr("support.empty", "No messages yet")}</div>
               )}
               {supportMsgs.map((m) => (
-                <div key={m.id} style={{ background: "#fff", border: "1px solid #ECEAE5", borderRadius: 14, padding: "13px 15px", marginBottom: 10 }}>
+                <div key={m.id} style={{ position: "relative", background: "#fff", border: "1px solid #ECEAE5", borderRadius: 14, padding: "13px 15px", marginBottom: 10 }}>
+                  {/* "New message"-badge: alleen bij de eerste keer lezen (user 2026-07-22). */}
+                  {freshSupportIds.includes(m.id) && (
+                    <span style={{ position: "absolute", top: 11, right: 12, background: "#FF5C00", color: "#fff", fontSize: 9.5, fontWeight: 800, letterSpacing: 0.4, padding: "3px 9px", borderRadius: 999 }}>{tr("support.newBadge", "New message")}</span>
+                  )}
                   {/* Kop: product + exacte verzenddatum & -tijd (user 2026-07-22). Berichten
                       blijven altijd terug te lezen — er verdwijnt hier nooit iets. */}
-                  {m.product_title && <div style={{ fontSize: 12.5, fontWeight: 700, color: "#111111", marginBottom: 2 }}>{m.product_title}</div>}
+                  {m.product_title && <div style={{ fontSize: 12.5, fontWeight: 700, color: "#111111", marginBottom: 2, paddingRight: 96 }}>{m.product_title}</div>}
                   <div style={{ fontSize: 11, color: "#A8A5A0", marginBottom: 6 }}>
                     {(() => { try { return new Date(m.created_at).toLocaleString("en-GB", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" }); } catch { return ""; } })()}
                   </div>

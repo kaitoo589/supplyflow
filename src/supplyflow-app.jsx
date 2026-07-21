@@ -2258,13 +2258,23 @@ export default function SupplyFlow({ session }) {
     setSupportMsgs((cur) => cur.map((m) => ({ ...m, read: true })));
   };
   const closeSupport = () => { setShowSupport(false); setFreshSupportIds([]); };
-  // Template_key → vertaalde berichttekst (8 talen; Engels = fallback).
+  // Template_key → vertaalde berichttekst (8 talen; Engels = fallback). 'custom' = de
+  // vrije tekst die de admin typte (body, onvertaald).
   const supportText = (m) => {
     const p = { productName: m.product_title || "your item" };
-    if (m.template_key === "delay") return tr("support.tpl.delay", "“{productName}” is delayed at the factory — we're keeping an eye on it, please allow a few more days.", p);
-    if (m.template_key === "never_shipped") return tr("support.tpl.neverShipped", "The factory never shipped “{productName}”. You've been fully refunded — sorry about this.", p);
-    if (m.template_key === "unavailable") return tr("support.tpl.unavailable", "“{productName}” turned out to be unavailable after all. You've been fully refunded.", p);
-    return tr("support.tpl.unknownRefund", "Something went wrong with “{productName}” and we couldn't resolve it. To be safe, you've been fully refunded.", p);
+    switch (m.template_key) {
+      case "delay": return tr("support.tpl.delay", "“{productName}” is delayed at the factory — we're keeping an eye on it, please allow a few more days.", p);
+      case "never_shipped": return tr("support.tpl.neverShipped", "The factory never shipped “{productName}”. You've been fully refunded — sorry about this.", p);
+      case "unavailable": return tr("support.tpl.unavailable", "“{productName}” turned out to be unavailable after all. You've been fully refunded.", p);
+      case "refund_accepted": return tr("support.tpl.refundAccepted", "Your refund request for “{productName}” has been accepted — you've been fully refunded.", p);
+      case "deny_ok_item": return tr("support.tpl.denyOkItem", "We reviewed the quality-control photos of “{productName}” carefully — your item matches what you ordered and we found no defect. It will ship as normal.", p);
+      case "deny_change_mind": return tr("support.tpl.denyChangeMind", "The factory doesn't accept change-of-mind returns at this stage. “{productName}” will ship as normal — after it arrives you can still use our regular return policy.", p);
+      case "deny_size_match": return tr("support.tpl.denySizeMatch", "The size and variant of “{productName}” match exactly what was selected at checkout, so we can't treat this as a fault. It will ship as normal.", p);
+      case "deny_minor_variation": return tr("support.tpl.denyMinorVariation", "Small variations in color or finish can occur and fall within normal production standards — “{productName}” isn't considered defective. It will ship as normal.", p);
+      case "deny_evidence": return tr("support.tpl.denyEvidence", "The evidence provided for “{productName}” isn't enough to confirm a defect. Send a new request with clearer photos if you'd like us to take another look — otherwise it ships as normal.", p);
+      case "custom": return m.body || "";
+      default: return tr("support.tpl.unknownRefund", "Something went wrong with “{productName}” and we couldn't resolve it. To be safe, you've been fully refunded.", p);
+    }
   };
   const [balance, setBalance] = useState(0);
   const [orderSuccess, setOrderSuccess] = useState(false);
@@ -2895,7 +2905,7 @@ export default function SupplyFlow({ session }) {
       /^out of stock \/ unavailable/i.test(o.bd_error || "") || /^buckydrop cancelled the order/i.test(o.bd_error || "") || /^factory defect/i.test(o.bd_error || "") || /^support refund/i.test(o.bd_error || "")));
     // Flowva support-berichten (belletje + inbox-sheet). Template_key → vertaalde tekst client-side.
     const { data: sup } = await supabase.from("support_messages")
-      .select("id, order_id, product_title, template_key, group_name, read, created_at")
+      .select("id, order_id, product_title, template_key, group_name, body, read, created_at")
       .eq("user_id", session.user.id).order("created_at", { ascending: false }).limit(20);
     setSupportMsgs(sup || []);
   };
@@ -3051,6 +3061,11 @@ export default function SupplyFlow({ session }) {
   const parcelEligible = orders.filter((o) =>
     o.status === "qc_pending" && !orderToParcel[o.id] &&
     o.dispute_status !== "pending" && o.dispute_status !== "bucky_flagged" && !o.return_status &&
+    (activeGroup ? o.ff_group_id === activeGroup.id : !o.ff_group_id));
+  // Items met een LOPEND refund-verzoek (user 2026-07-22): blijven zichtbaar in het pakket
+  // (embleem "Refund requested — awaiting response") en blokkeren Confirm & ship.
+  const parcelPendingRefunds = orders.filter((o) =>
+    o.status === "qc_pending" && o.dispute_status === "pending" && !orderToParcel[o.id] &&
     (activeGroup ? o.ff_group_id === activeGroup.id : !o.ff_group_id));
   // SOLO: hold-out is verwijderd (user-keuze 2026-07-20) — alles zit ALTIJD in het pakket.
   // Alleen de GROEP-modus houdt nog apart-houden (onderdeel van de Ready-flow).
@@ -3651,9 +3666,11 @@ export default function SupplyFlow({ session }) {
                     ? tr("orders.refunded.reasonDefect", "factory defect — fully refunded")
                     : /^out of stock/i.test(o.bd_error || "")
                       ? tr("orders.refunded.reasonOos", "out of stock — fully refunded")
-                      : /^support refund/i.test(o.bd_error || "")
-                        ? tr("orders.refunded.reasonSupport", "couldn't proceed — fully refunded, see your inbox")
-                        : tr("orders.refunded.reasonUnsent", "could not be sent — fully refunded")}
+                      : /refund_accepted/i.test(o.bd_error || "")
+                        ? tr("orders.refunded.reasonAccepted", "refund request accepted — fully refunded")
+                        : /^support refund/i.test(o.bd_error || "")
+                          ? tr("orders.refunded.reasonSupport", "couldn't proceed — fully refunded, see your inbox")
+                          : tr("orders.refunded.reasonUnsent", "could not be sent — fully refunded")}
                 </div>
               </div>
             ))}
@@ -3856,6 +3873,7 @@ export default function SupplyFlow({ session }) {
       {tab === "orders" && !selectedOrder && session && !isGuest && (
         <ParcelSection session={session} activeGroupId={activeGroup?.id || null}
           parcelItems={parcelItems} heldOutItems={parcelHeldItems}
+          pendingRefunds={parcelPendingRefunds}
           onToggleHold={activeGroup ? toggleParcelHold : undefined}
           onInspectItem={openInspectItem}
           onShipped={() => { fetchOrders(); fetchHauls(); fetchBalance(); }} />

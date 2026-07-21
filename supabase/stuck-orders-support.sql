@@ -186,3 +186,137 @@ begin
   return json_build_object('ok', true, 'refunded', true);
 end; $$;
 grant execute on function public.admin_refund_stuck(text, text) to authenticated;
+
+-- ═══════════════════════════════════════════════════════════════════════
+-- ADDENDUM 2 (2026-07-21) — Fase 2 solo: refund-request afhandeling
+-- Accept = volledige refund + inbox-bericht; fabrieksretour doet de admin
+-- HANDMATIG in BuckyDrop (aparte lijst + stempel). Deny = 5 vaste
+-- templates óf vrije tekst, altijd via de Flowva support-inbox.
+-- (Al gedraaid via MCP — dit bestand is de administratie.)
+-- ═══════════════════════════════════════════════════════════════════════
+
+-- Vrije tekst voor 'custom'-berichten (deny met eigen tekst); client toont body 1-op-1.
+alter table public.support_messages add column if not exists body text;
+
+-- Template-keys uitbreiden met de fase-2-varianten.
+alter table public.support_messages drop constraint if exists support_messages_template_key_check;
+alter table public.support_messages add constraint support_messages_template_key_check
+  check (template_key in ('delay','never_shipped','unavailable','unknown_refund',
+    'refund_accepted','deny_ok_item','deny_change_mind','deny_size_match',
+    'deny_minor_variation','deny_evidence','custom'));
+
+-- Stempel: fabrieksretour in BuckyDrop handmatig gedaan.
+alter table public.orders add column if not exists factory_return_done_at timestamptz;
+
+-- Herdefinitie: approve = refund + inbox; GEEN auto-fabrieksretour meer
+-- (return_status wordt niet meer gezet — retour doet de admin met de hand).
+create or replace function public.admin_resolve_dispute(p_order_id text, p_approve boolean, p_message text default null)
+returns json language plpgsql security definer set search_path = public as $$
+declare v_order record; v_refund json; v_group text;
+begin
+  if (select role from public.profiles where id = auth.uid()) is distinct from 'admin' then
+    return json_build_object('ok', false, 'error', 'not admin');
+  end if;
+  select * into v_order from public.orders where id = p_order_id for update;
+  if not found then return json_build_object('ok', false, 'error', 'order not found'); end if;
+  if v_order.dispute_status is distinct from 'pending' then
+    return json_build_object('ok', false, 'error', 'no pending dispute');
+  end if;
+  select g.name into v_group from public.flowva_groups g where g.id = v_order.ff_group_id;
+
+  if p_approve then
+    update public.orders set dispute_status = 'approved', dispute_response = null where id = p_order_id;
+    v_refund := public.refund_order(p_order_id, 'Support refund — refund_accepted');
+    if coalesce((v_refund->>'ok')::boolean, false) is not true then
+      return json_build_object('ok', false, 'error', coalesce(v_refund->>'error', 'refund mislukt'));
+    end if;
+    -- refund_order zet status='cancelled' en raakt dispute_status niet; markeer approved.
+    update public.orders set dispute_status = 'approved' where id = p_order_id;
+    insert into public.support_messages (user_id, order_id, product_title, template_key, group_name)
+    values (v_order.user_id, v_order.id, coalesce(v_order.product_title, v_order.product), 'refund_accepted', v_group);
+    return json_build_object('ok', true, 'approved', true);
+  else
+    update public.orders set dispute_status = 'rejected', dispute_response = p_message where id = p_order_id;
+    insert into public.support_messages (user_id, order_id, product_title, template_key, group_name, body)
+    values (v_order.user_id, v_order.id, coalesce(v_order.product_title, v_order.product), 'custom', v_group, p_message);
+    return json_build_object('ok', true, 'rejected', true);
+  end if;
+end; $$;
+revoke execute on function public.admin_resolve_dispute(text, boolean, text) from public, anon;
+grant execute on function public.admin_resolve_dispute(text, boolean, text) to authenticated;
+
+-- Deny met vaste template: EN-tekst als dispute_response + inbox-bericht met template_key
+-- (client vertaalt per taal via support.tpl.*-keys).
+create or replace function public.admin_deny_dispute(p_order_id text, p_template_key text)
+returns json language plpgsql security definer set search_path = public as $$
+declare v_order record; v_group text; v_en text;
+begin
+  if (select role from public.profiles where id = auth.uid()) is distinct from 'admin' then
+    return json_build_object('ok', false, 'error', 'not admin');
+  end if;
+  if p_template_key not in ('deny_ok_item','deny_change_mind','deny_size_match','deny_minor_variation','deny_evidence') then
+    return json_build_object('ok', false, 'error', 'ongeldige template');
+  end if;
+  select * into v_order from public.orders where id = p_order_id for update;
+  if not found then return json_build_object('ok', false, 'error', 'order not found'); end if;
+  if v_order.dispute_status is distinct from 'pending' then
+    return json_build_object('ok', false, 'error', 'no pending dispute');
+  end if;
+  v_en := case p_template_key
+    when 'deny_ok_item' then 'We reviewed the quality-control photos carefully — your item matches what you ordered and we found no defect. It will ship as normal.'
+    when 'deny_change_mind' then 'The factory doesn''t accept change-of-mind returns at this stage. Your item will ship as normal — after it arrives you can still use our regular return policy.'
+    when 'deny_size_match' then 'The size and variant match exactly what was selected at checkout, so we can''t treat this as a fault. Your item will ship as normal.'
+    when 'deny_minor_variation' then 'Small variations in color or finish can occur and fall within normal production standards — this isn''t considered a defect. Your item will ship as normal.'
+    else 'The evidence provided isn''t enough for us to confirm a defect. Send a new request with clearer photos if you''d like us to take another look — otherwise your item ships as normal.'
+  end;
+  select g.name into v_group from public.flowva_groups g where g.id = v_order.ff_group_id;
+  update public.orders set dispute_status = 'rejected', dispute_response = v_en where id = p_order_id;
+  insert into public.support_messages (user_id, order_id, product_title, template_key, group_name)
+  values (v_order.user_id, v_order.id, coalesce(v_order.product_title, v_order.product), p_template_key, v_group);
+  return json_build_object('ok', true, 'rejected', true);
+end; $$;
+revoke execute on function public.admin_deny_dispute(text, text) from public, anon;
+grant execute on function public.admin_deny_dispute(text, text) to authenticated;
+
+-- Werkbak: goedgekeurde refund-requests waarvoor de fabrieksretour in
+-- BuckyDrop nog handmatig gedaan moet worden.
+create or replace function public.admin_list_manual_returns()
+returns json language plpgsql security definer set search_path = public as $$
+begin
+  if (select role from public.profiles where id = auth.uid()) is distinct from 'admin' then
+    return json_build_object('ok', false, 'error', 'not admin');
+  end if;
+  return json_build_object('ok', true, 'returns', coalesce((
+    select json_agg(json_build_object(
+      'id', o.id, 'product_title', coalesce(o.product_title, o.product),
+      'kleur', o.kleur, 'qty', o.qty, 'price', o.price,
+      'shop_order_no', o.shop_order_no,
+      'approved_at', o.dispute_requested_at,
+      'is_group', o.ff_group_id is not null, 'group_name', g.name,
+      'group_admin_email', h.email,
+      'customer_name', coalesce(nullif(trim(coalesce(u.raw_user_meta_data->>'voornaam','') || ' ' || coalesce(u.raw_user_meta_data->>'achternaam','')), ''), 'Onbekend'),
+      'customer_email', u.email
+    ) order by o.dispute_requested_at desc)
+    from public.orders o
+    left join auth.users u on u.id = o.user_id
+    left join auth.users h on h.id = o.host_user_id
+    left join public.flowva_groups g on g.id = o.ff_group_id
+    where o.dispute_status = 'approved' and o.factory_return_done_at is null
+  ), '[]'::json));
+end; $$;
+revoke execute on function public.admin_list_manual_returns() from public, anon;
+grant execute on function public.admin_list_manual_returns() to authenticated;
+
+-- Stempel: retour is in BuckyDrop gedaan → rij verdwijnt uit de werkbak.
+create or replace function public.admin_return_done(p_order_id text)
+returns json language plpgsql security definer set search_path = public as $$
+begin
+  if (select role from public.profiles where id = auth.uid()) is distinct from 'admin' then
+    return json_build_object('ok', false, 'error', 'not admin');
+  end if;
+  update public.orders set factory_return_done_at = now() where id = p_order_id and dispute_status = 'approved';
+  if not found then return json_build_object('ok', false, 'error', 'order niet gevonden / niet approved'); end if;
+  return json_build_object('ok', true);
+end; $$;
+revoke execute on function public.admin_return_done(text) from public, anon;
+grant execute on function public.admin_return_done(text) to authenticated;

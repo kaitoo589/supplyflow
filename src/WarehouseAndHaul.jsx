@@ -1399,7 +1399,7 @@ const TRACE_LABEL = { 1: "In transit", 2: "Out for delivery", 3: "Delivered", 4:
 // items met Ready ná foto-inspectie (ff_stage_box → box_staged_at) — de server-
 // gate laat pas verzenden als ALLES Ready is. Geen stille auto-staging meer.
 // ────────────────────────────────────────────────────────────────────────────
-export function ParcelSection({ session, activeGroupId = null, parcelItems = [], heldOutItems = [], onToggleHold, onInspectItem, onShipped }) {
+export function ParcelSection({ session, activeGroupId = null, parcelItems = [], heldOutItems = [], pendingRefunds = [], onToggleHold, onInspectItem, onShipped }) {
   const [open, setOpen] = useState(false);
   const [screen, setScreen] = useState(null);      // null | "confirm" | "success"
   const [balance, setBalance] = useState(0);
@@ -1536,7 +1536,8 @@ export function ParcelSection({ session, activeGroupId = null, parcelItems = [],
                     : tr("parcel.bar.title", "Your parcel · {count} item{s}", { count, s: count === 1 ? "" : "s" })}
                 </div>
                 <div style={{ fontSize: 11.5, color: "#9C9893" }}>
-                  {!activeGroupId && est != null ? `~€${est.toFixed(2)} · ` : ""}{tr("parcel.bar.subtitle", "Tap to review & ship")} <Fox />
+                  {/* Bedrag uit de balk (user 2026-07-22): prijs pas ná Confirm & ship. */}
+                  {tr("parcel.bar.subtitle", "Tap to review & ship")} <Fox />
                 </div>
               </div>
               <motion.div animate={{ y: [0, -3, 0] }} transition={{ duration: 1.4, repeat: Infinity, ease: "easeInOut" }}
@@ -1660,6 +1661,20 @@ export function ParcelSection({ session, activeGroupId = null, parcelItems = [],
                 </div>
                 </FoldReveal>
               ))}
+              {/* Lopende refund-verzoeken (user 2026-07-22): item blijft ZICHTBAAR in het
+                  pakket met embleem — en blokkeert Confirm & ship tot jij hebt beslist. */}
+              {!activeGroupId && pendingRefunds.map((o) => (
+                <div key={"pr-" + o.id} style={{ display: "flex", alignItems: "center", gap: 11, background: "rgba(245,158,11,0.08)", border: "1px solid rgba(245,158,11,0.25)", borderRadius: 13, padding: "9px 11px", marginBottom: 7, opacity: 0.9 }}>
+                  {thumb(o)}
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: 12.5, fontWeight: 600, color: "#fff", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{o.product_title || o.product}</div>
+                    <div style={{ fontSize: 11, color: "#9C9893" }}>{o.weight_grams ? `${o.weight_grams} g` : `${o.qty || 1} pcs`}</div>
+                  </div>
+                  <span style={{ flexShrink: 0, background: "rgba(245,158,11,0.16)", color: "#FBBF24", fontSize: 10, fontWeight: 700, padding: "4px 9px", borderRadius: 999, textAlign: "right", lineHeight: 1.3 }}>
+                    {tr("parcel.chip.refundRequested", "Refund requested")}<br />{tr("parcel.chip.awaitingResponse", "awaiting response")}
+                  </span>
+                </div>
+              ))}
 
               {heldOutItems.length > 0 && (
                 <FoldReveal i={1 + count} n={count + 5} skip={didReveal.current}>
@@ -1680,21 +1695,8 @@ export function ParcelSection({ session, activeGroupId = null, parcelItems = [],
                 </FoldReveal>
               )}
 
-              {!activeGroupId && count > 0 && (
-                <FoldReveal i={2 + count} n={count + 5} skip={didReveal.current}>
-                <div style={{ background: "#1E1D1A", borderRadius: 13, padding: "11px 13px", marginTop: 10 }}>
-                  <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 5 }}>
-                    <span style={{ fontSize: 12, color: "#9C9893" }}>{tr("parcel.sheet.weight", "Total weight")}</span>
-                    <span style={{ fontSize: 12, color: "#fff", fontWeight: 600 }}>{totalWeight > 0 ? `${(totalWeight / 1000).toFixed(2)} kg` : "—"}</span>
-                  </div>
-                  <div style={{ display: "flex", justifyContent: "space-between" }}>
-                    <span style={{ fontSize: 12, color: "#9C9893" }}>{tr("parcel.sheet.estShipping", "Estimated shipping")}</span>
-                    <span style={{ fontSize: 12, color: "#fff", fontWeight: 600 }}>{est != null ? `~€${est.toFixed(2)}` : "—"}</span>
-                  </div>
-                  <div style={{ fontSize: 10.5, color: "#8A8780", marginTop: 7, lineHeight: 1.45 }}>{tr("parcel.sheet.feeNote", "Shipping + one service fee are charged when you ship — the exact quote follows on the next screen.")}</div>
-                </div>
-                </FoldReveal>
-              )}
+              {/* Gewicht-/prijsblok VERWIJDERD (user 2026-07-22): de prijs komt pas ná
+                  "Confirm & ship", op het offerte-scherm. */}
 
               <FoldReveal i={3 + count} n={count + 5} skip={didReveal.current}>
               {activeGroupId ? (
@@ -1703,13 +1705,19 @@ export function ParcelSection({ session, activeGroupId = null, parcelItems = [],
                     waitingCount={waitingCount} isHost={isHost} hostName={hostName} haulCount={count}
                     onRefresh={() => { fetchSquad(); onShipped?.(); }} />
                 </div>
-              ) : (
-                <motion.button whileTap={count ? { scale: 0.97 } : undefined} disabled={!count}
-                  onClick={() => { if (count) { closeSheet(); setScreen("confirm"); } }}
-                  style={{ width: "100%", marginTop: 12, background: count ? "#FF5C00" : "#333", color: count ? "#fff" : "#777", border: "none", borderRadius: 14, padding: "15px", fontSize: 14.5, fontWeight: 700, cursor: count ? "pointer" : "default", WebkitTapHighlightColor: "transparent" }}>
-                  {tr("parcel.sheet.confirm", "Confirm & ship")} →
-                </motion.button>
-              )}
+              ) : (() => {
+                // Lopend refund-verzoek = verzenden geblokkeerd tot de admin heeft beslist
+                // (user 2026-07-22): anders verzendt het pakket terwijl de refund nog kan vallen.
+                const refundHold = pendingRefunds.length > 0;
+                const enabled = count > 0 && !refundHold;
+                return (
+                  <motion.button whileTap={enabled ? { scale: 0.97 } : undefined} disabled={!enabled}
+                    onClick={() => { if (enabled) { closeSheet(); setScreen("confirm"); } }}
+                    style={{ width: "100%", marginTop: 12, background: enabled ? "#FF5C00" : "#333", color: enabled ? "#fff" : "#777", border: "none", borderRadius: 14, padding: "15px", fontSize: 14.5, fontWeight: 700, cursor: enabled ? "pointer" : "default", WebkitTapHighlightColor: "transparent" }}>
+                    {refundHold ? `⏳ ${tr("parcel.sheet.awaitingRefund", "Awaiting refund request response")}` : <>{tr("parcel.sheet.confirm", "Confirm & ship")} →</>}
+                  </motion.button>
+                );
+              })()}
               </FoldReveal>
               <FoldReveal i={4 + count} n={count + 5} skip={didReveal.current}>
               <motion.button whileTap={{ scale: 0.97 }} onClick={closeSheet}

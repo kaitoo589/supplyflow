@@ -1,5 +1,5 @@
 // Auto-gegenereerd woordenboek — kernscherm-vertalingen (7 talen; Engels = de inline fallback in de code).
-// Niet met de hand bewerken: aangevuld via scratchpad-scripts (laatst: add-support-i18n.mjs).
+// Niet met de hand bewerken: aangevuld via scratchpad-scripts (laatst: add-supportrow-i18n.mjs).
 export default {
   "nl": {
     "feed.header.balanceLabel": "Saldo",
@@ -469,6 +469,7 @@ export default {
     "support.tpl.neverShipped": "De fabriek heeft “{productName}” nooit verzonden. Je bent volledig terugbetaald — sorry hiervoor.",
     "support.tpl.unavailable": "“{productName}” bleek toch niet leverbaar. Je bent volledig terugbetaald.",
     "support.tpl.unknownRefund": "Er ging iets mis met “{productName}” dat we niet konden oplossen. Voor de zekerheid ben je volledig terugbetaald.",
+    "orders.notif.supportRow": "Flowva support · {count} bericht(en)",
   },
   "de": {
     "feed.header.balanceLabel": "Guthaben",
@@ -938,6 +939,7 @@ export default {
     "support.tpl.neverShipped": "Die Fabrik hat „{productName}“ nie versendet. Du wurdest vollständig erstattet — das tut uns leid.",
     "support.tpl.unavailable": "„{productName}“ war doch nicht lieferbar. Du wurdest vollständig erstattet.",
     "support.tpl.unknownRefund": "Bei „{productName}“ ist etwas schiefgelaufen, das wir nicht lösen konnten. Zur Sicherheit wurdest du vollständig erstattet.",
+    "orders.notif.supportRow": "Flowva-Support · {count} Nachricht(en)",
   },
   "fr": {
     "feed.header.balanceLabel": "Solde",
@@ -1407,6 +1409,7 @@ export default {
     "support.tpl.neverShipped": "L'usine n'a jamais expédié « {productName} ». Vous avez été intégralement remboursé — toutes nos excuses.",
     "support.tpl.unavailable": "« {productName} » s'est avéré indisponible. Vous avez été intégralement remboursé.",
     "support.tpl.unknownRefund": "Un problème insoluble est survenu avec « {productName} ». Par précaution, vous avez été intégralement remboursé.",
+    "orders.notif.supportRow": "Support Flowva · {count} message(s)",
   },
   "es": {
     "feed.header.balanceLabel": "Saldo",
@@ -1876,6 +1879,7 @@ export default {
     "support.tpl.neverShipped": "La fábrica nunca envió «{productName}». Has recibido un reembolso completo — lo sentimos.",
     "support.tpl.unavailable": "«{productName}» resultó no estar disponible. Has recibido un reembolso completo.",
     "support.tpl.unknownRefund": "Algo salió mal con «{productName}» y no pudimos resolverlo. Por seguridad, has recibido un reembolso completo.",
+    "orders.notif.supportRow": "Soporte Flowva · {count} mensaje(s)",
   },
   "it": {
     "feed.header.balanceLabel": "Saldo",
@@ -2345,6 +2349,7 @@ export default {
     "support.tpl.neverShipped": "La fabbrica non ha mai spedito “{productName}”. Sei stato completamente rimborsato — ci scusiamo.",
     "support.tpl.unavailable": "“{productName}” è risultato non disponibile. Sei stato completamente rimborsato.",
     "support.tpl.unknownRefund": "Qualcosa è andato storto con “{productName}” e non siamo riusciti a risolverlo. Per sicurezza sei stato completamente rimborsato.",
+    "orders.notif.supportRow": "Supporto Flowva · {count} messaggio/i",
   },
   "pl": {
     "feed.header.balanceLabel": "Saldo",
@@ -2814,6 +2819,7 @@ export default {
     "support.tpl.neverShipped": "Fabryka nigdy nie wysłała „{productName}”. Otrzymałeś pełny zwrot pieniędzy — przepraszamy.",
     "support.tpl.unavailable": "„{productName}” okazał się niedostępny. Otrzymałeś pełny zwrot pieniędzy.",
     "support.tpl.unknownRefund": "Coś poszło nie tak z „{productName}” i nie mogliśmy tego rozwiązać. Na wszelki wypadek otrzymałeś pełny zwrot pieniędzy.",
+    "orders.notif.supportRow": "Wsparcie Flowva · wiadomości: {count}",
   },
   "pt": {
     "feed.header.balanceLabel": "Saldo",
@@ -3283,5 +3289,6 @@ export default {
     "support.tpl.neverShipped": "A fábrica nunca enviou “{productName}”. Foste totalmente reembolsado — as nossas desculpas.",
     "support.tpl.unavailable": "“{productName}” afinal não estava disponível. Foste totalmente reembolsado.",
     "support.tpl.unknownRefund": "Algo correu mal com “{productName}” e não conseguimos resolver. Por segurança, foste totalmente reembolsado.",
+    "orders.notif.supportRow": "Suporte Flowva · {count} mensagem(ns)",
   },
 };

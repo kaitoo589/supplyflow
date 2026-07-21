@@ -2960,14 +2960,11 @@ export default function SupplyFlow({ session }) {
   const flaggedInCart = [...new Map(
     requestList.filter((it) => it.source_url && flaggedUrls.includes(it.source_url)).map((it) => [it.source_url, it])
   ).values()];
+  // Flowva support (user 2026-07-22): vaste regel in het belletje — ook bij 0 berichten.
+  // Ongelezen berichten tellen mee in het badge-getal.
+  const unreadSupport = supportMsgs.filter((m) => !m.read).length;
   // Meldingen afgeleid uit je orders: probleem, offerte klaar, agent reageerde, pakket bezorgd.
   const notifications = [
-    // Flowva support-berichten (admin-templates): ongelezen = regel in het belletje → opent de inbox.
-    ...supportMsgs.filter((m) => !m.read).map((m) => ({
-      icon: "💬",
-      text: tr("orders.notif.supportMsg", "Flowva support left a message"),
-      support: true,
-    })),
     // Auto-gerefunde orders (user 2026-07-21): out-of-stock of niet-verzonden → klant ziet
     // dat 'ie z'n geld terugkreeg. Wegtikbaar (dismiss), anders blijft 'ie 14 dagen staan.
     // Support-refunds NIET hier (het support-bericht hierboven ís de melding).
@@ -3337,10 +3334,10 @@ export default function SupplyFlow({ session }) {
               style={{ width: 38, height: 38, borderRadius: "50%", background: showNotifs ? "#111111" : "#fff", border: "1px solid #ECEAE5", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", WebkitTapHighlightColor: "transparent" }}>
               <Bell size={17} color={showNotifs ? "#fff" : "#111111"} strokeWidth={2} />
             </motion.div>
-            {(notifications.length > 0 || warehouseCount > 0) && !showNotifs && (
+            {(notifications.length > 0 || warehouseCount > 0 || unreadSupport > 0) && !showNotifs && (
               <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} transition={springBouncy}
                 style={{ position: "absolute", top: -4, right: -4, minWidth: 16, height: 16, padding: "0 3px", borderRadius: 9, background: "#FF5C00", border: "2px solid #F8F7F4", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 9, fontWeight: 700, color: "#fff", boxSizing: "content-box" }}>
-                {notifications.length + warehouseCount}
+                {notifications.length + warehouseCount + unreadSupport}
               </motion.div>
             )}
             <AnimatePresence>
@@ -3349,9 +3346,19 @@ export default function SupplyFlow({ session }) {
                   transition={springSnappy}
                   style={{ position: "absolute", top: 46, right: 0, width: 280, background: "#fff", borderRadius: 16, boxShadow: "0 12px 40px rgba(17,17,17,0.18)", zIndex: 150, overflow: "hidden", transformOrigin: "top right", border: "1px solid #ECEAE5" }}>
                   <div style={{ padding: "12px 14px 10px", fontSize: 13, fontWeight: 700, color: "#111111", borderBottom: "1px solid #F0EEE8" }}>{tr("feed.notifs.title", "Notifications")}</div>
-                  {notifications.length === 0 && warehouseCount === 0 && (
-                    <div style={{ padding: "20px 14px", textAlign: "center", fontSize: 13, color: "#aaa" }}><Fox /> {tr("feed.notifs.empty", "No new notifications")}</div>
-                  )}
+                  {/* Flowva support: VASTE regel (user 2026-07-22) — ook bij 0 berichten.
+                      Opent de inbox; ongelezen = oranje teller. */}
+                  <div onClick={openSupport}
+                    style={{ display: "flex", alignItems: "center", gap: 10, padding: "11px 14px", borderBottom: "1px solid #F0EEE8", cursor: "pointer" }}>
+                    <span style={{ fontSize: 17 }}>💬</span>
+                    <span style={{ fontSize: 12.5, color: "#333", lineHeight: 1.4, flex: 1 }}>
+                      {tr("orders.notif.supportRow", "Flowva support · {count} message{s}", { count: supportMsgs.length, s: supportMsgs.length === 1 ? "" : "s" })}
+                    </span>
+                    {unreadSupport > 0 && (
+                      <span style={{ background: "#FF5C00", color: "#fff", fontSize: 10, fontWeight: 800, padding: "2px 7px", borderRadius: 999 }}>{unreadSupport}</span>
+                    )}
+                    <span style={{ color: "#ccc", fontSize: 14 }}>→</span>
+                  </div>
                   {warehouseCount > 0 && (
                     <div onClick={() => { setShowNotifs(false); setTab("orders"); /* magazijn = onderdeel van Orders sinds de merge */ }}
                       style={{ display: "flex", alignItems: "center", gap: 10, padding: "11px 14px", borderBottom: "1px solid #F0EEE8", cursor: "pointer" }}>
@@ -3398,7 +3405,12 @@ export default function SupplyFlow({ session }) {
               )}
               {supportMsgs.map((m) => (
                 <div key={m.id} style={{ background: "#fff", border: "1px solid #ECEAE5", borderRadius: 14, padding: "13px 15px", marginBottom: 10 }}>
-                  <div style={{ fontSize: 11, color: "#A8A5A0", marginBottom: 5 }}>{(() => { try { return new Date(m.created_at).toLocaleDateString("en-GB"); } catch { return ""; } })()}{m.order_id ? ` · ${m.order_id}` : ""}</div>
+                  {/* Kop: product + exacte verzenddatum & -tijd (user 2026-07-22). Berichten
+                      blijven altijd terug te lezen — er verdwijnt hier nooit iets. */}
+                  {m.product_title && <div style={{ fontSize: 12.5, fontWeight: 700, color: "#111111", marginBottom: 2 }}>{m.product_title}</div>}
+                  <div style={{ fontSize: 11, color: "#A8A5A0", marginBottom: 6 }}>
+                    {(() => { try { return new Date(m.created_at).toLocaleString("en-GB", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" }); } catch { return ""; } })()}
+                  </div>
                   <div style={{ fontSize: 13.5, color: "#111111", lineHeight: 1.55 }}>{supportText(m)}</div>
                 </div>
               ))}

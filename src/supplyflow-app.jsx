@@ -2816,7 +2816,7 @@ export default function SupplyFlow({ session }) {
     // user 2026-07-21). bd_error draagt de reden (gezet door refund_order); we tonen alleen
     // de laatste 14 dagen en filteren op de twee bekende automatische redenen.
     const { data: refunded } = await supabase.from("orders")
-      .select("id, product_title, product, kleur, bd_error, created_at")
+      .select("id, product_title, product, kleur, bd_error, created_at, ff_group_id")
       .eq("user_id", session.user.id).eq("status", "cancelled").not("bd_error", "is", null)
       .gte("created_at", new Date(Date.now() - 14 * 864e5).toISOString())
       .order("created_at", { ascending: false });
@@ -3489,8 +3489,10 @@ export default function SupplyFlow({ session }) {
               </div>
             )}
             {/* Gerefunde (geannuleerde) items blijven 14 dagen zichtbaar als grijze kaart met
-                REFUNDED-badge (user 2026-07-21) — voorheen verdwenen ze spoorloos uit de lijst. */}
-            {orderFilter === "all" && refundNotices.map((o) => (
+                REFUNDED-badge (user 2026-07-21) — voorheen verdwenen ze spoorloos uit de lijst.
+                MODUS-SCHEIDING (user): solo toont alleen solo-refunds; groep-modus alleen
+                de refunds van díé groep. */}
+            {orderFilter === "all" && refundNotices.filter((o) => (activeGroup ? o.ff_group_id === activeGroup.id : !o.ff_group_id)).map((o) => (
               <div key={"refund-" + o.id} style={{ position: "relative", background: "#F1EFE9", border: "1px solid #E3E0D9", borderRadius: 16, marginBottom: 10, padding: "13px 15px", opacity: 0.85 }}>
                 <div style={{ position: "absolute", top: 11, right: 12, background: "#DCFCE7", color: "#15803D", fontSize: 9.5, fontWeight: 800, letterSpacing: 0.6, padding: "3px 8px", borderRadius: 7 }}>{tr("orders.detail.badge.refunded", "REFUNDED")}</div>
                 <div style={{ fontSize: 11, color: "#A8A5A0" }}>{(() => { try { return new Date(o.created_at).toLocaleDateString("en-GB"); } catch { return ""; } })()}</div>

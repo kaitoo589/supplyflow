@@ -645,7 +645,7 @@ function NormalShippingConfirm({ session, haulItems, balance, onBack, onSuccess 
   // aan pay_shipping_buffered (server).
   const domesticEur = r2(pieces * 5 / 7.8);
   const qcEur = r2(pieces * 6 / 7.8);
-  const currencyFee = r2((productValue + domesticEur + qcEur + FULFIL_EUR + estFreight + surcharge) * 0.03);
+  const currencyFee = r2((productValue + domesticEur + qcEur + FULFIL_EUR + buffered + surcharge) * 0.03);
   const toPay = r2(buffered + vat + FULFIL_EUR + surcharge + svcFee + storageFee + currencyFee);
   const canAfford = balance >= toPay;
 

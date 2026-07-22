@@ -91,7 +91,15 @@ export default function Auth() {
       email: form.email,
       password: form.password,
     });
-    if (error) setError(error.message);
+    // "Email not confirmed" → vriendelijke tekst mét spam-hint (klant klikte de
+    // bevestigingsmail nog niet, of vindt 'm niet). Rest: rauwe Supabase-melding.
+    if (error) {
+      if (/email not confirmed|not confirmed/i.test(error.message)) {
+        setError(tr("auth.err.notConfirmed", "Email not confirmed yet — click the link in the email we sent you. Can't find it? Check your spam folder."));
+      } else {
+        setError(error.message);
+      }
+    }
     setLoading(false);
   };
 
@@ -145,7 +153,7 @@ export default function Auth() {
       return;
     }
 
-    setSuccess(tr("auth.success.created", "Account created! Check your email to confirm."));
+    setSuccess(tr("auth.success.created", "Account created! Check your email to confirm. Can't find it? Check your spam folder."));
   };
 
   const inputStyle = {

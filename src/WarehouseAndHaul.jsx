@@ -1419,17 +1419,19 @@ function GroupShippingPanel({ session, groupId, shipment, waitingCount, isHost, 
           )}
         </AnimatePresence>
       );
-      // Al-betaald-regel (bij checkout betaald): bedrag grijs + groen "paid" ernaast.
+      // Al-betaald-regel (bij checkout betaald): alleen grijs bedrag. De losse groene "paid"
+      // per regel is weg (user 2026-07-22) — de kop "ALREADY PAID AT CHECKOUT" zegt het al, en
+      // het verdronk de échte status (verzending betaald ja/nee), die nu de kaart kleurt.
       const paidLine = (label, val) => (
         <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 3 }}>
           <span style={{ fontSize: 12.5, color: "#6E6B66" }}>{label}</span>
-          <span style={{ fontSize: 12.5, color: "#6E6B66" }}>{eur(val)} <span style={{ color: "#10B981", fontWeight: 700, fontSize: 10.5 }}>{tr("group.pay.paidTag", "paid")}</span></span>
+          <span style={{ fontSize: 12.5, color: "#6E6B66" }}>{eur(val)}</span>
         </div>
       );
       const memberCard = (m) => {
         const own = m.user_id === myId;
         return (
-          <div key={m.user_id} style={{ background: "#0F0E0C", borderRadius: 14, padding: 16, marginBottom: 12, border: own ? "1.5px solid #FF5C00" : "1px solid #262421" }}>
+          <div key={m.user_id} style={{ background: "#0F0E0C", borderRadius: 14, padding: 16, marginBottom: 12, border: m.paid ? "1.5px solid #10B981" : own ? "1.5px solid #FF5C00" : "1px solid #262421" }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
               <span style={{ fontSize: 13.5, fontWeight: 700, color: "#fff" }}>{own ? tr("group.pay.you", "You") : m.member}<span style={{ fontSize: 11.5, fontWeight: 500, color: "#9C9893" }}> · {(Number(m.weight_g) / 1000).toFixed(2)} kg</span></span>
               <span style={{ fontSize: 10.5, fontWeight: 700, color: m.paid ? "#10B981" : "#9C9893" }}>{m.paid ? tr("group.pay.paid", "✓ Paid") : tr("group.pay.pending", "Pending")}</span>
@@ -1481,9 +1483,16 @@ function GroupShippingPanel({ session, groupId, shipment, waitingCount, isHost, 
               <span style={{ fontSize: 13, color: "#fff" }}><span style={strike}>{eur(m.fee_full)}</span>{eur(m.fee_eur)}</span>
             </div>
             {Number(m.storage_eur) > 0 && line(tr("cart.lineStorageFee", "Extended storage"), null, m.storage_eur)}
-            <div style={{ borderTop: "1px solid #333", paddingTop: 10, display: "flex", justifyContent: "space-between" }}>
-              <span style={{ fontSize: 14, fontWeight: 700, color: "#fff" }}>{own ? tr("group.pay.yourShare", "Your share") : tr("group.pay.theirShare", "Their share")} <span style={{ fontWeight: 500, color: "#9C9893", fontSize: 12 }}>· {tr("group.pay.estimate", "estimate")}</span></span>
-              <span style={{ fontSize: 14, fontWeight: 700, color: "#FF5C00" }}>{eur(m.share_total)}</span>
+            {/* Voet kleurt mee met de verzend-status (user 2026-07-22): betaald = groen "✓ Paid"
+                + groen bedrag; nog niet = wit label + oranje bedrag. Zo zie je per kaart in één
+                oogopslag wie z'n deel al heeft afgerekend, los van de checkout-betaling erboven. */}
+            <div style={{ borderTop: "1px solid #333", paddingTop: 10, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <span style={{ fontSize: 14, fontWeight: 700, color: m.paid ? "#10B981" : "#fff" }}>
+                {m.paid
+                  ? tr("group.pay.paid", "✓ Paid")
+                  : <>{own ? tr("group.pay.yourShare", "Your share") : tr("group.pay.theirShare", "Their share")} <span style={{ fontWeight: 500, color: "#9C9893", fontSize: 12 }}>· {tr("group.pay.estimate", "estimate")}</span></>}
+              </span>
+              <span style={{ fontSize: 14, fontWeight: 700, color: m.paid ? "#10B981" : "#FF5C00" }}>{eur(m.share_total)}</span>
             </div>
           </div>
         );

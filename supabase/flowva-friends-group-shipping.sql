@@ -509,3 +509,12 @@ grant execute on function public.request_item_return(text, text) to authenticate
 -- naast het gewicht als die fee van toepassing is.
 -- Getest 2026-07-22: Squad-lid met 45-dagen-item → €2,00; ander lid → €0,00.
 -- ═══════════════════════════════════════════════════════════════════════
+
+-- ADDENDUM (2026-07-22) — cost-overview-details per lid (keuze B):
+--   * ff_group_shipping_state + ff_pay_group_shipping: fulfilment EERLIJK in centen
+--     verdeeld (som = volle €1,27; oneven → laagste user_id-rangen +1 cent), zodat de
+--     som van de aandelen exact de volle fulfilment is.
+--   * ff_group_shipping_state stuurt per lid ook fulfil_full (solo €1,27) en fee_full
+--     (solo 8%/min €5) mee → de app toont die grijs doorgestreept naast het lagere
+--     Friends-bedrag (fulfilment ÷ leden, service fee lagere staffel). Currency-basis
+--     ongewijzigd (goederen + domestic + qc + fulfil-aandeel + kale vracht).

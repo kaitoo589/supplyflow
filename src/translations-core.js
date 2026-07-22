@@ -1,5 +1,5 @@
 // Auto-gegenereerd woordenboek — kernscherm-vertalingen (7 talen; Engels = de inline fallback in de code).
-// Niet met de hand bewerken: aangevuld via scratchpad-scripts (laatst: add-paytitle-i18n.mjs).
+// Niet met de hand bewerken: aangevuld via scratchpad-scripts (laatst: add-cost-i18n.mjs).
 export default {
   "nl": {
     "feed.header.balanceLabel": "Saldo",
@@ -546,6 +546,8 @@ export default {
     "group.quoted.dropUnpaid": "Verzend zonder {count} niet-betaald lid{s} →",
     "group.pay.title2": "Verzending bevestigen",
     "group.pay.subtitle2": "Eén pakket naar {host}, verdeeld op gewicht — betaal hieronder je eigen deel.",
+    "cost.bufferNote": "incl. +25% buffer · terugbetaald als de echte rekening lager is",
+    "cost.currencyNote": "3% · over goederen + verzending + fulfilment omgezet naar ¥",
   },
   "de": {
     "feed.header.balanceLabel": "Guthaben",
@@ -1092,6 +1094,8 @@ export default {
     "group.quoted.dropUnpaid": "Ohne {count} unbezahlte(s) Mitglied(er) versenden →",
     "group.pay.title2": "Versand bestätigen",
     "group.pay.subtitle2": "Ein Paket an {host}, nach Gewicht aufgeteilt — zahle unten deinen eigenen Anteil.",
+    "cost.bufferNote": "inkl. +25% Puffer · erstattet, wenn die echte Rechnung niedriger ist",
+    "cost.currencyNote": "3% · auf Waren + Versand + Fulfillment in ¥ umgerechnet",
   },
   "fr": {
     "feed.header.balanceLabel": "Solde",
@@ -1638,6 +1642,8 @@ export default {
     "group.quoted.dropUnpaid": "Expédier sans {count} membre{s} non payé{s} →",
     "group.pay.title2": "Confirmer l'expédition",
     "group.pay.subtitle2": "Un colis pour {host}, réparti au poids — payez votre part ci-dessous.",
+    "cost.bufferNote": "incl. +25% de marge · remboursée si la facture réelle est plus basse",
+    "cost.currencyNote": "3% · sur les biens + expédition + fulfillment convertis en ¥",
   },
   "es": {
     "feed.header.balanceLabel": "Saldo",
@@ -2184,6 +2190,8 @@ export default {
     "group.quoted.dropUnpaid": "Enviar sin {count} miembro{s} sin pagar →",
     "group.pay.title2": "Confirmar el envío",
     "group.pay.subtitle2": "Un paquete a {host}, repartido por peso — paga tu parte abajo.",
+    "cost.bufferNote": "incl. +25% de margen · reembolsado si la factura real es menor",
+    "cost.currencyNote": "3% · sobre bienes + envío + fulfillment convertidos a ¥",
   },
   "it": {
     "feed.header.balanceLabel": "Saldo",
@@ -2730,6 +2738,8 @@ export default {
     "group.quoted.dropUnpaid": "Spedisci senza {count} membro{s} non pagante →",
     "group.pay.title2": "Conferma spedizione",
     "group.pay.subtitle2": "Un pacco per {host}, diviso per peso — paga la tua parte sotto.",
+    "cost.bufferNote": "incl. +25% di margine · rimborsato se la fattura reale è più bassa",
+    "cost.currencyNote": "3% · su merce + spedizione + fulfillment convertiti in ¥",
   },
   "pl": {
     "feed.header.balanceLabel": "Saldo",
@@ -3276,6 +3286,8 @@ export default {
     "group.quoted.dropUnpaid": "Wyślij bez {count} nieopłaconych członków →",
     "group.pay.title2": "Potwierdź wysyłkę",
     "group.pay.subtitle2": "Jedna paczka do {host}, podzielona według wagi — zapłać swoją część poniżej.",
+    "cost.bufferNote": "w tym +25% bufora · zwracane, jeśli realny rachunek jest niższy",
+    "cost.currencyNote": "3% · od towarów + wysyłki + fulfillmentu przeliczonych na ¥",
   },
   "pt": {
     "feed.header.balanceLabel": "Saldo",
@@ -3822,5 +3834,7 @@ export default {
     "group.quoted.dropUnpaid": "Enviar sem {count} membro{s} por pagar →",
     "group.pay.title2": "Confirmar o envio",
     "group.pay.subtitle2": "Uma encomenda para {host}, dividida por peso — paga a tua parte abaixo.",
+    "cost.bufferNote": "incl. +25% de margem · reembolsado se a fatura real for menor",
+    "cost.currencyNote": "3% · sobre bens + envio + fulfillment convertidos em ¥",
   },
 };

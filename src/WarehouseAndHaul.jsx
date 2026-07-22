@@ -1281,6 +1281,7 @@ function GroupShippingPanel({ session, groupId, shipment, waitingCount, isHost, 
   const [pick, setPick] = useState(null); // null = dicht; object = auto-gekozen route ter bevestiging
   const [msg, setMsg] = useState("");
   const [payPage, setPayPage] = useState(false); // volledige betaalpagina (per-lid cost overview)
+  const [openInfo, setOpenInfo] = useState(() => new Set()); // klikbare "?"-uitleg (buffer / 3% currency)
   const [addrOk, setAddrOk] = useState(false);
   const [balance, setBalance] = useState(0);
   const myId = session.user.id;
@@ -1403,11 +1404,26 @@ function GroupShippingPanel({ session, groupId, shipment, waitingCount, isHost, 
       // Groeps-minimum voor de service fee (staffel ff_member_fee): 2-3 = €4,50, 4-6 = €4,00, 7+ = €3,50. Solo = €5.
       const feeMin = nMembers >= 7 ? "3.50" : nMembers >= 4 ? "4.00" : "4.50";
       const strike = { color: "#666", textDecoration: "line-through", marginRight: 6 };
-      // Al-betaald-regel (grijs, bij checkout betaald) — zelfde stijl als 'line' maar gedimd.
+      // Klikbaar "?" (user 2026-07-22): morpht een lap uitleg open/dicht onder de regel.
+      const toggleInfo = (key) => setOpenInfo((s) => { const n = new Set(s); n.has(key) ? n.delete(key) : n.add(key); return n; });
+      const infoQ = (key) => (
+        <button onClick={() => toggleInfo(key)} aria-label="info"
+          style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: 15, height: 15, borderRadius: "50%", border: "1px solid #555", background: openInfo.has(key) ? "#555" : "transparent", color: "#9C9893", fontSize: 10, fontWeight: 700, cursor: "pointer", marginLeft: 5, padding: 0, lineHeight: 1, verticalAlign: "middle" }}>?</button>
+      );
+      const infoText = (key, text) => (
+        <AnimatePresence initial={false}>
+          {openInfo.has(key) && (
+            <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }} transition={{ duration: 0.22 }} style={{ overflow: "hidden" }}>
+              <div style={{ fontSize: 11, color: "#8A8780", lineHeight: 1.5, background: "rgba(255,255,255,0.03)", borderRadius: 8, padding: "8px 10px", margin: "0 0 8px" }}>{text}</div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      );
+      // Al-betaald-regel (bij checkout betaald): bedrag grijs + groen "paid" ernaast.
       const paidLine = (label, val) => (
         <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 3 }}>
           <span style={{ fontSize: 12.5, color: "#6E6B66" }}>{label}</span>
-          <span style={{ fontSize: 12.5, color: "#6E6B66" }}>{eur(val)}</span>
+          <span style={{ fontSize: 12.5, color: "#6E6B66" }}>{eur(val)} <span style={{ color: "#10B981", fontWeight: 700, fontSize: 10.5 }}>{tr("group.pay.paidTag", "paid")}</span></span>
         </div>
       );
       const memberCard = (m) => {
@@ -1419,39 +1435,41 @@ function GroupShippingPanel({ session, groupId, shipment, waitingCount, isHost, 
               <span style={{ fontSize: 10.5, fontWeight: 700, color: m.paid ? "#10B981" : "#9C9893" }}>{m.paid ? tr("group.pay.paid", "✓ Paid") : tr("group.pay.pending", "Pending")}</span>
             </div>
             {/* AL BETAALD BIJ CHECKOUT (user 2026-07-22) — alleen op je EIGEN kaart (privacy:
-                nooit andermans goederenwaarde). Accolade rechts → wijst naar de currency
-                conversion, zodat duidelijk is dat de 3% óók over deze al-betaalde ¥-bedragen
-                (+ verzending & fulfilment) gaat. */}
+                nooit andermans goederenwaarde). Product/domestic/qc met een groen "paid". */}
             {own && m.goods_eur != null && (
               <div style={{ marginBottom: 12 }}>
                 <div style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: 0.4, color: "#10B981", marginBottom: 6 }}>✓ {tr("group.pay.alreadyPaid", "ALREADY PAID AT CHECKOUT")}</div>
-                <div style={{ display: "flex", alignItems: "stretch", gap: 8 }}>
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    {paidLine(tr("group.pay.goods", "Product"), m.goods_eur)}
-                    {paidLine(tr("group.pay.domestic", "Domestic shipping · ¥5"), m.domestic_eur)}
-                    {paidLine(tr("group.pay.qc", "Quality-control · ¥6"), m.qc_eur)}
-                  </div>
-                  {/* Accolade (bracket) over de 3 regels + pijl naar de currency conversion. */}
-                  <div style={{ display: "flex", alignItems: "center", flexShrink: 0 }}>
-                    <div style={{ width: 7, alignSelf: "stretch", borderTop: "1.5px solid #7DD3FC", borderRight: "1.5px solid #7DD3FC", borderBottom: "1.5px solid #7DD3FC", borderRadius: "0 7px 7px 0", opacity: 0.7 }} />
-                    <span style={{ fontSize: 10, color: "#7DD3FC", marginLeft: 5, lineHeight: 1.3, maxWidth: 92 }}>{tr("group.pay.currencyBrace", "↘ 3% currency conversion")}</span>
-                  </div>
-                </div>
+                {paidLine(tr("group.pay.goods", "Product"), m.goods_eur)}
+                {paidLine(tr("group.pay.domestic", "Domestic shipping · ¥5"), m.domestic_eur)}
+                {paidLine(tr("group.pay.qc", "Quality-control · ¥6"), m.qc_eur)}
                 <div style={{ borderTop: "1px solid #262421", marginTop: 10 }} />
               </div>
             )}
-            {/* International shipping + buffer-subregel */}
-            <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
-              <span style={{ fontSize: 13, color: "#888" }}>{tr("group.pay.shipping", "International shipping")} <span style={{ color: "#666" }}>· {carrierLabel(shipment.service_name)} · {tr("group.lock.duties", "duties included")}</span></span>
-              <span style={{ fontSize: 13, color: "#fff" }}>{eur(m.ship_eur)}</span>
-            </div>
-            <div style={{ marginBottom: 8, paddingLeft: 12 }}><span style={{ fontSize: 11, color: "#666" }}>↳ {tr("cost.bufferNote", "incl. +25% buffer · refunded if the real bill is lower")}</span></div>
+            {/* International shipping LOS + buffer LOS met klikbaar "?" (user 2026-07-22). */}
+            {(() => {
+              const shipRaw = Math.round((Number(m.ship_eur) / 1.25) * 100) / 100;
+              const shipBuffer = Math.round((Number(m.ship_eur) - shipRaw) * 100) / 100;
+              return (
+                <>
+                  <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8 }}>
+                    <span style={{ fontSize: 13, color: "#888" }}>{tr("group.pay.shipping", "International shipping")} <span style={{ color: "#666" }}>· {carrierLabel(shipment.service_name)} · {tr("group.lock.duties", "duties included")}</span></span>
+                    <span style={{ fontSize: 13, color: "#fff" }}>{eur(shipRaw)}</span>
+                  </div>
+                  <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
+                    <span style={{ fontSize: 13, color: "#888" }}>{tr("group.pay.buffer", "Shipping buffer (+25%)")}{infoQ(m.user_id + "-buffer")}</span>
+                    <span style={{ fontSize: 13, color: "#fff" }}>{eur(shipBuffer)}</span>
+                  </div>
+                  {infoText(m.user_id + "-buffer", tr("group.pay.bufferInfo", "BuckyDrop's exact shipping bill only comes in about a week after the parcel leaves. We charge an estimate with a 25% buffer so the parcel can always go — once the real bill arrives, the difference is refunded to your balance."))}
+                </>
+              );
+            })()}
             {Number(m.vat_eur) > 0 && line(tr("group.pay.vat", "Import VAT (21%)"), null, m.vat_eur)}
-            {/* Currency conversion: zachtblauw accent (↖) tie-in met de al-betaald-accolade hierboven. */}
-            <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8, borderLeft: (own && m.goods_eur != null) ? "2px solid #7DD3FC" : "none", paddingLeft: (own && m.goods_eur != null) ? 7 : 0, marginLeft: (own && m.goods_eur != null) ? -9 : 0 }}>
-              <span style={{ fontSize: 13, color: "#888" }}>{(own && m.goods_eur != null) ? "↖ " : ""}{tr("group.pay.currency", "Currency conversion")} <span style={{ color: "#666" }}>· {tr("cost.currencyNote", "3% · on goods + shipping + fulfillment converted to ¥")}</span></span>
+            {/* Currency conversion · 3% + klikbaar "?" met de basis-uitleg. */}
+            <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
+              <span style={{ fontSize: 13, color: "#888" }}>{tr("group.pay.currency", "Currency conversion")} <span style={{ color: "#666" }}>· 3%</span>{infoQ(m.user_id + "-cur")}</span>
               <span style={{ fontSize: 13, color: "#fff" }}>{eur(m.currency_eur)}</span>
             </div>
+            {infoText(m.user_id + "-cur", tr("group.pay.currencyInfo", "The 3% Alipay conversion is charged on everything that gets converted to Chinese yuan: the product, China domestic shipping (¥5/item), quality-control (¥6/item), fulfillment and the international shipping. It is not charged on VAT, the service fee or storage."))}
             {/* Fulfillment: gedeeld door het aantal leden — solo-prijs doorgestreept ernaast. */}
             <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8 }}>
               <span style={{ fontSize: 13, color: "#888" }}>{tr("pricing.fulfillment.name", "Fulfillment")} <span style={{ color: "#666" }}>· ¥9.9 ÷ {nMembers}</span></span>

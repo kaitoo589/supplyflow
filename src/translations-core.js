@@ -1,5 +1,5 @@
 // Auto-gegenereerd woordenboek — kernscherm-vertalingen (7 talen; Engels = de inline fallback in de code).
-// Niet met de hand bewerken: aangevuld via scratchpad-scripts (laatst: add-grouplocked-i18n.mjs).
+// Niet met de hand bewerken: aangevuld via scratchpad-scripts (laatst: add-payinfo-i18n.mjs).
 export default {
   "nl": {
     "feed.header.balanceLabel": "Saldo",
@@ -555,6 +555,10 @@ export default {
     "cost.bufferNote": "incl. +25% buffer · terugbetaald als de echte rekening lager is",
     "cost.currencyNote": "3% · over goederen + verzending + fulfilment omgezet naar ¥",
     "group.locked.note": "Je admin heeft de groep vergrendeld",
+    "group.pay.paidTag": "betaald",
+    "group.pay.buffer": "Verzendbuffer (+25%)",
+    "group.pay.bufferInfo": "BuckyDrop's exacte vrachtrekening komt pas ~een week nadat het pakket vertrekt. We rekenen een schatting met 25% buffer zodat het pakket altijd kan gaan — zodra de echte rekening binnen is, krijg je het verschil terug op je saldo.",
+    "group.pay.currencyInfo": "De 3% Alipay-conversie wordt gerekend over alles wat naar Chinese yuan wordt omgezet: het product, China-binnenlandverzending (¥5/stuk), quality-control (¥6/stuk), fulfilment en de internationale verzending. Niet over de BTW, de service fee of de opslag.",
   },
   "de": {
     "feed.header.balanceLabel": "Guthaben",
@@ -1110,6 +1114,10 @@ export default {
     "cost.bufferNote": "inkl. +25% Puffer · erstattet, wenn die echte Rechnung niedriger ist",
     "cost.currencyNote": "3% · auf Waren + Versand + Fulfillment in ¥ umgerechnet",
     "group.locked.note": "Dein Admin hat die Gruppe gesperrt",
+    "group.pay.paidTag": "bezahlt",
+    "group.pay.buffer": "Versandpuffer (+25%)",
+    "group.pay.bufferInfo": "BuckyDrops genaue Versandrechnung kommt erst etwa eine Woche nach Abgang des Pakets. Wir berechnen eine Schätzung mit 25% Puffer, damit das Paket immer losgehen kann — sobald die echte Rechnung da ist, wird die Differenz auf dein Guthaben erstattet.",
+    "group.pay.currencyInfo": "Die 3% Alipay-Umrechnung wird auf alles berechnet, was in chinesische Yuan umgerechnet wird: das Produkt, den China-Inlandsversand (¥5/Artikel), die Qualitätskontrolle (¥6/Artikel), das Fulfillment und den internationalen Versand. Nicht auf MwSt., Servicegebühr oder Lagerung.",
   },
   "fr": {
     "feed.header.balanceLabel": "Solde",
@@ -1665,6 +1673,10 @@ export default {
     "cost.bufferNote": "incl. +25% de marge · remboursée si la facture réelle est plus basse",
     "cost.currencyNote": "3% · sur les biens + expédition + fulfillment convertis en ¥",
     "group.locked.note": "Votre admin a verrouillé le groupe",
+    "group.pay.paidTag": "payé",
+    "group.pay.buffer": "Marge d'expédition (+25%)",
+    "group.pay.bufferInfo": "La facture d'expédition exacte de BuckyDrop n'arrive qu'environ une semaine après le départ du colis. Nous facturons une estimation avec une marge de 25% pour que le colis puisse toujours partir — dès que la facture réelle arrive, la différence est remboursée sur votre solde.",
+    "group.pay.currencyInfo": "Les 3% de conversion Alipay s'appliquent à tout ce qui est converti en yuan chinois : le produit, l'expédition domestique en Chine (¥5/article), le contrôle qualité (¥6/article), le fulfillment et l'expédition internationale. Pas sur la TVA, les frais de service ni le stockage.",
   },
   "es": {
     "feed.header.balanceLabel": "Saldo",
@@ -2220,6 +2232,10 @@ export default {
     "cost.bufferNote": "incl. +25% de margen · reembolsado si la factura real es menor",
     "cost.currencyNote": "3% · sobre bienes + envío + fulfillment convertidos a ¥",
     "group.locked.note": "Tu admin ha bloqueado el grupo",
+    "group.pay.paidTag": "pagado",
+    "group.pay.buffer": "Margen de envío (+25%)",
+    "group.pay.bufferInfo": "La factura de envío exacta de BuckyDrop llega solo una semana después de que el paquete sale. Cobramos una estimación con un 25% de margen para que el paquete siempre pueda salir — cuando llega la factura real, la diferencia se reembolsa a tu saldo.",
+    "group.pay.currencyInfo": "El 3% de conversión de Alipay se cobra sobre todo lo que se convierte a yuanes chinos: el producto, el envío doméstico en China (¥5/artículo), el control de calidad (¥6/artículo), el fulfillment y el envío internacional. No sobre el IVA, la tarifa de servicio ni el almacenaje.",
   },
   "it": {
     "feed.header.balanceLabel": "Saldo",
@@ -2775,6 +2791,10 @@ export default {
     "cost.bufferNote": "incl. +25% di margine · rimborsato se la fattura reale è più bassa",
     "cost.currencyNote": "3% · su merce + spedizione + fulfillment convertiti in ¥",
     "group.locked.note": "Il tuo admin ha bloccato il gruppo",
+    "group.pay.paidTag": "pagato",
+    "group.pay.buffer": "Margine di spedizione (+25%)",
+    "group.pay.bufferInfo": "La fattura di spedizione esatta di BuckyDrop arriva solo circa una settimana dopo la partenza del pacco. Addebitiamo una stima con un margine del 25% così il pacco può sempre partire — quando arriva la fattura reale, la differenza viene rimborsata sul tuo saldo.",
+    "group.pay.currencyInfo": "Il 3% di conversione Alipay si applica a tutto ciò che viene convertito in yuan cinesi: il prodotto, la spedizione domestica in Cina (¥5/articolo), il controllo qualità (¥6/articolo), il fulfillment e la spedizione internazionale. Non sull'IVA, sulla service fee o sul deposito.",
   },
   "pl": {
     "feed.header.balanceLabel": "Saldo",
@@ -3330,6 +3350,10 @@ export default {
     "cost.bufferNote": "w tym +25% bufora · zwracane, jeśli realny rachunek jest niższy",
     "cost.currencyNote": "3% · od towarów + wysyłki + fulfillmentu przeliczonych na ¥",
     "group.locked.note": "Twój admin zablokował grupę",
+    "group.pay.paidTag": "opłacone",
+    "group.pay.buffer": "Bufor wysyłki (+25%)",
+    "group.pay.bufferInfo": "Dokładny rachunek za wysyłkę od BuckyDrop przychodzi dopiero około tydzień po wyjściu paczki. Pobieramy szacunek z 25% buforem, aby paczka zawsze mogła ruszyć — gdy przyjdzie realny rachunek, różnica jest zwracana na Twoje saldo.",
+    "group.pay.currencyInfo": "3% przewalutowania Alipay naliczane jest od wszystkiego, co jest przeliczane na chińskie juany: produktu, wysyłki krajowej w Chinach (¥5/szt.), kontroli jakości (¥6/szt.), fulfillmentu i wysyłki międzynarodowej. Nie od VAT, opłaty serwisowej ani przechowywania.",
   },
   "pt": {
     "feed.header.balanceLabel": "Saldo",
@@ -3885,5 +3909,9 @@ export default {
     "cost.bufferNote": "incl. +25% de margem · reembolsado se a fatura real for menor",
     "cost.currencyNote": "3% · sobre bens + envio + fulfillment convertidos em ¥",
     "group.locked.note": "O teu admin bloqueou o grupo",
+    "group.pay.paidTag": "pago",
+    "group.pay.buffer": "Margem de envio (+25%)",
+    "group.pay.bufferInfo": "A fatura de envio exata da BuckyDrop só chega cerca de uma semana após a encomenda sair. Cobramos uma estimativa com 25% de margem para que a encomenda possa sempre seguir — assim que a fatura real chega, a diferença é reembolsada no teu saldo.",
+    "group.pay.currencyInfo": "Os 3% de conversão Alipay são cobrados sobre tudo o que é convertido em yuan chinês: o produto, o envio doméstico na China (¥5/artigo), o controlo de qualidade (¥6/artigo), o fulfillment e o envio internacional. Não sobre o IVA, a taxa de serviço nem o armazenamento.",
   },
 };

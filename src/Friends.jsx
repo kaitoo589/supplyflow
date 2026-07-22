@@ -503,7 +503,9 @@ export default function Friends({ session, onClose, initialJoinCode, initialGrou
       if (!r || !r.ok) {
         setCartErr(r?.error === "Insufficient balance"
           ? `Insufficient balance — you need €${Number(r.needed || 0).toFixed(2)}. Top up first.`
-          : (r?.error || "Checkout failed"));
+          : r?.error === "group_locked"
+            ? "The group is shipping a parcel right now — you can order again once it's on its way."
+            : (r?.error || "Checkout failed"));
         return;
       }
       refreshLobby();   // mand nu leeg voor mij; items zijn groeps-orders (zie Orders · squad)

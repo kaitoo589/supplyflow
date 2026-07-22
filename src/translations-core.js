@@ -1,5 +1,5 @@
 // Auto-gegenereerd woordenboek — kernscherm-vertalingen (7 talen; Engels = de inline fallback in de code).
-// Niet met de hand bewerken: aangevuld via scratchpad-scripts (laatst: add-cost-i18n.mjs).
+// Niet met de hand bewerken: aangevuld via scratchpad-scripts (laatst: add-grouplocked-i18n.mjs).
 export default {
   "nl": {
     "feed.header.balanceLabel": "Saldo",
@@ -554,6 +554,7 @@ export default {
     "group.pay.subtitle2": "Eén pakket naar {host}, verdeeld op gewicht — betaal hieronder je eigen deel.",
     "cost.bufferNote": "incl. +25% buffer · terugbetaald als de echte rekening lager is",
     "cost.currencyNote": "3% · over goederen + verzending + fulfilment omgezet naar ¥",
+    "group.locked.note": "Je admin heeft de groep vergrendeld",
   },
   "de": {
     "feed.header.balanceLabel": "Guthaben",
@@ -1108,6 +1109,7 @@ export default {
     "group.pay.subtitle2": "Ein Paket an {host}, nach Gewicht aufgeteilt — zahle unten deinen eigenen Anteil.",
     "cost.bufferNote": "inkl. +25% Puffer · erstattet, wenn die echte Rechnung niedriger ist",
     "cost.currencyNote": "3% · auf Waren + Versand + Fulfillment in ¥ umgerechnet",
+    "group.locked.note": "Dein Admin hat die Gruppe gesperrt",
   },
   "fr": {
     "feed.header.balanceLabel": "Solde",
@@ -1662,6 +1664,7 @@ export default {
     "group.pay.subtitle2": "Un colis pour {host}, réparti au poids — payez votre part ci-dessous.",
     "cost.bufferNote": "incl. +25% de marge · remboursée si la facture réelle est plus basse",
     "cost.currencyNote": "3% · sur les biens + expédition + fulfillment convertis en ¥",
+    "group.locked.note": "Votre admin a verrouillé le groupe",
   },
   "es": {
     "feed.header.balanceLabel": "Saldo",
@@ -2216,6 +2219,7 @@ export default {
     "group.pay.subtitle2": "Un paquete a {host}, repartido por peso — paga tu parte abajo.",
     "cost.bufferNote": "incl. +25% de margen · reembolsado si la factura real es menor",
     "cost.currencyNote": "3% · sobre bienes + envío + fulfillment convertidos a ¥",
+    "group.locked.note": "Tu admin ha bloqueado el grupo",
   },
   "it": {
     "feed.header.balanceLabel": "Saldo",
@@ -2770,6 +2774,7 @@ export default {
     "group.pay.subtitle2": "Un pacco per {host}, diviso per peso — paga la tua parte sotto.",
     "cost.bufferNote": "incl. +25% di margine · rimborsato se la fattura reale è più bassa",
     "cost.currencyNote": "3% · su merce + spedizione + fulfillment convertiti in ¥",
+    "group.locked.note": "Il tuo admin ha bloccato il gruppo",
   },
   "pl": {
     "feed.header.balanceLabel": "Saldo",
@@ -3324,6 +3329,7 @@ export default {
     "group.pay.subtitle2": "Jedna paczka do {host}, podzielona według wagi — zapłać swoją część poniżej.",
     "cost.bufferNote": "w tym +25% bufora · zwracane, jeśli realny rachunek jest niższy",
     "cost.currencyNote": "3% · od towarów + wysyłki + fulfillmentu przeliczonych na ¥",
+    "group.locked.note": "Twój admin zablokował grupę",
   },
   "pt": {
     "feed.header.balanceLabel": "Saldo",
@@ -3878,5 +3884,6 @@ export default {
     "group.pay.subtitle2": "Uma encomenda para {host}, dividida por peso — paga a tua parte abaixo.",
     "cost.bufferNote": "incl. +25% de margem · reembolsado se a fatura real for menor",
     "cost.currencyNote": "3% · sobre bens + envio + fulfillment convertidos em ¥",
+    "group.locked.note": "O teu admin bloqueou o grupo",
   },
 };

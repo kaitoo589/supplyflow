@@ -1651,6 +1651,9 @@ export function ParcelSection({ session, activeGroupId = null, parcelItems = [],
   // Groeps-gate — zelfde regels als voorheen (de server dwingt dit óók af):
   // wachten = nog onderweg + aangekomen-maar-nog-niet-Ready (incl. apart gehouden).
   const COMING = ["quote_accepted", "purchased", "bought", "shipped_local"];
+  // Verzend-lock van de groep (user 2026-07-22, keuze B): zodra de quote gelockt is, kan
+  // niemand nog Ready/Unready wijzigen (server dwingt dit al af; dit toont het duidelijk).
+  const groupShipLocked = ["quoted", "consolidating", "shipped"].includes(shipState?.status);
   const alive = (squadOrders || []).filter((o) => !o.return_status && o.status !== "cancelled" && o.status !== "refunded");
   const waitingCount = alive.filter((o) => COMING.includes(o.status)).length + alive.filter((o) => o.status === "qc_pending" && !o.box_staged_at).length;
   // Groep-items met een probleem (defect gemeld of lopend refund-verzoek) — die blokkeren
@@ -1822,10 +1825,13 @@ export function ParcelSection({ session, activeGroupId = null, parcelItems = [],
                       // EIGEN aangekomen item zonder probleem: status-badge (Ready/Unready) +
                       // aparte knop eronder (user 2026-07-22). Een al-betaald item is vast Ready
                       // (geen knop). Andermans items + probleem-/onderweg-items = alleen een badge.
-                      const showToggle = own && arrived && !needsAction && !locked;
+                      // Bij een gelockte verzending kan niemand meer togglen → toon een grijze
+                      // "your admin locked the group"-regel i.p.v. de knop (user 2026-07-22).
+                      const showToggle = own && arrived && !needsAction && !locked && !groupShipLocked;
+                      const lockedNote = own && arrived && !needsAction && groupShipLocked;
                       return (
                         <div key={o.id} style={{ marginBottom: 7 }}>
-                          <div style={{ display: "flex", alignItems: "center", gap: 11, background: "#1A1917", borderRadius: showToggle ? "13px 13px 0 0" : 13, padding: "9px 11px", border: needsAction ? "1px solid rgba(245,158,11,0.4)" : "1px solid transparent" }}>
+                          <div style={{ display: "flex", alignItems: "center", gap: 11, background: "#1A1917", borderRadius: (showToggle || lockedNote) ? "13px 13px 0 0" : 13, padding: "9px 11px", border: needsAction ? "1px solid rgba(245,158,11,0.4)" : "1px solid transparent" }}>
                             {thumb(o)}
                             <div style={{ flex: 1, minWidth: 0 }}>
                               <div style={{ fontSize: 12.5, fontWeight: 600, color: "#fff", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{o.product_title || o.product}</div>
@@ -1855,6 +1861,9 @@ export function ParcelSection({ session, activeGroupId = null, parcelItems = [],
                               style={{ display: "block", width: "100%", background: ready ? "rgba(255,255,255,0.06)" : "#FF5C00", color: ready ? "#C9C6C1" : "#fff", border: "none", borderRadius: "0 0 13px 13px", padding: "9px", fontSize: 12, fontWeight: 700, cursor: "pointer", WebkitTapHighlightColor: "transparent" }}>
                               {ready ? <>↩ {tr("parcel.row.tapUnready", "Tap to set Unready")}</> : <>✓ {tr("parcel.row.tapReadyLong", "Tap to set Ready")}</>}
                             </motion.button>
+                          )}
+                          {lockedNote && (
+                            <div style={{ padding: "8px 9px", background: "rgba(255,255,255,0.03)", borderRadius: "0 0 13px 13px", textAlign: "center", fontSize: 11, color: "#8A8780" }}>🔒 {tr("group.locked.note", "Your admin locked the group")}</div>
                           )}
                         </div>
                       );

@@ -518,3 +518,9 @@ grant execute on function public.request_item_return(text, text) to authenticate
 --     (solo 8%/min €5) mee → de app toont die grijs doorgestreept naast het lagere
 --     Friends-bedrag (fulfilment ÷ leden, service fee lagere staffel). Currency-basis
 --     ongewijzigd (goederen + domestic + qc + fulfil-aandeel + kale vracht).
+
+-- ADDENDUM (2026-07-22) — keuze B: groep DICHT bij lock:
+--   ff_cart_checkout weigert nieuwe groeps-orders zodra ff_group_shipments.status in
+--   ('quoted','consolidating','shipped') → return {ok:false, error:'group_locked'} (0 orders,
+--   0 afschrijving). Client toont dit als nette melding; Ready-toggle + Request-a-refund
+--   worden in de app grijs doorgestreept met "your admin locked the group".

@@ -504,7 +504,7 @@ function DefectChoice({ order, onResolved }) {
 // Knop → tekstveld + optionele eigen bewijs-foto's → submit_dispute (dispute_status='pending'
 // + omschrijving + dispute_images). Zodra 'pending', verbergt de QC-pagina deze knop en toont
 // ze het "onder review"-blok; admin ziet melding + foto's in AgentPanel/Problems en keurt goed/af.
-function RefundRequest({ order, onSubmitted }) {
+function RefundRequest({ order, onSubmitted, locked = false }) {
   const [open, setOpen] = useState(false);
   const [text, setText] = useState("");
   const [images, setImages] = useState([]);
@@ -537,6 +537,16 @@ function RefundRequest({ order, onSubmitted }) {
     if (error || data?.ok === false) { setErr(error?.message || data?.error || tr("refund.failed", "Could not send — please try again")); return; }
     onSubmitted?.({ dispute_status: "pending", dispute_description: desc, dispute_images: images });
   };
+  // Gelockte groep-verzending (user 2026-07-22): refund kan de bevroren split verstoren →
+  // knop doorgestreept + "your admin locked the group".
+  if (locked) {
+    return (
+      <div style={{ width: "100%", marginTop: 10, background: "#F1EFE9", borderRadius: 12, padding: "12px", textAlign: "center" }}>
+        <span style={{ fontSize: 14, fontWeight: 700, color: "#B8B5B0", textDecoration: "line-through" }}>{tr("refund.button", "Request a refund")}</span>
+        <div style={{ fontSize: 11.5, color: "#8A8780", marginTop: 4 }}>🔒 {tr("group.locked.note", "Your admin locked the group")}</div>
+      </div>
+    );
+  }
   if (!open) {
     return (
       <button onClick={() => setOpen(true)}
@@ -2431,6 +2441,17 @@ export default function SupplyFlow({ session }) {
     try { return JSON.parse(localStorage.getItem(lsKey("flowva_active_group")) || "null"); } catch { return null; }
   });
   const [groupToast, setGroupToast] = useState(null);   // {kind,name} als de actieve groep van status wisselt
+  // Verzend-lock van de groep-order in het detailscherm (user 2026-07-22, keuze B): zodra de
+  // host de verzending vergrendelt, mag niemand nog Ready wijzigen of een refund aanvragen.
+  const [selGroupShipLocked, setSelGroupShipLocked] = useState(false);
+  useEffect(() => {
+    if (!selectedOrder?.ff_group_id) { setSelGroupShipLocked(false); return; }
+    let on = true;
+    supabase.rpc("ff_group_shipping_state", { p_group_id: selectedOrder.ff_group_id }).then(({ data }) => {
+      if (on) setSelGroupShipLocked(["quoted", "consolidating", "shipped"].includes(data?.shipment?.status));
+    });
+    return () => { on = false; };
+  }, [selectedOrder?.id, selectedOrder?.ff_group_id]);
   // Favorieten (per apparaat) + filter in de feed.
   const [favorites, setFavorites] = useState(() => { try { return JSON.parse(localStorage.getItem(lsKey("flowva_favorites")) || "[]"); } catch { return []; } });
   const [showFavoritesOnly, setShowFavoritesOnly] = useState(false);
@@ -3878,10 +3899,17 @@ export default function SupplyFlow({ session }) {
                   retour/probleem loopt — dan staat het bijbehorende blok hierboven al. */}
               {(selectedOrder.dispute_status || selectedOrder.return_status || selectedOrder.problem_type) ? null : (
                 <>
-                  {/* GROEP: eerst de Ready-flow (bevestigen voor het groepspakket)… */}
+                  {/* GROEP: eerst de Ready-flow (bevestigen voor het groepspakket). Bij een
+                      vergrendelde verzending (user 2026-07-22, keuze B): knop doorgestreept +
+                      "your admin locked the group" — je kunt niks meer wijzigen. */}
                   {selectedOrder.ff_group_id && (selectedOrder.box_staged_at ? (
                     <div style={{ marginTop: 10, background: "#ECFDF5", border: "1px solid #A7F3D0", borderRadius: 12, padding: "12px", textAlign: "center", fontSize: 13, fontWeight: 700, color: "#065F46" }}>
                       {tr("inspect.readyDone", "✓ Ready — ships with the group parcel")}
+                    </div>
+                  ) : selGroupShipLocked ? (
+                    <div style={{ width: "100%", marginTop: 10, background: "#F1EFE9", borderRadius: 12, padding: "12px", textAlign: "center" }}>
+                      <span style={{ fontSize: 14, fontWeight: 700, color: "#B8B5B0", textDecoration: "line-through" }}>{tr("inspect.readyBtn", "✓ Looks good — Ready to ship")}</span>
+                      <div style={{ fontSize: 11.5, color: "#8A8780", marginTop: 4 }}>🔒 {tr("group.locked.note", "Your admin locked the group")}</div>
                     </div>
                   ) : (
                     <button onClick={() => markParcelReady(selectedOrder)} style={{ width: "100%", marginTop: 10, background: "#FF5C00", color: "#fff", border: "none", borderRadius: 12, padding: "12px", fontSize: 14, fontWeight: 700, cursor: "pointer" }}>
@@ -3889,8 +3917,9 @@ export default function SupplyFlow({ session }) {
                     </button>
                   ))}
                   {/* …en daaronder — solo én groep (user 2026-07-21) — de klacht-ingang:
-                      Request a refund met tekst + eigen bewijs-foto's → zichtbaar in admin. */}
-                  <RefundRequest order={selectedOrder}
+                      Request a refund met tekst + eigen bewijs-foto's → zichtbaar in admin.
+                      Geblokkeerd zolang de groep-verzending gelockt is. */}
+                  <RefundRequest order={selectedOrder} locked={selGroupShipLocked}
                     onSubmitted={(patch) => { setSelectedOrder((cur) => (cur ? { ...cur, ...patch } : cur)); fetchOrders(); }} />
                 </>
               )}

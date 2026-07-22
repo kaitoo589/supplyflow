@@ -3094,6 +3094,13 @@ export default function SupplyFlow({ session }) {
   const parcelPendingRefunds = orders.filter((o) =>
     o.status === "qc_pending" && o.dispute_status === "pending" && !orderToParcel[o.id] &&
     (activeGroup ? o.ff_group_id === activeGroup.id : !o.ff_group_id));
+  // Defect gedetecteerd (user 2026-07-22): net als bij Friends blijft het item ZICHTBAAR
+  // in het pakket-overzicht, met "Action needed" + "It's currently not in your parcel" —
+  // solo heeft geen lock, dus we zeggen expliciet dat het item niet meegaat totdat de
+  // klant kiest (accepteren → schuift vanzelf het pakket in; retour → refund).
+  const parcelDefects = orders.filter((o) =>
+    o.status === "qc_pending" && o.dispute_status === "bucky_flagged" && !orderToParcel[o.id] &&
+    (activeGroup ? o.ff_group_id === activeGroup.id : !o.ff_group_id));
   // Verbeurde items (user 2026-07-22): blijven grijs zichtbaar in het pakket met het
   // embleem "Item forfeited", maar tellen nergens meer mee — Confirm & ship werkt gewoon.
   const parcelForfeited = orders.filter((o) =>
@@ -3912,6 +3919,7 @@ export default function SupplyFlow({ session }) {
         <ParcelSection session={session} activeGroupId={activeGroup?.id || null}
           parcelItems={parcelItems} heldOutItems={parcelHeldItems}
           pendingRefunds={parcelPendingRefunds}
+          defectItems={parcelDefects}
           forfeitedItems={parcelForfeited}
           comingItems={parcelComing}
           refreshSignal={parcelRefresh}

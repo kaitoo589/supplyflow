@@ -1424,7 +1424,7 @@ const TRACE_LABEL = { 1: "In transit", 2: "Out for delivery", 3: "Delivered", 4:
 // items met Ready ná foto-inspectie (ff_stage_box → box_staged_at) — de server-
 // gate laat pas verzenden als ALLES Ready is. Geen stille auto-staging meer.
 // ────────────────────────────────────────────────────────────────────────────
-export function ParcelSection({ session, activeGroupId = null, parcelItems = [], heldOutItems = [], pendingRefunds = [], forfeitedItems = [], comingItems = [], refreshSignal = 0, onToggleHold, onInspectItem, onShipped }) {
+export function ParcelSection({ session, activeGroupId = null, parcelItems = [], heldOutItems = [], pendingRefunds = [], defectItems = [], forfeitedItems = [], comingItems = [], refreshSignal = 0, onToggleHold, onInspectItem, onShipped }) {
   const [open, setOpen] = useState(false);
   const [screen, setScreen] = useState(null);      // null | "confirm" | "success"
   const [balance, setBalance] = useState(0);
@@ -1748,10 +1748,26 @@ export function ParcelSection({ session, activeGroupId = null, parcelItems = [],
                   {thumb(o)}
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ fontSize: 12.5, fontWeight: 600, color: "#fff", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{o.product_title || o.product}</div>
-                    <div style={{ fontSize: 11, color: "#9C9893" }}>{o.weight_grams ? `${o.weight_grams} g` : `${o.qty || 1} pcs`}</div>
+                    <div style={{ fontSize: 11, color: "#FBBF24" }}>{tr("parcel.sheet.notInParcel", "It's currently not in your parcel")}</div>
                   </div>
                   <span style={{ flexShrink: 0, background: "rgba(245,158,11,0.16)", color: "#FBBF24", fontSize: 10, fontWeight: 700, padding: "4px 9px", borderRadius: 999, textAlign: "right", lineHeight: 1.3 }}>
                     {tr("parcel.chip.refundRequested", "Refund requested")}<br />{tr("parcel.chip.awaitingResponse", "awaiting response")}
+                  </span>
+                </div>
+              ))}
+              {/* Defect gedetecteerd (user 2026-07-22): net als bij Friends zichtbaar mét
+                  status — maar het item zit NIET in het pakket (solo heeft geen lock), dus
+                  dat zeggen we er expliciet bij. Accepteert de klant → schuift het vanzelf
+                  het pakket in; kiest 'ie retour → refund en het gaat nooit mee. */}
+              {!activeGroupId && defectItems.map((o) => (
+                <div key={"df-" + o.id} style={{ display: "flex", alignItems: "center", gap: 11, background: "rgba(245,158,11,0.08)", border: "1px solid rgba(245,158,11,0.25)", borderRadius: 13, padding: "9px 11px", marginBottom: 7, opacity: 0.9 }}>
+                  {thumb(o)}
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: 12.5, fontWeight: 600, color: "#fff", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{o.product_title || o.product}</div>
+                    <div style={{ fontSize: 11, color: "#FBBF24" }}>{tr("parcel.sheet.notInParcel", "It's currently not in your parcel")}</div>
+                  </div>
+                  <span style={{ flexShrink: 0, background: "rgba(245,158,11,0.16)", color: "#FBBF24", fontSize: 10, fontWeight: 700, padding: "4px 9px", borderRadius: 999, textAlign: "right", lineHeight: 1.3 }}>
+                    ⚠ {tr("parcel.chip.actionNeeded", "Action needed")}<br />{tr("parcel.chip.chooseKeepReturn", "choose keep or return")}
                   </span>
                 </div>
               ))}

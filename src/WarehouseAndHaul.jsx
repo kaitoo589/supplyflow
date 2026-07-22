@@ -1847,15 +1847,20 @@ export function ParcelSection({ session, activeGroupId = null, parcelItems = [],
                     onRefresh={() => { fetchSquad(); onShipped?.(); }} />
                 </div>
               ) : (() => {
-                // Lopend refund-verzoek = verzenden geblokkeerd tot de admin heeft beslist
-                // (user 2026-07-22): anders verzendt het pakket terwijl de refund nog kan vallen.
+                // Verzenden pas als ÁLLE warehouse-items opgelost zijn (user 2026-07-22).
+                // Volgorde van de blokkades: (1) lopend refund-verzoek → "Awaiting refund
+                // request response"; (2) daarna/anders een defect zonder klant-keuze →
+                // "Action needed". Pas als beide weg zijn: "Confirm & ship".
                 const refundHold = pendingRefunds.length > 0;
-                const enabled = count > 0 && !refundHold;
+                const defectHold = defectItems.length > 0;
+                const enabled = count > 0 && !refundHold && !defectHold;
                 return (
                   <motion.button whileTap={enabled ? { scale: 0.97 } : undefined} disabled={!enabled}
                     onClick={() => { if (enabled) { closeSheet(); setScreen("confirm"); } }}
                     style={{ width: "100%", marginTop: 12, background: enabled ? "#FF5C00" : "#333", color: enabled ? "#fff" : "#777", border: "none", borderRadius: 14, padding: "15px", fontSize: 14.5, fontWeight: 700, cursor: enabled ? "pointer" : "default", WebkitTapHighlightColor: "transparent" }}>
-                    {refundHold ? `⏳ ${tr("parcel.sheet.awaitingRefund", "Awaiting refund request response")}` : <>{tr("parcel.sheet.confirm", "Confirm & ship")} →</>}
+                    {refundHold ? `⏳ ${tr("parcel.sheet.awaitingRefund", "Awaiting refund request response")}`
+                      : defectHold ? `⚠️ ${tr("parcel.sheet.actionNeeded", "Action needed — choose keep or return")}`
+                      : <>{tr("parcel.sheet.confirm", "Confirm & ship")} →</>}
                   </motion.button>
                 );
               })()}

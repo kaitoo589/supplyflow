@@ -1375,7 +1375,10 @@ function GroupShippingPanel({ session, groupId, shipment, waitingCount, isHost, 
       <div style={{ fontSize: 11, color: "#9C9893", marginBottom: 10 }}>One parcel to {hostName || "the host"}{shipment.service_name ? ` · ${shipment.service_name}` : ""}</div>
       {members.map((m) => (
         <div key={m.user_id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "7px 0", borderBottom: "1px solid #F0EEE8", fontSize: 12.5 }}>
-          <span style={{ fontWeight: 600, color: "#111" }}>{m.user_id === myId ? "You" : m.member}<span style={{ color: "#9C9893", fontWeight: 400 }}> · {(Number(m.weight_g) / 1000).toFixed(2)} kg</span></span>
+          <span style={{ fontWeight: 600, color: "#111" }}>{m.user_id === myId ? "You" : m.member}<span style={{ color: "#9C9893", fontWeight: 400 }}> · {(Number(m.weight_g) / 1000).toFixed(2)} kg</span>
+            {/* Extended storage (2026-07-22): PER PERSOON — alleen wie een 30+/60+-dagen-item heeft
+                betaalt de €2/€4 per stuk; zit al in share_total, dit maakt het zichtbaar. */}
+            {Number(m.storage_eur) > 0 && <span style={{ color: "#B45309", fontWeight: 600 }}> · +€{Number(m.storage_eur).toFixed(2)} storage</span>}</span>
           <span style={{ display: "flex", alignItems: "center", gap: 8 }}>
             <span style={{ fontWeight: 700 }}>{eur(m.share_total)}</span>
             <span style={{ fontSize: 10, fontWeight: 700, color: m.paid ? "#10B981" : "#9C9893" }}>{m.paid ? "✓ Paid" : "Pending"}</span>

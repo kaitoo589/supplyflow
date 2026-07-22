@@ -479,3 +479,33 @@ begin
   return json_build_object('ok', true, 'return_status', 'requested');
 end; $$;
 grant execute on function public.request_item_return(text, text) to authenticated;
+
+-- ═══════════════════════════════════════════════════════════════════════
+-- ADDENDUM (2026-07-22) — Extended storage in Flowva Friends: PER PERSOON
+-- (Al toegepast via MCP — dit bestand is de administratie.)
+--
+-- User-beslissing: de extended-storage-fee (€2/stuk bij 31-60 dagen in het
+-- magazijn, €4/stuk bij 61-90) geldt óók in de groeps-verzending, maar PER
+-- PERSOON: alleen het lid wiens eigen item(s) over de 30/60 dagen zijn,
+-- betaalt die fee — bovenop z'n gewichtsaandeel. Zelfde staffel als solo
+-- (pay_shipping_buffered). Wijzigingen (volledige definities staan live):
+--
+-- 1. ff_shipping_shares + kolom storage_eur.
+--    alter table public.ff_shipping_shares add column if not exists storage_eur numeric;
+--
+-- 2. ff_pay_group_shipping:
+--    v_storage := som over MIJN gestagede groep-items
+--                 ( >60d → €4 · >30d → €2 · anders €0 ) × qty
+--    v_total   := ... + v_storage (NIET in de 3%-valutabasis)
+--    transactie 'storage_fee' als v_storage > 0 (eigen type, nooit mee-gerefund)
+--    storage_eur mee in de ff_shipping_shares-upsert + json-resultaat.
+--
+-- 3. ff_group_shipping_state:
+--    per lid 'storage_eur' in de members-json (betaald → uit de share-rij;
+--    onbetaald → live afgeleid) en share_total (onbetaalde tak) + m.storage,
+--    zodat het getoonde aandeel exact klopt met wat ff_pay_group_shipping afschrijft.
+--
+-- Klant-weergave: GroupShippingPanel toont per lid "· +€X storage" (amber)
+-- naast het gewicht als die fee van toepassing is.
+-- Getest 2026-07-22: Squad-lid met 45-dagen-item → €2,00; ander lid → €0,00.
+-- ═══════════════════════════════════════════════════════════════════════

@@ -1,5 +1,5 @@
 // Auto-gegenereerd woordenboek — kernscherm-vertalingen (7 talen; Engels = de inline fallback in de code).
-// Niet met de hand bewerken: aangevuld via scratchpad-scripts (laatst: add-grouppay-i18n.mjs).
+// Niet met de hand bewerken: aangevuld via scratchpad-scripts (laatst: add-paytitle-i18n.mjs).
 export default {
   "nl": {
     "feed.header.balanceLabel": "Saldo",
@@ -544,6 +544,8 @@ export default {
     "group.quoted.body": "Je admin heeft de groepsmand vergrendeld. Je kunt nu op de volgende pagina jouw deel van het pakket bevestigen & verzenden.",
     "group.quoted.viewSplit": "Bekijk de verdeling",
     "group.quoted.dropUnpaid": "Verzend zonder {count} niet-betaald lid{s} →",
+    "group.pay.title2": "Verzending bevestigen",
+    "group.pay.subtitle2": "Eén pakket naar {host}, verdeeld op gewicht — betaal hieronder je eigen deel.",
   },
   "de": {
     "feed.header.balanceLabel": "Guthaben",
@@ -1088,6 +1090,8 @@ export default {
     "group.quoted.body": "Dein Admin hat den Gruppenwarenkorb gesperrt. Auf der nächsten Seite kannst du jetzt deinen Teil des Pakets bestätigen & versenden.",
     "group.quoted.viewSplit": "Aufteilung ansehen",
     "group.quoted.dropUnpaid": "Ohne {count} unbezahlte(s) Mitglied(er) versenden →",
+    "group.pay.title2": "Versand bestätigen",
+    "group.pay.subtitle2": "Ein Paket an {host}, nach Gewicht aufgeteilt — zahle unten deinen eigenen Anteil.",
   },
   "fr": {
     "feed.header.balanceLabel": "Solde",
@@ -1632,6 +1636,8 @@ export default {
     "group.quoted.body": "Votre admin a verrouillé le panier du groupe. Vous pouvez maintenant confirmer & expédier votre part du colis sur la page suivante.",
     "group.quoted.viewSplit": "Voir le partage",
     "group.quoted.dropUnpaid": "Expédier sans {count} membre{s} non payé{s} →",
+    "group.pay.title2": "Confirmer l'expédition",
+    "group.pay.subtitle2": "Un colis pour {host}, réparti au poids — payez votre part ci-dessous.",
   },
   "es": {
     "feed.header.balanceLabel": "Saldo",
@@ -2176,6 +2182,8 @@ export default {
     "group.quoted.body": "Tu admin ha bloqueado el carrito del grupo. Ahora puedes confirmar y enviar tu parte del paquete en la siguiente pantalla.",
     "group.quoted.viewSplit": "Ver el reparto",
     "group.quoted.dropUnpaid": "Enviar sin {count} miembro{s} sin pagar →",
+    "group.pay.title2": "Confirmar el envío",
+    "group.pay.subtitle2": "Un paquete a {host}, repartido por peso — paga tu parte abajo.",
   },
   "it": {
     "feed.header.balanceLabel": "Saldo",
@@ -2720,6 +2728,8 @@ export default {
     "group.quoted.body": "Il tuo admin ha bloccato il carrello del gruppo. Ora puoi confermare e spedire la tua parte del pacco nella schermata successiva.",
     "group.quoted.viewSplit": "Vedi la divisione",
     "group.quoted.dropUnpaid": "Spedisci senza {count} membro{s} non pagante →",
+    "group.pay.title2": "Conferma spedizione",
+    "group.pay.subtitle2": "Un pacco per {host}, diviso per peso — paga la tua parte sotto.",
   },
   "pl": {
     "feed.header.balanceLabel": "Saldo",
@@ -3264,6 +3274,8 @@ export default {
     "group.quoted.body": "Twój admin zablokował koszyk grupy. Na następnej stronie możesz teraz potwierdzić i wysłać swoją część paczki.",
     "group.quoted.viewSplit": "Zobacz podział",
     "group.quoted.dropUnpaid": "Wyślij bez {count} nieopłaconych członków →",
+    "group.pay.title2": "Potwierdź wysyłkę",
+    "group.pay.subtitle2": "Jedna paczka do {host}, podzielona według wagi — zapłać swoją część poniżej.",
   },
   "pt": {
     "feed.header.balanceLabel": "Saldo",
@@ -3808,5 +3820,7 @@ export default {
     "group.quoted.body": "O teu admin bloqueou o carrinho do grupo. Agora podes confirmar e enviar a tua parte da encomenda no ecrã seguinte.",
     "group.quoted.viewSplit": "Ver a divisão",
     "group.quoted.dropUnpaid": "Enviar sem {count} membro{s} por pagar →",
+    "group.pay.title2": "Confirmar o envio",
+    "group.pay.subtitle2": "Uma encomenda para {host}, dividida por peso — paga a tua parte abaixo.",
   },
 };

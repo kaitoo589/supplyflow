@@ -1420,12 +1420,15 @@ function GroupShippingPanel({ session, groupId, shipment, waitingCount, isHost, 
           </div>
         );
       };
-      return (
-        <div style={{ position: "fixed", inset: 0, zIndex: 400, background: "#F4F2EE", overflowY: "auto", WebkitOverflowScrolling: "touch" }}>
-          <div style={{ maxWidth: 460, margin: "0 auto", padding: "16px 18px 90px" }}>
-            <button onClick={() => setPayPage(false)} style={{ background: "none", border: "none", fontSize: 14, color: "#666", cursor: "pointer", padding: 0, marginBottom: 14 }}>← {tr("group.pay.back", "Back")}</button>
-            <div style={{ fontSize: 17, fontWeight: 700, color: "#0F0E0C", marginBottom: 3 }}>{tr("group.pay.title", "Confirm & ship")}</div>
-            <div style={{ fontSize: 12.5, color: "#9C9893", marginBottom: 16 }}>{tr("group.pay.subtitle", "One parcel to {host} · split by weight. You pay your own share below.", { host: hostName || tr("group.lock.hostFallback", "the host") })}</div>
+      // Full-screen ECHTE pagina via portal naar body (user 2026-07-22): binnen de sheet
+      // werkte position:fixed niet (framer-motion transform) → Back viel weg. Zelfde opzet
+      // als de solo Confirm-pagina.
+      return createPortal(
+        <div style={{ position: "fixed", inset: 0, zIndex: 2000, background: "#F4F2EE", overflowY: "auto", WebkitOverflowScrolling: "touch" }}>
+          <div style={{ maxWidth: 460, margin: "0 auto", padding: "16px 20px 90px" }}>
+            <button onClick={() => setPayPage(false)} style={{ background: "none", border: "none", fontSize: 14, color: "#666", cursor: "pointer", padding: 0, marginBottom: 16 }}>← {tr("group.pay.back", "Back")}</button>
+            <div style={{ fontSize: 16, fontWeight: 700, color: "#0F0E0C", marginBottom: 4 }}>{tr("group.pay.title2", "Confirm shipping")}</div>
+            <div style={{ fontSize: 13, color: "#aaa", marginBottom: 18 }}>{tr("group.pay.subtitle2", "One parcel to {host}, split by weight — pay your own share below.", { host: hostName || tr("group.lock.hostFallback", "the host") })}</div>
             {members.map(memberCard)}
             {me && !me.paid && (
               <>
@@ -1451,7 +1454,8 @@ function GroupShippingPanel({ session, groupId, shipment, waitingCount, isHost, 
             )}
             {msg && <div style={{ fontSize: 12, color: "#B91C1C", textAlign: "center", marginTop: 10 }}>{msg}</div>}
           </div>
-        </div>
+        </div>,
+        document.body
       );
     }
 

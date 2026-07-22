@@ -549,8 +549,10 @@ function StorageQuoteFlow({ haulItems, balance, orderIds, onBack, onSuccess }) {
 }
 
 function ConfirmHaul(props) {
-  const overdue = props.haulItems.some(o => o.arrived_at && (Date.now() - new Date(o.arrived_at).getTime()) > 30 * 86400000);
-  if (overdue) return <StorageQuoteFlow {...props} orderIds={props.haulItems.map(o => o.id)} />;
+  // Opslag-quote-omweg VERVALLEN (user 2026-07-22): items >30 dagen gaan gewoon door de
+  // normale verzendflow — de opslagkosten staan als vaste regel in het kostenoverzicht
+  // (€2/stuk bij 31-60 dagen, €4/stuk bij 61-90; dag 90+ is al verbeurd en kan niet mee).
+  // StorageQuoteFlow blijft ongebruikt op disk (zelfde conventie als QuoteAcceptance).
   return <NormalShippingConfirm {...props} />;
 }
 
@@ -623,6 +625,16 @@ function NormalShippingConfirm({ session, haulItems, balance, onBack, onSuccess 
   // Houd 1:1 gelijk aan pay_shipping_buffered (server): greatest(round(0.08 * sum(price), 2), 5).
   const productValue = haulItems.reduce((s, o) => s + (Number(o.price) || 0), 0);
   const svcFee = Math.max(5, r2(productValue * 0.08));
+  // Extended storage (user 2026-07-22): item >30 dagen in het magazijn = €2/stuk,
+  // >60 dagen = €4/stuk (dag 90+ is al verbeurd en zit nooit in het pakket). Dekt de
+  // BuckyDrop-verlenging (¥3/stuk per 30 dagen) + marge. Houd 1:1 gelijk aan
+  // pay_shipping_buffered (server rekent 'm zelf uit arrived_at — klant stuurt niks).
+  const storageDaysOf = (o) => o.arrived_at ? Math.floor((Date.now() - new Date(o.arrived_at).getTime()) / 86400000) : 0;
+  const storageFee = r2(haulItems.reduce((s, o) => {
+    const d = storageDaysOf(o);
+    return s + (d > 60 ? 4 : d > 30 ? 2 : 0) * (Number(o.qty) || 1);
+  }, 0));
+  const storageItems = haulItems.filter((o) => storageDaysOf(o) > 30).length;
   // Valuta-conversie (EUR→CNY via Alipay, 3%) over ALLES wat naar yuan wordt omgezet: product +
   // binnenlandverzending (¥5/stuk) + qc (¥6/stuk) + fulfilment + internationale verzending (echte
   // schatting) + toeslag. NIET over de BTW (blijft euro's) of de service fee (marge). Houd 1:1 gelijk
@@ -630,7 +642,7 @@ function NormalShippingConfirm({ session, haulItems, balance, onBack, onSuccess 
   const domesticEur = r2(pieces * 5 / 7.8);
   const qcEur = r2(pieces * 6 / 7.8);
   const currencyFee = r2((productValue + domesticEur + qcEur + FULFIL_EUR + estFreight + surcharge) * 0.03);
-  const toPay = r2(buffered + vat + FULFIL_EUR + surcharge + svcFee + currencyFee);
+  const toPay = r2(buffered + vat + FULFIL_EUR + surcharge + svcFee + storageFee + currencyFee);
   const canAfford = balance >= toPay;
 
   // Afrekenen: de edge function her-quote't + rekent server-side de buffered schatting af.
@@ -715,6 +727,12 @@ function NormalShippingConfirm({ session, haulItems, balance, onBack, onSuccess 
             <span style={{ fontSize: 13, color: "#888" }}>Service fee <span style={{ color: "#666" }}>· 8% · min €5</span></span>
             <span style={{ fontSize: 13, color: "#fff" }}>€{svcFee.toFixed(2)}</span>
           </div>
+          {storageFee > 0 && (
+            <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8 }}>
+              <span style={{ fontSize: 13, color: "#888" }}>Extended storage <span style={{ color: "#666" }}>· {storageItems} item{storageItems > 1 ? "s" : ""} over 30 days · €2 (31-60d) / €4 (61-90d)</span></span>
+              <span style={{ fontSize: 13, color: "#fff" }}>€{storageFee.toFixed(2)}</span>
+            </div>
+          )}
           <div style={{ borderTop: "1px solid #333", paddingTop: 10, display: "flex", justifyContent: "space-between" }}>
             <span style={{ fontSize: 14, fontWeight: 700, color: "#fff" }}>Pay now <span style={{ fontWeight: 500, color: "#9C9893", fontSize: 12 }}>· estimate</span></span>
             <span style={{ fontSize: 14, fontWeight: 700, color: "#FF5C00" }}>€{toPay.toFixed(2)}</span>
@@ -1075,7 +1093,7 @@ export function WarehouseTab({ session, haulItems: allHaulItems = [], setHaulIte
 
       {/* Opslag-uitleg: 30 dagen gratis, daarna kosten, en wat er bij overschrijding gebeurt. */}
       <div style={{ background: "#F8F7F4", border: "1px solid #EAE7E0", borderRadius: 12, padding: "10px 13px", marginBottom: 16, fontSize: 12, color: "#6B6863", lineHeight: 1.5 }}>
-        🗓️ <b style={{ color: "#0F0E0C" }}>Storage is free for 30 days.</b> After your items arrive they're stored safely at no cost for 30 days. After that a small storage fee applies — we'll send you a quote (shipping + storage) to pay today. If it stays unpaid by day 90, the item is forfeited. Each item below shows its storage day count (e.g. <b>5/30 free storage</b>).
+        🗓️ <b style={{ color: "#0F0E0C" }}>Storage is free for 30 days.</b> After your items arrive they're stored safely at no cost for 30 days. After that a small extended-storage fee is added when you ship: €2 per item (31-60 days in storage) or €4 per item (61-90 days). If an item is still in the warehouse after day 90, it's forfeited. Each item below shows its storage day count (e.g. <b>5/30 free storage</b>).
       </div>
 
       {incomingCount > 0 && (

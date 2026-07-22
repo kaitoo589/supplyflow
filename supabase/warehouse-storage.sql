@@ -67,3 +67,59 @@ end;
 $$;
 
 grant execute on function public.admin_list_reclaimed() to authenticated;
+
+-- ═══════════════════════════════════════════════════════════════════════
+-- ADDENDUM (2026-07-22) — NIEUW OPSLAGMODEL: vaste fee i.p.v. quote
+-- (Al toegepast via MCP — dit bestand is de administratie.)
+--
+-- User-beslissing: de opslag-quote-flow (storage_quotes + StorageQuoteFlow)
+-- is VERVALLEN. Nieuw model:
+--   * 0-30 dagen  : gratis (teller in de app, ongewijzigd).
+--   * 31-60 dagen : €2 per stuk, als vaste regel "Extended storage" bij verzenden.
+--   * 61-90 dagen : €4 per stuk.
+--   * Dag 80      : eenmalige Flowva support-waarschuwing ("verzend nu").
+--   * Dag 90      : automatisch verbeurd (ongewijzigd, cron hieronder).
+-- Dekt de BuckyDrop-verlenging (¥3/stuk per 30 dagen) + marge. LET OP voor de
+-- admin: BuckyDrop laat een pakket met een verlopen item pas verzenden nadat
+-- je in hun dashboard de Extend Storage Period (¥3) hebt gekocht.
+-- storage_quotes-tabel + RPC's + OPSLAG-tab blijven bestaan maar zijn dood.
+-- ═══════════════════════════════════════════════════════════════════════
+
+alter table public.support_messages drop constraint if exists support_messages_template_key_check;
+alter table public.support_messages add constraint support_messages_template_key_check
+  check (template_key in ('delay','never_shipped','unavailable','unknown_refund',
+    'refund_accepted','deny_ok_item','deny_change_mind','deny_size_match',
+    'deny_minor_variation','deny_evidence','custom','storage_warning'));
+
+-- pay_shipping_buffered: + extended-storage fee, server-side uit arrived_at
+-- (eigen transactietype 'storage_fee' = marge, wordt nooit mee-gerefund met de
+-- verzendverrekening; telt NIET mee in de 3%-valutabasis). Volledige definitie
+-- staat live; wijziging t.o.v. fee-move-fase1.sql:
+--   v_storage_fee := som per item ( >60d → €4 · >30d → €2 · anders €0 ) × qty
+--   v_charge      := ... + v_storage_fee
+--   insert transactions ('storage_fee') als v_storage_fee > 0
+--   json-resultaat bevat 'storage_fee'
+
+-- Dagelijkse motor: dag-80-waarschuwing + dag-90-verbeuring.
+create or replace function public.process_warehouse_storage()
+returns void language plpgsql security definer set search_path = public as $$
+begin
+  -- Waarschuwing (user 2026-07-22): 80+ dagen in het magazijn en nog niet verzonden →
+  -- één Flowva support-bericht ("verzend nu, anders verbeurd op dag 90").
+  insert into support_messages (user_id, order_id, product_title, template_key, group_name)
+  select o.user_id, o.id, coalesce(o.product_title, o.product), 'storage_warning', g.name
+    from orders o
+    left join flowva_groups g on g.id = o.ff_group_id
+   where o.status = 'qc_pending'
+     and o.arrived_at is not null
+     and now() - o.arrived_at >= make_interval(days => 80)
+     and not exists (select 1 from support_messages sm where sm.order_id = o.id and sm.template_key = 'storage_warning');
+
+  -- Verbeuring na 90 dagen (ongewijzigd).
+  update orders
+     set status = 'forfeited', forfeited_at = now()
+   where status = 'qc_pending'
+     and arrived_at is not null
+     and now() - arrived_at >= make_interval(days => 90);
+end;
+$$;

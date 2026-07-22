@@ -1427,6 +1427,7 @@ function TransactionHistory({ session }) {
     return_refund: { label: "Return refund", color: "#10B981" },
     buffer_return: { label: "Buffer refund", color: "#10B981" },
     service_fee: { label: tr("cart.lineServiceFee", "Service fee"), color: "#EF4444" },
+    storage_fee: { label: tr("cart.lineStorageFee", "Extended storage"), color: "#EF4444" },
     extra_service: { label: "Extra service", color: "#EF4444" },
   };
 
@@ -2272,6 +2273,7 @@ export default function SupplyFlow({ session }) {
       case "deny_size_match": return tr("support.tpl.denySizeMatch", "The size and variant of “{productName}” match exactly what was selected at checkout, so we can't treat this as a fault. It will ship as normal.", p);
       case "deny_minor_variation": return tr("support.tpl.denyMinorVariation", "Small variations in color or finish can occur and fall within normal production standards — “{productName}” isn't considered defective. It will ship as normal.", p);
       case "deny_evidence": return tr("support.tpl.denyEvidence", "The evidence provided for “{productName}” isn't enough to confirm a defect. Send a new request with clearer photos if you'd like us to take another look — otherwise it ships as normal.", p);
+      case "storage_warning": return tr("support.tpl.storageWarning", "“{productName}” has been in the warehouse for over 80 days. Ship it now — items still in storage after day 90 are forfeited and can't be recovered.", p);
       case "custom": return m.body || "";
       default: return tr("support.tpl.unknownRefund", "Something went wrong with “{productName}” and we couldn't resolve it. To be safe, you've been fully refunded.", p);
     }

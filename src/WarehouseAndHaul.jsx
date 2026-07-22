@@ -1282,7 +1282,15 @@ function GroupShippingPanel({ session, groupId, shipment, waitingCount, isHost, 
   const [busy, setBusy] = useState(false);
   const [pick, setPick] = useState(null); // null = dicht; object = auto-gekozen route ter bevestiging
   const [msg, setMsg] = useState("");
+  const [payPage, setPayPage] = useState(false); // volledige betaalpagina (per-lid cost overview)
+  const [addrOk, setAddrOk] = useState(false);
+  const [balance, setBalance] = useState(0);
   const myId = session.user.id;
+  useEffect(() => {
+    let on = true;
+    supabase.from("profiles").select("balance").eq("id", myId).single().then(({ data }) => { if (on) setBalance(Number(data?.balance) || 0); });
+    return () => { on = false; };
+  }, [myId, shipment?.members_paid, payPage]);
 
   const wrap = { background: "#fff", border: "1px solid #E8E6E0", borderRadius: 16, padding: 16, marginBottom: 20 };
   const darkBtn = (disabled) => ({ width: "100%", background: disabled ? "#E8E6E0" : "#0F0E0C", color: disabled ? "#A8A5A0" : "#FF5C00", border: "none", borderRadius: 12, padding: "14px", fontSize: 14, fontWeight: 700, cursor: disabled ? "not-allowed" : "pointer" });
@@ -1379,32 +1387,93 @@ function GroupShippingPanel({ session, groupId, shipment, waitingCount, isHost, 
     const me = members.find((m) => m.user_id === myId);
     const unpaid = members.filter((m) => !m.paid).length;
     const deadlinePassed = shipment.pay_deadline && new Date(shipment.pay_deadline).getTime() < Date.now();
-    return <div style={wrap}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 2 }}>
-        <span style={{ fontSize: 13, fontWeight: 700 }}>Shipping · split by weight</span>
-        <span style={{ fontSize: 12, fontWeight: 700, color: "#FF5C00" }}>{shipment.members_paid}/{shipment.members_total} paid</span>
-      </div>
-      <div style={{ fontSize: 11, color: "#9C9893", marginBottom: 10 }}>One parcel to {hostName || "the host"}{shipment.service_name ? ` · ${shipment.service_name}` : ""}</div>
-      {members.map((m) => (
-        <div key={m.user_id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "7px 0", borderBottom: "1px solid #F0EEE8", fontSize: 12.5 }}>
-          <span style={{ fontWeight: 600, color: "#111" }}>{m.user_id === myId ? "You" : m.member}<span style={{ color: "#9C9893", fontWeight: 400 }}> · {(Number(m.weight_g) / 1000).toFixed(2)} kg</span>
-            {/* Extended storage (2026-07-22): PER PERSOON — alleen wie een 30+/60+-dagen-item heeft
-                betaalt de €2/€4 per stuk; zit al in share_total, dit maakt het zichtbaar. */}
-            {Number(m.storage_eur) > 0 && <span style={{ color: "#B45309", fontWeight: 600 }}> · +€{Number(m.storage_eur).toFixed(2)} storage</span>}</span>
-          <span style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            <span style={{ fontWeight: 700 }}>{eur(m.share_total)}</span>
-            <span style={{ fontSize: 10, fontWeight: 700, color: m.paid ? "#10B981" : "#9C9893" }}>{m.paid ? "✓ Paid" : "Pending"}</span>
-          </span>
+    const myTotal = Number(me?.share_total) || 0;
+    const canAfford = balance >= myTotal;
+
+    // ── BETAALPAGINA (user 2026-07-22): volledige cost overview PER LID, onder elkaar
+    //    (keuze B). Eigen kaart bovenaan met de betaalknop; andere leden info + status. ──
+    if (payPage) {
+      const line = (label, sub, val) => (
+        <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8 }}>
+          <span style={{ fontSize: 13, color: "#888" }}>{label}{sub ? <span style={{ color: "#666" }}> · {sub}</span> : null}</span>
+          <span style={{ fontSize: 13, color: "#fff" }}>{eur(val)}</span>
         </div>
-      ))}
+      );
+      const memberCard = (m) => {
+        const own = m.user_id === myId;
+        return (
+          <div key={m.user_id} style={{ background: "#0F0E0C", borderRadius: 14, padding: 16, marginBottom: 12, border: own ? "1.5px solid #FF5C00" : "1px solid #262421" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
+              <span style={{ fontSize: 13.5, fontWeight: 700, color: "#fff" }}>{own ? tr("group.pay.you", "You") : m.member}<span style={{ fontSize: 11.5, fontWeight: 500, color: "#9C9893" }}> · {(Number(m.weight_g) / 1000).toFixed(2)} kg</span></span>
+              <span style={{ fontSize: 10.5, fontWeight: 700, color: m.paid ? "#10B981" : "#9C9893" }}>{m.paid ? tr("group.pay.paid", "✓ Paid") : tr("group.pay.pending", "Pending")}</span>
+            </div>
+            {line(tr("group.pay.shipping", "International shipping"), shipment.service_name ? `${carrierLabel(shipment.service_name)} · ${tr("group.lock.duties", "duties included")}` : tr("group.lock.duties", "duties included"), m.ship_eur)}
+            {Number(m.vat_eur) > 0 && line(tr("group.pay.vat", "Import VAT (21%)"), null, m.vat_eur)}
+            {line(tr("group.pay.currency", "Currency conversion"), "3% · EUR → ¥", m.currency_eur)}
+            {line(tr("pricing.fulfillment.name", "Fulfillment"), "¥9.9", m.fulfil_eur)}
+            {line(tr("cart.lineServiceFee", "Service fee"), null, m.fee_eur)}
+            {Number(m.storage_eur) > 0 && line(tr("cart.lineStorageFee", "Extended storage"), null, m.storage_eur)}
+            <div style={{ borderTop: "1px solid #333", paddingTop: 10, display: "flex", justifyContent: "space-between" }}>
+              <span style={{ fontSize: 14, fontWeight: 700, color: "#fff" }}>{own ? tr("group.pay.yourShare", "Your share") : tr("group.pay.theirShare", "Their share")} <span style={{ fontWeight: 500, color: "#9C9893", fontSize: 12 }}>· {tr("group.pay.estimate", "estimate")}</span></span>
+              <span style={{ fontSize: 14, fontWeight: 700, color: "#FF5C00" }}>{eur(m.share_total)}</span>
+            </div>
+          </div>
+        );
+      };
+      return (
+        <div style={{ position: "fixed", inset: 0, zIndex: 400, background: "#F4F2EE", overflowY: "auto", WebkitOverflowScrolling: "touch" }}>
+          <div style={{ maxWidth: 460, margin: "0 auto", padding: "16px 18px 90px" }}>
+            <button onClick={() => setPayPage(false)} style={{ background: "none", border: "none", fontSize: 14, color: "#666", cursor: "pointer", padding: 0, marginBottom: 14 }}>← {tr("group.pay.back", "Back")}</button>
+            <div style={{ fontSize: 17, fontWeight: 700, color: "#0F0E0C", marginBottom: 3 }}>{tr("group.pay.title", "Confirm & ship")}</div>
+            <div style={{ fontSize: 12.5, color: "#9C9893", marginBottom: 16 }}>{tr("group.pay.subtitle", "One parcel to {host} · split by weight. You pay your own share below.", { host: hostName || tr("group.lock.hostFallback", "the host") })}</div>
+            {members.map(memberCard)}
+            {me && !me.paid && (
+              <>
+                <div style={{ background: canAfford ? "#F0FDF4" : "#FEF3C7", border: `1px solid ${canAfford ? "#10B981" : "#F59E0B"}`, borderRadius: 12, padding: "12px 16px", margin: "4px 0 14px" }}>
+                  <div style={{ display: "flex", justifyContent: "space-between" }}>
+                    <span style={{ fontSize: 13, color: canAfford ? "#065F46" : "#92400E" }}>{tr("group.pay.balance", "Your balance")}</span>
+                    <span style={{ fontSize: 13, fontWeight: 700, color: canAfford ? "#10B981" : "#B45309" }}>{eur(balance)}</span>
+                  </div>
+                  {!canAfford && <div style={{ fontSize: 12, color: "#B45309", marginTop: 6 }}>{tr("group.pay.short", "You're {amount} short.", { amount: eur(myTotal - balance) })}</div>}
+                </div>
+                <label style={{ display: "flex", alignItems: "flex-start", gap: 10, marginBottom: 12, cursor: "pointer" }}>
+                  <input type="checkbox" checked={addrOk} onChange={(e) => setAddrOk(e.target.checked)} style={{ marginTop: 1, width: 16, height: 16, accentColor: "#FF5C00", flexShrink: 0 }} />
+                  <span style={{ fontSize: 12, color: "#555", lineHeight: 1.5 }}>{tr("group.pay.addr", "I confirm the parcel ships to the host's address. A parcel sent to a wrong address can't be recovered.")}</span>
+                </label>
+                <button disabled={busy || !canAfford || !addrOk} onClick={pay}
+                  style={{ width: "100%", background: (busy || !canAfford || !addrOk) ? "#E8E6E0" : "#FF5C00", color: "#fff", border: "none", borderRadius: 12, padding: "15px", fontSize: 14.5, fontWeight: 700, cursor: (busy || !canAfford || !addrOk) ? "default" : "pointer" }}>
+                  {busy ? tr("group.pay.paying", "Paying…") : tr("group.pay.cta", "Confirm & pay {amount}", { amount: eur(myTotal) })}
+                </button>
+              </>
+            )}
+            {me && me.paid && (
+              <div style={{ textAlign: "center", fontSize: 13, fontWeight: 700, color: "#10B981", padding: "8px 0" }}>{tr("group.pay.done", "✓ You paid {amount} — waiting for the rest of your squad.", { amount: eur(myTotal) })}</div>
+            )}
+            {msg && <div style={{ fontSize: 12, color: "#B91C1C", textAlign: "center", marginTop: 10 }}>{msg}</div>}
+          </div>
+        </div>
+      );
+    }
+
+    // ── Compacte kaart in de sheet: melding "admin heeft gelockt" + oranje Confirm & ship. ──
+    return <div style={wrap}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
+        <span style={{ fontSize: 13, fontWeight: 700, color: "#0F0E0C" }}>{tr("group.quoted.title", "Shipping is locked")}</span>
+        <span style={{ fontSize: 12, fontWeight: 700, color: "#FF5C00" }}>{shipment.members_paid}/{shipment.members_total} {tr("group.quoted.paid", "paid")}</span>
+      </div>
+      <div style={{ fontSize: 12, color: "#5F5C56", lineHeight: 1.5, marginBottom: 12 }}>
+        {me && me.paid
+          ? tr("group.pay.done", "✓ You paid {amount} — waiting for the rest of your squad.", { amount: eur(myTotal) })
+          : tr("group.quoted.body", "Your admin locked the group cart. You can now confirm & ship your part of the parcel on the next page.")}
+      </div>
       {me && !me.paid && (
-        <button disabled={busy} onClick={pay} style={{ ...darkBtn(busy), marginTop: 12 }}>{busy ? "Paying…" : `Pay my share · ${eur(me.share_total)} →`}</button>
+        <button onClick={() => setPayPage(true)} style={{ width: "100%", background: "#FF5C00", color: "#fff", border: "none", borderRadius: 12, padding: "15px", fontSize: 14.5, fontWeight: 700, cursor: "pointer" }}>{tr("parcel.sheet.confirm", "Confirm & ship")} →</button>
       )}
       {me && me.paid && (
-        <div style={{ marginTop: 12, textAlign: "center", fontSize: 12.5, fontWeight: 700, color: "#10B981" }}>✓ You paid {eur(me.share_total)} — waiting for the rest of your squad.</div>
+        <button onClick={() => setPayPage(true)} style={{ width: "100%", background: "#F1EFE9", color: "#6B6862", border: "none", borderRadius: 12, padding: "12px", fontSize: 13, fontWeight: 700, cursor: "pointer" }}>{tr("group.quoted.viewSplit", "View the split")}</button>
       )}
       {isHost && deadlinePassed && unpaid > 0 && (
-        <button disabled={busy} onClick={drop} style={{ width: "100%", marginTop: 8, background: "#FFF7ED", color: "#92400E", border: "1px solid #FCD9B6", borderRadius: 12, padding: "11px", fontSize: 12.5, fontWeight: 700, cursor: "pointer" }}>Ship without {unpaid} unpaid member{unpaid === 1 ? "" : "s"} →</button>
+        <button disabled={busy} onClick={drop} style={{ width: "100%", marginTop: 8, background: "#FFF7ED", color: "#92400E", border: "1px solid #FCD9B6", borderRadius: 12, padding: "11px", fontSize: 12.5, fontWeight: 700, cursor: "pointer" }}>{tr("group.quoted.dropUnpaid", "Ship without {count} unpaid member{s} →", { count: unpaid, s: unpaid === 1 ? "" : "s" })}</button>
       )}
       {err}
     </div>;

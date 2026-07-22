@@ -15,7 +15,7 @@ import { tr } from "./i18n";
 
 const spring = springMorph;
 
-export default function OrderRequest({ product, session, onRequireAuth, onClose, onSuccess, onAddToList, listCount = 0, isFavorite = false, onToggleFavorite, activeGroup = null, onActiveGroupGone, groupLocked = false, lockedGroupName = null }) {
+export default function OrderRequest({ product, session, onRequireAuth, onClose, onSuccess, onAddToList, listCount = 0, isFavorite = false, onToggleFavorite, activeGroup = null, activeGroupShipLocked = false, onActiveGroupGone, groupLocked = false, lockedGroupName = null }) {
   const [selectedVariants, setSelectedVariants] = useState({});
   const [aantal, setAantal] = useState(1);
   const [opmerking, setOpmerking] = useState("");
@@ -420,6 +420,15 @@ export default function OrderRequest({ product, session, onRequireAuth, onClose,
             )}
 
             {activeGroup && (
+              activeGroupShipLocked ? (
+                /* Groep-verzending gelockt door de admin (user 2026-07-22): niks meer aan de
+                   groep-mand toevoegen — doorgestreepte "+ Add to {group}" + de S5-melding,
+                   exact zoals de refund-knop bij een gelockte order. */
+                <motion.div variants={fadeUp} style={{ width: "100%", background: "#F1EFEA", borderRadius: 14, padding: "16px", textAlign: "center" }}>
+                  <span style={{ fontSize: 15, fontWeight: 700, color: "#B8B5B0", textDecoration: "line-through" }}>{tr("product.addToGroupCart","+ Add to {group}",{ group: activeGroup.name })}</span>
+                  <div style={{ fontSize: 11.5, color: "#8A8780", marginTop: 4 }}>🔒 {tr("group.locked.note", "Your admin locked the group")}</div>
+                </motion.div>
+              ) : (
               <>
                 <motion.div variants={fadeUp} style={{ display: "flex", alignItems: "center", gap: 6, background: "rgba(255,92,0,0.1)", border: "1px solid rgba(255,92,0,0.3)", borderRadius: 12, padding: "10px 13px", marginBottom: 10, fontSize: 12.5, color: "#B45309" }}>
                   <Fox /> {tr("product.shoppingForGroupCart", "Shopping for {group} · added to the shared cart, pay at checkout", { group: activeGroup.name })}
@@ -435,6 +444,7 @@ export default function OrderRequest({ product, session, onRequireAuth, onClose,
                   {sharedToGroup ? tr("product.sharedToGroup","✓ Shared to the group") : tr("product.shareToGroup","↗ Share to group")}
                 </motion.button>
               </>
+              )
             )}
             {onAddToList && !activeGroup && (groupLocked ? (
               /* Gelockte groep (user 2026-07-22): net als de refund-knop bij een gelockte

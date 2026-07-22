@@ -2452,6 +2452,19 @@ export default function SupplyFlow({ session }) {
     });
     return () => { on = false; };
   }, [selectedOrder?.id, selectedOrder?.ff_group_id]);
+  // Verzend-lock van de ACTIEVE groep (user 2026-07-22): zodra de admin de verzending lockt
+  // mag je niks meer aan de groep-mand toevoegen. De groep-status blijft 'gathering', dus dit
+  // is het enige betrouwbare signaal. Herchecken bij het openen van een product.
+  const [activeGroupShipLocked, setActiveGroupShipLocked] = useState(false);
+  useEffect(() => {
+    if (!activeGroup?.id) { setActiveGroupShipLocked(false); return; }
+    let on = true;
+    supabase.rpc("ff_group_shipping_state", { p_group_id: activeGroup.id }).then(({ data }) => {
+      if (on) setActiveGroupShipLocked(["quoted", "consolidating", "shipped"].includes(data?.shipment?.status));
+    });
+    return () => { on = false; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeGroup?.id, selectedProduct?.id, showRequestList]);
   // Favorieten (per apparaat) + filter in de feed.
   const [favorites, setFavorites] = useState(() => { try { return JSON.parse(localStorage.getItem(lsKey("flowva_favorites")) || "[]"); } catch { return []; } });
   const [showFavoritesOnly, setShowFavoritesOnly] = useState(false);
@@ -4259,7 +4272,7 @@ export default function SupplyFlow({ session }) {
               }
             }}
             isFavorite={isFavorite(selectedProduct)} onToggleFavorite={() => toggleFavorite(selectedProduct)}
-            activeGroup={activeGroupShopping ? activeGroup : null} groupLocked={!!activeGroup && !activeGroupShopping} lockedGroupName={activeGroup && !activeGroupShopping ? activeGroup.name : null} onActiveGroupGone={() => setActiveGroup(null)} />
+            activeGroup={activeGroupShopping ? activeGroup : null} activeGroupShipLocked={activeGroupShipLocked} groupLocked={!!activeGroup && !activeGroupShopping} lockedGroupName={activeGroup && !activeGroupShopping ? activeGroup.name : null} onActiveGroupGone={() => setActiveGroup(null)} />
         )}
       </AnimatePresence>
 

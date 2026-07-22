@@ -6,7 +6,7 @@ import {
   ffMyGroups, ffPreview, ffCreateGroup, ffJoinGroup, ffLeaveGroup,
   ffKickMember, ffSetHost, ffSetAdmin, ffSetPrivate, ffUpdateSettings, ffAddItem, ffRemoveItem, ffFetchGroup,
   ffCartCheckout, ffCartRemove, ffCartSetQty,
-  ffSetReady, ffUnready, estimateMemberFee, ffSyncProfile,
+  ffSetReady, ffUnready, ffShipLocked, estimateMemberFee, ffSyncProfile,
   ffPostMessage, ffReact, ffNudge, ffFetchMessages, subscribeGroup,
   inviteLink, whatsappShare,
 } from "./ffApi";
@@ -169,6 +169,10 @@ export default function Friends({ session, onClose, initialJoinCode, initialGrou
   const [lobby, setLobby] = useState(null); // { group, members, items }
   const [cartBusy, setCartBusy] = useState(false);   // gedeelde-mand checkout bezig
   const [cartErr, setCartErr] = useState("");        // checkout-foutmelding
+  // Verzend-lock (user 2026-07-22): zodra de admin de verzending lockt is de mand dicht —
+  // geen checkout meer (server weigert 't sowieso; hier tonen we 't proactief). De groep-
+  // status blijft 'gathering', dus dit is het enige betrouwbare signaal.
+  const [shipLocked, setShipLocked] = useState(false);
   const [editing, setEditing] = useState(false);
   const [editName, setEditName] = useState("");
   const [editMax, setEditMax] = useState(5);
@@ -237,6 +241,14 @@ export default function Friends({ session, onClose, initialJoinCode, initialGrou
     const r = await ffFetchGroup(id);
     if (!r.error && openIdRef.current === id) setLobby(r);   // negeer late/stale fetch
   }, [openId]);
+  // Verzend-lock ophalen zodra de lobby een groep heeft (en bij elke refresh).
+  useEffect(() => {
+    const id = lobby?.group?.id;
+    if (!id) { setShipLocked(false); return; }
+    let on = true;
+    ffShipLocked(id).then((v) => { if (on) setShipLocked(v); });
+    return () => { on = false; };
+  }, [lobby?.group?.id, lobby?.items?.length]);
 
   useEffect(() => {
     ffSyncProfile();   // mijn naam/foto bijwerken op m'n member-rijen (fire-and-forget)
@@ -737,9 +749,18 @@ export default function Friends({ session, onClose, initialJoinCode, initialGrou
                         <span style={{ fontSize: 12.5, color: "#fff", fontWeight: 600 }}>€{(myUnits * 6 / 7.8).toFixed(2)} <span style={{ color: "#9C9893", fontWeight: 400 }}>· ¥{myUnits * 6}</span></span>
                       </div>
                     </div>
+                    {shipLocked ? (
+                      /* Groep-verzending gelockt (user 2026-07-22): geen checkout meer —
+                         doorgestreept met dezelfde "your admin locked the group"-melding. */
+                      <div style={{ marginTop: 8, background: "rgba(255,255,255,0.05)", borderRadius: 12, padding: "13px", textAlign: "center" }}>
+                        <span style={{ fontSize: 14, fontWeight: 700, color: "#8A8780", textDecoration: "line-through" }}>Go to checkout</span>
+                        <div style={{ fontSize: 11.5, color: "#9C9893", marginTop: 4 }}>🔒 Your admin locked the group</div>
+                      </div>
+                    ) : (
                     <button onClick={doCheckout} disabled={cartBusy} style={{ ...primaryBtn, marginTop: 8, opacity: cartBusy ? 0.6 : 1 }}>
                       {cartBusy ? "…" : `Go to checkout → €${myCartCharge.toFixed(2)}`}
                     </button>
+                    )}
                     <div style={{ fontSize: 10.5, color: "#6b6862", textAlign: "center", marginTop: 6, lineHeight: 1.4 }}>You pay only your own items now. The group fee + shipping are split by weight later, when the parcel ships.</div>
                     {cartErr && <div style={{ color: "#F0997B", fontSize: 11.5, marginTop: 6, textAlign: "center" }}>{cartErr}</div>}
                   </>

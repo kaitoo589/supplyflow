@@ -34,6 +34,15 @@ export const ffShareProduct   = (id, product) => rpc("ff_share_product", { p_gro
 export const ffSetReady       = (id) => rpc("ff_set_ready", { p_group_id: id });
 export const ffUnready        = (id) => rpc("ff_unready",   { p_group_id: id });
 
+// Is de groep-verzending gelockt door de admin? (quoted/consolidating/shipped)
+// → mand dicht: geen items toevoegen of afrekenen. Fail-open bij fout.
+export async function ffShipLocked(id) {
+  try {
+    const { data } = await supabase.rpc("ff_group_shipping_state", { p_group_id: id });
+    return ["quoted", "consolidating", "shipped"].includes(data?.shipment?.status);
+  } catch { return false; }
+}
+
 // Spiegelt public.ff_member_fee — ALLEEN voor weergave; de echte fee komt server-side.
 // Houd in sync met flowva-friends-money.sql.
 export function estimateMemberFee(size, total) {

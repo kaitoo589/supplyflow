@@ -1459,7 +1459,7 @@ function GroupShippingPanel({ session, groupId, shipment, waitingCount, isHost, 
                     <span style={{ fontSize: 13, color: "#888" }}>{tr("group.pay.buffer", "Shipping buffer (+25%)")}{infoQ(m.user_id + "-buffer")}</span>
                     <span style={{ fontSize: 13, color: "#fff" }}>{eur(shipBuffer)}</span>
                   </div>
-                  {infoText(m.user_id + "-buffer", tr("group.pay.bufferInfo", "BuckyDrop's exact shipping bill only comes in about a week after the parcel leaves. We charge an estimate with a 25% buffer so the parcel can always go — once the real bill arrives, the difference is refunded to your balance."))}
+                  {infoText(m.user_id + "-buffer", tr("group.pay.bufferInfo", "The exact shipping bill only comes in about a week after the parcel leaves. We charge an estimate with a 25% buffer so the parcel can always go — once the real bill arrives, the difference is refunded to your balance."))}
                 </>
               );
             })()}

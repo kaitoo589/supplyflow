@@ -1,5 +1,5 @@
 // Auto-gegenereerd woordenboek — kernscherm-vertalingen (7 talen; Engels = de inline fallback in de code).
-// Niet met de hand bewerken: aangevuld via scratchpad-scripts (laatst: add-groupparcel-i18n.mjs).
+// Niet met de hand bewerken: aangevuld via scratchpad-scripts (laatst: add-transit-paid-i18n.mjs).
 export default {
   "nl": {
     "feed.header.balanceLabel": "Saldo",
@@ -490,6 +490,9 @@ export default {
     "parcel.row.tapReady": "Tik: Ready",
     "parcel.sheet.groupActionTitle": "Actie nodig",
     "parcel.sheet.groupActionBody": "{count} item{s} in deze groep heeft aandacht nodig (een defect of een refund-verzoek) — het pakket kan pas weg als dat is opgelost via de orderlijst.",
+    "transit.paidOn": "Betaald {date} om {time}",
+    "transit.paid": "Betaald",
+    "transit.estimated": "schatting",
   },
   "de": {
     "feed.header.balanceLabel": "Guthaben",
@@ -980,6 +983,9 @@ export default {
     "parcel.row.tapReady": "Tippen: Ready",
     "parcel.sheet.groupActionTitle": "Aktion nötig",
     "parcel.sheet.groupActionBody": "{count} Artikel in dieser Gruppe braucht Aufmerksamkeit (ein Defekt oder eine Rückerstattungsanfrage) — das Paket kann erst versendet werden, wenn das über die Bestellliste gelöst ist.",
+    "transit.paidOn": "Bezahlt am {date} um {time}",
+    "transit.paid": "Bezahlt",
+    "transit.estimated": "Schätzung",
   },
   "fr": {
     "feed.header.balanceLabel": "Solde",
@@ -1470,6 +1476,9 @@ export default {
     "parcel.row.tapReady": "Toucher : Ready",
     "parcel.sheet.groupActionTitle": "Action requise",
     "parcel.sheet.groupActionBody": "{count} article{s} de ce groupe nécessite une attention (un défaut ou une demande de remboursement) — le colis ne peut pas partir tant que ce n'est pas résolu depuis la liste des commandes.",
+    "transit.paidOn": "Payé le {date} à {time}",
+    "transit.paid": "Payé",
+    "transit.estimated": "estimation",
   },
   "es": {
     "feed.header.balanceLabel": "Saldo",
@@ -1960,6 +1969,9 @@ export default {
     "parcel.row.tapReady": "Toca: Ready",
     "parcel.sheet.groupActionTitle": "Acción necesaria",
     "parcel.sheet.groupActionBody": "{count} artículo{s} de este grupo necesita atención (un defecto o una solicitud de reembolso) — el paquete no puede enviarse hasta que se resuelva desde la lista de pedidos.",
+    "transit.paidOn": "Pagado el {date} a las {time}",
+    "transit.paid": "Pagado",
+    "transit.estimated": "estimación",
   },
   "it": {
     "feed.header.balanceLabel": "Saldo",
@@ -2450,6 +2462,9 @@ export default {
     "parcel.row.tapReady": "Tocca: Ready",
     "parcel.sheet.groupActionTitle": "Azione necessaria",
     "parcel.sheet.groupActionBody": "{count} articolo{s} di questo gruppo richiede attenzione (un difetto o una richiesta di rimborso) — il pacco non può partire finché non è risolto dalla lista degli ordini.",
+    "transit.paidOn": "Pagato il {date} alle {time}",
+    "transit.paid": "Pagato",
+    "transit.estimated": "stima",
   },
   "pl": {
     "feed.header.balanceLabel": "Saldo",
@@ -2940,6 +2955,9 @@ export default {
     "parcel.row.tapReady": "Dotknij: Ready",
     "parcel.sheet.groupActionTitle": "Wymaga działania",
     "parcel.sheet.groupActionBody": "{count} przedmiot{s} w tej grupie wymaga uwagi (wada lub prośba o zwrot) — paczka nie może zostać wysłana, dopóki nie zostanie to rozwiązane na liście zamówień.",
+    "transit.paidOn": "Zapłacono {date} o {time}",
+    "transit.paid": "Zapłacono",
+    "transit.estimated": "szacunkowo",
   },
   "pt": {
     "feed.header.balanceLabel": "Saldo",
@@ -3430,5 +3448,8 @@ export default {
     "parcel.row.tapReady": "Toca: Ready",
     "parcel.sheet.groupActionTitle": "Ação necessária",
     "parcel.sheet.groupActionBody": "{count} artigo{s} deste grupo precisa de atenção (um defeito ou um pedido de reembolso) — a encomenda só pode ser enviada quando isso for resolvido na lista de pedidos.",
+    "transit.paidOn": "Pago a {date} às {time}",
+    "transit.paid": "Pago",
+    "transit.estimated": "estimativa",
   },
 };

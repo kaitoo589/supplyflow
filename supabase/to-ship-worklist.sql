@@ -24,10 +24,12 @@ begin
     return json_build_object('ok', false, 'error', 'not admin');
   end if;
   return json_build_object('ok', true,
-    -- SOLO: betaalde hauls die nog niet in BuckyDrop gemerged/verzonden zijn.
+    -- SOLO: betaalde hauls die nog niet verrekend zijn. merged_at bepaalt de weergave:
+    -- null = nog mergen (Awaiting merge & send); gezet = verreken-kaart onder het kopje.
     'solo', coalesce((
       select json_agg(json_build_object(
-        'haul_id', h.id, 'created_at', h.created_at,
+        'haul_id', h.id, 'created_at', h.created_at, 'merged_at', h.merged_at,
+        'shipping_eur', h.shipping_eur, 'estimate_eur', h.estimate_eur,
         'customer_email', u.email,
         'customer_name', coalesce(nullif(trim(coalesce(u.raw_user_meta_data->>'voornaam','') || ' ' || coalesce(u.raw_user_meta_data->>'achternaam','')), ''), 'Onbekend'),
         'service_name', h.service_name,
@@ -47,7 +49,7 @@ begin
         )
       ) order by h.created_at)
       from public.hauls h left join auth.users u on u.id = h.user_id
-      where h.status = 'confirmed' and h.merged_at is null and h.settled_at is null
+      where h.status = 'confirmed' and h.settled_at is null
     ), '[]'::json),
     -- FRIENDS: groep-zendingen waar iedereen betaald heeft, nog niet gemerged.
     'friends', coalesce((

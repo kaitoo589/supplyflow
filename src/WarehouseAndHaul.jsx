@@ -1918,7 +1918,12 @@ export function TransitTab({ session, orders = [], activeGroupId = null }) {
             )}
 
             <div style={{ display: "flex", justifyContent: "space-between", marginBottom: haul.settled_at && Number(haul.refund_eur) > 0 ? 8 : 10 }}>
-              <span style={{ fontSize: 12, color: "#8A8780" }}>Paid <span style={{ color: "#A8A5A0" }}>· estimated</span></span>
+              {/* Betaalmoment (user 2026-07-22): datum + tijd van de verzendbetaling. */}
+              <span style={{ fontSize: 12, color: "#8A8780" }}>
+                {haul.created_at
+                  ? tr("transit.paidOn", "Paid {date} at {time}", { date: new Date(haul.created_at).toLocaleDateString("en-GB"), time: new Date(haul.created_at).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" }) })
+                  : tr("transit.paid", "Paid")} <span style={{ color: "#A8A5A0" }}>· {tr("transit.estimated", "estimated")}</span>
+              </span>
               <span style={{ fontSize: 12, fontWeight: 700, color: "#111111" }}>€{Number(haul.paid_eur || 0).toFixed(2)}</span>
             </div>
 

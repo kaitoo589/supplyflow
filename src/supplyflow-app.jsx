@@ -608,13 +608,15 @@ function OrderGroupCard({ items, onOpenItem, groupSize, onDismiss, parcel, activ
   const total = subtotal;
   return (
     <motion.div layout exit={{ opacity: 0, scale: 0.94, transition: { duration: 0.22, ease: [0.4, 0, 1, 1] } }} style={{ position: "relative", background: "#fff", border: "1px solid #E8E6E0", borderRadius: 16, marginBottom: 10, overflow: "hidden" }}>
-      {allDelivered && onDismiss && (
+      {/* Wegklikbaar (user 2026-07-22): behalve afgeleverde kaarten ook de "Parcel · In
+          transit"-infokaart — die leeft door in de Transit-tab, dus hier mag 'ie weg. */}
+      {(allDelivered || allInTransit) && onDismiss && (
         <motion.button whileTap={{ scale: 0.82 }} onClick={(e) => { e.stopPropagation(); onDismiss(items.map(o => o.id)); }} title={tr("orders.card.removeTitle", "Remove from orders")}
           style={{ position: "absolute", top: 8, right: 9, zIndex: 3, width: 23, height: 23, borderRadius: 999, background: "#F1EFE9", border: "none", display: "flex", alignItems: "center", justifyContent: "center", color: "#9A968F", cursor: "pointer", padding: 0, WebkitTapHighlightColor: "transparent" }}>
           <X size={13} strokeWidth={2.7} />
         </motion.button>
       )}
-      <motion.div whileTap={allInTransit ? undefined : { scale: 0.99 }} onClick={() => { if (!allInTransit) setOpen(o => !o); }} style={{ display: "flex", alignItems: "center", gap: 12, padding: allDelivered ? "13px 38px 13px 15px" : "13px 15px", cursor: allInTransit ? "default" : "pointer" }}>
+      <motion.div whileTap={allInTransit ? undefined : { scale: 0.99 }} onClick={() => { if (!allInTransit) setOpen(o => !o); }} style={{ display: "flex", alignItems: "center", gap: 12, padding: (allDelivered || allInTransit) ? "13px 38px 13px 15px" : "13px 15px", cursor: allInTransit ? "default" : "pointer" }}>
         <div style={{ display: "flex", flexShrink: 0 }}>
           {items.slice(0, 3).map((o, i) => (
             <div key={o.id} style={{ width: 40, height: 40, borderRadius: 9, background: "#fff", boxShadow: "0 0 0 1px #F0EEE8", overflow: "hidden", marginLeft: i ? -14 : 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
@@ -2916,11 +2918,14 @@ export default function SupplyFlow({ session }) {
     // pakket; alleen geannuleerde orders blijven eruit.
     const { data } = await supabase.from("orders").select("*").eq("user_id", session.user.id).not("status", "in", "(cancelled)").order("created_at", { ascending: false });
     setOrders(data || []);
-    // Zelfherstel (bug-fix 2026-07-22): "weggeruimd" hoort alleen bij AFGELEVERDE kaarten.
-    // Staat een levende, niet-afgeleverde order tóch in het weggeruimd-lijstje (oude
-    // toestel-brede key / account-wissel), haal 'm eruit zodat de kaart weer verschijnt.
+    // Zelfherstel (bug-fix 2026-07-22): "weggeruimd" hoort alleen bij AFGELEVERDE en
+    // IN-TRANSIT kaarten (die laatste zijn sinds vandaag ook wegklikbaar — het pakket
+    // leeft door in de Transit-tab). Staat een andere levende order tóch in het
+    // weggeruimd-lijstje (oude toestel-brede key / account-wissel), haal 'm eruit.
     setDismissedOrders((prev) => {
-      const wrong = (data || []).filter((o) => prev.has(o.id) && o.status !== "delivered").map((o) => o.id);
+      const wrong = (data || []).filter((o) =>
+        prev.has(o.id) && o.status !== "delivered" &&
+        (statusConfig[o.status]?.step ?? 0) <= statusConfig.qc_pending.step).map((o) => o.id);
       if (!wrong.length) return prev;
       const next = new Set(prev); wrong.forEach((id) => next.delete(id));
       try { localStorage.setItem(lsKey("flowva_dismissed_orders"), JSON.stringify([...next])); } catch {}
@@ -3080,7 +3085,9 @@ export default function SupplyFlow({ session }) {
   const liveGroupKeys = new Set(visibleOrders.map((o) => o.request_group_id || o.id));
   const refundedByGroup = {};
   modeRefunds.forEach((o) => { const k = o.request_group_id || o.id; (refundedByGroup[k] = refundedByGroup[k] || []).push(o); });
-  const standaloneRefunds = modeRefunds.filter((o) => !liveGroupKeys.has(o.request_group_id || o.id));
+  // Wegklikbaar (user 2026-07-22): weggeklikte refund-kaarten blijven weg (zelfde
+  // dismissed-lijst; cancelled orders zitten niet in fetchOrders, dus geen zelfherstel-botsing).
+  const standaloneRefunds = modeRefunds.filter((o) => !liveGroupKeys.has(o.request_group_id || o.id) && !dismissedOrders.has(o.id));
   // 📦 Automatisch pakket: alle verzendbare magazijn-items van de actieve modus (solo =
   // geen ff_group_id, groep = die groep) zitten er vanzelf in; wat de klant apart houdt
   // (parcelHeldOut) blijft bewaard tot 'ie het terugzet. Al-betaalde (orderToParcel),
@@ -3702,7 +3709,13 @@ export default function SupplyFlow({ session }) {
                 de refunds van díé groep. */}
             {orderFilter === "all" && standaloneRefunds.map((o) => (
               <div key={"refund-" + o.id} style={{ position: "relative", background: "#F1EFE9", border: "1px solid #E3E0D9", borderRadius: 16, marginBottom: 10, padding: "13px 15px", opacity: 0.85 }}>
-                <div style={{ position: "absolute", top: 11, right: 12, background: "#DCFCE7", color: "#15803D", fontSize: 9.5, fontWeight: 800, letterSpacing: 0.6, padding: "3px 8px", borderRadius: 7 }}>{tr("orders.detail.badge.refunded", "REFUNDED")}</div>
+                {/* Wegklikbaar (user 2026-07-22) — de refund blijft altijd terug te vinden
+                    in het belletje en de transactie-historie. */}
+                <motion.button whileTap={{ scale: 0.82 }} onClick={() => dismissOrders([o.id])} title={tr("orders.card.removeTitle", "Remove from orders")}
+                  style={{ position: "absolute", top: 8, right: 9, zIndex: 3, width: 23, height: 23, borderRadius: 999, background: "#E8E6E0", border: "none", display: "flex", alignItems: "center", justifyContent: "center", color: "#9A968F", cursor: "pointer", padding: 0, WebkitTapHighlightColor: "transparent" }}>
+                  <X size={13} strokeWidth={2.7} />
+                </motion.button>
+                <div style={{ position: "absolute", top: 11, right: 40, background: "#DCFCE7", color: "#15803D", fontSize: 9.5, fontWeight: 800, letterSpacing: 0.6, padding: "3px 8px", borderRadius: 7 }}>{tr("orders.detail.badge.refunded", "REFUNDED")}</div>
                 <div style={{ fontSize: 11, color: "#A8A5A0" }}>{(() => { try { return new Date(o.created_at).toLocaleDateString("en-GB"); } catch { return ""; } })()}</div>
                 <div style={{ fontSize: 13.5, fontWeight: 700, color: "#6B6862", paddingRight: 82, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{o.product_title || o.product}</div>
                 <div style={{ fontSize: 11.5, color: "#8A8780", marginTop: 2 }}>

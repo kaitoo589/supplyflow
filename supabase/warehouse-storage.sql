@@ -123,3 +123,33 @@ begin
      and now() - arrived_at >= make_interval(days => 90);
 end;
 $$;
+
+-- ═══════════════════════════════════════════════════════════════════════
+-- ADDENDUM 2 (2026-07-22) — NL-KALENDERDAGEN + dag-60/90/verbeurd-berichten
+-- (Al toegepast via MCP — dit bestand is de administratie.)
+--
+-- User-regels: de opslag-dag telt in KALENDERDAGEN op NL-tijd — de dag van
+-- aankomst in het magazijn is dag 1 (ongeacht het tijdstip), en elke NL-
+-- middernacht telt er één bij. Dag 30 is nog een volle gratis dag.
+--   dag 1-30  : gratis
+--   dag 31-60 : €2/stuk (Extended storage, bij verzenden)
+--   dag 60    : Flowva support-bericht 'storage_month_left' (nog één maand)
+--   dag 61-90 : €4/stuk
+--   dag 90    : Flowva support-bericht 'storage_warning' (LAATSTE dag)
+--   dag 91    : verbeurd + Flowva support-bericht 'storage_forfeited';
+--               item blijft grijs zichtbaar in orderlijst + pakket ("Item
+--               forfeited"), telt nergens mee, Confirm & ship werkt gewoon.
+-- De oude opslag-belmeldingen in de app zijn VERVANGEN door deze support-
+-- berichten. Fees per persoon, óók in Friends (ff_pay_group_shipping).
+--
+-- Live gewijzigd:
+--  * nieuwe helper public.storage_day(timestamptz) → NL-dag (aankomst = 1)
+--  * pay_shipping_buffered + ff_pay_group_shipping + ff_group_shipping_state:
+--    staffel op storage_day (>=31 → €2, >=61 → €4) i.p.v. 24-uurs-intervallen
+--  * support_messages-constraint + 'storage_month_left' / 'storage_forfeited'
+--  * process_warehouse_storage(): drie insert-stappen (dag 60 / dag 90 /
+--    verbeurd-bericht) + forfeit op storage_day >= 91
+--  * cron 'warehouse-storage-daily' verplaatst naar 22:10 UTC (= 00:10 NL
+--    in de zomer, vlak na de dag-flip; in de winter 23:10 — dan loopt de
+--    verwerking max. een dag-deel achter, nooit voor).
+-- ═══════════════════════════════════════════════════════════════════════

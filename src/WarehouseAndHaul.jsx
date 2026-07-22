@@ -1558,7 +1558,11 @@ export function ParcelSection({ session, activeGroupId = null, parcelItems = [],
     </div>
   );
 
-  const show = count > 0 || heldOutItems.length > 0 || (activeGroupId && (waitingCount > 0 || !!shipState));
+  // Balk ook tonen als er ALLEEN geblokkeerde/onderweg-items zijn (defect zonder keuze,
+  // lopende refund, order placed) — anders verdwijnt het hele pakket-overzicht precies op
+  // het moment dat de klant wil zien wáárom er niks te verzenden valt (bug 2026-07-22:
+  // refund-aanvraag op het laatste vrije item → balk weg).
+  const show = count > 0 || heldOutItems.length > 0 || pendingRefunds.length > 0 || defectItems.length > 0 || comingItems.length > 0 || (activeGroupId && (waitingCount > 0 || !!shipState));
   if (!show) return null;
 
   return (

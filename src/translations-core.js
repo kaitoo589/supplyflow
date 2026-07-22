@@ -1,5 +1,5 @@
 // Auto-gegenereerd woordenboek — kernscherm-vertalingen (7 talen; Engels = de inline fallback in de code).
-// Niet met de hand bewerken: aangevuld via scratchpad-scripts (laatst: add-coming-i18n.mjs).
+// Niet met de hand bewerken: aangevuld via scratchpad-scripts (laatst: add-bundlewarn-i18n.mjs).
 export default {
   "nl": {
     "feed.header.balanceLabel": "Saldo",
@@ -502,6 +502,8 @@ export default {
     "support.tpl.storageMonthLeft": "“{productName}” ligt nu 60 dagen in het magazijn — je hebt nog één maand. Verzend 'm vóór dag 90, anders wordt 'ie verbeurd.",
     "support.tpl.storageForfeited": "“{productName}” is verbeurd — neem contact op met support voor meer info.",
     "parcel.sheet.comingHeader": "ONDERWEG — komt in je pakket zodra het aankomt",
+    "parcel.sheet.bundleWarnTitle": "{count} item{s} nog onderweg",
+    "parcel.sheet.bundleWarnBody": "Verzend je nu, dan vormen die items straks een tweede pakket — met opnieuw verzendkosten, fulfilment-fee en service fee erbovenop. Eén groter pakket is per item goedkoper: je betaalt dat alles maar één keer.",
   },
   "de": {
     "feed.header.balanceLabel": "Guthaben",
@@ -1004,6 +1006,8 @@ export default {
     "support.tpl.storageMonthLeft": "„{productName}“ liegt jetzt 60 Tage im Lager — du hast noch einen Monat. Versende ihn vor Tag 90, sonst verfällt er.",
     "support.tpl.storageForfeited": "„{productName}“ ist verfallen — kontaktiere den Support für mehr Infos.",
     "parcel.sheet.comingHeader": "UNTERWEGS — kommt ins Paket, sobald es ankommt",
+    "parcel.sheet.bundleWarnTitle": "{count} Artikel noch unterwegs",
+    "parcel.sheet.bundleWarnBody": "Wenn du jetzt versendest, bilden diese Artikel später ein zweites Paket — mit eigenen Versandkosten, Fulfillment-Gebühr und Servicegebühr obendrauf. Ein größeres Paket ist pro Artikel günstiger: du zahlst das alles nur einmal.",
   },
   "fr": {
     "feed.header.balanceLabel": "Solde",
@@ -1506,6 +1510,8 @@ export default {
     "support.tpl.storageMonthLeft": "« {productName} » est dans l'entrepôt depuis 60 jours — il vous reste un mois. Expédiez-le avant le 90e jour, sinon il sera confisqué.",
     "support.tpl.storageForfeited": "« {productName} » a été confisqué — contactez le support pour plus d'infos.",
     "parcel.sheet.comingHeader": "EN ROUTE — rejoint votre colis dès son arrivée",
+    "parcel.sheet.bundleWarnTitle": "{count} article{s} encore en route",
+    "parcel.sheet.bundleWarnBody": "Si vous expédiez maintenant, ces articles formeront plus tard un second colis — avec ses propres frais d'expédition, de fulfillment et de service en plus. Un colis plus grand est moins cher par article : vous ne payez tout cela qu'une seule fois.",
   },
   "es": {
     "feed.header.balanceLabel": "Saldo",
@@ -2008,6 +2014,8 @@ export default {
     "support.tpl.storageMonthLeft": "«{productName}» lleva 60 días en el almacén — te queda un mes. Envíalo antes del día 90 o se perderá.",
     "support.tpl.storageForfeited": "«{productName}» se ha perdido — contacta con soporte para más información.",
     "parcel.sheet.comingHeader": "EN CAMINO — se une a tu paquete cuando llegue",
+    "parcel.sheet.bundleWarnTitle": "{count} artículo{s} todavía en camino",
+    "parcel.sheet.bundleWarnBody": "Si envías ahora, esos artículos formarán después un segundo paquete — con su propio coste de envío, tarifa de fulfillment y tarifa de servicio encima. Un paquete más grande sale más barato por artículo: todo eso lo pagas solo una vez.",
   },
   "it": {
     "feed.header.balanceLabel": "Saldo",
@@ -2510,6 +2518,8 @@ export default {
     "support.tpl.storageMonthLeft": "“{productName}” è in magazzino da 60 giorni — ti resta un mese. Spediscilo prima del giorno 90, altrimenti verrà confiscato.",
     "support.tpl.storageForfeited": "“{productName}” è stato confiscato — contatta il supporto per maggiori informazioni.",
     "parcel.sheet.comingHeader": "IN ARRIVO — entra nel pacco appena arriva",
+    "parcel.sheet.bundleWarnTitle": "{count} articolo{s} ancora in arrivo",
+    "parcel.sheet.bundleWarnBody": "Se spedisci ora, quegli articoli formeranno poi un secondo pacco — con i propri costi di spedizione, fulfillment e service fee in più. Un pacco più grande costa meno per articolo: paghi tutto questo una volta sola.",
   },
   "pl": {
     "feed.header.balanceLabel": "Saldo",
@@ -3012,6 +3022,8 @@ export default {
     "support.tpl.storageMonthLeft": "„{productName}” leży w magazynie już 60 dni — został Ci miesiąc. Wyślij go przed dniem 90, inaczej przepadnie.",
     "support.tpl.storageForfeited": "„{productName}” przepadł — skontaktuj się z supportem, aby dowiedzieć się więcej.",
     "parcel.sheet.comingHeader": "W DRODZE — dołączy do paczki po dotarciu",
+    "parcel.sheet.bundleWarnTitle": "{count} przedmiot(y) wciąż w drodze",
+    "parcel.sheet.bundleWarnBody": "Jeśli wyślesz teraz, te przedmioty utworzą później drugą paczkę — z osobnymi kosztami wysyłki, opłatą fulfillment i opłatą serwisową. Większa paczka jest tańsza w przeliczeniu na przedmiot: wszystko to płacisz tylko raz.",
   },
   "pt": {
     "feed.header.balanceLabel": "Saldo",
@@ -3514,5 +3526,7 @@ export default {
     "support.tpl.storageMonthLeft": "“{productName}” está no armazém há 60 dias — resta-te um mês. Envia-o antes do dia 90, senão será perdido.",
     "support.tpl.storageForfeited": "“{productName}” foi perdido — contacta o suporte para mais informações.",
     "parcel.sheet.comingHeader": "A CAMINHO — junta-se à tua encomenda quando chegar",
+    "parcel.sheet.bundleWarnTitle": "{count} artigo{s} ainda a caminho",
+    "parcel.sheet.bundleWarnBody": "Se enviares agora, esses artigos formarão depois uma segunda encomenda — com custos de envio, taxa de fulfillment e taxa de serviço próprios por cima. Uma encomenda maior fica mais barata por artigo: pagas tudo isso só uma vez.",
   },
 };

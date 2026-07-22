@@ -1755,6 +1755,17 @@ export function ParcelSection({ session, activeGroupId = null, parcelItems = [],
                   </span>
                 </div>
               ))}
+              {/* Bundel-waarschuwing (user 2026-07-22): nu verzenden terwijl er nog items
+                  onderweg zijn = straks een TWEEDE pakket met opnieuw verzendkosten +
+                  fulfilment + service fee. Knop blijft werken — bewuste keuze. */}
+              {!activeGroupId && comingItems.length > 0 && count > 0 && (
+                <div style={{ background: "rgba(245,158,11,0.10)", border: "1px solid rgba(245,158,11,0.35)", borderRadius: 12, padding: "10px 12px", margin: "4px 0 10px" }}>
+                  <div style={{ fontSize: 12.5, fontWeight: 700, color: "#FBBF24", marginBottom: 2 }}>⚠️ {tr("parcel.sheet.bundleWarnTitle", "{count} item{s} still on the way", { count: comingItems.length, s: comingItems.length > 1 ? "s" : "" })}</div>
+                  <div style={{ fontSize: 11.5, color: "#D9B87A", lineHeight: 1.5 }}>
+                    {tr("parcel.sheet.bundleWarnBody", "If you ship now, those items will form a second parcel later — with its own shipping cost, fulfillment fee and service fee on top. One bigger parcel is cheaper per item: you pay all of those just once.")}
+                  </div>
+                </div>
+              )}
               {/* Onderweg naar het magazijn (user 2026-07-22): SOLO toont "Order placed"-items
                   grijs, zodat de klant het hele pakket ziet vormen. Tellen NIET mee in Confirm
                   & ship — ze schuiven vanzelf door zodra ze aankomen. */}

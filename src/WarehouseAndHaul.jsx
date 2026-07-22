@@ -1434,9 +1434,9 @@ function GroupShippingPanel({ session, groupId, shipment, waitingCount, isHost, 
               <span style={{ fontSize: 13.5, fontWeight: 700, color: "#fff" }}>{own ? tr("group.pay.you", "You") : m.member}<span style={{ fontSize: 11.5, fontWeight: 500, color: "#9C9893" }}> · {(Number(m.weight_g) / 1000).toFixed(2)} kg</span></span>
               <span style={{ fontSize: 10.5, fontWeight: 700, color: m.paid ? "#10B981" : "#9C9893" }}>{m.paid ? tr("group.pay.paid", "✓ Paid") : tr("group.pay.pending", "Pending")}</span>
             </div>
-            {/* AL BETAALD BIJ CHECKOUT (user 2026-07-22) — alleen op je EIGEN kaart (privacy:
-                nooit andermans goederenwaarde). Product/domestic/qc met een groen "paid". */}
-            {own && m.goods_eur != null && (
+            {/* AL BETAALD BIJ CHECKOUT — voor ELK lid zichtbaar (user 2026-07-22): group-buy
+                = gedeelde mand, dus je ziet wat je vrienden kochten. Product/domestic/qc + groen "paid". */}
+            {m.goods_eur != null && (
               <div style={{ marginBottom: 12 }}>
                 <div style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: 0.4, color: "#10B981", marginBottom: 6 }}>✓ {tr("group.pay.alreadyPaid", "ALREADY PAID AT CHECKOUT")}</div>
                 {paidLine(tr("group.pay.goods", "Product"), m.goods_eur)}

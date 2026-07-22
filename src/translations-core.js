@@ -1,5 +1,5 @@
 // Auto-gegenereerd woordenboek — kernscherm-vertalingen (7 talen; Engels = de inline fallback in de code).
-// Niet met de hand bewerken: aangevuld via scratchpad-scripts (laatst: add-storage-i18n.mjs).
+// Niet met de hand bewerken: aangevuld via scratchpad-scripts (laatst: add-storagecounter-i18n.mjs).
 export default {
   "nl": {
     "feed.header.balanceLabel": "Saldo",
@@ -495,6 +495,8 @@ export default {
     "transit.estimated": "schatting",
     "cart.lineStorageFee": "Verlengde opslag",
     "support.tpl.storageWarning": "“{productName}” ligt al meer dan 80 dagen in het magazijn. Verzend 'm nu — items die er op dag 90 nog liggen worden verbeurd en kunnen niet worden teruggehaald.",
+    "orders.item.storageFree": "{days}/30 gratis opslag",
+    "orders.item.storageFee": "{days}/90 · opslagkosten",
   },
   "de": {
     "feed.header.balanceLabel": "Guthaben",
@@ -990,6 +992,8 @@ export default {
     "transit.estimated": "Schätzung",
     "cart.lineStorageFee": "Verlängerte Lagerung",
     "support.tpl.storageWarning": "„{productName}“ liegt seit über 80 Tagen im Lager. Versende ihn jetzt — Artikel, die an Tag 90 noch lagern, verfallen und können nicht zurückgeholt werden.",
+    "orders.item.storageFree": "{days}/30 gratis Lagerung",
+    "orders.item.storageFee": "{days}/90 · Lagergebühr",
   },
   "fr": {
     "feed.header.balanceLabel": "Solde",
@@ -1485,6 +1489,8 @@ export default {
     "transit.estimated": "estimation",
     "cart.lineStorageFee": "Stockage prolongé",
     "support.tpl.storageWarning": "« {productName} » est dans l'entrepôt depuis plus de 80 jours. Expédiez-le maintenant — les articles encore stockés au 90e jour sont confisqués et ne peuvent pas être récupérés.",
+    "orders.item.storageFree": "{days}/30 stockage gratuit",
+    "orders.item.storageFee": "{days}/90 · frais de stockage",
   },
   "es": {
     "feed.header.balanceLabel": "Saldo",
@@ -1980,6 +1986,8 @@ export default {
     "transit.estimated": "estimación",
     "cart.lineStorageFee": "Almacenaje extendido",
     "support.tpl.storageWarning": "«{productName}» lleva más de 80 días en el almacén. Envíalo ahora — los artículos que sigan almacenados el día 90 se pierden y no se pueden recuperar.",
+    "orders.item.storageFree": "{days}/30 almacenaje gratis",
+    "orders.item.storageFee": "{days}/90 · coste de almacenaje",
   },
   "it": {
     "feed.header.balanceLabel": "Saldo",
@@ -2475,6 +2483,8 @@ export default {
     "transit.estimated": "stima",
     "cart.lineStorageFee": "Deposito prolungato",
     "support.tpl.storageWarning": "“{productName}” è in magazzino da oltre 80 giorni. Spediscilo ora — gli articoli ancora in deposito al giorno 90 vengono confiscati e non possono essere recuperati.",
+    "orders.item.storageFree": "{days}/30 deposito gratuito",
+    "orders.item.storageFee": "{days}/90 · costo di deposito",
   },
   "pl": {
     "feed.header.balanceLabel": "Saldo",
@@ -2970,6 +2980,8 @@ export default {
     "transit.estimated": "szacunkowo",
     "cart.lineStorageFee": "Przedłużone przechowywanie",
     "support.tpl.storageWarning": "„{productName}” leży w magazynie już ponad 80 dni. Wyślij go teraz — przedmioty pozostające w magazynie w dniu 90 przepadają i nie można ich odzyskać.",
+    "orders.item.storageFree": "{days}/30 darmowe przechowywanie",
+    "orders.item.storageFee": "{days}/90 · opłata za przechowywanie",
   },
   "pt": {
     "feed.header.balanceLabel": "Saldo",
@@ -3465,5 +3477,7 @@ export default {
     "transit.estimated": "estimativa",
     "cart.lineStorageFee": "Armazenamento prolongado",
     "support.tpl.storageWarning": "“{productName}” está no armazém há mais de 80 dias. Envia-o agora — artigos ainda armazenados ao dia 90 são perdidos e não podem ser recuperados.",
+    "orders.item.storageFree": "{days}/30 armazenamento grátis",
+    "orders.item.storageFee": "{days}/90 · custo de armazenamento",
   },
 };

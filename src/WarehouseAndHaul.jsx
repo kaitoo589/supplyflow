@@ -1688,40 +1688,42 @@ export function ParcelSection({ session, activeGroupId = null, parcelItems = [],
                       const reviewing = o.dispute_status === "pending";
                       const needsAction = flagged || reviewing;
                       const locked = !!o.group_shipping_paid;
+                      // EIGEN aangekomen item zonder probleem: status-badge (Ready/Unready) +
+                      // aparte knop eronder (user 2026-07-22). Een al-betaald item is vast Ready
+                      // (geen knop). Andermans items + probleem-/onderweg-items = alleen een badge.
+                      const showToggle = own && arrived && !needsAction && !locked;
                       return (
-                        <div key={o.id}
-                          style={{ display: "flex", alignItems: "center", gap: 11, background: "#1A1917", borderRadius: 13, padding: "9px 11px", marginBottom: 7, border: needsAction ? "1px solid rgba(245,158,11,0.4)" : "1px solid transparent" }}>
-                          {thumb(o)}
-                          <div style={{ flex: 1, minWidth: 0 }}>
-                            <div style={{ fontSize: 12.5, fontWeight: 600, color: "#fff", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{o.product_title || o.product}</div>
-                            <div style={{ fontSize: 11, color: "#9C9893" }}>
-                              {tr("orders.item.pcs", "{qty} pcs", { qty: o.qty || 1 })}{o.weight_grams ? ` · ${o.weight_grams} g` : ""}
+                        <div key={o.id} style={{ marginBottom: 7 }}>
+                          <div style={{ display: "flex", alignItems: "center", gap: 11, background: "#1A1917", borderRadius: showToggle ? "13px 13px 0 0" : 13, padding: "9px 11px", border: needsAction ? "1px solid rgba(245,158,11,0.4)" : "1px solid transparent" }}>
+                            {thumb(o)}
+                            <div style={{ flex: 1, minWidth: 0 }}>
+                              <div style={{ fontSize: 12.5, fontWeight: 600, color: "#fff", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{o.product_title || o.product}</div>
+                              <div style={{ fontSize: 11, color: "#9C9893" }}>
+                                {tr("orders.item.pcs", "{qty} pcs", { qty: o.qty || 1 })}{o.weight_grams ? ` · ${o.weight_grams} g` : ""}
+                              </div>
                             </div>
+                            {/* Status-badge (niet klikbaar) — prioriteit: probleem > forfeited > Ready/Unready > onderweg. */}
+                            {needsAction ? (
+                              <span style={{ flexShrink: 0, background: "rgba(245,158,11,0.16)", color: "#FBBF24", fontSize: 10, fontWeight: 700, padding: "4px 9px", borderRadius: 999, textAlign: "right", lineHeight: 1.3, maxWidth: 120 }}>
+                                ⚠️ {flagged ? tr("parcel.row.defectAction", "Defect — action needed") : tr("parcel.row.underReview", "Under review")}
+                              </span>
+                            ) : o.status === "forfeited" ? (
+                              <span style={{ flexShrink: 0, background: "rgba(107,114,128,0.22)", color: "#B8B5B0", fontSize: 10.5, fontWeight: 700, padding: "4px 9px", borderRadius: 999 }}>{tr("parcel.chip.forfeited", "Item forfeited")}</span>
+                            ) : ready ? (
+                              <span style={{ flexShrink: 0, background: "rgba(16,185,129,0.16)", color: "#34D399", fontSize: 10.5, fontWeight: 700, padding: "4px 9px", borderRadius: 999 }}>✓ {tr("parcel.row.ready", "Ready")}</span>
+                            ) : arrived ? (
+                              <span style={{ flexShrink: 0, background: "rgba(245,158,11,0.16)", color: "#FBBF24", fontSize: 10.5, fontWeight: 700, padding: "4px 9px", borderRadius: 999 }}>⏳ {tr("parcel.chip.unready", "Unready")}</span>
+                            ) : (
+                              <span style={{ flexShrink: 0, background: "rgba(56,189,248,0.14)", color: "#7DD3FC", fontSize: 10.5, fontWeight: 700, padding: "4px 9px", borderRadius: 999 }}>{tr("orders.checkpoint.orderPlaced", "Order placed")}</span>
+                            )}
                           </div>
-                          {/* Prioriteit: probleem > Ready-toggle > status-chip. */}
-                          {needsAction ? (
-                            <span style={{ flexShrink: 0, background: "rgba(245,158,11,0.16)", color: "#FBBF24", fontSize: 10, fontWeight: 700, padding: "4px 9px", borderRadius: 999, textAlign: "right", lineHeight: 1.3, maxWidth: 120 }}>
-                              ⚠️ {flagged ? tr("parcel.row.defectAction", "Defect — action needed") : tr("parcel.row.underReview", "Under review")}
-                            </span>
-                          ) : own && arrived ? (
-                            // EIGEN aangekomen item: klikbare Ready/Unready-toggle (user 2026-07-21).
-                            // Een al-betaald item mag niet meer terug uit de doos → dan vast Ready.
-                            <motion.button whileTap={locked ? undefined : { scale: 0.94 }} disabled={locked}
-                              onClick={() => { if (!locked) stageOwn(o.id, !ready); }}
-                              style={{ flexShrink: 0, background: ready ? "rgba(16,185,129,0.16)" : "#FF5C00", color: ready ? "#34D399" : "#fff", border: "none", fontSize: 10.5, fontWeight: 700, padding: "5px 11px", borderRadius: 999, cursor: locked ? "default" : "pointer", WebkitTapHighlightColor: "transparent", lineHeight: 1.2, textAlign: "center" }}>
-                              {ready
-                                ? <>✓ {tr("parcel.row.ready", "Ready")}{!locked && <span style={{ opacity: 0.7, fontWeight: 600 }}> · {tr("parcel.row.tapUndo", "tap to undo")}</span>}</>
-                                : <>{tr("parcel.row.tapReady", "Tap: Ready")}</>}
+                          {/* Actie-knop ONDER de rij (user 2026-07-22): "Tap Ready" als 'ie op Unready
+                              staat, "Tap Unready" als 'ie op Ready staat. Alleen je eigen items. */}
+                          {showToggle && (
+                            <motion.button whileTap={{ scale: 0.985 }} onClick={() => stageOwn(o.id, !ready)}
+                              style={{ display: "block", width: "100%", background: ready ? "rgba(255,255,255,0.06)" : "#FF5C00", color: ready ? "#C9C6C1" : "#fff", border: "none", borderRadius: "0 0 13px 13px", padding: "9px", fontSize: 12, fontWeight: 700, cursor: "pointer", WebkitTapHighlightColor: "transparent" }}>
+                              {ready ? <>↩ {tr("parcel.row.tapUnready", "Tap to set Unready")}</> : <>✓ {tr("parcel.row.tapReadyLong", "Tap to set Ready")}</>}
                             </motion.button>
-                          ) : o.status === "forfeited" ? (
-                            // Verbeurd (user 2026-07-22): grijs, telt niet mee in de verzend-gate.
-                            <span style={{ flexShrink: 0, background: "rgba(107,114,128,0.22)", color: "#B8B5B0", fontSize: 10.5, fontWeight: 700, padding: "4px 9px", borderRadius: 999 }}>{tr("parcel.chip.forfeited", "Item forfeited")}</span>
-                          ) : ready ? (
-                            <span style={{ flexShrink: 0, background: "rgba(16,185,129,0.16)", color: "#34D399", fontSize: 10.5, fontWeight: 700, padding: "4px 9px", borderRadius: 999 }}>✓ {tr("parcel.row.ready", "Ready")}</span>
-                          ) : arrived ? (
-                            <span style={{ flexShrink: 0, background: "rgba(245,158,11,0.16)", color: "#FBBF24", fontSize: 10.5, fontWeight: 700, padding: "4px 9px", borderRadius: 999 }}>⏳ {tr("parcel.chip.unready", "Unready")}</span>
-                          ) : (
-                            <span style={{ flexShrink: 0, background: "rgba(56,189,248,0.14)", color: "#7DD3FC", fontSize: 10.5, fontWeight: 700, padding: "4px 9px", borderRadius: 999 }}>{tr("orders.checkpoint.orderPlaced", "Order placed")}</span>
                           )}
                         </div>
                       );

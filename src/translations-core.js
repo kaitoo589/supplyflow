@@ -1,5 +1,5 @@
 // Auto-gegenereerd woordenboek — kernscherm-vertalingen (7 talen; Engels = de inline fallback in de code).
-// Niet met de hand bewerken: aangevuld via scratchpad-scripts (laatst: add-bundlewarn-i18n.mjs).
+// Niet met de hand bewerken: aangevuld via scratchpad-scripts (laatst: add-tapready-i18n.mjs).
 export default {
   "nl": {
     "feed.header.balanceLabel": "Saldo",
@@ -508,6 +508,8 @@ export default {
     "parcel.sheet.comingHeader": "ONDERWEG — komt in je pakket zodra het aankomt",
     "parcel.sheet.bundleWarnTitle": "{count} item{s} nog onderweg",
     "parcel.sheet.bundleWarnBody": "Verzend je nu, dan vormen die items straks een tweede pakket — met opnieuw verzendkosten, fulfilment-fee en service fee erbovenop. Eén groter pakket is per item goedkoper: je betaalt dat alles maar één keer.",
+    "parcel.row.tapReadyLong": "Tik: op Ready zetten",
+    "parcel.row.tapUnready": "Tik: op Unready zetten",
   },
   "de": {
     "feed.header.balanceLabel": "Guthaben",
@@ -1016,6 +1018,8 @@ export default {
     "parcel.sheet.comingHeader": "UNTERWEGS — kommt ins Paket, sobald es ankommt",
     "parcel.sheet.bundleWarnTitle": "{count} Artikel noch unterwegs",
     "parcel.sheet.bundleWarnBody": "Wenn du jetzt versendest, bilden diese Artikel später ein zweites Paket — mit eigenen Versandkosten, Fulfillment-Gebühr und Servicegebühr obendrauf. Ein größeres Paket ist pro Artikel günstiger: du zahlst das alles nur einmal.",
+    "parcel.row.tapReadyLong": "Tippen: auf Ready setzen",
+    "parcel.row.tapUnready": "Tippen: auf Unready setzen",
   },
   "fr": {
     "feed.header.balanceLabel": "Solde",
@@ -1524,6 +1528,8 @@ export default {
     "parcel.sheet.comingHeader": "EN ROUTE — rejoint votre colis dès son arrivée",
     "parcel.sheet.bundleWarnTitle": "{count} article{s} encore en route",
     "parcel.sheet.bundleWarnBody": "Si vous expédiez maintenant, ces articles formeront plus tard un second colis — avec ses propres frais d'expédition, de fulfillment et de service en plus. Un colis plus grand est moins cher par article : vous ne payez tout cela qu'une seule fois.",
+    "parcel.row.tapReadyLong": "Toucher : passer en Ready",
+    "parcel.row.tapUnready": "Toucher : passer en Unready",
   },
   "es": {
     "feed.header.balanceLabel": "Saldo",
@@ -2032,6 +2038,8 @@ export default {
     "parcel.sheet.comingHeader": "EN CAMINO — se une a tu paquete cuando llegue",
     "parcel.sheet.bundleWarnTitle": "{count} artículo{s} todavía en camino",
     "parcel.sheet.bundleWarnBody": "Si envías ahora, esos artículos formarán después un segundo paquete — con su propio coste de envío, tarifa de fulfillment y tarifa de servicio encima. Un paquete más grande sale más barato por artículo: todo eso lo pagas solo una vez.",
+    "parcel.row.tapReadyLong": "Toca: marcar como Ready",
+    "parcel.row.tapUnready": "Toca: marcar como Unready",
   },
   "it": {
     "feed.header.balanceLabel": "Saldo",
@@ -2540,6 +2548,8 @@ export default {
     "parcel.sheet.comingHeader": "IN ARRIVO — entra nel pacco appena arriva",
     "parcel.sheet.bundleWarnTitle": "{count} articolo{s} ancora in arrivo",
     "parcel.sheet.bundleWarnBody": "Se spedisci ora, quegli articoli formeranno poi un secondo pacco — con i propri costi di spedizione, fulfillment e service fee in più. Un pacco più grande costa meno per articolo: paghi tutto questo una volta sola.",
+    "parcel.row.tapReadyLong": "Tocca: imposta su Ready",
+    "parcel.row.tapUnready": "Tocca: imposta su Unready",
   },
   "pl": {
     "feed.header.balanceLabel": "Saldo",
@@ -3048,6 +3058,8 @@ export default {
     "parcel.sheet.comingHeader": "W DRODZE — dołączy do paczki po dotarciu",
     "parcel.sheet.bundleWarnTitle": "{count} przedmiot(y) wciąż w drodze",
     "parcel.sheet.bundleWarnBody": "Jeśli wyślesz teraz, te przedmioty utworzą później drugą paczkę — z osobnymi kosztami wysyłki, opłatą fulfillment i opłatą serwisową. Większa paczka jest tańsza w przeliczeniu na przedmiot: wszystko to płacisz tylko raz.",
+    "parcel.row.tapReadyLong": "Dotknij: ustaw na Ready",
+    "parcel.row.tapUnready": "Dotknij: ustaw na Unready",
   },
   "pt": {
     "feed.header.balanceLabel": "Saldo",
@@ -3556,5 +3568,7 @@ export default {
     "parcel.sheet.comingHeader": "A CAMINHO — junta-se à tua encomenda quando chegar",
     "parcel.sheet.bundleWarnTitle": "{count} artigo{s} ainda a caminho",
     "parcel.sheet.bundleWarnBody": "Se enviares agora, esses artigos formarão depois uma segunda encomenda — com custos de envio, taxa de fulfillment e taxa de serviço próprios por cima. Uma encomenda maior fica mais barata por artigo: pagas tudo isso só uma vez.",
+    "parcel.row.tapReadyLong": "Toca: definir como Ready",
+    "parcel.row.tapUnready": "Toca: definir como Unready",
   },
 };

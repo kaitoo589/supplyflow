@@ -3099,6 +3099,12 @@ export default function SupplyFlow({ session }) {
   const parcelForfeited = orders.filter((o) =>
     o.status === "forfeited" && !orderToParcel[o.id] &&
     (activeGroup ? o.ff_group_id === activeGroup.id : !o.ff_group_id));
+  // Onderweg naar het magazijn (user 2026-07-22): SOLO toont "Order placed"-items óók in
+  // het pakket, grijs — zo ziet de klant het hele pakket vormen (net als Friends). Ze
+  // tellen NIET mee in Confirm & ship (nog niet aangekomen). Groep = memberSections.
+  const parcelComing = activeGroup ? [] : orders.filter((o) =>
+    ["quote_accepted", "purchased", "bought", "shipped_local"].includes(o.status) &&
+    !orderToParcel[o.id] && !o.ff_group_id);
   // SOLO: hold-out is verwijderd (user-keuze 2026-07-20) — alles zit ALTIJD in het pakket.
   // Alleen de GROEP-modus houdt nog apart-houden (onderdeel van de Ready-flow).
   const parcelItems = activeGroup ? parcelEligible.filter((o) => !parcelHeldOut.includes(o.id)) : parcelEligible;
@@ -3907,6 +3913,7 @@ export default function SupplyFlow({ session }) {
           parcelItems={parcelItems} heldOutItems={parcelHeldItems}
           pendingRefunds={parcelPendingRefunds}
           forfeitedItems={parcelForfeited}
+          comingItems={parcelComing}
           refreshSignal={parcelRefresh}
           onToggleHold={activeGroup ? toggleParcelHold : undefined}
           onInspectItem={openInspectItem}

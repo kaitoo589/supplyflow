@@ -1424,7 +1424,7 @@ const TRACE_LABEL = { 1: "In transit", 2: "Out for delivery", 3: "Delivered", 4:
 // items met Ready ná foto-inspectie (ff_stage_box → box_staged_at) — de server-
 // gate laat pas verzenden als ALLES Ready is. Geen stille auto-staging meer.
 // ────────────────────────────────────────────────────────────────────────────
-export function ParcelSection({ session, activeGroupId = null, parcelItems = [], heldOutItems = [], pendingRefunds = [], forfeitedItems = [], refreshSignal = 0, onToggleHold, onInspectItem, onShipped }) {
+export function ParcelSection({ session, activeGroupId = null, parcelItems = [], heldOutItems = [], pendingRefunds = [], forfeitedItems = [], comingItems = [], refreshSignal = 0, onToggleHold, onInspectItem, onShipped }) {
   const [open, setOpen] = useState(false);
   const [screen, setScreen] = useState(null);      // null | "confirm" | "success"
   const [balance, setBalance] = useState(0);
@@ -1753,6 +1753,22 @@ export function ParcelSection({ session, activeGroupId = null, parcelItems = [],
                   <span style={{ flexShrink: 0, background: "rgba(245,158,11,0.16)", color: "#FBBF24", fontSize: 10, fontWeight: 700, padding: "4px 9px", borderRadius: 999, textAlign: "right", lineHeight: 1.3 }}>
                     {tr("parcel.chip.refundRequested", "Refund requested")}<br />{tr("parcel.chip.awaitingResponse", "awaiting response")}
                   </span>
+                </div>
+              ))}
+              {/* Onderweg naar het magazijn (user 2026-07-22): SOLO toont "Order placed"-items
+                  grijs, zodat de klant het hele pakket ziet vormen. Tellen NIET mee in Confirm
+                  & ship — ze schuiven vanzelf door zodra ze aankomen. */}
+              {!activeGroupId && comingItems.length > 0 && (
+                <div style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: 0.5, color: "#6E6B66", margin: "10px 2px 6px" }}>{tr("parcel.sheet.comingHeader", "ON THE WAY — joins your parcel when it arrives")}</div>
+              )}
+              {!activeGroupId && comingItems.map((o) => (
+                <div key={"cm-" + o.id} style={{ display: "flex", alignItems: "center", gap: 11, background: "#1A1917", borderRadius: 13, padding: "9px 11px", marginBottom: 7, opacity: 0.6 }}>
+                  {thumb(o)}
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: 12.5, fontWeight: 600, color: "#C9C6C1", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{o.product_title || o.product}</div>
+                    <div style={{ fontSize: 11, color: "#8A8780" }}>{o.qty || 1} pcs</div>
+                  </div>
+                  <span style={{ flexShrink: 0, background: "rgba(56,189,248,0.14)", color: "#7DD3FC", fontSize: 10.5, fontWeight: 700, padding: "4px 9px", borderRadius: 999 }}>{tr("orders.checkpoint.orderPlaced", "Order placed")}</span>
                 </div>
               ))}
               {/* Verbeurde items (user 2026-07-22): grijs zichtbaar, tellen nergens mee —

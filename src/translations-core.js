@@ -1,5 +1,5 @@
 // Auto-gegenereerd woordenboek — kernscherm-vertalingen (7 talen; Engels = de inline fallback in de code).
-// Niet met de hand bewerken: aangevuld via scratchpad-scripts (laatst: add-storage2-i18n.mjs).
+// Niet met de hand bewerken: aangevuld via scratchpad-scripts (laatst: add-coming-i18n.mjs).
 export default {
   "nl": {
     "feed.header.balanceLabel": "Saldo",
@@ -501,6 +501,7 @@ export default {
     "parcel.chip.forfeited": "Item verbeurd",
     "support.tpl.storageMonthLeft": "“{productName}” ligt nu 60 dagen in het magazijn — je hebt nog één maand. Verzend 'm vóór dag 90, anders wordt 'ie verbeurd.",
     "support.tpl.storageForfeited": "“{productName}” is verbeurd — neem contact op met support voor meer info.",
+    "parcel.sheet.comingHeader": "ONDERWEG — komt in je pakket zodra het aankomt",
   },
   "de": {
     "feed.header.balanceLabel": "Guthaben",
@@ -1002,6 +1003,7 @@ export default {
     "parcel.chip.forfeited": "Artikel verfallen",
     "support.tpl.storageMonthLeft": "„{productName}“ liegt jetzt 60 Tage im Lager — du hast noch einen Monat. Versende ihn vor Tag 90, sonst verfällt er.",
     "support.tpl.storageForfeited": "„{productName}“ ist verfallen — kontaktiere den Support für mehr Infos.",
+    "parcel.sheet.comingHeader": "UNTERWEGS — kommt ins Paket, sobald es ankommt",
   },
   "fr": {
     "feed.header.balanceLabel": "Solde",
@@ -1503,6 +1505,7 @@ export default {
     "parcel.chip.forfeited": "Article confisqué",
     "support.tpl.storageMonthLeft": "« {productName} » est dans l'entrepôt depuis 60 jours — il vous reste un mois. Expédiez-le avant le 90e jour, sinon il sera confisqué.",
     "support.tpl.storageForfeited": "« {productName} » a été confisqué — contactez le support pour plus d'infos.",
+    "parcel.sheet.comingHeader": "EN ROUTE — rejoint votre colis dès son arrivée",
   },
   "es": {
     "feed.header.balanceLabel": "Saldo",
@@ -2004,6 +2007,7 @@ export default {
     "parcel.chip.forfeited": "Artículo perdido",
     "support.tpl.storageMonthLeft": "«{productName}» lleva 60 días en el almacén — te queda un mes. Envíalo antes del día 90 o se perderá.",
     "support.tpl.storageForfeited": "«{productName}» se ha perdido — contacta con soporte para más información.",
+    "parcel.sheet.comingHeader": "EN CAMINO — se une a tu paquete cuando llegue",
   },
   "it": {
     "feed.header.balanceLabel": "Saldo",
@@ -2505,6 +2509,7 @@ export default {
     "parcel.chip.forfeited": "Articolo confiscato",
     "support.tpl.storageMonthLeft": "“{productName}” è in magazzino da 60 giorni — ti resta un mese. Spediscilo prima del giorno 90, altrimenti verrà confiscato.",
     "support.tpl.storageForfeited": "“{productName}” è stato confiscato — contatta il supporto per maggiori informazioni.",
+    "parcel.sheet.comingHeader": "IN ARRIVO — entra nel pacco appena arriva",
   },
   "pl": {
     "feed.header.balanceLabel": "Saldo",
@@ -3006,6 +3011,7 @@ export default {
     "parcel.chip.forfeited": "Przedmiot przepadł",
     "support.tpl.storageMonthLeft": "„{productName}” leży w magazynie już 60 dni — został Ci miesiąc. Wyślij go przed dniem 90, inaczej przepadnie.",
     "support.tpl.storageForfeited": "„{productName}” przepadł — skontaktuj się z supportem, aby dowiedzieć się więcej.",
+    "parcel.sheet.comingHeader": "W DRODZE — dołączy do paczki po dotarciu",
   },
   "pt": {
     "feed.header.balanceLabel": "Saldo",
@@ -3507,5 +3513,6 @@ export default {
     "parcel.chip.forfeited": "Artigo perdido",
     "support.tpl.storageMonthLeft": "“{productName}” está no armazém há 60 dias — resta-te um mês. Envia-o antes do dia 90, senão será perdido.",
     "support.tpl.storageForfeited": "“{productName}” foi perdido — contacta o suporte para mais informações.",
+    "parcel.sheet.comingHeader": "A CAMINHO — junta-se à tua encomenda quando chegar",
   },
 };

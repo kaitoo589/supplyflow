@@ -625,16 +625,20 @@ function NormalShippingConfirm({ session, haulItems, balance, onBack, onSuccess 
   // Houd 1:1 gelijk aan pay_shipping_buffered (server): greatest(round(0.08 * sum(price), 2), 5).
   const productValue = haulItems.reduce((s, o) => s + (Number(o.price) || 0), 0);
   const svcFee = Math.max(5, r2(productValue * 0.08));
-  // Extended storage (user 2026-07-22): item >30 dagen in het magazijn = €2/stuk,
-  // >60 dagen = €4/stuk (dag 90+ is al verbeurd en zit nooit in het pakket). Dekt de
-  // BuckyDrop-verlenging (¥3/stuk per 30 dagen) + marge. Houd 1:1 gelijk aan
-  // pay_shipping_buffered (server rekent 'm zelf uit arrived_at — klant stuurt niks).
-  const storageDaysOf = (o) => o.arrived_at ? Math.floor((Date.now() - new Date(o.arrived_at).getTime()) / 86400000) : 0;
+  // Extended storage (user 2026-07-22): NL-KALENDERDAG (aankomstdag = dag 1, +1 per
+  // middernacht). Dag 31-60 = €2/stuk, 61-90 = €4/stuk (dag 91 = verbeurd, zit nooit in
+  // het pakket). Dekt de BuckyDrop-verlenging (¥3/stuk per 30 dagen) + marge. Houd 1:1
+  // gelijk aan pay_shipping_buffered (server rekent zelf via storage_day()).
+  const storageDaysOf = (o) => {
+    if (!o.arrived_at) return 0;
+    const a = new Date(o.arrived_at); const n = new Date();
+    return Math.floor((new Date(n.getFullYear(), n.getMonth(), n.getDate()) - new Date(a.getFullYear(), a.getMonth(), a.getDate())) / 86400000) + 1;
+  };
   const storageFee = r2(haulItems.reduce((s, o) => {
     const d = storageDaysOf(o);
-    return s + (d > 60 ? 4 : d > 30 ? 2 : 0) * (Number(o.qty) || 1);
+    return s + (d >= 61 ? 4 : d >= 31 ? 2 : 0) * (Number(o.qty) || 1);
   }, 0));
-  const storageItems = haulItems.filter((o) => storageDaysOf(o) > 30).length;
+  const storageItems = haulItems.filter((o) => storageDaysOf(o) >= 31).length;
   // Valuta-conversie (EUR→CNY via Alipay, 3%) over ALLES wat naar yuan wordt omgezet: product +
   // binnenlandverzending (¥5/stuk) + qc (¥6/stuk) + fulfilment + internationale verzending (echte
   // schatting) + toeslag. NIET over de BTW (blijft euro's) of de service fee (marge). Houd 1:1 gelijk
@@ -1420,7 +1424,7 @@ const TRACE_LABEL = { 1: "In transit", 2: "Out for delivery", 3: "Delivered", 4:
 // items met Ready ná foto-inspectie (ff_stage_box → box_staged_at) — de server-
 // gate laat pas verzenden als ALLES Ready is. Geen stille auto-staging meer.
 // ────────────────────────────────────────────────────────────────────────────
-export function ParcelSection({ session, activeGroupId = null, parcelItems = [], heldOutItems = [], pendingRefunds = [], refreshSignal = 0, onToggleHold, onInspectItem, onShipped }) {
+export function ParcelSection({ session, activeGroupId = null, parcelItems = [], heldOutItems = [], pendingRefunds = [], forfeitedItems = [], refreshSignal = 0, onToggleHold, onInspectItem, onShipped }) {
   const [open, setOpen] = useState(false);
   const [screen, setScreen] = useState(null);      // null | "confirm" | "success"
   const [balance, setBalance] = useState(0);
@@ -1705,6 +1709,9 @@ export function ParcelSection({ session, activeGroupId = null, parcelItems = [],
                                 ? <>✓ {tr("parcel.row.ready", "Ready")}{!locked && <span style={{ opacity: 0.7, fontWeight: 600 }}> · {tr("parcel.row.tapUndo", "tap to undo")}</span>}</>
                                 : <>{tr("parcel.row.tapReady", "Tap: Ready")}</>}
                             </motion.button>
+                          ) : o.status === "forfeited" ? (
+                            // Verbeurd (user 2026-07-22): grijs, telt niet mee in de verzend-gate.
+                            <span style={{ flexShrink: 0, background: "rgba(107,114,128,0.22)", color: "#B8B5B0", fontSize: 10.5, fontWeight: 700, padding: "4px 9px", borderRadius: 999 }}>{tr("parcel.chip.forfeited", "Item forfeited")}</span>
                           ) : ready ? (
                             <span style={{ flexShrink: 0, background: "rgba(16,185,129,0.16)", color: "#34D399", fontSize: 10.5, fontWeight: 700, padding: "4px 9px", borderRadius: 999 }}>✓ {tr("parcel.row.ready", "Ready")}</span>
                           ) : arrived ? (
@@ -1745,6 +1752,20 @@ export function ParcelSection({ session, activeGroupId = null, parcelItems = [],
                   </div>
                   <span style={{ flexShrink: 0, background: "rgba(245,158,11,0.16)", color: "#FBBF24", fontSize: 10, fontWeight: 700, padding: "4px 9px", borderRadius: 999, textAlign: "right", lineHeight: 1.3 }}>
                     {tr("parcel.chip.refundRequested", "Refund requested")}<br />{tr("parcel.chip.awaitingResponse", "awaiting response")}
+                  </span>
+                </div>
+              ))}
+              {/* Verbeurde items (user 2026-07-22): grijs zichtbaar, tellen nergens mee —
+                  Confirm & ship blijft gewoon werken voor de rest van het pakket. */}
+              {!activeGroupId && forfeitedItems.map((o) => (
+                <div key={"ff-" + o.id} style={{ display: "flex", alignItems: "center", gap: 11, background: "#1A1917", borderRadius: 13, padding: "9px 11px", marginBottom: 7, opacity: 0.55 }}>
+                  {thumb(o)}
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: 12.5, fontWeight: 600, color: "#C9C6C1", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", textDecoration: "line-through" }}>{o.product_title || o.product}</div>
+                    <div style={{ fontSize: 11, color: "#8A8780" }}>{o.weight_grams ? `${o.weight_grams} g` : `${o.qty || 1} pcs`}</div>
+                  </div>
+                  <span style={{ flexShrink: 0, background: "rgba(107,114,128,0.22)", color: "#B8B5B0", fontSize: 10.5, fontWeight: 700, padding: "4px 9px", borderRadius: 999 }}>
+                    {tr("parcel.chip.forfeited", "Item forfeited")}
                   </span>
                 </div>
               ))}

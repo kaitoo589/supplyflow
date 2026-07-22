@@ -68,6 +68,18 @@ const statusConfig = {
   qc_pending:           { labelKey: "orders.status.qcPending", label: "In warehouse",          color: "#065F46", bg: "#D1FAE5", step: 3 },
   shipped_international: { labelKey: "orders.status.inTransit", label: "In transit",                 color: "#0369A1", bg: "#E0F2FE", step: 4 },
   delivered:            { labelKey: "orders.status.delivered", label: "Delivered",                   color: "#15803D", bg: "#DCFCE7", step: 5 },
+  // Dag 91+ zonder verzending (user 2026-07-22): verbeurd — grijs, blijft zichtbaar in de
+  // orderlijst én het pakket (telt daar niet mee); detail via het Flowva support-bericht.
+  forfeited:            { labelKey: "orders.status.forfeited", label: "Item forfeited",              color: "#6B7280", bg: "#F3F4F6", step: 3 },
+};
+
+// Opslag-dag (user 2026-07-22): KALENDERDAGEN op de klok van de klant (NL) — de dag van
+// aankomst in het magazijn is dag 1, en elke middernacht telt er één bij. Dus dag 30 is
+// nog een volle gratis dag; ná middernacht wordt het dag 31 (= fee), dag 91 = verbeurd.
+export const storageDayOf = (ts) => {
+  if (!ts) return null;
+  const a = new Date(ts); const n = new Date();
+  return Math.floor((new Date(n.getFullYear(), n.getMonth(), n.getDate()) - new Date(a.getFullYear(), a.getMonth(), a.getDate())) / 86400000) + 1;
 };
 
 // Labels van de tracking-bolletjes — index = statusConfig[...].step.
@@ -667,11 +679,11 @@ function OrderGroupCard({ items, onOpenItem, groupSize, onDismiss, parcel, activ
                       <div style={{ fontSize: 12.5, fontWeight: 600, color: "#111", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{o.product_title || o.product}</div>
                       <div style={{ fontSize: 11, color: "#A8A5A0", marginBottom: 3 }}>{tr("orders.item.pcs", "{qty} pcs", { qty: o.qty })}{o.kleur ? ` · ${o.kleur}` : ""}{squad ? "" : ` · €${(Number(o.price) || 0).toFixed(2)}`}</div>
                       <div style={{ display: "inline-block", background: s.bg, color: s.color, fontSize: 10.5, fontWeight: 700, padding: "2px 9px", borderRadius: 20 }}>{statusLabel(o)}{o.problem_type === "out_of_stock" ? <> · {tr("orders.item.outOfStock", "out of stock")} · <span style={{ color: "#15803D" }}>{tr("orders.item.refunded", "refunded")}</span></> : o.problem_type ? " · ⚠️" : ""}</div>
-                      {/* Opslag-teller (user 2026-07-22): dagen in het magazijn, direct naast de
-                          status-chip. Groen tot dag 24, amber t/m 30, daarna rood met fee-melding
-                          (€2/stuk 31-60d · €4/stuk 61-90d · dag 90 = verbeurd). Uit arrived_at. */}
+                      {/* Opslag-teller (user 2026-07-22): NL-kalenderdagen, aankomstdag = dag 1.
+                          Groen t/m dag 23, amber 24-30, rood vanaf dag 31 met fee-melding
+                          (€2/stuk 31-60 · €4/stuk 61-90 · dag 91 = verbeurd, aparte chip). */}
                       {o.status === "qc_pending" && o.arrived_at && (() => {
-                        const d = Math.floor((Date.now() - new Date(o.arrived_at).getTime()) / 86400000);
+                        const d = storageDayOf(o.arrived_at);
                         const over = d > 30;
                         return (
                           <div style={{ display: "inline-block", background: over ? "#FEE2E2" : d >= 24 ? "#FEF3C7" : "#D1FAE5", color: over ? "#DC2626" : d >= 24 ? "#B45309" : "#065F46", fontSize: 10.5, fontWeight: 700, padding: "2px 9px", borderRadius: 20, marginLeft: 5 }}>
@@ -2285,7 +2297,9 @@ export default function SupplyFlow({ session }) {
       case "deny_size_match": return tr("support.tpl.denySizeMatch", "The size and variant of “{productName}” match exactly what was selected at checkout, so we can't treat this as a fault. It will ship as normal.", p);
       case "deny_minor_variation": return tr("support.tpl.denyMinorVariation", "Small variations in color or finish can occur and fall within normal production standards — “{productName}” isn't considered defective. It will ship as normal.", p);
       case "deny_evidence": return tr("support.tpl.denyEvidence", "The evidence provided for “{productName}” isn't enough to confirm a defect. Send a new request with clearer photos if you'd like us to take another look — otherwise it ships as normal.", p);
-      case "storage_warning": return tr("support.tpl.storageWarning", "“{productName}” has been in the warehouse for over 80 days. Ship it now — items still in storage after day 90 are forfeited and can't be recovered.", p);
+      case "storage_month_left": return tr("support.tpl.storageMonthLeft", "“{productName}” has been in the warehouse for 60 days — you have one month left. Ship it before day 90, or it will be forfeited.", p);
+      case "storage_warning": return tr("support.tpl.storageWarning", "Today is the last day you can ship “{productName}” — tomorrow it will be forfeited.", p);
+      case "storage_forfeited": return tr("support.tpl.storageForfeited", "“{productName}” has been forfeited — contact support for more info.", p);
       case "custom": return m.body || "";
       default: return tr("support.tpl.unknownRefund", "Something went wrong with “{productName}” and we couldn't resolve it. To be safe, you've been fully refunded.", p);
     }
@@ -2898,7 +2912,9 @@ export default function SupplyFlow({ session }) {
   };
 
   const fetchOrders = async () => {
-    const { data } = await supabase.from("orders").select("*").eq("user_id", session.user.id).not("status", "in", "(cancelled,forfeited)").order("created_at", { ascending: false });
+    // Verbeurde items blijven ZICHTBAAR (user 2026-07-22): grijze chip in de lijst + in het
+    // pakket; alleen geannuleerde orders blijven eruit.
+    const { data } = await supabase.from("orders").select("*").eq("user_id", session.user.id).not("status", "in", "(cancelled)").order("created_at", { ascending: false });
     setOrders(data || []);
     // Zelfherstel (bug-fix 2026-07-22): "weggeruimd" hoort alleen bij AFGELEVERDE kaarten.
     // Staat een levende, niet-afgeleverde order tóch in het weggeruimd-lijstje (oude
@@ -3032,16 +3048,9 @@ export default function SupplyFlow({ session }) {
     })),
     ...flaggedInCart.map((it) => ({ icon: "⏸️", text: `On hold: ${it.product_title} — ${flaggedReasons[it.source_url] || "changed at the factory"}`, cart: true })),
     ...orders.filter(o => o.problem_type).map(o => ({ icon: "⚠️", text: tr("orders.notif.actionNeeded", "Action needed: issue with {productName}", { productName: o.product_title || o.product }), order: o })),
-    ...orders.filter(o => o.status === "qc_pending" && o.arrived_at && Math.floor((Date.now() - new Date(o.arrived_at).getTime()) / 86400000) >= 24).map(o => {
-      const days = Math.floor((Date.now() - new Date(o.arrived_at).getTime()) / 86400000);
-      const name = o.product_title || o.product;
-      const text = days >= 30
-        ? tr("orders.notif.storageApplies", "Storage now applies to {name} ({days} days in storage) — ship within 90 days or it's forfeited", { name, days })
-        : days >= 27
-          ? tr("orders.notif.storageEndingSoon", "{name}: only {daysLeft} day{plural} of free storage left — ship soon", { name, daysLeft: 30 - days, plural: 30 - days === 1 ? "" : "s" })
-          : tr("orders.notif.storageDaysUsed", "{name} has been in storage {days} days — ship within {daysLeft} days to keep it free", { name, days, daysLeft: 30 - days });
-      return { icon: "⏳", text, order: o };
-    }),
+    // Opslag-belmeldingen VERWIJDERD (user 2026-07-22): vervangen door Flowva
+    // support-berichten op dag 60 / dag 90 / verbeurd — de teller op de itemregel
+    // toont de dagen al continu.
     ...orders.filter(o => o.last_message_sender === "agent" && o.last_message_read === false).map(o => ({ icon: "💬", text: tr("orders.notif.agentReplied", "Your agent replied ({productName})", { productName: o.product_title || o.product }), order: o })),
     // "Delivered" zit bewust NIET meer in het belletje (bleef anders eeuwig staan) —
     // geleverde pakketten zie je in de Transit-tab.
@@ -3084,6 +3093,11 @@ export default function SupplyFlow({ session }) {
   // (embleem "Refund requested — awaiting response") en blokkeren Confirm & ship.
   const parcelPendingRefunds = orders.filter((o) =>
     o.status === "qc_pending" && o.dispute_status === "pending" && !orderToParcel[o.id] &&
+    (activeGroup ? o.ff_group_id === activeGroup.id : !o.ff_group_id));
+  // Verbeurde items (user 2026-07-22): blijven grijs zichtbaar in het pakket met het
+  // embleem "Item forfeited", maar tellen nergens meer mee — Confirm & ship werkt gewoon.
+  const parcelForfeited = orders.filter((o) =>
+    o.status === "forfeited" && !orderToParcel[o.id] &&
     (activeGroup ? o.ff_group_id === activeGroup.id : !o.ff_group_id));
   // SOLO: hold-out is verwijderd (user-keuze 2026-07-20) — alles zit ALTIJD in het pakket.
   // Alleen de GROEP-modus houdt nog apart-houden (onderdeel van de Ready-flow).
@@ -3892,6 +3906,7 @@ export default function SupplyFlow({ session }) {
         <ParcelSection session={session} activeGroupId={activeGroup?.id || null}
           parcelItems={parcelItems} heldOutItems={parcelHeldItems}
           pendingRefunds={parcelPendingRefunds}
+          forfeitedItems={parcelForfeited}
           refreshSignal={parcelRefresh}
           onToggleHold={activeGroup ? toggleParcelHold : undefined}
           onInspectItem={openInspectItem}

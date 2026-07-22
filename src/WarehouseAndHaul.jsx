@@ -1344,23 +1344,31 @@ function GroupShippingPanel({ session, groupId, shipment, waitingCount, isHost, 
         {err}
       </div>;
     }
-    // BEVESTIG-KAART (user 2026-07-21, vervangt de keuzelijst): zelfde opzet als solo —
-    // de route staat vast (auto-gekozen), de host bevestigt alleen nog.
+    // LOCK-KAART (user 2026-07-22): host bevestigt alleen de route — GEEN totaalprijs meer
+    // (die is misleidend: het is nog vóór buffer + fees, en de echte bedragen komen per lid
+    // in de split). Drie icoon-regels maken glashelder wat het indrukken doet.
     return <div style={wrap}>
-      <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 4 }}>Confirm shipping</div>
-      <div style={{ fontSize: 11, color: "#9C9893", marginBottom: 10 }}>One combined parcel to {hostName || "the host"}. Everyone then pays their own share, split by weight.</div>
-      <div style={{ background: "#F8F7F4", border: "1px solid #E8E6E0", borderRadius: 12, padding: "11px 13px", marginBottom: 10, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-        <span>
+      <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 3 }}>{tr("group.lock.title", "Lock in shipping")}</div>
+      <div style={{ fontSize: 11.5, color: "#9C9893", lineHeight: 1.5, marginBottom: 11 }}>{tr("group.lock.subtitle", "One combined parcel to {host}. Confirm to open the payment split — then everyone pays their own share.", { host: hostName || tr("group.lock.hostFallback", "the host") })}</div>
+      <div style={{ background: "#F8F7F4", border: "1px solid #E8E6E0", borderRadius: 12, padding: "11px 13px", marginBottom: 12, display: "flex", alignItems: "center", gap: 8 }}>
+        <span style={{ fontSize: 15 }}>✈️</span>
+        <span style={{ minWidth: 0 }}>
           <span style={{ fontWeight: 700, fontSize: 13 }}>{pick.name}</span>
-          <span style={{ fontSize: 11, color: "#9C9893" }}>{pick.maxDays ? ` · ${pick.minDays}-${pick.maxDays} days` : ""} · duties included</span>
+          <span style={{ fontSize: 11, color: "#9C9893" }}>{pick.maxDays ? ` · ${pick.minDays}-${pick.maxDays} ${tr("group.lock.days", "days")}` : ""} · {tr("group.lock.duties", "duties included")}</span>
         </span>
-        <span style={{ fontWeight: 700, fontSize: 13.5 }}>~{eur(pick.priceEur)}</span>
       </div>
-      <div style={{ fontSize: 11, color: "#9C9893", lineHeight: 1.5, marginBottom: 10 }}>
-        This is the estimate for the whole parcel — after you confirm, everyone (including you) pays their own weight share within 72 hours. Any difference with the carrier's final bill comes back as a refund.
-      </div>
-      <button disabled={busy} onClick={() => lock(pick.serviceCode)} style={darkBtn(busy)}>{busy ? "Confirming…" : "Confirm & open the split →"}</button>
-      <button onClick={() => { setPick(null); setMsg(""); }} style={{ width: "100%", background: "none", border: "none", color: "#9C9893", fontSize: 12, padding: 6, cursor: "pointer", marginTop: 4 }}>Cancel</button>
+      {[
+        ["🔒", tr("group.lock.point1", "The box locks — no more adding, removing or Ready changes after this")],
+        ["⚖️", tr("group.lock.point2", "Everyone pays their own share, split by weight — within 72 hours")],
+        ["💶", tr("group.lock.point3", "Prices show on the next screen · you pay an estimate, any overpayment comes back as a refund")],
+      ].map(([icon, text], i) => (
+        <div key={i} style={{ display: "flex", gap: 9, alignItems: "flex-start", marginBottom: i < 2 ? 7 : 12 }}>
+          <span style={{ fontSize: 13, flexShrink: 0, lineHeight: 1.4 }}>{icon}</span>
+          <span style={{ fontSize: 11.5, color: "#5F5C56", lineHeight: 1.45 }}>{text}</span>
+        </div>
+      ))}
+      <button disabled={busy} onClick={() => lock(pick.serviceCode)} style={darkBtn(busy)}>{busy ? tr("group.lock.locking", "Locking in…") : tr("group.lock.cta", "Confirm & open the split →")}</button>
+      <button onClick={() => { setPick(null); setMsg(""); }} style={{ width: "100%", background: "none", border: "none", color: "#9C9893", fontSize: 12, padding: 6, cursor: "pointer", marginTop: 4 }}>{tr("group.lock.cancel", "Cancel")}</button>
       {err}
     </div>;
   }

@@ -4259,7 +4259,7 @@ export default function SupplyFlow({ session }) {
               }
             }}
             isFavorite={isFavorite(selectedProduct)} onToggleFavorite={() => toggleFavorite(selectedProduct)}
-            activeGroup={activeGroupShopping ? activeGroup : null} groupLocked={!!activeGroup && !activeGroupShopping} onActiveGroupGone={() => setActiveGroup(null)} />
+            activeGroup={activeGroupShopping ? activeGroup : null} groupLocked={!!activeGroup && !activeGroupShopping} lockedGroupName={activeGroup && !activeGroupShopping ? activeGroup.name : null} onActiveGroupGone={() => setActiveGroup(null)} />
         )}
       </AnimatePresence>
 

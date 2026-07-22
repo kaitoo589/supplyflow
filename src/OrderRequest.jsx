@@ -15,7 +15,7 @@ import { tr } from "./i18n";
 
 const spring = springMorph;
 
-export default function OrderRequest({ product, session, onRequireAuth, onClose, onSuccess, onAddToList, listCount = 0, isFavorite = false, onToggleFavorite, activeGroup = null, onActiveGroupGone, groupLocked = false }) {
+export default function OrderRequest({ product, session, onRequireAuth, onClose, onSuccess, onAddToList, listCount = 0, isFavorite = false, onToggleFavorite, activeGroup = null, onActiveGroupGone, groupLocked = false, lockedGroupName = null }) {
   const [selectedVariants, setSelectedVariants] = useState({});
   const [aantal, setAantal] = useState(1);
   const [opmerking, setOpmerking] = useState("");
@@ -437,8 +437,12 @@ export default function OrderRequest({ product, session, onRequireAuth, onClose,
               </>
             )}
             {onAddToList && !activeGroup && (groupLocked ? (
-              <div style={{ width: "100%", background: "#F1EFEA", color: "#9C9893", borderRadius: 14, padding: "16px", fontSize: 15, fontWeight: 700, textAlign: "center" }}>
-                {tr("product.groupLocked","🔒 Group locked")}
+              /* Gelockte groep (user 2026-07-22): net als de refund-knop bij een gelockte
+                 verzending — doorgestreepte "Add to {group}" + "your admin locked the group",
+                 i.p.v. een actieve knop (je kunt niets meer aan de groep-mand toevoegen). */
+              <div style={{ width: "100%", background: "#F1EFEA", borderRadius: 14, padding: "16px", textAlign: "center" }}>
+                <span style={{ fontSize: 15, fontWeight: 700, color: "#B8B5B0", textDecoration: "line-through" }}>{lockedGroupName ? tr("product.addToGroupCart","+ Add to {group}",{ group: lockedGroupName }) : tr("product.addToCart","+ Add to cart{count}",{ count: "" })}</span>
+                <div style={{ fontSize: 11.5, color: "#8A8780", marginTop: 4 }}>🔒 {tr("group.locked.note", "Your admin locked the group")}</div>
               </div>
             ) : (
               <motion.button

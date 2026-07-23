@@ -113,8 +113,15 @@ In these Terms, the following words have the following meanings:
 
 International shipping starts only after you confirm. Until then your item is held at the warehouse.
 
-6.5 **Free storage period.** Items are normally stored at the warehouse free of charge for a limited period (currently 30 days from arrival). After that period, storage may be subject to a quoted charge, and after a longer period an unclaimed item may be treated as abandoned. Any such charges are notified to you in advance via a quote; we do not deduct storage charges automatically without notice.
-[LEGAL REVIEW: confirm the storage-charge / abandonment ("forfeiture") mechanism is enforceable against a consumer, that notice periods are fair, and that forfeiture does not unlawfully deprive the consumer of paid-for goods. Align wording with the warehouse storage/forfeiture policy.]
+6.5 **Free storage, extended storage and abandonment.** Items are stored at the warehouse **free of charge for the first 30 days** after arrival. Days are counted as Netherlands calendar days and the day the item arrives counts as day 1. After the free period an **extended storage fee** applies per item:
+
+- **days 31–60: EUR 2 per item**
+- **days 61–90: EUR 4 per item**
+
+The extended storage fee is **charged together with international shipping, at the moment you confirm shipping of your parcel**. It is shown as a separate line in the cost breakdown before you confirm, and is never deducted from your Balance without that confirmation. We notify you in the app around **day 60** (one month remaining) and again on **day 90**, which is the last day on which the item can still be shipped.
+
+**Day 91 — abandonment.** An item that is still unclaimed on day 91 is treated as **abandoned**: it is no longer shipped to you and no refund is due for it. We apply this because warehouse capacity is finite, and only after a 90-day window and at least two notices.
+[LEGAL REVIEW — HIGHEST-RISK CLAUSE IN THESE TERMS: confirm that (a) the EUR 2 / EUR 4 extended-storage charge is enforceable against a consumer and sufficiently disclosed in advance, and (b) the day-91 forfeiture is lawful under NL/EU consumer law. Forfeiting goods a consumer has **already paid for** is the specific exposure: consumer-protection rules generally restrict forfeiture of prepaid value, and an unclaimed item may instead have to be refunded, sold with account rendered to the consumer, or stored longer. Confirm the 30-day free period, the day-60 and day-90 notices and the 90-day window are fair, and advise whether the forfeiture should be replaced by a refund-minus-costs mechanism.]
 
 6.6 **Availability and pricing errors.** Products are subject to availability. Because prices come live from the Factory/source, a Product's price or stock may change between browsing and checkout. If a Product becomes unavailable or its price has materially changed after you order, we may place the affected item on hold, contact you, and either re-confirm the corrected price with you or cancel the affected item and refund it to your Balance. We are not obliged to fulfil an Order affected by an obvious pricing or description error.
 
@@ -122,17 +129,24 @@ International shipping starts only after you confirm. Until then your item is he
 
 ## 7. Prices, transparent fees and taxes
 
-7.1 **Transparent pricing.** For each Product we show you:
+7.1 **Transparent pricing.** Across your Order and its parcel we show you every amount you pay, itemised:
 - the **factory price** (the real price charged by the manufacturer/source);
+- the **China-side handling costs** — domestic shipping to the warehouse and Quality-Control inspection, each charged per item;
+- a **fulfilment fee**, charged once per parcel (in a Flowva Friends group this single fee is split between the members in that parcel — see section 13);
 - a **service fee** (currently approximately 8% of the factory price, with a minimum of EUR 5 for solo orders; lower tiered fees apply in Flowva Friends groups — see section 13);
-- applicable **taxes** (see section 7.3); and
-- **shipping** (see section 8).
+- a **currency-conversion fee** (see section 7.2);
+- **international shipping** (see section 8);
+- an **extended storage fee**, only if it applies (see section 6.5); and
+- applicable **taxes** (see section 7.3).
 
 The total you pay is the sum of these clearly itemised amounts. We do not add hidden margins.
 
-**When each is charged.** The factory price and the China-side handling costs (domestic shipping and Quality Control) are charged when you place an Order. The **service fee** and **international shipping** are charged once per parcel, when you confirm international shipping — so items you bundle into a single parcel share one service fee and one international shipping charge.
+**When each is charged.** The factory price and the China-side handling costs (domestic shipping and Quality Control) are charged when you place an Order. The **fulfilment fee**, the **service fee**, the **currency-conversion fee**, **international shipping** and any **extended storage fee** are charged once per parcel, when you confirm international shipping — so items you bundle into a single parcel share one fulfilment fee, one service fee and one international shipping charge. Every one of these amounts is shown in the cost breakdown before you confirm.
 
-7.2 **Currency.** Prices are shown and charged in euro (EUR) unless stated otherwise. Where a source price is in another currency, we convert it transparently at the rate applied at the time.
+7.2 **Currency and the currency-conversion fee.** Prices are shown and charged to you in euro (EUR). Because the factory price and the China-side costs are ultimately settled in Chinese yuan (CNY), a **currency-conversion fee of 3%** is charged to cover the cost of that conversion.
+
+It is calculated on the amounts that are actually converted: the **factory price**, the **China-side handling costs** (domestic shipping and Quality Control), the **fulfilment fee** and the **international shipping charge including the buffer** described in section 8.1. It is **not** charged on import VAT, on the service fee or on extended storage. The fee is shown as its own line in the cost breakdown before you confirm shipping.
+[LEGAL REVIEW: confirm that a 3% currency-conversion fee charged to a consumer is permissible and adequately disclosed under EU price-transparency rules (Consumer Rights Directive art. 6(1)(e) — every additional charge must be given before the consumer is bound). Note specifically that the fee base **includes the shipping buffer**, which is itself an estimate that is partly refunded on reconciliation under section 8.2; confirm whether charging the conversion fee over an amount that is later partly refunded is defensible, or whether the fee should be recalculated at reconciliation.]
 
 7.3 **Taxes, duties and DDP.** Prices for delivery into the EU are **tax-inclusive** and shipped **DDP (Delivered Duty Paid)**: import duties and **21% import VAT** are already included in what you pay, so you will **not** face surprise customs charges on delivery. Where a price line is shown as tax-inclusive, there is no separate VAT line added on top — the VAT is already contained in the price.
 [LEGAL REVIEW: confirm correct VAT treatment for goods imported from China and sold by an EU-established seller (IOSS / import VAT, place of supply, invoicing requirements, the 21% NL rate vs. the rate of the customer's country), and confirm the DDP duty/VAT-inclusive representation is accurate for all destinations served.]
@@ -215,7 +229,7 @@ Where an exclusion applies, we will tell you clearly before you order. Exclusion
 
 13.1 **What it is.** Flowva Friends lets several customers form a group and combine their items into **one shared parcel** so that international shipping is split between them by **weight**. This can make shipping cheaper per person.
 
-13.2 **How it works.** Members of a group add items to a shared cart, then "ready up". When the group's items are ready, they are consolidated into a single parcel and shipped to one destination — the **Host's** address. Shipping cost for the shared parcel is allocated between members in proportion to the weight of each member's items.
+13.2 **How it works.** Members of a group add items to a shared cart, then "ready up". When the group's items are ready, they are consolidated into a single parcel and shipped to one destination — the **Host's** address. Shipping cost for the shared parcel is allocated between members in proportion to the weight of each member's items. The single per-parcel **fulfilment fee** is divided **equally** between the members in that parcel, calculated to the cent, so that the members together pay exactly one fulfilment fee. Any **extended storage fee** (section 6.5) is **not** shared: it is charged only to the member whose own item exceeded the free storage period.
 
 13.3 **Everyone pays Flowva directly.** Each member pays **Flowva** directly for their own items, fees and share of shipping, from their own Balance. **The Host is not a payment intermediary, reseller, or merchant** and never collects, holds or routes another member's money. Flowva's lower tiered service fees may apply to group orders (see section 7.1).
 

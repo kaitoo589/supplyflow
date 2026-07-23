@@ -1282,7 +1282,6 @@ function GroupShippingPanel({ session, groupId, shipment, waitingCount, isHost, 
   const [msg, setMsg] = useState("");
   const [payPage, setPayPage] = useState(false); // volledige betaalpagina (per-lid cost overview)
   const [openInfo, setOpenInfo] = useState(() => new Set()); // klikbare "?"-uitleg (buffer / 3% currency)
-  const [receipt, setReceipt] = useState(null); // lid waarvan de volledige bon getoond wordt (See receipt)
   const [addrOk, setAddrOk] = useState(false);
   const [balance, setBalance] = useState(0);
   const myId = session.user.id;
@@ -1495,12 +1494,6 @@ function GroupShippingPanel({ session, groupId, shipment, waitingCount, isHost, 
               </span>
               <span style={{ fontSize: 14, fontWeight: 700, color: m.paid ? "#10B981" : "#FF5C00" }}>{eur(m.share_total)}</span>
             </div>
-            {/* See receipt (user 2026-07-23): opent de volledige bon van dit lid — óók
-                producten/QC/domestic die bij checkout betaald werden. Bij Friends zie je
-                zo ook de bon van je vrienden. */}
-            <button onClick={() => setReceipt(m)} style={{ width: "100%", marginTop: 10, background: "transparent", border: "1px solid #333", borderRadius: 10, padding: "9px", fontSize: 12.5, fontWeight: 700, color: "#C9C6C1", cursor: "pointer" }}>
-              🧾 {tr("group.pay.seeReceipt", "See receipt")} ›
-            </button>
           </div>
         );
       };
@@ -1538,42 +1531,6 @@ function GroupShippingPanel({ session, groupId, shipment, waitingCount, isHost, 
             )}
             {msg && <div style={{ fontSize: 12, color: "#B91C1C", textAlign: "center", marginTop: 10 }}>{msg}</div>}
           </div>
-          {/* 🧾 Volledige bon van één lid (See receipt) — inclusief wat bij checkout is
-              betaald (product/¥5/¥6). Bij Friends kun je zo ieders bon bekijken. */}
-          {receipt && (() => {
-            const r = receipt;
-            const rEur = (x) => `€${Number(x || 0).toFixed(2)}`;
-            const rline = (label, val, dim) => (
-              <div style={{ display: "flex", justifyContent: "space-between", padding: "5px 0", fontSize: 13, color: dim ? "#8A8780" : "#3A3733" }}>
-                <span>{label}</span><span style={{ fontWeight: 600 }}>{rEur(val)}</span>
-              </div>
-            );
-            const grand = Number(r.goods_eur || 0) + Number(r.domestic_eur || 0) + Number(r.qc_eur || 0) + Number(r.share_total || 0);
-            return (
-              <div onClick={() => setReceipt(null)} style={{ position: "fixed", inset: 0, zIndex: 2100, background: "rgba(0,0,0,0.5)", display: "flex", alignItems: "flex-end", justifyContent: "center" }}>
-                <div onClick={(e) => e.stopPropagation()} style={{ width: "100%", maxWidth: 460, background: "#fff", borderRadius: "20px 20px 0 0", padding: "18px 22px 34px", maxHeight: "88vh", overflowY: "auto" }}>
-                  <div style={{ width: 36, height: 4, background: "#E8E6E0", borderRadius: 2, margin: "0 auto 14px" }} />
-                  <div style={{ fontSize: 16, fontWeight: 800, color: "#0F0E0C" }}>🧾 {r.member}{r.user_id === myId ? " (you)" : ""}</div>
-                  <div style={{ fontSize: 12, color: "#8A8780", marginBottom: 14 }}>{tr("group.pay.receiptSub", "Full cost of this parcel share")}</div>
-                  <div style={{ fontSize: 11, fontWeight: 700, color: "#10B981", letterSpacing: 0.4, margin: "6px 0 2px" }}>✓ {tr("group.pay.alreadyPaid", "ALREADY PAID AT CHECKOUT")}</div>
-                  {rline(tr("group.pay.goods", "Product"), r.goods_eur, true)}
-                  {rline(tr("group.pay.domestic", "Domestic shipping · ¥5"), r.domestic_eur, true)}
-                  {rline(tr("group.pay.qc", "Quality-control · ¥6"), r.qc_eur, true)}
-                  <div style={{ fontSize: 11, fontWeight: 700, color: "#B45309", letterSpacing: 0.4, margin: "12px 0 2px" }}>✈ {tr("group.pay.shipSection", "SHIPPING")}</div>
-                  {rline(tr("group.pay.shipping", "International shipping"), r.ship_eur)}
-                  {Number(r.vat_eur) > 0 && rline(tr("group.pay.vat", "Import VAT (21%)"), r.vat_eur)}
-                  {rline(`${tr("group.pay.currency", "Currency conversion")} · 3%`, r.currency_eur)}
-                  {rline(tr("pricing.fulfillment.name", "Fulfillment"), r.fulfil_eur)}
-                  {rline(tr("cart.lineServiceFee", "Service fee"), r.fee_eur)}
-                  {Number(r.storage_eur) > 0 && rline(tr("cart.lineStorageFee", "Extended storage"), r.storage_eur)}
-                  <div style={{ borderTop: "2px solid #0F0E0C", marginTop: 10, paddingTop: 10, display: "flex", justifyContent: "space-between", fontSize: 15, fontWeight: 800, color: "#0F0E0C" }}>
-                    <span>{tr("group.pay.receiptTotal", "Total for this parcel")}</span><span>{rEur(grand)}</span>
-                  </div>
-                  <button onClick={() => setReceipt(null)} style={{ width: "100%", marginTop: 16, background: "#0F0E0C", color: "#fff", border: "none", borderRadius: 12, padding: "13px", fontSize: 13.5, fontWeight: 700, cursor: "pointer" }}>{tr("common.close", "Close")}</button>
-                </div>
-              </div>
-            );
-          })()}
         </div>,
         document.body
       );
@@ -2125,6 +2082,7 @@ export function TransitTab({ session, orders = [], activeGroupId = null }) {
   const [hauls, setHauls] = useState([]);
   const [loading, setLoading] = useState(true);
   const [hideDelivered, setHideDelivered] = useState(() => { try { return localStorage.getItem("flowva_hide_delivered") === "1"; } catch { return false; } });
+  const [receipt, setReceipt] = useState(null); // pakket waarvan de volledige bon getoond wordt
 
   useEffect(() => {
     (async () => {
@@ -2233,6 +2191,13 @@ export function TransitTab({ session, orders = [], activeGroupId = null }) {
               <span style={{ fontSize: 12, fontWeight: 700, color: "#111111" }}>€{Number(haul.paid_eur || 0).toFixed(2)}</span>
             </div>
 
+            {/* See receipt (user 2026-07-23): volledige bon van dit pakket — product +
+                domestic ¥5 + quality-control ¥6 (bij checkout betaald) + verzending. */}
+            <button onClick={() => setReceipt(haul)}
+              style={{ width: "100%", marginBottom: 10, background: "#F8F7F4", border: "1px solid #ECEAE5", borderRadius: 10, padding: "9px", fontSize: 12.5, fontWeight: 700, color: "#6B6862", cursor: "pointer", WebkitTapHighlightColor: "transparent" }}>
+              🧾 {tr("group.pay.seeReceipt", "See receipt")} ›
+            </button>
+
             {haul.settled_at && Number(haul.refund_eur) > 0 && (
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10, background: "#F0FDF4", border: "1px solid #BBF7D0", borderRadius: 10, padding: "8px 11px" }}>
                 <span style={{ fontSize: 12, fontWeight: 600, color: "#065F46" }}>💸 Refund · shipping costs</span>
@@ -2290,6 +2255,50 @@ export function TransitTab({ session, orders = [], activeGroupId = null }) {
           </motion.div>
         );
       })}
+
+      {/* 🧾 Volledige bon van één pakket (See receipt). Product/¥5/¥6 = bij checkout
+          betaald (uit de items); verzending = wat bij verzenden is afgeschreven (haul). */}
+      {receipt && (() => {
+        const h = receipt;
+        const rItems = (h.items || []).map(orderById).filter(Boolean);
+        const goods = rItems.reduce((s, o) => s + (Number(o.price) || 0) * (o.qty || 1), 0);
+        const pieces = rItems.reduce((s, o) => s + (o.qty || 1), 0);
+        const domestic = pieces * 5 / 7.8;
+        const qc = pieces * 6 / 7.8;
+        const shipPaid = Number(h.paid_eur || 0);
+        const shipInt = Number(h.shipping_eur || 0);
+        const vat = Number(h.vat_eur || 0);
+        const fees = Math.max(0, shipPaid - shipInt - vat); // fulfilment + service fee + currency
+        const grand = goods + domestic + qc + shipPaid;
+        const rEur = (x) => `€${Number(x || 0).toFixed(2)}`;
+        const rline = (label, val, dim) => (
+          <div style={{ display: "flex", justifyContent: "space-between", padding: "5px 0", fontSize: 13, color: dim ? "#8A8780" : "#3A3733" }}>
+            <span>{label}</span><span style={{ fontWeight: 600 }}>{rEur(val)}</span>
+          </div>
+        );
+        return (
+          <div onClick={() => setReceipt(null)} style={{ position: "fixed", inset: 0, zIndex: 2100, background: "rgba(0,0,0,0.5)", display: "flex", alignItems: "flex-end", justifyContent: "center" }}>
+            <div onClick={(e) => e.stopPropagation()} style={{ width: "100%", maxWidth: 460, background: "#fff", borderRadius: "20px 20px 0 0", padding: "18px 22px 34px", maxHeight: "88vh", overflowY: "auto" }}>
+              <div style={{ width: 36, height: 4, background: "#E8E6E0", borderRadius: 2, margin: "0 auto 14px" }} />
+              <div style={{ fontSize: 16, fontWeight: 800, color: "#0F0E0C" }}>🧾 Parcel {parcelNo[h.id]}</div>
+              <div style={{ fontSize: 12, color: "#8A8780", marginBottom: 14 }}>{tr("group.pay.receiptSub", "Full cost of this parcel")}</div>
+              <div style={{ fontSize: 11, fontWeight: 700, color: "#10B981", letterSpacing: 0.4, margin: "6px 0 2px" }}>✓ {tr("group.pay.alreadyPaid", "ALREADY PAID AT CHECKOUT")}</div>
+              {rline(tr("group.pay.goods", "Product"), goods, true)}
+              {rline(tr("group.pay.domestic", "Domestic shipping · ¥5"), domestic, true)}
+              {rline(tr("group.pay.qc", "Quality-control · ¥6"), qc, true)}
+              <div style={{ fontSize: 11, fontWeight: 700, color: "#B45309", letterSpacing: 0.4, margin: "12px 0 2px" }}>✈ {tr("group.pay.shipSection", "SHIPPING")} · {tr("transit.estimated", "estimated")}</div>
+              {rline(tr("group.pay.shipping", "International shipping"), shipInt)}
+              {vat > 0 && rline(tr("group.pay.vat", "Import VAT (21%)"), vat)}
+              {fees > 0 && rline(tr("transit.fees", "Fulfillment, service fee & currency"), fees)}
+              <div style={{ borderTop: "2px solid #0F0E0C", marginTop: 10, paddingTop: 10, display: "flex", justifyContent: "space-between", fontSize: 15, fontWeight: 800, color: "#0F0E0C" }}>
+                <span>{tr("group.pay.receiptTotal", "Total for this parcel")}</span><span>{rEur(grand)}</span>
+              </div>
+              <div style={{ fontSize: 10.5, color: "#A8A5A0", marginTop: 8, lineHeight: 1.5 }}>{tr("transit.receiptNote", "Shipping is an estimate with a buffer — if the real bill is lower you get the difference back as a refund.")}</div>
+              <button onClick={() => setReceipt(null)} style={{ width: "100%", marginTop: 16, background: "#0F0E0C", color: "#fff", border: "none", borderRadius: 12, padding: "13px", fontSize: 13.5, fontWeight: 700, cursor: "pointer" }}>{tr("common.close", "Close")}</button>
+            </div>
+          </div>
+        );
+      })()}
     </div>
   );
 }

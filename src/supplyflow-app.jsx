@@ -36,7 +36,7 @@ import { tr, useTr, useLang, useLangVersion, LANGS, hasChosenLang } from "./i18n
 // PRELAUNCH=true wordt de iDEAL-opwaardeerknop vervangen door een launch-datum-
 // melding, zodat bezoekers wél kunnen browsen/hun mand vullen maar niet tegen een
 // dode betaalflow lopen. Zet PRELAUNCH op false zodra betalingen live zijn.
-const PRELAUNCH = true;
+const PRELAUNCH = false;
 const LAUNCH_DATE_LABEL = "soon";
 
 // Overgang tussen tabs/schermen: zacht in-/uitschuiven (Apple-stijl).

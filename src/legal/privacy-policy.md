@@ -1,6 +1,6 @@
 # Privacy Policy
 
-**Last updated: [EFFECTIVE_DATE]**
+**Last updated: 23 July 2026**
 
 This Privacy Policy explains how Flowva collects, uses, shares, and protects your personal data when you use the Flowva website and app at flowva.app (the "Service"). We believe in radical transparency — the same principle that leads us to show you the real factory price and every fee also applies to how we handle your data. This policy is written in plain language, but it is intended to be legally complete and to comply with the EU General Data Protection Regulation (GDPR / AVG) and Dutch data-protection law.
 
@@ -14,8 +14,8 @@ The data controller responsible for your personal data is:
 
 - **[LEGAL_ENTITY]**
 - Registered office: **Kleikoeleweg 108, 6373 CD Landgraaf, Netherlands**
-- Chamber of Commerce (KvK) number: **[KVK_NUMBER]**
-- VAT number: **[VAT_NUMBER]**
+- Chamber of Commerce (KvK) number: **42104121**
+- VAT number: **NL005496086B61**
 - Contact e-mail for privacy matters: **contact@flowva.app**
 
 In this policy, "Flowva", "we", "us", and "our" refer to [LEGAL_ENTITY]. A "data controller" is the party that decides why and how your personal data is processed — that is us.
@@ -229,6 +229,6 @@ If you have any questions, requests, or concerns about this Privacy Policy or yo
 - **[LEGAL_ENTITY]**
 - **Kleikoeleweg 108, 6373 CD Landgraaf, Netherlands**
 - E-mail: **contact@flowva.app**
-- KvK: **[KVK_NUMBER]** · VAT: **[VAT_NUMBER]**
+- KvK: **42104121** · VAT: **NL005496086B61**
 
 We are committed to handling your data with the same transparency we bring to our prices.

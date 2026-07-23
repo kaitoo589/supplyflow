@@ -1,10 +1,10 @@
 # Returns & Right of Withdrawal
 
-**Last updated: [EFFECTIVE_DATE]**
+**Last updated: 23 July 2026**
 
 This Returns & Right of Withdrawal Policy explains how you can cancel an order, return goods, and obtain a refund when you buy from Flowva. It forms part of, and should be read together with, our Terms of Service and Privacy Policy.
 
-Flowva is operated by **[LEGAL_ENTITY]**, registered with the Netherlands Chamber of Commerce (KvK) under number **[KVK_NUMBER]**, VAT number **[VAT_NUMBER]**, registered address **Kleikoeleweg 108, 6373 CD Landgraaf, Netherlands**. You can reach us at **contact@flowva.app**.
+Flowva is operated by **[LEGAL_ENTITY]**, registered with the Netherlands Chamber of Commerce (KvK) under number **42104121**, VAT number **NL005496086B61**, registered address **Kleikoeleweg 108, 6373 CD Landgraaf, Netherlands**. You can reach us at **contact@flowva.app**.
 
 **Flowva is the seller.** Although your products are made factory-direct by manufacturers in China and fulfilled through our sourcing and fulfilment partner, your purchase contract is with Flowva — not with the factory. That means Flowva carries full responsibility under EU consumer law for the conformity of the goods, for defects, and for returns. The rights described in this policy are in addition to your statutory rights, which we cannot exclude or limit.
 

@@ -1,6 +1,6 @@
 # Flowva — General Terms & Conditions
 
-**Last updated: [EFFECTIVE_DATE]**
+**Last updated: 23 July 2026**
 
 These General Terms & Conditions ("**Terms**") govern your use of the Flowva platform and your purchase of products through it. Please read them carefully. By creating an account, topping up your Flowva balance, or placing an order, you agree to these Terms.
 
@@ -12,7 +12,7 @@ Flowva is built on radical transparency: we show you the real factory price and 
 
 In these Terms, the following words have the following meanings:
 
-1.1 **"Flowva", "we", "us", "our"** — [LEGAL_ENTITY], a company registered in the Netherlands under Chamber of Commerce (KvK) number [KVK_NUMBER], VAT number [VAT_NUMBER], with its registered address at Kleikoeleweg 108, 6373 CD Landgraaf, Netherlands. Flowva operates the website and application available at flowva.app (the "**Platform**"). Flowva is the **seller** of the products offered through the Platform.
+1.1 **"Flowva", "we", "us", "our"** — [LEGAL_ENTITY], a company registered in the Netherlands under Chamber of Commerce (KvK) number 42104121, VAT number NL005496086B61, with its registered address at Kleikoeleweg 108, 6373 CD Landgraaf, Netherlands. Flowva operates the website and application available at flowva.app (the "**Platform**"). Flowva is the **seller** of the products offered through the Platform.
 
 1.2 **"You", "your", "customer"** — the natural person who creates an account and/or places an order through the Platform, acting as a consumer (i.e. for purposes outside your trade, business, craft or profession).
 
@@ -323,4 +323,4 @@ Where an exclusion applies, we will tell you clearly before you order. Exclusion
 
 ---
 
-**[LEGAL_ENTITY]** · KvK [KVK_NUMBER] · VAT [VAT_NUMBER] · Kleikoeleweg 108, 6373 CD Landgraaf, Netherlands · contact@flowva.app
+**[LEGAL_ENTITY]** · KvK 42104121 · VAT NL005496086B61 · Kleikoeleweg 108, 6373 CD Landgraaf, Netherlands · contact@flowva.app

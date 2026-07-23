@@ -2191,19 +2191,27 @@ export function TransitTab({ session, orders = [], activeGroupId = null }) {
               <span style={{ fontSize: 12, fontWeight: 700, color: "#111111" }}>€{Number(haul.paid_eur || 0).toFixed(2)}</span>
             </div>
 
+            {/* 🎉 Verzend-refund (user 2026-07-23): de échte vrachtrekening was lager dan onze
+                schatting → het verschil ging terug naar het saldo. Positief gebracht, en
+                bewust BOVEN de bon-knop zodat je 't als eerste ziet. */}
+            {haul.settled_at && Number(haul.refund_eur) > 0 && (
+              <div style={{ background: "#F0FDF4", border: "1px solid #BBF7D0", borderRadius: 12, padding: "10px 12px", marginBottom: 10 }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                  <span style={{ fontSize: 12.5, fontWeight: 800, color: "#065F46" }}>🎉 {tr("transit.refundTitle", "You got money back")}</span>
+                  <span style={{ fontSize: 14.5, fontWeight: 800, color: "#10B981" }}>+€{Number(haul.refund_eur).toFixed(2)}</span>
+                </div>
+                <div style={{ fontSize: 11, color: "#047857", marginTop: 3, lineHeight: 1.45 }}>
+                  {tr("transit.refundBody", "The real shipping bill came in lower than our estimate — the difference went straight back to your balance.")}
+                </div>
+              </div>
+            )}
+
             {/* See receipt (user 2026-07-23): volledige bon van dit pakket — product +
                 domestic ¥5 + quality-control ¥6 (bij checkout betaald) + verzending. */}
             <button onClick={() => setReceipt(haul)}
               style={{ width: "100%", marginBottom: 10, background: "#F8F7F4", border: "1px solid #ECEAE5", borderRadius: 10, padding: "9px", fontSize: 12.5, fontWeight: 700, color: "#6B6862", cursor: "pointer", WebkitTapHighlightColor: "transparent" }}>
               🧾 {tr("group.pay.seeReceipt", "See receipt")} ›
             </button>
-
-            {haul.settled_at && Number(haul.refund_eur) > 0 && (
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10, background: "#F0FDF4", border: "1px solid #BBF7D0", borderRadius: 10, padding: "8px 11px" }}>
-                <span style={{ fontSize: 12, fontWeight: 600, color: "#065F46" }}>💸 Refund · shipping costs</span>
-                <span style={{ fontSize: 12.5, fontWeight: 800, color: "#10B981" }}>+€{Number(haul.refund_eur).toFixed(2)}</span>
-              </div>
-            )}
 
             {haul.settle_proof_url && (
               <a href={haul.settle_proof_url} target="_blank" rel="noreferrer" style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10, textDecoration: "none" }}>
@@ -2266,10 +2274,15 @@ export function TransitTab({ session, orders = [], activeGroupId = null }) {
         const domestic = pieces * 5 / 7.8;
         const qc = pieces * 6 / 7.8;
         const shipPaid = Number(h.paid_eur || 0);
-        const shipInt = Number(h.shipping_eur || 0);
+        const shipInt = Number(h.shipping_eur || 0);   // gebufferde SCHATTING die de klant betaalde
         const vat = Number(h.vat_eur || 0);
         const fees = Math.max(0, shipPaid - shipInt - vat); // fulfilment + service fee + currency
-        const grand = goods + domestic + qc + shipPaid;
+        // Verrekend? Dan tonen we de ÉCHTE vrachtprijs (schatting doorgestreept) en telt het
+        // totaal netto — alleen de verzend-buffer is terugbetaald, de fees blijven staan.
+        const refund = Number(h.refund_eur || 0);
+        const settled = !!h.settled_at && refund > 0;
+        const realShip = settled ? Number(h.exact_shipping_eur || 0) : shipInt;
+        const grand = goods + domestic + qc + realShip + vat + fees;
         const rEur = (x) => `€${Number(x || 0).toFixed(2)}`;
         const rline = (label, val, dim) => (
           <div style={{ display: "flex", justifyContent: "space-between", padding: "5px 0", fontSize: 13, color: dim ? "#8A8780" : "#3A3733" }}>
@@ -2286,14 +2299,28 @@ export function TransitTab({ session, orders = [], activeGroupId = null }) {
               {rline(tr("group.pay.goods", "Product"), goods, true)}
               {rline(tr("group.pay.domestic", "Domestic shipping · ¥5"), domestic, true)}
               {rline(tr("group.pay.qc", "Quality-control · ¥6"), qc, true)}
-              <div style={{ fontSize: 11, fontWeight: 700, color: "#B45309", letterSpacing: 0.4, margin: "12px 0 2px" }}>✈ {tr("group.pay.shipSection", "SHIPPING")} · {tr("transit.estimated", "estimated")}</div>
-              {rline(tr("group.pay.shipping", "International shipping"), shipInt)}
+              <div style={{ fontSize: 11, fontWeight: 700, color: "#B45309", letterSpacing: 0.4, margin: "12px 0 2px" }}>✈ {tr("group.pay.shipSection", "SHIPPING")} · {settled ? tr("transit.finalBill", "final bill") : tr("transit.estimated", "estimated")}</div>
+              {settled ? (
+                <div style={{ display: "flex", justifyContent: "space-between", padding: "5px 0", fontSize: 13, color: "#3A3733" }}>
+                  <span>{tr("group.pay.shipping", "International shipping")}</span>
+                  <span style={{ fontWeight: 600 }}><span style={{ color: "#A8A5A0", textDecoration: "line-through", fontWeight: 500, marginRight: 6 }}>{rEur(shipInt)}</span>{rEur(realShip)}</span>
+                </div>
+              ) : rline(tr("group.pay.shipping", "International shipping"), shipInt)}
+              {settled && (
+                <div style={{ display: "flex", justifyContent: "space-between", padding: "5px 0", fontSize: 12.5, fontWeight: 700, color: "#10B981" }}>
+                  <span>🎉 {tr("transit.shippingRefund", "Refunded to your balance")}</span><span>+{rEur(refund)}</span>
+                </div>
+              )}
               {vat > 0 && rline(tr("group.pay.vat", "Import VAT (21%)"), vat)}
               {fees > 0 && rline(tr("transit.fees", "Fulfillment, service fee & currency"), fees)}
               <div style={{ borderTop: "2px solid #0F0E0C", marginTop: 10, paddingTop: 10, display: "flex", justifyContent: "space-between", fontSize: 15, fontWeight: 800, color: "#0F0E0C" }}>
                 <span>{tr("group.pay.receiptTotal", "Total for this parcel")}</span><span>{rEur(grand)}</span>
               </div>
-              <div style={{ fontSize: 10.5, color: "#A8A5A0", marginTop: 8, lineHeight: 1.5 }}>{tr("transit.receiptNote", "Shipping is an estimate with a buffer — if the real bill is lower you get the difference back as a refund.")}</div>
+              <div style={{ fontSize: 10.5, color: settled ? "#047857" : "#A8A5A0", marginTop: 8, lineHeight: 1.5 }}>
+                {settled
+                  ? tr("transit.receiptNoteSettled", "The carrier's real bill came in lower than our estimate, so {amount} went back to your balance.", { amount: rEur(refund) })
+                  : tr("transit.receiptNote", "Shipping is an estimate with a buffer — if the real bill is lower you get the difference back as a refund.")}
+              </div>
               <button onClick={() => setReceipt(null)} style={{ width: "100%", marginTop: 16, background: "#0F0E0C", color: "#fff", border: "none", borderRadius: 12, padding: "13px", fontSize: 13.5, fontWeight: 700, cursor: "pointer" }}>{tr("common.close", "Close")}</button>
             </div>
           </div>

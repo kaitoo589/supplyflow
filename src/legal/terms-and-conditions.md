@@ -12,7 +12,7 @@ Flowva is built on radical transparency: we show you the real factory price and 
 
 In these Terms, the following words have the following meanings:
 
-1.1 **"Flowva", "we", "us", "our"** — [LEGAL_ENTITY], a company registered in the Netherlands under Chamber of Commerce (KvK) number 42104121, VAT number NL005496086B61, with its registered address at Kleikoeleweg 108, 6373 CD Landgraaf, Netherlands. Flowva operates the website and application available at flowva.app (the "**Platform**"). Flowva is the **seller** of the products offered through the Platform.
+1.1 **"Flowva", "we", "us", "our"** — Kaito Kratsborn, trading as Flowva, a sole proprietorship (*eenmanszaak*) registered in the Netherlands under Chamber of Commerce (KvK) number 42104121, VAT number NL005496086B61, with its registered address at Kleikoeleweg 108, 6373 CD Landgraaf, Netherlands. Flowva operates the website and application available at flowva.app (the "**Platform**"). Flowva is the **seller** of the products offered through the Platform.
 
 1.2 **"You", "your", "customer"** — the natural person who creates an account and/or places an order through the Platform, acting as a consumer (i.e. for purposes outside your trade, business, craft or profession).
 
@@ -79,8 +79,8 @@ In these Terms, the following words have the following meanings:
 
 ## 5. The Flowva Balance (prepayment)
 
-5.1 **What the Balance is.** The Flowva Balance is a **prepayment** that you make towards goods and services you will order from Flowva. You top up your Balance and then use it to pay for Products, shipping and related charges. The Balance is **not** general-purpose stored value, it is **not** electronic money, it is **not** a bank deposit or payment account, and it cannot be used to pay anyone other than Flowva. It exists solely to pay for what you order from us. A maximum Balance limit applies (currently €[MAX_BALANCE]); we may decline a top-up that would take you over it.
-[LEGAL REVIEW — RESOLVED: counsel has confirmed the closed-loop, single-merchant, goods-only prepaid Balance falls under the EMD2/Wft limited-purpose exemption — no e-money licence required. The maximum Balance cap (section 5.1) and the refundability of unused Balance (section 5.6) support this. Re-confirm only if the model changes.]
+5.1 **What the Balance is.** The Flowva Balance is a **prepayment** that you make towards goods and services you will order from Flowva. You top up your Balance and then use it to pay for Products, shipping and related charges. The Balance is **not** general-purpose stored value, it is **not** electronic money, it is **not** a bank deposit or payment account, and it cannot be used to pay anyone other than Flowva. It exists solely to pay for what you order from us. We do not apply a fixed maximum to your Balance. We may, however, decline or reverse a top-up where we reasonably believe it is not intended to pay for Orders — for example where the Balance appears to be used as a store of value rather than as prepayment for goods, or where a top-up raises fraud or anti-money-laundering concerns.
+[LEGAL REVIEW — REOPENED 23 July 2026: counsel previously confirmed that the closed-loop, single-merchant, goods-only prepaid Balance falls under the EMD2/Wft limited-purpose exemption (no e-money licence required), and that opinion expressly rested on **a maximum Balance cap** together with the refundability of unused Balance (section 5.6). The operator has since decided **not** to apply any cap, which changes the model the opinion was given on. Counsel must therefore re-confirm: (a) whether the limited-purpose exemption still holds for an **uncapped** prepaid balance; (b) whether uncapped customer prepayments trigger e-money licensing, safeguarding of customer funds, or AML/CDD obligations; and (c) whether the discretionary refusal right above is a sufficient substitute for a hard cap.]
 
 5.2 **Topping up.** You add to your Balance by paying us, for example by card or another supported payment method, through our payment processor Stripe (see section 5.8). The amount you pay is added to your Balance. Top-ups are payments to Flowva.
 
@@ -319,8 +319,8 @@ Where an exclusion applies, we will tell you clearly before you order. Exclusion
 
 20.3 **Assignment.** You may not transfer your rights or obligations under these Terms without our consent. We may transfer ours to a successor (for example on a business transfer), provided this does not reduce your rights.
 
-20.4 **Contact.** Questions about these Terms? Contact us at contact@flowva.app, or write to [LEGAL_ENTITY], Kleikoeleweg 108, 6373 CD Landgraaf, Netherlands.
+20.4 **Contact.** Questions about these Terms? Contact us at contact@flowva.app, or write to Kaito Kratsborn, trading as Flowva, Kleikoeleweg 108, 6373 CD Landgraaf, Netherlands.
 
 ---
 
-**[LEGAL_ENTITY]** · KvK 42104121 · VAT NL005496086B61 · Kleikoeleweg 108, 6373 CD Landgraaf, Netherlands · contact@flowva.app
+**Kaito Kratsborn, trading as Flowva** · KvK 42104121 · VAT NL005496086B61 · Kleikoeleweg 108, 6373 CD Landgraaf, Netherlands · contact@flowva.app

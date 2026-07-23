@@ -12,13 +12,13 @@ By using the Service, you acknowledge that you have read and understood this Pri
 
 The data controller responsible for your personal data is:
 
-- **[LEGAL_ENTITY]**
+- **Kaito Kratsborn, trading as Flowva**
 - Registered office: **Kleikoeleweg 108, 6373 CD Landgraaf, Netherlands**
 - Chamber of Commerce (KvK) number: **42104121**
 - VAT number: **NL005496086B61**
 - Contact e-mail for privacy matters: **contact@flowva.app**
 
-In this policy, "Flowva", "we", "us", and "our" refer to [LEGAL_ENTITY]. A "data controller" is the party that decides why and how your personal data is processed — that is us.
+In this policy, "Flowva", "we", "us", and "our" refer to Kaito Kratsborn, trading as Flowva. A "data controller" is the party that decides why and how your personal data is processed — that is us.
 
 If you have any question about this policy or want to exercise your rights (see Section 8), please contact us at **contact@flowva.app**.
 
@@ -226,7 +226,7 @@ We may update this Privacy Policy from time to time, for example when we change 
 
 If you have any questions, requests, or concerns about this Privacy Policy or your personal data, please contact us:
 
-- **[LEGAL_ENTITY]**
+- **Kaito Kratsborn, trading as Flowva**
 - **Kleikoeleweg 108, 6373 CD Landgraaf, Netherlands**
 - E-mail: **contact@flowva.app**
 - KvK: **42104121** · VAT: **NL005496086B61**

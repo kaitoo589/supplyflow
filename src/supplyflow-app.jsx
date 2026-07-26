@@ -1523,52 +1523,247 @@ function CustomerChat({ order, session }) {
   );
 }
 
+// Nette naam per transactiesoort. Deze lijst was incompleet — fulfillment,
+// currency_fee, domestic_shipping en qc_fee stonden er niet in, waardoor de klant
+// de ruwe databasenaam te zien kreeg. Nu alle negen soorten, in mensentaal.
+const TX_LABEL = {
+  top_up:            () => tr("tx.line.topUp", "Money added"),
+  order:             () => tr("tx.line.products", "Products"),
+  domestic_shipping: () => tr("tx.line.domestic", "Shipping inside China"),
+  qc_fee:            () => tr("tx.line.qc", "Quality-control + photos"),
+  shipping:          () => tr("tx.line.shipping", "International shipping"),
+  fulfillment:       () => tr("tx.line.fulfillment", "Packing & handling"),
+  service_fee:       () => tr("cart.lineServiceFee", "Service fee"),
+  currency_fee:      () => tr("tx.line.currency", "Currency conversion"),
+  storage_fee:       () => tr("cart.lineStorageFee", "Extended storage"),
+  refund:            () => tr("tx.line.refund", "Refunded"),
+  return_refund:     () => tr("tx.line.returnRefund", "Return refund"),
+  buffer_return:     () => tr("tx.line.bufferRefund", "Shipping refund"),
+  extra_service:     () => tr("tx.line.extraService", "Extra service"),
+};
+const txLabel = (type) => (TX_LABEL[type] ? TX_LABEL[type]() : type);
+// Leesvolgorde op de bon: eerst wat je kocht, dan de weg die het aflegt, dan onze
+// fee. Onbekende soorten belanden achteraan (indexOf → -1).
+const TX_ORDER = ["top_up", "order", "domestic_shipping", "qc_fee", "shipping",
+  "fulfillment", "currency_fee", "service_fee", "storage_fee", "extra_service",
+  "refund", "return_refund", "buffer_return"];
+
+// Eén bon = alle transactieregels van hetzelfde moment. Dat kán omdat elke betaling
+// z'n regels in één database-transactie wegschrijft, dus ze delen created_at EXACT.
+// Zo hoeven de geldfuncties niet aangepast te worden voor deze weergave.
+function buildReceipt(at, lines, orderById, haulByTime) {
+  const has = (type) => lines.some((l) => l.type === type);
+  const total = lines.reduce((s, l) => s + Number(l.amount || 0), 0);
+  const orders = [...new Set(lines.map((l) => l.order_id).filter(Boolean))]
+    .map((id) => orderById.get(id)).filter(Boolean);
+  const kind = has("top_up") ? "topup"
+    : has("order") ? "purchase"
+    : has("shipping") ? "shipment"
+    : total > 0 ? "refund"
+    : has("storage_fee") ? "storage"
+    : "other";
+  // Verzendregels hebben geen order_id, maar het pakket wordt in dezelfde
+  // database-transactie aangemaakt → zelfde tijdstip, dus een exacte match.
+  // orderById gaat mee zodat de pakketinhoud (order-ID's) opzoekbaar blijft.
+  return { at, lines, total, orders, kind, orderById,
+    haul: kind === "shipment" ? (haulByTime.get(at) || null) : null };
+}
+
+// Waarom kreeg je geld terug? Alleen benoemen wat de order écht zegt — niet gokken.
+function refundReason(order) {
+  if (!order) return null;
+  if (order.return_status) return tr("tx.reason.returned", "you returned this item");
+  if (order.defect_detected_at || order.defect_choice) return tr("tx.reason.defect", "quality issue found at inspection");
+  if (order.status === "cancelled") return tr("tx.reason.cancelled", "order could not be completed");
+  return null;
+}
+
 function TransactionHistory({ session }) {
-  const [transactions, setTransactions] = useState([]);
+  const [groups, setGroups] = useState([]);
   const [loading, setLoading] = useState(true);
   const [show, setShow] = useState(false);
+  const [openAt, setOpenAt] = useState(null);   // welke bon staat uitgeklapt
 
   useEffect(() => {
     if (!show) return;
-    supabase.from("transactions").select("*").eq("user_id", session.user.id).order("created_at", { ascending: false }).limit(20)
-      .then(({ data }) => { setTransactions(data || []); setLoading(false); });
+    let alive = true;
+    (async () => {
+      const [txRes, haulsRes] = await Promise.all([
+        supabase.from("transactions").select("*")
+          .eq("user_id", session.user.id).order("created_at", { ascending: false }).limit(150),
+        supabase.from("hauls").select("created_at, service_name, items, tracking_no, paid_eur")
+          .eq("user_id", session.user.id).limit(60),
+      ]);
+      const rows = txRes.data || [];
+      const hauls = haulsRes.data || [];
+      const byTime = new Map();
+      for (const t of rows) {
+        if (!byTime.has(t.created_at)) byTime.set(t.created_at, []);
+        byTime.get(t.created_at).push(t);
+      }
+      // hauls.items is een lijst ORDER-ID's (strings), geen objecten — die orders
+      // moeten dus mee in dezelfde ophaal-ronde, anders blijft de pakketinhoud leeg.
+      const haulOrderIds = hauls.flatMap((h) => (Array.isArray(h.items) ? h.items : []))
+        .filter((x) => typeof x === "string");
+      const orderIds = [...new Set([...rows.map((t) => t.order_id), ...haulOrderIds].filter(Boolean))];
+      const ordersRes = orderIds.length
+        ? await supabase.from("orders")
+            .select("id, product, product_title, qty, price, kleur, maat, variant_image, qc_images, status, return_status, defect_detected_at, defect_choice")
+            .in("id", orderIds)
+        : { data: [] };
+      if (!alive) return;
+      const orderById = new Map((ordersRes.data || []).map((o) => [o.id, o]));
+      const haulByTime = new Map(hauls.map((h) => [h.created_at, h]));
+      setGroups([...byTime.entries()].map(([at, lines]) => buildReceipt(at, lines, orderById, haulByTime)));
+      setLoading(false);
+    })();
+    return () => { alive = false; };
   }, [show]);
 
-  const typeLabels = {
-    top_up: { label: "Top-up", color: "#10B981" },
-    order: { label: "Order", color: "#EF4444" },
-    shipping: { label: "Shipping", color: "#EF4444" },
-    refund: { label: "Refund", color: "#10B981" },
-    return_refund: { label: "Return refund", color: "#10B981" },
-    buffer_return: { label: "Buffer refund", color: "#10B981" },
-    service_fee: { label: tr("cart.lineServiceFee", "Service fee"), color: "#EF4444" },
-    storage_fee: { label: tr("cart.lineStorageFee", "Extended storage"), color: "#EF4444" },
-    extra_service: { label: "Extra service", color: "#EF4444" },
+  const stamp = (at) => new Date(at).toLocaleString("en-GB",
+    { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" });
+
+  const title = (g) => {
+    if (g.kind === "topup") return tr("tx.title.topUp", "Money added to your balance");
+    if (g.kind === "purchase") {
+      const n = g.orders.length || g.lines.filter((l) => l.type === "order").length;
+      return tr("tx.title.order", "Order · {n} item{s}", { n, s: n > 1 ? "s" : "" });
+    }
+    if (g.kind === "shipment") return tr("tx.title.shipment", "Parcel shipped");
+    if (g.kind === "refund") {
+      const name = g.orders[0]?.product_title || g.orders[0]?.product;
+      return name ? tr("tx.title.refundOf", "Refund · {name}", { name }) : tr("tx.line.refund", "Refunded");
+    }
+    if (g.kind === "storage") return tr("cart.lineStorageFee", "Extended storage");
+    return txLabel(g.lines[0]?.type);
   };
+
+  const icon = (g) => ({ topup: "＋", purchase: "🛍", shipment: "✈️", refund: "↩︎", storage: "📦" }[g.kind] || "•");
+
+  const thumb = (src) => (
+    <div style={{ width: 34, height: 34, borderRadius: 8, background: "#F8F7F4", border: "1px solid #F0EEE8", overflow: "hidden", flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
+      {src ? <img src={src} referrerPolicy="no-referrer" alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : <span style={{ fontSize: 14 }}>📦</span>}
+    </div>
+  );
+
+  const costRow = (label, amount, key) => (
+    <div key={key} style={{ display: "flex", justifyContent: "space-between", padding: "3px 0", fontSize: 12 }}>
+      <span style={{ color: "#8A8780" }}>{label}</span>
+      <span style={{ color: "#0F0E0C", fontWeight: 600 }}>€{Math.abs(Number(amount)).toFixed(2)}</span>
+    </div>
+  );
+
+  // De uitgeklapte bon: wát je kocht (of wat er in het pakket zat) en waar het
+  // geld naartoe ging — met datum én tijd, want dat vroeg niemand voor niets.
+  const receipt = (g) => (
+    <div style={{ background: "#F8F7F4", borderRadius: 12, padding: "11px 13px", margin: "2px 0 10px" }}>
+      {g.kind === "purchase" && g.orders.length > 0 && (
+        <div style={{ marginBottom: 9 }}>
+          {g.orders.map((o) => (
+            <div key={o.id} style={{ display: "flex", alignItems: "center", gap: 9, padding: "5px 0" }}>
+              {thumb(o.variant_image || o.qc_images?.[0])}
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontSize: 12, fontWeight: 600, color: "#0F0E0C", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{o.product_title || o.product}</div>
+                <div style={{ fontSize: 10.5, color: "#A8A5A0" }}>
+                  {[o.qty ? tr("tx.pcs", "{qty} pcs", { qty: o.qty }) : null, o.maat, o.kleur].filter(Boolean).join(" · ")}
+                </div>
+              </div>
+              <div style={{ fontSize: 12, fontWeight: 700, color: "#0F0E0C", flexShrink: 0 }}>€{Number(o.price || 0).toFixed(2)}</div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {g.kind === "shipment" && g.haul && (
+        <div style={{ marginBottom: 9 }}>
+          <div style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: 0.3, color: "#A8A5A0", marginBottom: 5 }}>
+            {tr("tx.inThisParcel", "IN THIS PARCEL")}{g.haul.service_name ? ` · ${g.haul.service_name}` : ""}
+          </div>
+          {(Array.isArray(g.haul.items) ? g.haul.items : []).map((raw, i) => {
+            // items zijn order-ID's; oudere/andere pakketten kunnen objecten bevatten.
+            const o = typeof raw === "string" ? g.orderById?.get(raw) : raw;
+            if (!o) return null;
+            return (
+              <div key={i} style={{ display: "flex", alignItems: "center", gap: 9, padding: "4px 0" }}>
+                {thumb(o.variant_image || o.image || o.qc_images?.[0])}
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: 12, color: "#0F0E0C", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                    {o.product_title || o.product || tr("tx.item", "Item")}
+                  </div>
+                  {(o.maat || o.kleur) && (
+                    <div style={{ fontSize: 10.5, color: "#A8A5A0" }}>{[o.maat, o.kleur].filter(Boolean).join(" · ")}</div>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+          {g.haul.tracking_no && (
+            <div style={{ fontSize: 10.5, color: "#A8A5A0", marginTop: 4 }}>{tr("tx.tracking", "Tracking")}: {g.haul.tracking_no}</div>
+          )}
+        </div>
+      )}
+
+      {g.kind === "refund" && (() => { const why = refundReason(g.orders[0]); return why ? (
+        <div style={{ fontSize: 11.5, color: "#8A8780", marginBottom: 8, lineHeight: 1.5 }}>{tr("tx.refundBecause", "Refunded because {why}.", { why })}</div>
+      ) : null; })()}
+
+      {/* Gelijke soorten samentellen: een mand met 2 items schreef 2× 'order', wat
+          hier twee keer "Products" opleverde terwijl de prijzen al per stuk boven
+          staan. Eén regel per soort, in een vaste leesbare volgorde. */}
+      <div style={{ borderTop: "1px solid #ECEAE5", paddingTop: 7 }}>
+        {(() => {
+          const sum = new Map();
+          for (const l of g.lines) sum.set(l.type, (sum.get(l.type) || 0) + Number(l.amount || 0));
+          return [...sum.entries()]
+            .sort((a, b) => TX_ORDER.indexOf(a[0]) - TX_ORDER.indexOf(b[0]))
+            .map(([type, amount]) => costRow(txLabel(type), amount, type));
+        })()}
+      </div>
+      <div style={{ borderTop: "1px solid #E3E1DC", marginTop: 6, paddingTop: 7, display: "flex", justifyContent: "space-between", fontSize: 12.5 }}>
+        <span style={{ fontWeight: 700, color: "#0F0E0C" }}>{g.total > 0 ? tr("tx.totalAdded", "Added in total") : tr("tx.totalPaid", "Paid in total")}</span>
+        <span style={{ fontWeight: 800, color: g.total > 0 ? "#10B981" : "#0F0E0C" }}>€{Math.abs(g.total).toFixed(2)}</span>
+      </div>
+      <div style={{ fontSize: 10.5, color: "#A8A5A0", marginTop: 6 }}>{stamp(g.at)}</div>
+    </div>
+  );
 
   return (
     <div style={{ background: "#fff", border: "1px solid #E8E6E0", borderRadius: 16, padding: "16px 20px", marginBottom: 12 }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: show ? 12 : 0 }}>
-        <div style={{ fontSize: 13, fontWeight: 700, color: "#0F0E0C" }}>Transaction history</div>
-        <motion.button whileTap={{ scale: 0.9 }} transition={springSnappy} onClick={() => setShow(!show)} style={{ background: "none", border: "none", fontSize: 12, color: "#6366F1", cursor: "pointer", fontWeight: 600, WebkitTapHighlightColor: "transparent" }}>{show ? "Hide" : "Show"}</motion.button>
+        <div style={{ fontSize: 13, fontWeight: 700, color: "#0F0E0C" }}>{tr("tx.title", "Transaction history")}</div>
+        <motion.button whileTap={{ scale: 0.9 }} transition={springSnappy} onClick={() => setShow(!show)} style={{ background: "none", border: "none", fontSize: 12, color: "#6366F1", cursor: "pointer", fontWeight: 600, WebkitTapHighlightColor: "transparent" }}>{show ? tr("common.hide", "Hide") : tr("common.show", "Show")}</motion.button>
       </div>
       <AnimatePresence initial={false}>
         {show && (
           <motion.div key="txbody" initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }} transition={{ height: { duration: 0.3, ease: [0.4, 0, 0.2, 1] }, opacity: { duration: 0.2 } }} style={{ overflow: "hidden" }}>
             {loading ? <div style={{ textAlign: "center", padding: 20, color: "#aaa", fontSize: 13 }}>{tr("common.loading", "Loading...")}</div> :
-            transactions.length === 0 ? <div style={{ textAlign: "center", padding: 20, color: "#aaa", fontSize: 13 }}>No transactions yet</div> :
-            transactions.map((t, i) => {
-              const info = typeLabels[t.type] || { label: t.type, color: "#888" };
+            groups.length === 0 ? <div style={{ textAlign: "center", padding: 20, color: "#aaa", fontSize: 13 }}>{tr("tx.empty", "No transactions yet")}</div> :
+            groups.map((g, i) => {
+              const isOpen = openAt === g.at;
               return (
-                <motion.div key={i} initial={{ opacity: 0, x: -12 }} animate={{ opacity: 1, x: 0 }} transition={{ ...springSoft, delay: i * 0.04 }}
-                  style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px 0", borderBottom: i < transactions.length-1 ? "1px solid #F0EEE8" : "none" }}>
-                  <div>
-                    <div style={{ fontSize: 13, fontWeight: 600, color: "#0F0E0C" }}>{info.label}</div>
-                    <div style={{ fontSize: 11, color: "#aaa" }}>{new Date(t.created_at).toLocaleDateString("en-GB")}</div>
-                  </div>
-                  <div style={{ fontSize: 14, fontWeight: 700, color: t.amount > 0 ? "#10B981" : "#EF4444" }}>
-                    {t.amount > 0 ? "+" : ""}€{Math.abs(t.amount).toFixed(2)}
-                  </div>
+                <motion.div key={g.at} initial={{ opacity: 0, x: -12 }} animate={{ opacity: 1, x: 0 }} transition={{ ...springSoft, delay: Math.min(i, 8) * 0.04 }}>
+                  <motion.div whileTap={{ scale: 0.985 }} onClick={() => setOpenAt(isOpen ? null : g.at)}
+                    style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 0", cursor: "pointer", borderBottom: isOpen || i === groups.length - 1 ? "none" : "1px solid #F0EEE8", WebkitTapHighlightColor: "transparent" }}>
+                    <span style={{ fontSize: 15, width: 20, textAlign: "center", flexShrink: 0 }} aria-hidden>{icon(g)}</span>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontSize: 13, fontWeight: 600, color: "#0F0E0C", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{title(g)}</div>
+                      <div style={{ fontSize: 11, color: "#A8A5A0" }}>{stamp(g.at)}</div>
+                    </div>
+                    <div style={{ fontSize: 14, fontWeight: 700, color: g.total > 0 ? "#10B981" : "#EF4444", flexShrink: 0 }}>
+                      {g.total > 0 ? "+" : "−"}€{Math.abs(g.total).toFixed(2)}
+                    </div>
+                    <motion.span animate={{ rotate: isOpen ? 180 : 0 }} transition={springSnappy} style={{ display: "inline-flex", flexShrink: 0 }}>
+                      <ChevronDown size={15} color="#C4C1BB" strokeWidth={2.5} />
+                    </motion.span>
+                  </motion.div>
+                  <AnimatePresence initial={false}>
+                    {isOpen && (
+                      <motion.div key="rcpt" initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }}
+                        transition={{ height: { duration: 0.25, ease: [0.4, 0, 0.2, 1] }, opacity: { duration: 0.18 } }} style={{ overflow: "hidden" }}>
+                        {receipt(g)}
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
                 </motion.div>
               );
             })}
@@ -2233,13 +2428,23 @@ function LanguageRow() {
   );
 }
 
-export default function SupplyFlow({ session }) {
+export default function SupplyFlow({ session, factoriesVisible = true }) {
   useLangVersion();   // her-render de héle app bij een taalwissel (bv. via de Profiel-switcher)
-  const [tab, setTab] = useState(() => { try { return new URLSearchParams(window.location.search).get("tab") === "profile" ? "profile" : "feed"; } catch { return "feed"; } });
+  const [rawTab, setTab] = useState(() => { try { return new URLSearchParams(window.location.search).get("tab") === "profile" ? "profile" : "feed"; } catch { return "feed"; } });
   // 🫧 Blob-pull op de nav: houd een knop vast en beweeg → de oranje blob wordt elastisch
   // naar je vinger toe getrokken (rekt uit, wordt platter); loslaten boven een andere tab
   // = daarheen springen. Tik zonder bewegen blijft gewoon een tik.
-  const NAV_TABS = ["feed", "brands", "orders", "transit", "profile"];
+  // Zet de admin de fabrieken uit (app_settings.factories_visible), dan valt de
+  // Feed-tab weg en houden we 4 tabs over: de etalage is dan puur Brands. Niets
+  // wordt verwijderd — weer aanzetten brengt de Feed ongewijzigd terug.
+  const NAV_TABS = factoriesVisible
+    ? ["feed", "brands", "orders", "transit", "profile"]
+    : ["brands", "orders", "transit", "profile"];
+  // Fabrieken uit → de Feed bestaat niet meer, dus val terug op Brands. Bewust
+  // AFGELEID en niet via setTab in een effect: de vlag komt asynchroon binnen, en
+  // een tab-wissel tijdens het mounten liet <AnimatePresence mode="wait"> vastlopen
+  // (de oude Feed ging er nooit uit → scherm bleef op "Loading products…" hangen).
+  const tab = (!factoriesVisible && rawTab === "feed") ? "brands" : rawTab;
   const navRef = useRef(null);
   const navDrag = useRef({ on: false, moved: false, startX: 0 });
   const pullRaw = useMotionValue(0);
@@ -4744,7 +4949,7 @@ export default function SupplyFlow({ session }) {
           { id: "orders", Icon: Package, label: tr("common.tab.orders", "Orders") },
           { id: "transit", Icon: Plane, label: tr("feed.nav.transit", "Transit") },
           { id: "profile", Icon: User, label: tr("feed.nav.profile", "Profile") },
-        ].map(t => {
+        ].filter(t => NAV_TABS.includes(t.id)).map(t => {
           const active = tab === t.id;
           return (
             <motion.button key={t.id} onClick={() => { if (navDrag.current.moved) return; setTab(t.id); setSelectedOrder(null); }}

@@ -123,6 +123,10 @@ export default function App() {
   // Zichtbaarheid van de support-chat is een GLOBALE instelling (app_settings),
   // bestuurd vanuit de admin (OPS-tab). Standaard verborgen tot de admin 'm aanzet.
   const [supportBotVisible, setSupportBotVisible] = useState(false);
+  // Staan de fabrieken (Feed-tab) aan? Óók een globale app_settings-vlag, maar deze
+  // geldt net zo goed voor GASTEN — zij browsen mee en moeten dezelfde etalage-vorm
+  // zien. Standaard aan: bij een trage/mislukte lees-call blijft de app zoals hij is.
+  const [factoriesVisible, setFactoriesVisible] = useState(true);
 
   useEffect(() => {
     let mounted = true;
@@ -140,15 +144,20 @@ export default function App() {
           4000
         ).catch(() => null);
         if (mounted) setRole(res?.data?.role || "customer");
-        // Globale support-chat zichtbaarheid (admin bestuurt dit via app_settings).
-        const cfg = await withTimeout(
-          supabase.from("app_settings").select("support_bot_visible").eq("id", 1).single(),
-          4000
-        ).catch(() => null);
-        if (mounted) setSupportBotVisible(cfg?.data?.support_bot_visible === true);
       } else if (mounted) {
         setRole(null);
         setSupportBotVisible(false);
+      }
+      // Globale zichtbaarheidsvlaggen (admin bestuurt deze via app_settings). Ook
+      // ZONDER sessie ophalen: gasten browsen mee en moeten dezelfde etalage zien.
+      const cfg = await withTimeout(
+        supabase.from("app_settings").select("support_bot_visible, factories_visible").eq("id", 1).single(),
+        4000
+      ).catch(() => null);
+      if (mounted) {
+        if (session) setSupportBotVisible(cfg?.data?.support_bot_visible === true);
+        // Alleen expliciet false verbergt de fabrieken — een mislukte call laat alles staan.
+        if (cfg?.data) setFactoriesVisible(cfg.data.factories_visible !== false);
       }
       if (mounted) setLoading(false);
     };
@@ -218,7 +227,7 @@ export default function App() {
   if (session && role === "admin") return <AdminGate />;
   return (
     <>
-      <SupplyFlowApp session={session} />
+      <SupplyFlowApp session={session} factoriesVisible={factoriesVisible} />
       {supportBotVisible && <SupportWidget session={session} />}
       <InstallPrompt />
       {bootOverlay}

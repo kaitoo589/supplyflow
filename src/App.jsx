@@ -13,6 +13,7 @@ import privacySrc from "./legal/privacy-policy.md?raw";
 import termsSrc from "./legal/terms-and-conditions.md?raw";
 import returnsPolicySrc from "./legal/returns-right-of-withdrawal.md?raw";
 import Fox from "./Fox";
+import { takeReturn } from "./topup";
 
 // De admin draait volledig in het gamified command center (ai-ops-hud).
 // Lokaal → poort 5181; op de live site → het gedeployde admin-dashboard.
@@ -44,6 +45,11 @@ function AdminGate() {
 function PaymentSuccess({ session }) {
   const [balance, setBalance] = useState(null);
   const [added, setAdded] = useState(null);
+  // Kwam de klant hier vanuit een betaling die net te weinig saldo had? Dan
+  // brengt "terug" hem naar dat scherm terug i.p.v. naar de feed, zodat hij
+  // alleen nog op Order & pay hoeft te drukken. Eenmalig uitlezen (takeReturn
+  // wist de marker), dus in state — niet per render.
+  const [backTo] = useState(() => takeReturn());
 
   useEffect(() => {
     const fetchBalance = async () => {
@@ -93,9 +99,9 @@ function PaymentSuccess({ session }) {
         )}
 
         <button
-          onClick={() => window.location.href = "/"}
+          onClick={() => window.location.href = backTo || "/"}
           style={{ width: "100%", background: "#FF5C00", color: "#fff", border: "none", borderRadius: 12, padding: "14px", fontSize: 15, fontWeight: 700, cursor: "pointer" }}>
-          Back to Flowva →
+          {backTo ? "Back to your order →" : "Back to Flowva →"}
         </button>
       </div>
     </div>

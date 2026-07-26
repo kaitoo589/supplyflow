@@ -9,6 +9,38 @@ import { Plane, MapPin, ChevronUp, ChevronDown } from "lucide-react";
 import Fox from "./Fox";
 import { garmentType } from "./garment";
 import { tr } from "./i18n";
+import { exactTopUp, startTopUp, TOPUP_MIN } from "./topup";
+
+// Gedeeld tekort-blok voor de twee verzendschermen (solo + groep). Zelfde regel als
+// bij de mand: kom je net tekort, dan waardeer je precies dat bedrag op via iDEAL en
+// kom je terug op Orders om alsnog te verzenden. Het saldo staat hier al in beeld,
+// dus geen zwevend eilandje nodig — alleen de uitweg.
+function TopUpShort({ short }) {
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState("");
+  const amount = exactTopUp(short);
+  const over = Math.round((amount - short) * 100) / 100;
+  const go = async () => {
+    if (busy) return;
+    setBusy(true); setErr("");
+    try { await startTopUp(amount, "/?resume=orders"); }
+    catch (e) { setErr(e?.message || tr("common.somethingWentWrong", "Something went wrong. Please try again.")); setBusy(false); }
+  };
+  return (
+    <>
+      {over > 0 && (
+        <div style={{ fontSize: 11.5, color: "#B45309", marginTop: 6, lineHeight: 1.5 }}>
+          {tr("cart.shortMinimum", "The minimum top-up is €{min}, so €{rest} stays on your balance for next time.", { min: TOPUP_MIN.toFixed(2), rest: over.toFixed(2) })}
+        </div>
+      )}
+      <button onClick={go} disabled={busy}
+        style={{ width: "100%", marginTop: 10, background: busy ? "#E8E6E0" : "#FF5C00", color: "#fff", border: "none", borderRadius: 10, padding: "12px", fontSize: 13.5, fontWeight: 700, cursor: busy ? "default" : "pointer" }}>
+        {busy ? tr("cart.openingIdeal", "Opening iDEAL…") : tr("cart.topUpExact", "Top up €{amount} & continue →", { amount: amount.toFixed(2) })}
+      </button>
+      {err && <div style={{ fontSize: 11.5, color: "#B91C1C", marginTop: 6 }}>{err}</div>}
+    </>
+  );
+}
 
 // Verzendmodel China → NL: een first-weight-blok (eerste 0,5 kg) + tarief per extra kg,
 // dan een veiligheidsbuffer (verschil komt terug) en 21% invoer-BTW (DDP — wij schieten
@@ -749,6 +781,7 @@ function NormalShippingConfirm({ session, haulItems, balance, onBack, onSuccess 
           <span style={{ fontSize: 13, fontWeight: 700, color: canAfford ? "#10B981" : "#B45309" }}>€{balance.toFixed(2)}</span>
         </div>
         {!canAfford && <div style={{ fontSize: 12, color: "#B45309", marginTop: 6 }}>You're €{(toPay - balance).toFixed(2)} short.</div>}
+        {!canAfford && !quoting && !error && chosen && <TopUpShort short={toPay - balance} />}
       </div>
       {chosen && !error && !quoting && (
         <label style={{ display: "flex", alignItems: "flex-start", gap: 10, marginBottom: 12, cursor: "pointer" }}>
@@ -1515,6 +1548,7 @@ function GroupShippingPanel({ session, groupId, shipment, waitingCount, isHost, 
                     <span style={{ fontSize: 13, fontWeight: 700, color: canAfford ? "#10B981" : "#B45309" }}>{eur(balance)}</span>
                   </div>
                   {!canAfford && <div style={{ fontSize: 12, color: "#B45309", marginTop: 6 }}>{tr("group.pay.short", "You're {amount} short.", { amount: eur(myTotal - balance) })}</div>}
+                  {!canAfford && <TopUpShort short={myTotal - balance} />}
                 </div>
                 <label style={{ display: "flex", alignItems: "flex-start", gap: 10, marginBottom: 12, cursor: "pointer" }}>
                   <input type="checkbox" checked={addrOk} onChange={(e) => setAddrOk(e.target.checked)} style={{ marginTop: 1, width: 16, height: 16, accentColor: "#FF5C00", flexShrink: 0 }} />

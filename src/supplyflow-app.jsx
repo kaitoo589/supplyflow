@@ -23,6 +23,7 @@ import ReviewPage from "./ReviewPage";
 import { problemTypes } from "./problemTypes";
 import { toChinese, toEnglish, hasChinese } from "./translate";
 import { serviceFee } from "./fees";
+import { exactTopUp, startTopUp, TOPUP_MIN } from "./topup";
 import PushToggle from "./PushToggle";
 import Fox from "./Fox";
 import Auth from "./Auth";
@@ -1006,8 +1007,8 @@ function QuoteAcceptance({ order, session, balance, allOrders = [], onAccepted }
 // Aanvraaglijst: alles in één keer versturen = één service fee over de bundel.
 // Boom-groei + regel-reveals komen uit MotionBits (CartGrower/FoldReveal) — gedeeld
 // met de pakket-sheet op Orders, zodat mand en pakket exact dezelfde motion hebben.
-function RequestListSheet({ items, onRemove, onSetQty, onClose, onSend, sending, error, session, onEditAddress, onTopUp, onFinish, flagged, reasons }) {
-  const [view, setView] = useState("cart");
+function RequestListSheet({ items, onRemove, onSetQty, onClose, onSend, sending, error, needed, balance, session, onEditAddress, onTopUp, onTopUpExact, onFinish, flagged, reasons, initialView }) {
+  const [view, setView] = useState(initialView || "cart");
   const [agreed, setAgreed] = useState(false);   // 1 vinkje: Terms + retour + "adres klopt"
   const dragControls = useDragControls();           // rubber-band: sheet omlaag trekken om te sluiten
   // Gel-rek: hoe verder je trekt, hoe meer de kaart uitrekt (bovenkant "plakt").
@@ -1043,6 +1044,29 @@ function RequestListSheet({ items, onRemove, onSetQty, onClose, onSend, sending,
   const addrValid = hasAddress && isValidPostcode(m.land, m.postcode);
   const lowBalance = /balance|saldo/i.test(error || "");
 
+  // Saldo-tekort, live meeberekend terwijl je de mand aanpast. Kwam er net een
+  // echte weigering van pay_cart terug, dan wint de server-'needed' — die is
+  // gezaghebbend (prijzen komen server-side uit products).
+  const bal = Number(balance) || 0;
+  const due = Number(needed) > 0 ? Number(needed) : charge;
+  const short = Math.max(0, Math.round((due - bal) * 100) / 100);
+  const topUpNeeded = short > 0;
+  const topUpAmount = exactTopUp(short);          // exact het tekort, minstens €5
+  const topUpOver = Math.round((topUpAmount - short) * 100) / 100;   // >0 = door het €5-minimum
+  // Pas opwaarderen aanbieden als de rest klopt: eerst adres, anders stuurt de
+  // klant geld vooruit voor een order die tóch nog niet door kan.
+  const showShort = topUpNeeded && payable.length > 0 && hasAddress && addrValid;
+  const [topping, setTopping] = useState(false);
+  const [topErr, setTopErr] = useState(null);
+  // Opwaarderen midden in het afrekenen: bij succes navigeert de pagina weg naar
+  // iDEAL, dus 'topping' hoeft alleen bij een fout terug.
+  const doTopUp = async () => {
+    if (topping || !onTopUpExact) return;
+    setTopping(true); setTopErr(null);
+    try { await onTopUpExact(topUpAmount); }
+    catch (e) { setTopErr(e?.message || tr("common.somethingWentWrong", "Something went wrong. Please try again.")); setTopping(false); }
+  };
+
   // Bevestig & betaal → bij succes eerst de knop-morph (cirkel + vinkje dat tekent),
   // dán pas de "placed"-weergave met confetti.
   const confirmAndPay = async () => {
@@ -1062,7 +1086,8 @@ function RequestListSheet({ items, onRemove, onSetQty, onClose, onSend, sending,
   const errorBlock = error ? (
     <div style={{ background: "#FEE2E2", color: "#DC2626", borderRadius: 10, padding: "10px 14px", fontSize: 13, marginTop: 10 }}>
       {error}
-      {lowBalance && onTopUp && (
+      {/* Alleen als we NIET al de exacte opwaardeerknop tonen — anders twee keer hetzelfde. */}
+      {lowBalance && onTopUp && !topUpNeeded && (
         <button onClick={onTopUp} style={{ display: "block", width: "100%", marginTop: 8, background: "#DC2626", color: "#fff", border: "none", borderRadius: 8, padding: "8px", fontSize: 12.5, fontWeight: 700, cursor: "pointer" }}>
           {PRELAUNCH ? tr("cart.launchesOn", "Flowva launches {date} →", { date: LAUNCH_DATE_LABEL }) : tr("cart.topUpBalance", "Top up your balance →")}
         </button>
@@ -1074,6 +1099,24 @@ function RequestListSheet({ items, onRemove, onSetQty, onClose, onSend, sending,
     <>
       <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={view === "placed" ? () => onFinish?.(false) : onClose}
         style={{ position: "fixed", inset: 0, zIndex: 300, background: "rgba(0,0,0,0.5)", backdropFilter: "blur(6px)" }} />
+      {/* Saldo-eilandje. De header (met het saldo erin) valt achter de blur, terwijl je
+          juist tijdens het afrekenen wilt zien wat je hebt staan — en of een opwaardering
+          is geland als je terugkomt van iDEAL. Dus zweeft het saldo hier als eigen eiland
+          bóven de blur, net als de nav. pointerEvents uit: wegtikken blijft werken. */}
+      {view !== "placed" && (
+        <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -6 }} transition={springSnappy}
+          style={{ position: "fixed", top: 14, left: 0, right: 0, margin: "0 auto", width: "max-content", maxWidth: "calc(100% - 32px)", zIndex: 302, pointerEvents: "none",
+                   background: "#111111", borderRadius: 999, padding: "9px 16px", display: "flex", alignItems: "center", gap: 9,
+                   boxShadow: "0 10px 30px rgba(0,0,0,0.45)", border: `1px solid ${topUpNeeded ? "rgba(245,158,11,0.55)" : "rgba(255,255,255,0.10)"}` }}>
+          <span style={{ fontSize: 11.5, color: "#9C9893", fontWeight: 600 }}>{tr("feed.header.balanceLabel", "Balance")}</span>
+          <span style={{ fontSize: 13.5, fontWeight: 800, color: "#fff" }}>€{bal.toFixed(2)}</span>
+          {topUpNeeded && payable.length > 0 && (
+            <span style={{ fontSize: 11.5, fontWeight: 700, color: "#F59E0B", borderLeft: "1px solid rgba(255,255,255,0.14)", paddingLeft: 9 }}>
+              {tr("cart.shortBy", "€{amount} short", { amount: short.toFixed(2) })}
+            </span>
+          )}
+        </motion.div>
+      )}
       {/* Zwevende mand-kaart: raakt de schermranden nergens (minimalistisch, "duur") en
           klapt via de gedeelde layoutId ("cart-pop") uit de mand-balk omhoog — geen paneel
           meer dat aan de onderkant vastzit. */}
@@ -1263,6 +1306,15 @@ function RequestListSheet({ items, onRemove, onSetQty, onClose, onSend, sending,
                 <span style={{ fontSize: 20, fontWeight: 800, color: "#FF5C00" }}>€{charge.toFixed(2)}</span>
               </motion.div>
 
+              {/* Saldo net te laag → geen doodlopende melding maar meteen het exacte
+                  tekort, met de opwaardeerknop eronder bij de betaalknop. */}
+              {showShort && (
+                <div style={{ background: "rgba(245,158,11,0.12)", border: "1px solid rgba(245,158,11,0.3)", borderRadius: 12, padding: "11px 13px", marginBottom: 12, fontSize: 12, color: "#F0B45B", lineHeight: 1.55 }}>
+                  {tr("cart.shortExplain", "Your balance is €{short} short — top up exactly that and you're set.", { short: short.toFixed(2) })}
+                  {topUpOver > 0 && <> {tr("cart.shortMinimum", "The minimum top-up is €{min}, so €{rest} stays on your balance for next time.", { min: TOPUP_MIN.toFixed(2), rest: topUpOver.toFixed(2) })}</>}
+                </div>
+              )}
+
               {errorBlock}
 
               {heldCount > 0 && (
@@ -1290,10 +1342,37 @@ function RequestListSheet({ items, onRemove, onSetQty, onClose, onSend, sending,
                 </div>
               ) : (
                 <>
+                  {showShort ? (
+                    /* Te weinig saldo: precies het tekort opwaarderen via iDEAL. Na het
+                       betalen komt de klant terug op deze checkout (?resume=cart), ziet in
+                       het eilandje dat het saldo klopt, en drukt alsnog op Order & pay. */
+                    <>
+                      {topErr && (
+                        <div style={{ background: "#FEE2E2", color: "#DC2626", borderRadius: 10, padding: "10px 14px", fontSize: 12.5, marginTop: 10 }}>{topErr}</div>
+                      )}
+                      {PRELAUNCH ? (
+                        <div style={{ width: "100%", boxSizing: "border-box", marginTop: 10, background: "#1E1D1A", color: "#fff", borderRadius: 14, padding: "15px", fontSize: 14, fontWeight: 700, textAlign: "center" }}>
+                          {tr("cart.launchesOn", "Flowva launches {date} →", { date: LAUNCH_DATE_LABEL })}
+                        </div>
+                      ) : (
+                        <motion.button whileTap={topping || !agreed ? undefined : { scale: 0.97 }} onClick={doTopUp} disabled={topping || !agreed}
+                          style={{ width: "100%", marginTop: 10, background: topping ? "#333" : !agreed ? "#444" : "#FF5C00", color: "#fff", border: "none", borderRadius: 14, padding: "16px", fontSize: 15, fontWeight: 700, cursor: topping || !agreed ? "default" : "pointer", WebkitTapHighlightColor: "transparent" }}>
+                          {topping ? tr("cart.openingIdeal", "Opening iDEAL…") : !agreed ? tr("cart.tickBoxToContinue", "Tick the box to continue") : tr("cart.topUpExact", "Top up €{amount} & continue →", { amount: topUpAmount.toFixed(2) })}
+                        </motion.button>
+                      )}
+                      {onTopUp && !PRELAUNCH && (
+                        <motion.button whileTap={{ scale: 0.97 }} onClick={onTopUp}
+                          style={{ width: "100%", marginTop: 8, background: "transparent", color: "#C9C6C1", border: "1px solid rgba(255,255,255,0.15)", borderRadius: 14, padding: "13px", fontSize: 13, fontWeight: 600, cursor: "pointer", WebkitTapHighlightColor: "transparent" }}>
+                          {tr("cart.topUpOther", "Top up a different amount")}
+                        </motion.button>
+                      )}
+                    </>
+                  ) : (
                   <motion.button whileTap={sending || !hasAddress || !addrValid || !payable.length || !agreed ? undefined : { scale: 0.97 }} onClick={confirmAndPay} disabled={sending || !hasAddress || !addrValid || payable.length === 0 || !agreed}
                     style={{ width: "100%", marginTop: 10, background: sending ? "#333" : (!hasAddress || !addrValid || !payable.length || !agreed) ? "#444" : "#FF5C00", color: "#fff", border: "none", borderRadius: 14, padding: "16px", fontSize: 15, fontWeight: 700, cursor: sending || !hasAddress || !addrValid || !payable.length || !agreed ? "default" : "pointer", WebkitTapHighlightColor: "transparent" }}>
                     {sending ? tr("cart.processingPayment", "Processing payment…") : !hasAddress ? tr("cart.addAddressToContinue", "Add an address to continue") : payable.length === 0 ? tr("cart.allOnHold", "All items are on hold") : !agreed ? tr("cart.tickBoxToContinue", "Tick the box to continue") : heldCount > 0 ? tr("cart.payForRest", "Order & pay €{amount} for the rest →", { amount: charge.toFixed(2) }) : tr("cart.payButton", "Order & pay €{amount} →", { amount: charge.toFixed(2) })}
                   </motion.button>
+                  )}
 
                   <motion.button whileTap={{ scale: 0.97 }} onClick={() => setView("cart")}
                     style={{ width: "100%", marginTop: 8, background: "transparent", color: "#C9C6C1", border: "1px solid rgba(255,255,255,0.15)", borderRadius: 14, padding: "13px", fontSize: 13, fontWeight: 600, cursor: "pointer", WebkitTapHighlightColor: "transparent" }}>
@@ -2404,6 +2483,12 @@ export default function SupplyFlow({ session }) {
   const [showRequestList, setShowRequestList] = useState(false);
   const [sendingList, setSendingList] = useState(false);
   const [listError, setListError] = useState(null);
+  // Het bedrag dat pay_cart server-side nodig had toen het saldo te laag was —
+  // gezaghebbender dan de client-berekening, dus dat wint in de tekort-melding.
+  const [listNeeded, setListNeeded] = useState(null);
+  // Terug van een opwaardering midden in het afrekenen (?resume=cart): de mand
+  // meteen op het checkout-scherm openen i.p.v. bij de itemlijst.
+  const [resumeCheckout, setResumeCheckout] = useState(false);
   // Source_urls van cart-items die "on hold" staan wegens een leverancier-wijziging,
   // plus per-url de reden (uitverkocht / variant weg / prijs omhoog) voor de badges.
   const [flaggedUrls, setFlaggedUrls] = useState([]);
@@ -2676,6 +2761,23 @@ export default function SupplyFlow({ session }) {
       }
     } catch { /* ignore */ }
   }, []);
+  // Terug van iDEAL na een opwaardering midden in een betaling. ?resume=… zegt
+  // waar de klant zat, zodat hij niet op de feed landt maar meteen weer op het
+  // scherm staat waar alleen nog "betalen" hoeft — met het saldo nu op peil.
+  useEffect(() => {
+    if (!session) return;
+    try {
+      const q = new URLSearchParams(window.location.search);
+      const resume = q.get("resume");
+      if (!resume) return;
+      if (resume === "cart") { setResumeCheckout(true); setShowRequestList(true); }
+      else if (resume === "friends") { const gid = q.get("g"); if (gid) setFriendsGroupId(gid); setShowFriends(true); }
+      else if (resume === "orders") { setTab("orders"); setSelectedOrder(null); }
+      window.history.replaceState({}, "", window.location.pathname);
+    } catch { /* ignore */ }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [session]);
+
   // Gast die met een ?join-code net inlogt: alsnog de Friends-lobby openen.
   useEffect(() => {
     if (session && friendsJoinCode) {
@@ -2729,6 +2831,7 @@ export default function SupplyFlow({ session }) {
     if (isGuest) { setAuthOpen(true); return false; }   // gast → eerst een account
     setSendingList(true);
     setListError(null);
+    setListNeeded(null);
 
     // Holds komen alleen nog van de handmatige admin-vlag (price_alert, gelezen bij het
     // openen van de winkelwagen). De automatische live-prijscheck bij checkout is bewust
@@ -2749,11 +2852,13 @@ export default function SupplyFlow({ session }) {
     setSendingList(false);
     if (error) { setListError(error.message); return false; }
     if (!data?.ok) {
-      setListError(
-        data?.error === "Insufficient balance"
-          ? "Insufficient balance — top up to complete your order."
-          : data?.error || tr("common.somethingWentWrong", "Something went wrong. Please try again.")
-      );
+      if (data?.error === "Insufficient balance") {
+        // Geen doodlopende melding: het tekort-blok in de sheet biedt nu zelf
+        // "waardeer precies €X op" aan, dus alleen het bedrag doorgeven.
+        setListNeeded(Number(data.needed) || null);
+      } else {
+        setListError(data?.error || tr("common.somethingWentWrong", "Something went wrong. Please try again."));
+      }
       return false;
     }
     // Betaalde items verlaten de cart; held items blijven bewaard.
@@ -4303,7 +4408,7 @@ export default function SupplyFlow({ session }) {
       <AnimatePresence>
         {showFriends && !isGuest && (
           <Friends session={session} initialJoinCode={friendsJoinCode} initialGroupId={friendsGroupId}
-            activeGroupId={activeGroup?.id}
+            activeGroupId={activeGroup?.id} balance={balance}
             onShopForGroup={(g) => setActiveGroup(g)} onOpenProduct={openProductByUrl}
             onClose={() => { setShowFriends(false); setFriendsJoinCode(null); setFriendsGroupId(null); }} />
         )}
@@ -4409,14 +4514,18 @@ export default function SupplyFlow({ session }) {
             items={requestList}
             onRemove={(i) => setRequestList(list => list.filter((_, idx) => idx !== i))}
             onSetQty={(i, q) => setRequestList(list => list.map((it, idx) => idx === i ? { ...it, qty: Math.max(1, q) } : it))}
-            onClose={() => setShowRequestList(false)}
+            onClose={() => { setShowRequestList(false); setResumeCheckout(false); }}
             onSend={submitRequestList}
             sending={sendingList}
             error={listError}
+            needed={listNeeded}
+            balance={balance}
+            initialView={resumeCheckout ? "checkout" : "cart"}
             session={session}
             onEditAddress={() => { setShowRequestList(false); if (isGuest) { setAuthOpen(true); return; } setTab("profile"); setShowEditProfile(true); }}
             onTopUp={() => { setShowRequestList(false); setTab("profile"); }}
-            onFinish={(goOrders) => { setShowRequestList(false); if (goOrders) { setTab("orders"); setSelectedOrder(null); } }}
+            onTopUpExact={(amt) => startTopUp(amt, "/?resume=cart")}
+            onFinish={(goOrders) => { setShowRequestList(false); setResumeCheckout(false); if (goOrders) { setTab("orders"); setSelectedOrder(null); } }}
             flagged={new Set(flaggedUrls)}
             reasons={flaggedReasons}
           />

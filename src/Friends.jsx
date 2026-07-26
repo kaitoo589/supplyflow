@@ -2,6 +2,8 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { springMorph } from "./motion";
 import Fox from "./Fox";
+import { tr } from "./i18n";
+import { exactTopUp, startTopUp, TOPUP_MIN } from "./topup";
 import {
   ffMyGroups, ffPreview, ffCreateGroup, ffJoinGroup, ffLeaveGroup,
   ffKickMember, ffSetHost, ffSetAdmin, ffSetPrivate, ffUpdateSettings, ffAddItem, ffRemoveItem, ffFetchGroup,
@@ -148,7 +150,7 @@ function AdminInfo({ onClose, adminName }) {
   );
 }
 
-export default function Friends({ session, onClose, initialJoinCode, initialGroupId, onShopForGroup, onOpenProduct, activeGroupId }) {
+export default function Friends({ session, onClose, initialJoinCode, initialGroupId, onShopForGroup, onOpenProduct, activeGroupId, balance }) {
   const myUid = session?.user?.id;
   const myAvatar = session?.user?.user_metadata?.avatar_url || null;   // mijn live foto (member-rij kan verouderd zijn)
   const avatarOf = (m) => (m && m.user_id === myUid ? (myAvatar || m.avatar_url) : (m && m.avatar_url));
@@ -169,6 +171,9 @@ export default function Friends({ session, onClose, initialJoinCode, initialGrou
   const [lobby, setLobby] = useState(null); // { group, members, items }
   const [cartBusy, setCartBusy] = useState(false);   // gedeelde-mand checkout bezig
   const [cartErr, setCartErr] = useState("");        // checkout-foutmelding
+  const [cartNeeded, setCartNeeded] = useState(null); // wat ff_cart_checkout server-side nodig had (te weinig saldo)
+  const [topping, setTopping] = useState(false);      // opwaarderen midden in de checkout
+  const [topErr, setTopErr] = useState("");
   // Verzend-lock (user 2026-07-22): zodra de admin de verzending lockt is de mand dicht —
   // geen checkout meer (server weigert 't sowieso; hier tonen we 't proactief). De groep-
   // status blijft 'gathering', dus dit is het enige betrouwbare signaal.
@@ -509,18 +514,36 @@ export default function Friends({ session, onClose, initialJoinCode, initialGrou
     const doCartQty = async (it, q) => { if (q < 1) { await ffCartRemove(it.id); } else { await ffCartSetQty(it.id, q); } refreshLobby(); };
     const doCheckout = async () => {
       if (cartBusy) return;
-      setCartBusy(true); setCartErr("");
+      setCartBusy(true); setCartErr(""); setCartNeeded(null);
       const r = await ffCartCheckout(g.id);
       setCartBusy(false);
       if (!r || !r.ok) {
-        setCartErr(r?.error === "Insufficient balance"
-          ? `Insufficient balance — you need €${Number(r.needed || 0).toFixed(2)}. Top up first.`
-          : r?.error === "group_locked"
+        if (r?.error === "Insufficient balance") {
+          // Geen doodlopende melding meer: het blok hieronder biedt "waardeer
+          // precies €X op" aan, net als in de solo-mand.
+          setCartNeeded(Number(r.needed) || null);
+        } else {
+          setCartErr(r?.error === "group_locked"
             ? "The group is shipping a parcel right now — you can order again once it's on its way."
             : (r?.error || "Checkout failed"));
+        }
         return;
       }
       refreshLobby();   // mand nu leeg voor mij; items zijn groeps-orders (zie Orders · squad)
+    };
+    // Saldo-tekort voor MIJN deel van de gedeelde mand — live, en na een echte
+    // weigering met het server-bedrag (dat is gezaghebbend).
+    const myBal = Number(balance) || 0;
+    const myDue = Number(cartNeeded) > 0 ? Number(cartNeeded) : myCartCharge;
+    const myShort = Math.max(0, Math.round((myDue - myBal) * 100) / 100);
+    const myTopUp = exactTopUp(myShort);
+    const myTopUpOver = Math.round((myTopUp - myShort) * 100) / 100;
+    const doTopUp = async () => {
+      if (topping) return;
+      setTopping(true); setTopErr("");
+      // Na iDEAL terug in déze lobby, zodat je alleen nog op checkout hoeft te drukken.
+      try { await startTopUp(myTopUp, `/?resume=friends&g=${g.id}`); }
+      catch (e) { setTopErr(e?.message || "Something went wrong. Please try again."); setTopping(false); }
     };
     const meMember = members.find((m) => m.user_id === myUid);
     const iAmReady = !!meMember?.ready;
@@ -748,6 +771,12 @@ export default function Friends({ session, onClose, initialJoinCode, initialGrou
                         <span style={{ fontSize: 12.5, color: "#9C9893" }}>Quality-control (¥6 × {myUnits})</span>
                         <span style={{ fontSize: 12.5, color: "#fff", fontWeight: 600 }}>€{(myUnits * 6 / 7.8).toFixed(2)} <span style={{ color: "#9C9893", fontWeight: 400 }}>· ¥{myUnits * 6}</span></span>
                       </div>
+                      {/* Saldo erbij, zodat je hier al ziet of het genoeg is (en straks dat
+                          een opwaardering geland is) — zelfde signaalkleuren als bij verzenden. */}
+                      <div style={{ display: "flex", justifyContent: "space-between", marginTop: 9, paddingTop: 9, borderTop: "1px solid #262421" }}>
+                        <span style={{ fontSize: 12.5, color: myShort > 0 ? "#F0B45B" : "#10B981" }}>{tr("group.cart.balance", "Your balance")}</span>
+                        <span style={{ fontSize: 12.5, fontWeight: 700, color: myShort > 0 ? "#F0B45B" : "#10B981" }}>€{myBal.toFixed(2)}</span>
+                      </div>
                     </div>
                     {shipLocked ? (
                       /* Groep-verzending gelockt (user 2026-07-22): geen checkout meer —
@@ -756,6 +785,20 @@ export default function Friends({ session, onClose, initialJoinCode, initialGrou
                         <span style={{ fontSize: 14, fontWeight: 700, color: "#8A8780", textDecoration: "line-through" }}>Go to checkout</span>
                         <div style={{ fontSize: 11.5, color: "#9C9893", marginTop: 4 }}>🔒 Your admin locked the group</div>
                       </div>
+                    ) : myShort > 0 ? (
+                      /* Te weinig saldo voor jouw deel: precies het tekort opwaarderen via
+                         iDEAL. Je komt daarna terug in deze lobby (?resume=friends) en drukt
+                         alsnog op checkout. Zelfde flow als de solo-mand. */
+                      <>
+                        <div style={{ marginTop: 8, background: "rgba(245,158,11,0.12)", border: "1px solid rgba(245,158,11,0.3)", borderRadius: 12, padding: "10px 12px", fontSize: 11.5, color: "#F0B45B", lineHeight: 1.5 }}>
+                          {tr("group.cart.shortExplain", "Your balance is €{short} short — top up exactly that and you're set.", { short: myShort.toFixed(2) })}
+                          {myTopUpOver > 0 && <> {tr("cart.shortMinimum", "The minimum top-up is €{min}, so €{rest} stays on your balance for next time.", { min: TOPUP_MIN.toFixed(2), rest: myTopUpOver.toFixed(2) })}</>}
+                        </div>
+                        <button onClick={doTopUp} disabled={topping} style={{ ...primaryBtn, marginTop: 8, opacity: topping ? 0.6 : 1 }}>
+                          {topping ? tr("cart.openingIdeal", "Opening iDEAL…") : tr("cart.topUpExact", "Top up €{amount} & continue →", { amount: myTopUp.toFixed(2) })}
+                        </button>
+                        {topErr && <div style={{ color: "#F0997B", fontSize: 11.5, marginTop: 6, textAlign: "center" }}>{topErr}</div>}
+                      </>
                     ) : (
                     <button onClick={doCheckout} disabled={cartBusy} style={{ ...primaryBtn, marginTop: 8, opacity: cartBusy ? 0.6 : 1 }}>
                       {cartBusy ? "…" : `Go to checkout → €${myCartCharge.toFixed(2)}`}

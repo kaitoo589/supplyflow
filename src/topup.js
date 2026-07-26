@@ -14,10 +14,16 @@ import { supabase } from "./supabase";
 export const TOPUP_MIN = 5;
 
 // Precies het tekort, naar boven afgerond op hele centen (nooit één cent te
-// weinig door float-afronding), maar minstens het Stripe-minimum.
+// weinig), maar minstens het Stripe-minimum.
+//
+// Let op de volgorde: eerst de float-ruis wegpoetsen, DAARNA omhoog afronden.
+// 20.12 - 10.00 geeft in JS 10.120000000000001; direct Math.ceil() op de centen
+// maakte daar €10,13 van — een hele cent te veel voor een tekort dat gewoon
+// €10,12 is. Daarom eerst op centen ronden (op 4 decimalen nauwkeurig), dan ceil.
 export function exactTopUp(shortfall) {
   const s = Math.max(0, Number(shortfall) || 0);
-  return Math.max(TOPUP_MIN, Math.ceil(s * 100) / 100);
+  const cents = Math.ceil(Math.round(s * 1e6) / 1e4);
+  return Math.max(TOPUP_MIN, cents / 100);
 }
 
 // Stripe stuurt na het betalen altijd naar /payment-success. Deze marker vertelt

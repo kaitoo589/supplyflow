@@ -3654,8 +3654,9 @@ export default function SupplyFlow({ session, factoriesVisible = true }) {
       { label: tr("feed.brandCard.stat.rating", "Store rating"), v: f.tb_rating },
       { label: tr("feed.brandCard.stat.followers", "Followers"), v: f.tb_followers },
       { label: tr("feed.brandCard.stat.reviews", "Reviews"), v: f.tb_reviews },
-      { label: tr("feed.brandCard.stat.shipSpeed", "CN shipping speed"), v: f.tb_ship_speed },
-      { label: tr("feed.brandCard.stat.service", "Service score"), v: f.tb_service },
+      // Service score eruit (user 2026-07-26): zei bijna hetzelfde als Store rating,
+      // en met 5 tegels bleef er een weesje onderaan het 2-koloms raster liggen.
+      { label: tr("feed.brandCard.stat.shipSpeed", "Domestic shipping speed"), v: f.tb_ship_speed },
     ] : [
       { label: tr("feed.factoryCard.stat.repurchase", "Repurchase rate"), v: f.repurchase },
       { label: tr("feed.factoryCard.stat.service", "Service score"), v: f.service },

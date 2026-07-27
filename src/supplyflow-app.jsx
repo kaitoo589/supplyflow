@@ -1867,7 +1867,7 @@ const HIW_STOPS = [
   { icon: "🏷️", key: "factory", title: "Authentic Chinese brands", sub: "not available in Europe", say: "Shop authentic Chinese brands that are not available in Europe. ⭐" },
   { icon: "🛍️", key: "buy", title: "We buy it for you", sub: "Buying from China made effortless", say: "I handle the buying process for you." },
   { icon: "🏬", key: "warehouse", title: "Stored in our warehouse", sub: "30 days free storage", say: "Your items stay safely stored in our warehouse — free for 30 days." },
-  { icon: "📸", key: "photos", title: "Quality-control photos", sub: "of your own item", say: "Before anything ships, we photograph and measure your actual item." },
+  { icon: "📸", key: "photos", title: "Quality-control photos", sub: "Approve before shipping — return possible for defects", say: "Before anything ships, we photograph and measure your actual item." },
   { icon: "📦", key: "parcel", title: "One parcel — taxes paid", sub: "bundling = cheaper per item", say: "Everything ships together in one parcel — taxes and import fees are included." },
   { icon: "💸", key: "value", title: "Cut out the middleman", sub: "No retail markup.", say: "Pay local Chinese prices, without the European retail markup." },
 ];

@@ -15,6 +15,33 @@ import { tr } from "./i18n";
 
 const spring = springMorph;
 
+// ── Prijs van de GEKOZEN variant (2026-07-27) ───────────────────────────────
+// Varianten kunnen bij de bron verschillend geprijsd zijn (bv. ¥269 top / ¥299
+// rok). Voorheen kreeg elke variant de productprijs, waardoor een duurdere
+// uitvoering voor de goedkoopste prijs verkocht werd.
+//
+// Dit spiegelt exact wat sku_price_eur() server-side doet — pay_cart rekent
+// daarmee af, dus wat je hier ziet is wat je betaalt. Geen match (product zonder
+// varianten, oud item) → terugval op product.price, precies als de server.
+function skuFor(product, chosen) {
+  const skus = Array.isArray(product?.bd_skus) ? product.bd_skus : [];
+  if (!skus.length || !chosen || !Object.keys(chosen).length) return null;
+  return skus.find((s) => {
+    const props = Array.isArray(s?.props) ? s.props : [];
+    return props.length > 0 && props.every((p) => chosen[p.name] === p.value);
+  }) || null;
+}
+function variantPriceEur(product, chosen) {
+  const eur = Number(skuFor(product, chosen)?.priceEur);
+  return Number.isFinite(eur) ? eur : (Number(product?.price) || 0);
+}
+// De échte ¥-prijs van de bron. Zonder variantkeuze tonen we niets in yuan
+// liever dan een teruggerekend bedrag dat bij geen enkele variant hoort.
+function variantPriceYuan(product, chosen) {
+  const y = Number(skuFor(product, chosen)?.priceYuan);
+  return Number.isFinite(y) ? y : null;
+}
+
 export default function OrderRequest({ product, session, onRequireAuth, onClose, onSuccess, onAddToList, listCount = 0, isFavorite = false, onToggleFavorite, activeGroup = null, activeGroupShipLocked = false, onActiveGroupGone, groupLocked = false, lockedGroupName = null }) {
   const [selectedVariants, setSelectedVariants] = useState({});
   const [aantal, setAantal] = useState(1);
@@ -99,7 +126,7 @@ export default function OrderRequest({ product, session, onRequireAuth, onClose,
       product_title: product.title,
       source_url: product.source_url || "",
       platform: product.platform,
-      price: product.price,
+      price: variantPriceEur(product, selectedVariants),   // prijs van DEZE variant
       qty: aantal,
       kleur: variantString,
       variant_image: variantImage || displayImage,
@@ -358,7 +385,8 @@ export default function OrderRequest({ product, session, onRequireAuth, onClose,
             {/* Prijs — duidelijk boven Quantity, in euro én yuan, plus de China-verzending. */}
             {(() => {
               const KOERS = 7.8;
-              const priceEur = Number(product.price) || 0;
+              const priceEur = variantPriceEur(product, selectedVariants);
+              const priceCny = variantPriceYuan(product, selectedVariants);
               const shipCny = 5;
               return (
                 <motion.div variants={fadeUp} style={{ background: "#F8F7F4", borderRadius: 14, padding: "14px 16px", marginBottom: 24 }}>
@@ -369,7 +397,9 @@ export default function OrderRequest({ product, session, onRequireAuth, onClose,
                       <motion.span initial={{ scale: 1.7, opacity: 0, rotate: -8 }} animate={{ scale: 1, opacity: 1, rotate: 0 }}
                         transition={{ type: "spring", stiffness: 480, damping: 20, delay: 0.18 }}
                         style={{ display: "inline-block" }}>€{priceEur.toFixed(2)}</motion.span>
-                      {" "}<span style={{ fontSize: 13, color: "#A8A5A0", fontWeight: 600 }}>· ¥{(priceEur * KOERS).toFixed(2)}</span>
+                      {/* De ¥ komt nu van de bron zelf; eerder stond hier de euro-prijs
+                          terugberekend (× koers), een bedrag dat bij geen enkele variant hoorde. */}
+                      {" "}<span style={{ fontSize: 13, color: "#A8A5A0", fontWeight: 600 }}>· ¥{(priceCny ?? priceEur * KOERS).toFixed(2)}</span>
                     </span>
                   </div>
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginTop: 7 }}>

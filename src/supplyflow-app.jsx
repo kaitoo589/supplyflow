@@ -3555,7 +3555,10 @@ export default function SupplyFlow({ session, factoriesVisible = true }) {
       transition={springMorph}
       style={{ background: "#fff", borderRadius: 18, overflow: "hidden", boxShadow: "0 1px 2px rgba(17,17,17,0.04), 0 6px 18px rgba(17,17,17,0.05)", cursor: "pointer" }}>
       <div style={{ position: "relative" }}>
-        <motion.div layoutId={`pimg-${p.id}`} data-pcard-img={p.id} transition={springMorph} style={{ background: "#fff", aspectRatio: "4 / 5", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 48, overflow: "hidden" }}>
+        {/* 3:4 = exact het formaat waarin de foto's binnenkomen (studio levert 1080×1440,
+            1688/Taobao ook 3:4). Zo wordt er niets meer bijgesneden en zie je het hele
+            beeld zoals het gemaakt is. Stond op 4:5, wat er 6% van boven én onder afhaalde. */}
+        <motion.div layoutId={`pimg-${p.id}`} data-pcard-img={p.id} transition={springMorph} style={{ background: "#fff", aspectRatio: "3 / 4", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 48, overflow: "hidden" }}>
           {p.image?.startsWith("http") ? (
             <>
               <img src={p.image} referrerPolicy="no-referrer" alt={p.title} decoding="async"
@@ -4181,7 +4184,7 @@ export default function SupplyFlow({ session, factoriesVisible = true }) {
                 return orderImage ? (
                   <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={springSoft}
                     style={{ marginBottom: 10, borderRadius: 12, overflow: "hidden", position: "relative", background: "#fff" }}>
-                    <img src={orderImage} referrerPolicy="no-referrer" alt="your order" style={{ width: "100%", aspectRatio: "4 / 5", objectFit: "cover", display: "block" }} />
+                    <img src={orderImage} referrerPolicy="no-referrer" alt="your order" style={{ width: "100%", aspectRatio: "3 / 4", objectFit: "cover", display: "block" }} />
                     <div style={{ position: "absolute", top: 8, left: 8, background: "#0F0E0C", color: "#FF5C00", fontSize: 10, fontWeight: 700, padding: "4px 10px", borderRadius: 20 }}>
                       {tr("orders.detail.qcPics.yourOrderBadge", "Your order")}{selectedOrder.kleur ? ` · ${selectedOrder.kleur}` : ""}
                     </div>

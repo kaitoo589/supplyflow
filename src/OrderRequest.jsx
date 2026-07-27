@@ -258,7 +258,7 @@ export default function OrderRequest({ product, session, onRequireAuth, onClose,
 
             {/* Productafbeelding — morpht vanuit de feed-kaart, wisselt mee met de gekozen optie */}
             {displayImage && (
-              <motion.div layoutId={`pimg-${product.id}`} transition={spring} onClick={() => photos.length && setZoomOpen(true)} style={{ marginBottom: product.description ? 16 : 24, borderRadius: 16, overflow: "hidden", aspectRatio: "4 / 5", background: "#fff", position: "relative", cursor: photos.length ? "zoom-in" : "default" }}>
+              <motion.div layoutId={`pimg-${product.id}`} transition={spring} onClick={() => photos.length && setZoomOpen(true)} style={{ marginBottom: product.description ? 16 : 24, borderRadius: 16, overflow: "hidden", aspectRatio: "3 / 4", background: "#fff", position: "relative", cursor: photos.length ? "zoom-in" : "default" }}>
                 {photos.length > 0 && <div style={{ position: "absolute", bottom: 10, right: 10, zIndex: 2, background: "rgba(0,0,0,0.5)", color: "#fff", fontSize: 10.5, padding: "3px 8px", borderRadius: 8, pointerEvents: "none" }}>{tr("product.tapToZoom","tap to zoom")}</div>}
                 <AnimatePresence mode="popLayout" initial={false}>
                   <motion.img key={displayImage} ref={imgRef} src={displayImage} alt={product.title} decoding="async" fetchPriority="high"

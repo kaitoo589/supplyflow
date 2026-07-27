@@ -1864,15 +1864,15 @@ function EditProfileSheet({ session, onClose }) {
 // het icoon morpht (shared layoutId) z'n plek in de route in. De vos schuift mee
 // omlaag met elke gelande stop. Tik = versnellen; Skip = alles meteen.
 const HIW_STOPS = [
-  { icon: "🏭", key: "factory", title: "Factory price", sub: "what it costs in China", say: "You shop at the real factory price — zero markup." },
+  { icon: "🏭", key: "factory", title: "Factory price", sub: "what it costs in China", say: "Shop authentic Chinese brands — unavailable in Europe. ⭐" },
   { icon: "🛍️", key: "buy", title: "We buy it for you", sub: "no fee when you order", say: "I handle the buying process for you." },
   { icon: "🏬", key: "warehouse", title: "Stored in our warehouse", sub: "30 days free — keep adding", say: "Your items stay safely stored in our warehouse — free for 30 days." },
   { icon: "📸", key: "photos", title: "Real photos first", sub: "see your actual item", say: "Before anything ships, you receive photos and measurements of your actual item." },
   { icon: "📦", key: "parcel", title: "One parcel — taxes paid", sub: "bundling = cheaper per item", say: "Everything ships together in one parcel — taxes and import fees are included." },
-  { icon: "💸", key: "value", title: "Cut out the middleman", sub: "No retail markups.", say: "Enjoy clothes at prices you won't find elsewhere." },
+  { icon: "💸", key: "value", title: "Cut out the middleman", sub: "No retail markups.", say: "Pay local Chinese prices, not European retail markups." },
 ];
 const HIW_INTRO = "Hey, let's explore Flowva together!";
-const HIW_GOLDEN = "Golden rule: bundle it all into one box — cheaper per item, on both the fee and the shipping. 🪙";
+const HIW_GOLDEN = "With Flowva Friends, you share a parcel with friends, reducing shipping costs for everyone.";
 function HowItWorksSheet({ onClose }) {
   // FULLSCREEN vos-tour op de WAZIGE feed (géén witte kaart). De vos + spraakwolk staan
   // ALTIJD gecentreerd bovenaan en bewegen NIET mee; de stappen groeien eronder naar onder.

@@ -226,7 +226,7 @@ export default {
     "tx.title.shipment": "Pakket verzonden",
     "tx.title.refundOf": "Terugbetaling · {name}",
     "tx.reason.returned": "je dit item hebt geretourneerd",
-    "tx.reason.defect": "er bij de controle een gebrek is gevonden",
+    "tx.reason.defect": "er bij de controle een defect is gevonden",
     "tx.reason.cancelled": "de bestelling niet kon worden afgerond",
     "tx.refundBecause": "Terugbetaald omdat {why}.",
     "tx.pcs": "{qty} stuks",

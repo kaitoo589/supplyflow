@@ -45,7 +45,7 @@ const TOUR = {
     "tour.warehouse.sub": "30 dagen gratis opslag",
     "tour.warehouse.say": "Je items liggen veilig in ons magazijn — 30 dagen gratis.",
     "tour.photos.title": "Kwaliteitscontrole-foto's",
-    "tour.photos.sub": "Keur goed vóór verzending — retour mogelijk bij gebreken",
+    "tour.photos.sub": "Keur goed vóór verzending — retour mogelijk bij defecten",
     "tour.photos.say": "Voordat er iets verstuurd wordt, fotograferen én meten we jouw item op.",
     "tour.parcel.title": "Eén pakket — belasting betaald",
     "tour.parcel.sub": "bundelen = goedkoper per stuk",

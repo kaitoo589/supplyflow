@@ -116,7 +116,7 @@ export default function OrderRequest({ product, session, onRequireAuth, onClose,
     if (productVariants) {
       const missing = productVariants.filter(v => !selectedVariants[v.name]).map(v => v.name);
       if (missing.length) { setMissingVariants(missing); return null; }
-      if (comboOos) { setError(tr("product.comboSoldOut","This combination is sold out at the factory — try a different option.")); return null; }
+      if (comboOos) { setError(tr("product.comboSoldOut","This combination is currently unavailable. Please select a different option.")); return null; }
     }
     const variantString = Object.entries(selectedVariants)
       .map(([k, v]) => `${k}: ${v}`)
@@ -356,7 +356,7 @@ export default function OrderRequest({ product, session, onRequireAuth, onClose,
             {comboOos && (
               <motion.div initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }}
                 style={{ marginTop: -10, marginBottom: 20, background: "#FEF2F2", border: "1px solid #FECACA", borderRadius: 10, padding: "9px 12px", fontSize: 12, fontWeight: 600, color: "#DC2626" }}>
-                ✕ {tr("product.comboSoldOut","This combination is sold out at the factory — try a different option.")}
+                ✕ {tr("product.comboSoldOut","This combination is currently unavailable. Please select a different option.")}
               </motion.div>
             )}
 
@@ -487,12 +487,12 @@ export default function OrderRequest({ product, session, onRequireAuth, onClose,
             ) : (
               <motion.button
                 variants={fadeUp}
-                whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.96 }}
-                onClick={handleAddToList}
-                disabled={loading}
-                style={{ width: "100%", background: "#FF5C00", color: "#fff", border: "none", borderRadius: 14, padding: "16px", fontSize: 15, fontWeight: 700, cursor: "pointer" }}
+                whileHover={comboOos ? {} : { scale: 1.02 }} whileTap={comboOos ? {} : { scale: 0.96 }}
+                onClick={comboOos ? undefined : handleAddToList}
+                disabled={loading || comboOos}
+                style={{ width: "100%", background: comboOos ? "#DC2626" : "#FF5C00", color: "#fff", border: "none", borderRadius: 14, padding: "16px", fontSize: 15, fontWeight: 700, cursor: comboOos ? "not-allowed" : "pointer", opacity: comboOos ? 0.85 : 1 }}
               >
-                {tr("product.addToCart","+ Add to cart{count}",{ count: listCount > 0 ? ` (${listCount})` : "" })}
+                {comboOos ? tr("product.soldOut","Sold out") : tr("product.addToCart","+ Add to cart{count}",{ count: listCount > 0 ? ` (${listCount})` : "" })}
               </motion.button>
             ))}
             <motion.button variants={fadeUp} whileTap={{ scale: 0.95 }}

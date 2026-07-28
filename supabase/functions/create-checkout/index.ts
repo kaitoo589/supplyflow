@@ -46,11 +46,7 @@ Deno.serve(async (req) => {
     }
 
     const session = await stripe.checkout.sessions.create({
-      // Automatische methode-selectie: Stripe toont per land de juiste betaalmethodes,
-      // te beheren (aan/uit) in het Stripe-dashboard. Zet daar de lokale PUSH-methodes
-      // aan — iDEAL/Wero (NL), Bancontact (BE), EPS (AT), Przelewy24 (PL) — die GEEN
-      // chargebacks kennen, plus kaart als universeel vangnet (met 3D-Secure).
-      automatic_payment_methods: { enabled: true },
+      payment_method_types: ["card", "ideal"],
       mode: "payment",
       customer_email: user.email,
       line_items: [
@@ -66,8 +62,8 @@ Deno.serve(async (req) => {
           quantity: 1,
         },
       ],
-      success_url: `${Deno.env.get("APP_URL")}/payment-success?session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${Deno.env.get("APP_URL")}/`,
+      success_url: `https://flowva.app/payment-success?session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `https://flowva.app/`,
       // userId komt SERVER-SIDE uit de geverifieerde sessie, niet uit de body.
       metadata: {
         userId: user.id,
@@ -77,7 +73,10 @@ Deno.serve(async (req) => {
 
     return json({ url: session.url });
   } catch (err) {
-    console.error("Stripe error:", err);
-    return json({ error: (err as Error).message }, 500);
+    const e = err as any;
+    const code = e?.code || e?.type || "unknown";
+    const msg = e?.message || String(err);
+    console.error("Stripe error:", JSON.stringify({ code, type: e?.type, statusCode: e?.statusCode, message: msg }));
+    return json({ error: `Stripe ${code}: ${msg}` }, 500);
   }
 });

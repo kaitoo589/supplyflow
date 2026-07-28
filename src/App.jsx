@@ -216,6 +216,7 @@ export default function App() {
 
   // Payment success pagina
   if (window.location.pathname === "/payment-success") {
+    if (loading) return bootOverlay;
     if (!session) return <Auth />;
     return <PaymentSuccess session={session} />;
   }

@@ -8,7 +8,7 @@
 // Waarom gedeeld: die drie schermen rekenden allemaal hun eigen "je komt €X
 // tekort" uit maar boden geen uitweg; nu gebruiken ze dezelfde rekenregel én
 // dezelfde redirect, zodat het bedrag overal op dezelfde manier klopt.
-import { supabase } from "./supabase";
+import { invokeAsUser, functionErrorMessage } from "./supabase";
 
 // create-checkout (edge function) weigert alles onder €5 — harde ondergrens.
 export const TOPUP_MIN = 5;
@@ -57,8 +57,10 @@ export async function startTopUp(amountEur, returnTo) {
   if (returnTo) rememberReturn(returnTo);
   // Alleen het bedrag: create-checkout haalt de gebruiker uit de sessie-JWT en
   // negeert bewust alles wat de client over identiteit meestuurt (audit #11).
-  const { data, error } = await supabase.functions.invoke("create-checkout", { body: { amount: cents } });
-  if (error) throw error;
+  // invokeAsUser ververst een (bijna) verlopen sessie eerst — anders krijg je
+  // "Not authenticated" terwijl de app nog gewoon je saldo laat zien.
+  const { data, error } = await invokeAsUser("create-checkout", { amount: cents });
+  if (error) throw new Error(await functionErrorMessage(error));
   if (!data?.url) throw new Error(data?.error || "Could not start the payment");
   window.location.href = data.url;
 }

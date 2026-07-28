@@ -6,7 +6,7 @@ import { useState, useEffect, useRef, useLayoutEffect, useMemo } from "react";
 let _cartPayToken = null;
 const cartPayToken = () => (_cartPayToken ||= (globalThis.crypto?.randomUUID?.() || `cp-${Date.now()}-${Math.random().toString(36).slice(2)}`));
 const rotateCartPayToken = () => { _cartPayToken = null; };
-import { supabase } from "./supabase";
+import { supabase, invokeAsUser, functionErrorMessage } from "./supabase";
 import { EU_COUNTRIES, normalizeCountry, EU_PROVINCES, isValidPostcode, POSTCODE_EXAMPLE } from "./countries";
 import OrderRequest from "./OrderRequest";
 import Friends from "./Friends";
@@ -3608,24 +3608,14 @@ export default function SupplyFlow({ session, factoriesVisible = true }) {
     if (!topupAmount || parseFloat(topupAmount) < 5) { alert("Minimum top-up is €5"); return; }
     setLoadingBalance(true);
     try {
-      const { data, error } = await supabase.functions.invoke("create-checkout", {
-        body: { amount: Math.round(parseFloat(topupAmount) * 100), userId: session.user.id, email: session.user.email },
+      // invokeAsUser ververst een (bijna) verlopen sessie eerst en stuurt de JWT
+      // expliciet mee — anders krijg je "Not authenticated" terwijl de app nog
+      // gewoon je saldo toont (iOS bevriest de auto-refresh op de achtergrond).
+      const { data, error } = await invokeAsUser("create-checkout", {
+        amount: Math.round(parseFloat(topupAmount) * 100),
       });
-      // Bij een non-2xx zit de échte reden in de response-body van de function (bv. Stripe-fout),
-      // niet in `error.message` — die is dan alleen "Edge Function returned a non-2xx status code".
-      // Zonder deze extract zie je in de alert nooit wat er werkelijk misging.
-      if (error) {
-        // Supabase-js: bij een non-2xx is `error.context` de Response zelf (NIET
-        // `error.context.response`). Zonder deze uitlees valt de klant altijd terug
-        // op de generieke "Edge Function returned a non-2xx status code".
-        let detail = null;
-        const resp = error?.context;
-        if (resp && typeof resp.clone === "function") {
-          try { detail = await resp.clone().json(); } catch { /* geen JSON */ }
-          if (!detail) { try { detail = { error: await resp.clone().text() }; } catch { /* niks */ } }
-        }
-        throw new Error(detail?.error || error.message || "Unknown error");
-      }
+      if (error) throw new Error(await functionErrorMessage(error));
+      if (!data?.url) throw new Error(data?.error || "Could not start the payment");
       window.location.href = data.url;
     } catch (err) { alert("Something went wrong: " + err.message); }
     setLoadingBalance(false);

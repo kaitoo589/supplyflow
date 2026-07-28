@@ -3611,7 +3611,15 @@ export default function SupplyFlow({ session, factoriesVisible = true }) {
       const { data, error } = await supabase.functions.invoke("create-checkout", {
         body: { amount: Math.round(parseFloat(topupAmount) * 100), userId: session.user.id, email: session.user.email },
       });
-      if (error) throw error;
+      // Bij een non-2xx zit de échte reden in de response-body van de function (bv. Stripe-fout),
+      // niet in `error.message` — die is dan alleen "Edge Function returned a non-2xx status code".
+      // Zonder deze extract zie je in de alert nooit wat er werkelijk misging.
+      if (error) {
+        let detail = null;
+        try { detail = await error.context?.response?.clone().json(); } catch { /* geen JSON */ }
+        if (!detail) { try { detail = { error: await error.context?.response?.clone().text() }; } catch { /* niks */ } }
+        throw new Error(detail?.error || error.message || "Unknown error");
+      }
       window.location.href = data.url;
     } catch (err) { alert("Something went wrong: " + err.message); }
     setLoadingBalance(false);

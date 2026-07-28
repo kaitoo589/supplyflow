@@ -2244,7 +2244,7 @@ function DiamondSheet({ onClose, arriving = false }) {
 // zelfde bottom-sheet als HowItWorksSheet. Solo + Flowva Friends + per-regel
 // een labeltje wie het geld krijgt. `arriving` = de boogvlucht is onderweg →
 // het eigen 💸-icoon blijft verborgen tot de vlucht landt (en popt dan binnen).
-function PricingSheet({ onClose, arriving = false }) {
+function PricingSheet({ onClose, arriving = false, onTour }) {
   const chip = (orange) => ({ display: "inline-block", background: orange ? "#FFF0E7" : "#F1EFED", color: orange ? "#B8430A" : "#6E6B66", fontSize: 10, fontWeight: 700, padding: "2px 7px", borderRadius: 999, marginRight: 6 });
   const Row = ({ icon, name, who, amount, desc, whoOrange, extra }) => (
     <div style={{ padding: "9px 0", borderTop: "1px solid #F1EFEA" }}>
@@ -2296,15 +2296,28 @@ function PricingSheet({ onClose, arriving = false }) {
           </div>
         </div>
         <div style={{ fontSize: 13, lineHeight: 1.6, color: "#46443F", margin: "12px 4px 14px" }}>
-          {tr("pricing.intro", "Each line below shows exactly who gets paid. The original factory link is visible on every product, for full transparency.")}
+          {tr("pricing.intro", "Each line below shows exactly who gets paid. The original product link is visible on every product, for full transparency.")}
         </div>
+
+        {/* Liever kijken dan lezen: de vos loopt de hele prijsopbouw in 6 tikken door */}
+        {onTour && (
+          <motion.button whileTap={{ scale: 0.98 }} onClick={onTour}
+            style={{ width: "100%", display: "flex", alignItems: "center", gap: 11, background: "#111", color: "#fff", border: "none", borderRadius: 14, padding: "13px 15px", marginBottom: 12, cursor: "pointer", textAlign: "left", WebkitTapHighlightColor: "transparent" }}>
+            <span style={{ width: 30, height: 30, borderRadius: "50%", background: "#FF5C00", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, flexShrink: 0 }}>▶</span>
+            <span style={{ flex: 1, minWidth: 0 }}>
+              <span style={{ display: "block", fontSize: 13.5, fontWeight: 800 }}>{tr("ptour.cta", "Show me instead of telling me")}</span>
+              <span style={{ display: "block", fontSize: 11.5, color: "rgba(255,255,255,0.6)" }}>{tr("ptour.ctaSub", "The whole price, explained in 6 taps")}</span>
+            </span>
+            <Fox />
+          </motion.button>
+        )}
 
         <div style={card}>
           <div style={sectionLabel}>{tr("pricing.perProduct", "PER PRODUCT")}</div>
-          <Row icon="🏭" name={tr("pricing.factoryPrice.name", "Factory price")} who={tr("pricing.who.factory", "to the factory")} amount={tr("pricing.factoryPrice.amount", "shown + link")} desc={tr("pricing.factoryPrice.desc", "The real price the factory charges — visible with its original link.")} />
+          <Row icon="🏷️" name={tr("pricing.factoryPrice.name", "Brand price")} who={tr("pricing.who.factory", "to the brand")} amount={tr("pricing.factoryPrice.amount", "shown + link")} desc={tr("pricing.factoryPrice.desc", "The real price the brand charges — visible with its original product link.")} />
           <Row icon="📸" name={tr("pricing.qc.name", "Quality-control")} who={tr("pricing.who.agent", "to our shipping agent")} amount="¥2 · ≈€0.26" desc={tr("pricing.qc.desc", "Our shipping agent photographs every item before it ships — and takes extra photos if anything looks off.")} />
           <Row icon="📐" name={tr("pricing.measure.name", "Measurement Service")} who={tr("pricing.who.agent", "to our shipping agent")} amount="¥4 · ≈€0.51" desc={tr("pricing.measure.desc", "Our shipping agent measures the key dimensions of your item to confirm the size matches the listing. Small tolerances apply (about ±3 cm on garments).")} />
-          <Row icon="🚚" name={tr("pricing.domestic.name", "China domestic shipping fee")} who={tr("pricing.who.domestic", "to the domestic carrier")} amount="¥5 · ≈€0.64" desc={tr("pricing.domestic.desc", "Transport from the factory to the consolidation warehouse in China.")} />
+          <Row icon="🚚" name={tr("pricing.domestic.name", "China domestic shipping fee")} who={tr("pricing.who.domestic", "to the domestic carrier")} amount="¥5 · ≈€0.64" desc={tr("pricing.domestic.desc", "Transport from the brand to the consolidation warehouse in China.")} />
         </div>
 
         <div style={card}>
@@ -2320,9 +2333,9 @@ function PricingSheet({ onClose, arriving = false }) {
           <Row icon="✈️" name={tr("pricing.intlShip.name", "International shipping")} who={tr("pricing.who.carrier", "to the carrier & customs")} amount={tr("pricing.intlShip.amount", "by weight")}
             desc={renderBold(tr("pricing.intlShip.desc", "China → your door, priced by weight. **Tax-inclusive.** A **€3 customs cost per product category** is also settled inside this shipping price."))} />
           <Row icon="💱" name={tr("pricing.currency.name", "Currency conversion")} who={tr("pricing.who.alipay", "to Alipay")} amount={tr("pricing.currency.amount", "3% · at cost")}
-            desc={renderBold(tr("pricing.currency.desc", "We pay the factory and our agent in Chinese yuan (¥), converted from euros through **Alipay**, which charges a **3% conversion fee**. We pass this on **at cost** — calculated over everything that's converted to yuan (product, agent & shipping costs), never on VAT or the Flowva fee."))} />
+            desc={renderBold(tr("pricing.currency.desc", "We pay the brand and our agent in Chinese yuan (¥), converted from euros through **Alipay**, which charges a **3% conversion fee**. We pass this on **at cost** — calculated over everything that's converted to yuan (product, agent & shipping costs), never on VAT or the Flowva fee."))} />
           <Row icon="🧾" name={tr("pricing.fee.name", "Flowva fee")} who={tr("pricing.who.flowva", "Flowva's fee")} whoOrange amount="4–8% · min €3.50–€5"
-            desc={renderBold(tr("pricing.fee.desc", "Our only earning, calculated **only on the factory price** — never on the agent or shipping costs. Charged once when you ship your bundle."))} />
+            desc={renderBold(tr("pricing.fee.desc", "Our only earning, calculated over the **brand price + the estimated international shipping** — never on VAT, fulfillment or agent costs. Charged once when you ship your bundle."))} />
         </div>
 
         <div style={card}>
@@ -2331,7 +2344,7 @@ function PricingSheet({ onClose, arriving = false }) {
             <div style={{ fontSize: 15.5, fontWeight: 800, color: "#111" }}>{tr("pricing.solo.title", "Solo shopping")}</div>
           </div>
           <div style={{ fontSize: 13, lineHeight: 1.6, color: "#46443F" }}>
-            {renderBold(tr("pricing.solo.body", "You shop on your own and pay just the factory price. The fees are only paid **when you assemble your parcel to ship**. Your Flowva fee is **8% of the factory price, min €5**."))}
+            {renderBold(tr("pricing.solo.body", "You shop on your own and pay just the brand price. The fees are only paid **when you assemble your parcel to ship**. Your Flowva fee is **8% of the brand price + the estimated international shipping, min €5**."))}
           </div>
           <div style={{ display: "flex", gap: 8, marginTop: 11, alignItems: "flex-start" }}>
             <span style={{ fontSize: 14, marginTop: 1 }}>ℹ️</span>
@@ -2375,7 +2388,7 @@ function PricingSheet({ onClose, arriving = false }) {
 
         <div style={{ display: "flex", gap: 9, alignItems: "flex-start", padding: "0 4px 4px" }}>
           <span style={{ fontSize: 15, marginTop: 1 }}>🔗</span>
-          <div style={{ fontSize: 11.5, lineHeight: 1.55, color: "#8A8780" }}>{tr("pricing.footer", "On every product you'll find the original factory link — check the factory price yourself, anytime. That's our promise of transparency.")}</div>
+          <div style={{ fontSize: 11.5, lineHeight: 1.55, color: "#8A8780" }}>{tr("pricing.footer", "On every product you'll find the original product link — check the brand price yourself, anytime. That's our promise of transparency.")}</div>
         </div>
 
         <motion.button whileTap={{ scale: 0.97 }} onClick={onClose}
@@ -2384,6 +2397,252 @@ function PricingSheet({ onClose, arriving = false }) {
         </motion.button>
       </motion.div>
     </>
+  );
+}
+
+// ── "How pricing works" als VOS-TOUR ─────────────────────────────────────────
+// Niemand leest een lap tekst; deze tour vertelt hetzelfde verhaal in 6 tikken.
+// Zelfde choreografie als HowItWorksSheet (vos + wolk + stappen die naar onder
+// groeien), met één verschil: elke GELANDE stap toont ook z'n bedrag, waardoor
+// het onderin voelt als een bonnetje dat zich opbouwt. Finale = de Friends-ladder.
+// titleKey/amountKey hergebruiken bestaande, al vertaalde pricing-teksten.
+// 6 kosten worden één voor één "onthuld" en blijven zichtbaar in het bonnetje.
+// Finale (S8) = de Flowva fee-regel wordt toegevoegd + Friends-staffel.
+const PT_STOPS = [
+  { key: "brand", icon: "🏷️", titleKey: "pricing.factoryPrice.name", title: "Brand price", amountKey: "pricing.factoryPrice.amount", amount: "shown + link",
+    say: "You pay the original price charged by the brand in China — with the original product link included." },
+  { key: "qcMeas", icon: "📷", title: "Quality control & measurements", amount: "¥6 · ≈€0.77",
+    say: "Quality control costs ¥2 and measurements cost ¥4 — ¥6 total (about €0.77) per product." },
+  { key: "domestic", icon: "🚚", title: "China domestic shipping", amount: "¥5 · ≈€0.64",
+    say: "Shipping from the brand to our warehouse in China costs ¥5 (about €0.64) per product." },
+  { key: "fulfillment", icon: "📦", title: "Fulfillment", amount: "¥9.90 · ≈€1.27",
+    // 'per parcel' krijgt bold + oranje in bubble EN in het bonnetje-label.
+    highlight: "per parcel", perParcelAmount: true,
+    // Kleine extra regels onder de compacte regel in het bonnetje (niet in de bubble).
+    extras: [
+      "More than 5 items: +¥2 (≈€0.26) per additional item",
+      "Over 2 kg: +¥1.50 (≈€0.19) per additional kg",
+    ],
+    extraKeys: ["ptour.fulfillment.extra1", "ptour.fulfillment.extra2"],
+    say: "Fulfillment costs ¥9.90 (about €1.27) per parcel, not per product. Parcels with more than 5 items or weighing over 2 kg may include a small additional fulfillment fee." },
+  { key: "intl", icon: "✈️", titleKey: "pricing.intlShip.name", title: "International shipping", amountKey: "pricing.intlShip.amount", amount: "by weight",
+    say: "International shipping is calculated by weight and shipped DDP. All customs duties and import taxes are included, so you pay nothing extra on delivery." },
+  { key: "currency", icon: "💱", titleKey: "pricing.currency.name", title: "Currency conversion", amountKey: "ptour.currency.amount", amount: "3% · no markup",
+    say: "Alipay charges 3% to convert euros into Chinese yuan. You pay exactly that 3%, with no added markup." },
+];
+const PT_INTRO = "See exactly what you pay for — with every cost explained.";
+const PT_GOLDEN = "With Flowva Friends, your Flowva fee gets lower with every friend who joins your parcel.";
+// Zelfde staffel als de detail-sheet, compact voor de finale-ladder.
+const PT_TIERS = [["solo", "8%", null], ["2", "7%", 12], ["3", "6%", 25], ["4", "5.5%", 31], ["5", "5%", 37], ["6", "4.5%", 43], ["7", "4%", 50]];
+
+// Bubbelstijl: word-by-word reveal met optionele bold+oranje highlight-frase (bv. "per parcel").
+// Deze component vervangt WordReveal alléén voor stops die een highlight-frase hebben; zo blijft
+// de rest van de tour exact dezelfde animatie behouden.
+function BubbleWithHighlight({ text, highlight, delay = 0.26, stagger = 0.06 }) {
+  const words = String(text || "").split(/\s+/);
+  const hl = String(highlight || "").trim().toLowerCase().split(/\s+/).filter(Boolean);
+  const flagged = new Set();
+  if (hl.length) {
+    const norm = (w) => w.replace(/[.,;:!?—()"'`]/g, "").toLowerCase();
+    for (let i = 0; i <= words.length - hl.length; i++) {
+      let ok = true;
+      for (let j = 0; j < hl.length; j++) { if (norm(words[i + j]) !== hl[j]) { ok = false; break; } }
+      if (ok) for (let j = 0; j < hl.length; j++) flagged.add(i + j);
+    }
+  }
+  return words.map((w, i) => (
+    <motion.span key={i} initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: delay + i * stagger, duration: 0.28 }}
+      style={{ display: "inline-block", ...(flagged.has(i) ? { color: "#FF8A3D", fontWeight: 800 } : null) }}>
+      {w}{i < words.length - 1 ? " " : ""}
+    </motion.span>
+  ));
+}
+
+// Amount voor de compacte bonnetje-regel: bij fulfillment tonen we óók "per parcel"
+// bold+oranje (in álle talen — de vertaalde frase komt uit ptour.fulfillment.perParcel).
+function AmountLabel({ stop, amountText, perParcelText }) {
+  if (!stop.perParcelAmount) return <>{amountText}</>;
+  return (
+    <>
+      {amountText} <span style={{ color: "#FF8A3D", fontWeight: 800 }}>{perParcelText}</span>
+    </>
+  );
+}
+
+function PricingTourSheet({ onClose, onDetails }) {
+  const tr = useTr();
+  const [beat, setBeat] = useState(0);          // 0 = vos dead-center · 1 = wolk zichtbaar
+  const [step, setStep] = useState(-1);         // -1 intro · 0..PT_STOPS.length-1 actieve stap · PT_STOPS.length klaar
+  useBodyScrollLock(true);
+  const done = step >= PT_STOPS.length;
+  const foxSide = (step >= 0 || done) ? "right" : "left";
+  const activeStop = step >= 0 && !done ? PT_STOPS[step] : null;
+  const bubbleText = done ? tr("ptour.golden", PT_GOLDEN)
+    : activeStop ? tr("ptour." + activeStop.key + ".say", activeStop.say)
+    : tr("ptour.greeting", PT_INTRO);
+  const bubbleHighlight = activeStop && activeStop.highlight
+    ? tr("ptour." + activeStop.key + ".highlight", activeStop.highlight)
+    : null;
+  const awaitingTap = !done && (step === -1 ? beat >= 1 : true);
+  const activeCount = done ? PT_STOPS.length : step + 1;
+  const stopTitle = (s) => (s.titleKey ? tr(s.titleKey, s.title) : tr("ptour." + s.key + ".title", s.title));
+  const stopAmount = (s) => (s.amountKey ? tr(s.amountKey, s.amount) : s.amount);
+  const perParcelWord = tr("ptour.fulfillment.perParcel", "per parcel");
+
+  useEffect(() => {
+    if (step !== -1) return;
+    const t = setTimeout(() => setBeat(1), 620);
+    return () => clearTimeout(t);
+  }, [step]);
+
+  const advance = () => {
+    if (done) return;
+    if (step === -1) { setBeat(1); setStep(0); return; }
+    setStep((s) => s + 1);
+  };
+  const skipAll = () => setStep(PT_STOPS.length);
+  const morph = { type: "spring", stiffness: 260, damping: 26 };
+
+  return (
+    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={advance}
+      style={{ position: "fixed", inset: 0, zIndex: 320, background: "rgba(0,0,0,0.55)", backdropFilter: "blur(9px)", WebkitBackdropFilter: "blur(9px)", display: "flex", flexDirection: "column", alignItems: "center", overflowY: "auto", overscrollBehavior: "contain", padding: "0 22px 40px", cursor: done ? "default" : "pointer" }}>
+
+      <div style={{ position: "sticky", top: 0, alignSelf: "stretch", display: "flex", justifyContent: "flex-start", alignItems: "center", padding: "15px 2px 8px", zIndex: 5, background: "linear-gradient(rgba(15,14,12,0.5), rgba(15,14,12,0))" }}>
+        {!done && (
+          <button onClick={(e) => { e.stopPropagation(); skipAll(); }}
+            style={{ background: "none", border: "none", color: "rgba(255,255,255,0.6)", fontSize: 13, fontWeight: 700, cursor: "pointer", pointerEvents: "auto" }}>{tr("tour.skip", "Skip")}</button>
+        )}
+      </div>
+
+      {/* VOS dead-center (beat 0) — eigen fixed laag zodat de morph viewport-relatief blijft */}
+      {step === -1 && beat === 0 && (
+        <div style={{ position: "fixed", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", pointerEvents: "none" }}>
+          <motion.span layoutId="ptour-fox" transition={{ layout: morph }}
+            style={{ fontSize: 58, lineHeight: 1, display: "inline-block", filter: "drop-shadow(0 12px 30px rgba(0,0,0,0.5))" }}><Fox /></motion.span>
+        </div>
+      )}
+
+      <div style={{ width: "100%", maxWidth: 360, marginTop: "min(15vh, 118px)", paddingBottom: 56, display: "flex", flexDirection: "column", alignItems: "center" }}>
+
+        {/* WOLK + VOS */}
+        {(beat >= 1 || step >= 0) && (
+          <div style={{ position: "relative", maxWidth: 300, marginBottom: 30 }}>
+            <motion.div layout transition={{ layout: morph }}
+              style={{ background: "#1E1D1A", color: "#fff", borderRadius: 18, padding: "13px 17px", boxShadow: "0 12px 36px rgba(0,0,0,0.45)" }}>
+              <span style={{ fontSize: 14.5, lineHeight: 1.55, fontWeight: 600, textAlign: "center", display: "block" }}>
+                {bubbleHighlight
+                  ? <BubbleWithHighlight key={bubbleText} text={bubbleText} highlight={bubbleHighlight} />
+                  : <WordReveal key={bubbleText} text={bubbleText} delay={0.26} stagger={0.06} />}
+              </span>
+            </motion.div>
+            <motion.div aria-hidden animate={{ opacity: foxSide === "left" ? 1 : 0 }} transition={{ duration: 0.22 }}
+              style={{ position: "absolute", left: -8, bottom: 13, width: 0, height: 0, borderTop: "8px solid transparent", borderBottom: "8px solid transparent", borderRight: "9px solid #1E1D1A" }} />
+            <motion.div aria-hidden animate={{ opacity: foxSide === "right" ? 1 : 0 }} transition={{ duration: 0.22 }}
+              style={{ position: "absolute", right: -8, bottom: 13, width: 0, height: 0, borderTop: "8px solid transparent", borderBottom: "8px solid transparent", borderLeft: "9px solid #1E1D1A" }} />
+            <motion.span layoutId="ptour-fox" transition={{ layout: morph }}
+              style={{ position: "absolute", bottom: -2, [foxSide]: -38, fontSize: 34, lineHeight: 1, display: "inline-block" }}><Fox /></motion.span>
+          </div>
+        )}
+
+        {/* STAPPEN = het bonnetje dat zich opbouwt (gelande stap toont z'n bedrag) */}
+        {step >= 0 && PT_STOPS.slice(0, activeCount).map((stop, i) => {
+          const big = !done && i === step;
+          const showExtras = !big && stop.extras && stop.extras.length;
+          return (
+            <motion.div key={stop.key} layout initial={{ opacity: 0 }} animate={{ opacity: 1 }}
+              transition={{ layout: morph, opacity: { duration: 0.3 } }}
+              style={{ display: "flex", flexDirection: "column", width: "100%", minHeight: big ? 92 : 0, padding: big ? "6px 0" : "9px 6px" }}>
+              <div style={{ display: "flex", flexDirection: big ? "column" : "row", alignItems: "center", justifyContent: big ? "center" : "flex-start", gap: big ? 0 : 14, width: "100%" }}>
+                <motion.span layout transition={{ layout: morph }}
+                  style={{ fontSize: 22, lineHeight: 1, display: "inline-block", flexShrink: 0 }}>
+                  <motion.span
+                    animate={{ scale: big ? 2.15 : 1, rotate: big ? [0, -24, 16, -8, 0] : 0 }}
+                    transition={{ scale: morph, rotate: big ? { duration: 0.72, ease: [0.32, 0.72, 0, 1] } : { duration: 0.3 } }}
+                    style={{ display: "inline-block", transformOrigin: "center", filter: big ? "drop-shadow(0 10px 26px rgba(255,92,0,0.4))" : "none" }}>
+                    {stop.icon}
+                  </motion.span>
+                </motion.span>
+                {!big && (
+                  <motion.div initial={{ opacity: 0, x: -8 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.12, ...springSoft }}
+                    style={{ minWidth: 0, flex: 1, display: "flex", alignItems: "center", gap: 10 }}>
+                    <div style={{ minWidth: 0, flex: 1, textAlign: "left", fontSize: 14.5, fontWeight: 700, color: "#fff" }}>{stopTitle(stop)}</div>
+                    <div style={{ flexShrink: 0, fontSize: 12, fontWeight: 800, color: "#FF9A5C", whiteSpace: "nowrap" }}>
+                      <AmountLabel stop={stop} amountText={stopAmount(stop)} perParcelText={perParcelWord} />
+                    </div>
+                  </motion.div>
+                )}
+              </div>
+              {showExtras && (
+                <motion.div initial={{ opacity: 0, y: -3 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.25, ...springSoft }}
+                  style={{ marginLeft: 36, marginTop: 4, fontSize: 11, lineHeight: 1.5, color: "rgba(255,255,255,0.55)" }}>
+                  {stop.extras.map((line, ix) => (
+                    <div key={ix}>+ {stop.extraKeys ? tr(stop.extraKeys[ix], line) : line}</div>
+                  ))}
+                </motion.div>
+              )}
+            </motion.div>
+          );
+        })}
+
+        {/* FINALE: Flowva fee komt als laatste regel in het bonnetje + Friends-staffel telt naar beneden */}
+        <AnimatePresence>
+          {done && (
+            <motion.div key="ptour-done" initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2, ...springSoft }}
+              style={{ width: "100%", marginTop: 4 }}>
+              {/* Flowva fee — verschijnt eerst, als afsluitende regel van het bonnetje */}
+              <motion.div initial={{ opacity: 0, x: -8 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.15, ...springSoft }}
+                style={{ display: "flex", flexDirection: "column", width: "100%", padding: "9px 6px 14px" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 14, width: "100%" }}>
+                  <span style={{ fontSize: 22, lineHeight: 1, display: "inline-block", flexShrink: 0 }}>🧾</span>
+                  <div style={{ minWidth: 0, flex: 1, display: "flex", alignItems: "center", gap: 10 }}>
+                    <div style={{ minWidth: 0, flex: 1, textAlign: "left", fontSize: 14.5, fontWeight: 700, color: "#fff" }}>{tr("pricing.fee.name", "Flowva fee")}</div>
+                    <div style={{ flexShrink: 0, fontSize: 12, fontWeight: 800, color: "#FF9A5C", whiteSpace: "nowrap" }}>4–8% · min €3.50–€5</div>
+                  </div>
+                </div>
+                {/* waarover de fee gerekend wordt — zelfde grondslag als in het betaalscherm */}
+                <div style={{ marginLeft: 36, marginTop: 4, fontSize: 11, lineHeight: 1.5, color: "rgba(255,255,255,0.55)" }}>
+                  {tr("ptour.fee.base", "over the brand price + the estimated international shipping")}
+                </div>
+              </motion.div>
+              <div style={{ background: "rgba(255,92,0,0.12)", border: "1px solid rgba(255,146,79,0.35)", borderRadius: 16, padding: "14px 15px 12px", marginBottom: 12 }}>
+                <div style={{ fontSize: 13, fontWeight: 800, color: "#FF8A3D", marginBottom: 9 }}>{tr("ptour.friends.dropdownTitle", "Save up to 50% on your fee with Flowva Friends")}</div>
+                {PT_TIERS.map(([n, fee, save], i) => {
+                  const best = i === PT_TIERS.length - 1;
+                  const label = n === "solo" ? tr("pricing.tier.solo", "Solo · 1 person") : `${n} ${tr("pricing.tier.people", "people")}`;
+                  return (
+                    <motion.div key={n} initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: 0.55 + i * 0.13, ...springSoft }}
+                      style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, fontSize: 12.5, padding: best ? "8px 10px" : "5px 2px", marginTop: best ? 6 : 0, borderRadius: best ? 10 : 0, background: best ? "#FF5C00" : "transparent", color: best ? "#fff" : "rgba(255,255,255,0.75)" }}>
+                      <span style={{ fontWeight: best ? 800 : 500 }}>{label}</span>
+                      <div style={{ display: "flex", alignItems: "center", gap: 7, flexShrink: 0 }}>
+                        {save && <span style={{ fontSize: 10, fontWeight: 800, padding: "2px 7px", borderRadius: 999, background: best ? "#fff" : "rgba(23,138,70,0.25)", color: best ? "#FF5C00" : "#7BE0A6", whiteSpace: "nowrap" }}>{save}% {tr("pricing.tier.off", "off")}</span>}
+                        <span style={{ fontWeight: 800, whiteSpace: "nowrap" }}>{fee}</span>
+                      </div>
+                    </motion.div>
+                  );
+                })}
+              </div>
+              <motion.button whileTap={{ scale: 0.97 }} onClick={(e) => { e.stopPropagation(); onDetails(); }}
+                style={{ width: "100%", marginBottom: 9, background: "rgba(255,255,255,0.1)", color: "#fff", border: "1px solid rgba(255,255,255,0.22)", borderRadius: 13, padding: "13px", fontSize: 14, fontWeight: 700, cursor: "pointer", WebkitTapHighlightColor: "transparent" }}>
+                {tr("ptour.details", "See the full breakdown")}
+              </motion.button>
+              <motion.button whileTap={{ scale: 0.97 }} onClick={(e) => { e.stopPropagation(); onClose(); }}
+                style={{ width: "100%", background: "#FF5C00", color: "#fff", border: "none", borderRadius: 13, padding: "15px", fontSize: 15, fontWeight: 700, cursor: "pointer", WebkitTapHighlightColor: "transparent" }}>
+                {tr("sheets.gotIt", "Got it")} <Fox />
+              </motion.button>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
+
+      {awaitingTap && (
+        <motion.div animate={{ opacity: [0.3, 0.85, 0.3] }} transition={{ duration: 1.6, repeat: Infinity, ease: "easeInOut" }}
+          style={{ position: "fixed", bottom: 26, left: 0, right: 0, textAlign: "center", fontSize: 12.5, fontWeight: 700, color: "rgba(255,255,255,0.6)", pointerEvents: "none" }}>
+          {tr("tour.tap", "tap to continue")}
+        </motion.div>
+      )}
+    </motion.div>
   );
 }
 
@@ -2520,7 +2779,12 @@ export default function SupplyFlow({ session, factoriesVisible = true }) {
   const [showEditProfile, setShowEditProfile] = useState(false);
   const [showHowItWorks, setShowHowItWorks] = useState(false);
   const [showPricing, setShowPricing] = useState(false);
+  const [showPricingTour, setShowPricingTour] = useState(false);
   const [showDiamond, setShowDiamond] = useState(false);
+  // 💸 opent ALTIJD de vos-tour. De lap tekst (PricingSheet) komt er pas bij als je
+  // in de tour op "See the full breakdown" tikt — dán schuift die van onderen omhoog.
+  const closePricingTour = () => setShowPricingTour(false);
+  const openBreakdown = () => { setShowPricingTour(false); setShowPricing(true); };
   // Boogvlucht van een feed-knop naar het icoon op z'n sheet (💸 pricing / 💎 diamond).
   // pending=true tot het doel gemeten is (sheet mount eerst, transform-gecorrigeerd).
   const [arcFlight, setArcFlight] = useState(null);   // { kind, emoji, sx, sy, tx, ty, pending }
@@ -3103,7 +3367,7 @@ export default function SupplyFlow({ session, factoriesVisible = true }) {
     blocked: !!(selectedProduct || showRequestList || showFriends || showVable || hypeProduct || showNotifs || authOpen || morph || selectedOrder),
     // Voor de bottom-pull: alléén échte fixed-overlays blokkeren (order-detail is gewone
     // scrollende content en mág rekken → niet in deze lijst).
-    overlay: !!(selectedProduct || showRequestList || showFriends || showVable || hypeProduct || showNotifs || authOpen || morph || previewProduct || actionProduct || reviewProduct || orderSuccess || successProduct || showEditProfile || showHowItWorks || showPricing || showDiamond || squadWheel || showClothesPicker),
+    overlay: !!(selectedProduct || showRequestList || showFriends || showVable || hypeProduct || showNotifs || authOpen || morph || previewProduct || actionProduct || reviewProduct || orderSuccess || successProduct || showEditProfile || showHowItWorks || showPricing || showPricingTour || showDiamond || squadWheel || showClothesPicker),
   };
   useEffect(() => {
     const onStart = (e) => {
@@ -3882,7 +4146,9 @@ export default function SupplyFlow({ session, factoriesVisible = true }) {
           <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 10 }}>
             <div style={{ fontSize: 30, fontWeight: 800, letterSpacing: -0.6, color: "#111111", marginBottom: 2 }}>{showFavoritesOnly ? tr("feed.title.favorites", "Favorites") : selectedFactory ? selectedFactory.name : tab === "brands" ? <>{tr("feed.title.brandFeed.word1", "Brand")} <span style={{ color: "#FF5C00" }}>{tr("feed.title.brandFeed.word2", "Feed")}</span></> : <>{tr("feed.title.factoryFeed.word1", "Factory")} <span style={{ color: "#FF5C00" }}>{tr("feed.title.factoryFeed.word2", "Feed")}</span></>}</div>
             <div style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
-              <motion.button data-money-btn whileTap={{ scaleX: 1.15, scaleY: 0.85 }} transition={springSnappy} onClick={() => openSheetWithArc("pricing")} aria-label={tr("feed.aria.pricingButton", "How pricing works")}
+              {/* 💸 opent ALTIJD de vos-tour; de volledige tekst-sheet komt pas via
+                  "See the full breakdown" in de tour (geen boogvlucht meer nodig). */}
+              <motion.button data-money-btn whileTap={{ scaleX: 1.15, scaleY: 0.85 }} transition={springSnappy} onClick={() => setShowPricingTour(true)} aria-label={tr("feed.aria.pricingButton", "How pricing works")}
                 style={{ width: 42, height: 42, borderRadius: "50%", background: "#fff", border: "1px solid #ECEAE5", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", fontSize: 18, lineHeight: 1, WebkitTapHighlightColor: "transparent" }}>
                 {/* het emoji "vertrekt" tijdens de boogvlucht (de knop-cirkel blijft) */}
                 <span style={{ display: "inline-block", opacity: arcFlight?.kind === "pricing" ? 0 : 1, transition: "opacity .15s" }}>💸</span>
@@ -4864,7 +5130,8 @@ export default function SupplyFlow({ session, factoriesVisible = true }) {
       {/* Uitleg: hoe Flowva werkt */}
       <AnimatePresence>
         {showHowItWorks && <HowItWorksSheet onClose={closeHowItWorks} />}
-        {showPricing && <PricingSheet onClose={() => setShowPricing(false)} arriving={arcFlight?.kind === "pricing"} />}
+        {showPricing && <PricingSheet onClose={() => setShowPricing(false)} arriving={arcFlight?.kind === "pricing"} onTour={() => { setShowPricing(false); setShowPricingTour(true); }} />}
+        {showPricingTour && <PricingTourSheet onClose={closePricingTour} onDetails={openBreakdown} />}
         {showDiamond && <DiamondSheet onClose={() => setShowDiamond(false)} arriving={arcFlight?.kind === "diamond"} />}
         {squadWheel && <ProgressWheelModal items={[squadWheel]} onClose={() => setSquadWheel(null)} />}
       </AnimatePresence>

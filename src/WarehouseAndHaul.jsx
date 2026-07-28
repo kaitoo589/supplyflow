@@ -653,10 +653,14 @@ function NormalShippingConfirm({ session, haulItems, balance, onBack, onSuccess 
   const extraItems = Math.max(0, pieces - 5);
   const extraKg = Math.max(0, billableKg - 2);
   const surcharge = r2((extraItems * 2 + extraKg * 1.5) / 7.8);
-  // Service fee (Flowva-marge) — verhuisd van checkout naar hier. 8% van de bundel-productwaarde, min €5.
-  // Houd 1:1 gelijk aan pay_shipping_buffered (server): greatest(round(0.08 * sum(price), 2), 5).
+  // Service fee (Flowva-marge) — verhuisd van checkout naar hier. 8%, min €5, berekend over
+  // de KALE productprijzen + de GESCHATTE internationale verzendkosten (excl. de +25% buffer:
+  // die buffer is een waarborg die terugkomt, daar rekenen we geen fee over). Houd 1:1 gelijk
+  // aan pay_shipping_buffered (server): greatest(round(0.08 * (sum(price) + estimate), 2), 5).
   const productValue = haulItems.reduce((s, o) => s + (Number(o.price) || 0), 0);
-  const svcFee = Math.max(5, r2(productValue * 0.08));
+  const feeBaseRaw = productValue + estFreight;          // ongerond: server rondt pas ná × 8%
+  const feeBase = r2(feeBaseRaw);                        // alleen voor weergave
+  const svcFee = Math.max(5, r2(feeBaseRaw * 0.08));
   // Extended storage (user 2026-07-22): NL-KALENDERDAG (aankomstdag = dag 1, +1 per
   // middernacht). Dag 31-60 = €2/stuk, 61-90 = €4/stuk (dag 91 = verbeurd, zit nooit in
   // het pakket). Dekt de BuckyDrop-verlenging (¥3/stuk per 30 dagen) + marge. Houd 1:1
@@ -757,9 +761,30 @@ function NormalShippingConfirm({ session, haulItems, balance, onBack, onSuccess 
               <span style={{ fontSize: 13, color: "#fff" }}>€{surcharge.toFixed(2)}</span>
             </div>
           )}
-          <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8 }}>
+          <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
             <span style={{ fontSize: 13, color: "#888" }}>Service fee <span style={{ color: "#666" }}>· 8% · min €5</span></span>
             <span style={{ fontSize: 13, color: "#fff" }}>€{svcFee.toFixed(2)}</span>
+          </div>
+          {/* Volledig open kaart: waarover de fee precies gerekend wordt — elk product op z'n
+              kale prijs + de geschatte internationale verzending, en dan het percentage. */}
+          <div style={{ paddingLeft: 12, marginBottom: 8 }}>
+            <div style={{ fontSize: 11, color: "#666", marginBottom: 3 }}>
+              {tr("cost.feeBaseTitle", "Calculated over:")}
+            </div>
+            {haulItems.map((o, i) => (
+              <div key={i} style={{ display: "flex", justifyContent: "space-between", gap: 8 }}>
+                <span style={{ fontSize: 11.5, color: "#7d7a75", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>↳ {o.product_title || o.product}</span>
+                <span style={{ fontSize: 11.5, color: "#7d7a75", flexShrink: 0 }}>€{(Number(o.price) || 0).toFixed(2)}</span>
+              </div>
+            ))}
+            <div style={{ display: "flex", justifyContent: "space-between", gap: 8 }}>
+              <span style={{ fontSize: 11.5, color: "#7d7a75" }}>↳ {tr("cost.feeBaseShipping", "Estimated international shipping")}</span>
+              <span style={{ fontSize: 11.5, color: "#7d7a75", flexShrink: 0 }}>€{r2(estFreight).toFixed(2)}</span>
+            </div>
+            <div style={{ display: "flex", justifyContent: "space-between", gap: 8, marginTop: 3, paddingTop: 3, borderTop: "1px solid #26241f" }}>
+              <span style={{ fontSize: 11.5, color: "#999" }}>{tr("cost.feeBaseTotal", "Fee base")} · 8%</span>
+              <span style={{ fontSize: 11.5, color: "#999", flexShrink: 0 }}>€{feeBase.toFixed(2)}</span>
+            </div>
           </div>
           {storageFee > 0 && (
             <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8 }}>

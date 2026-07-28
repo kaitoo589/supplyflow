@@ -3615,9 +3615,15 @@ export default function SupplyFlow({ session, factoriesVisible = true }) {
       // niet in `error.message` — die is dan alleen "Edge Function returned a non-2xx status code".
       // Zonder deze extract zie je in de alert nooit wat er werkelijk misging.
       if (error) {
+        // Supabase-js: bij een non-2xx is `error.context` de Response zelf (NIET
+        // `error.context.response`). Zonder deze uitlees valt de klant altijd terug
+        // op de generieke "Edge Function returned a non-2xx status code".
         let detail = null;
-        try { detail = await error.context?.response?.clone().json(); } catch { /* geen JSON */ }
-        if (!detail) { try { detail = { error: await error.context?.response?.clone().text() }; } catch { /* niks */ } }
+        const resp = error?.context;
+        if (resp && typeof resp.clone === "function") {
+          try { detail = await resp.clone().json(); } catch { /* geen JSON */ }
+          if (!detail) { try { detail = { error: await resp.clone().text() }; } catch { /* niks */ } }
+        }
         throw new Error(detail?.error || error.message || "Unknown error");
       }
       window.location.href = data.url;

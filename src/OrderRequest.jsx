@@ -119,13 +119,18 @@ export default function OrderRequest({ product, session, onRequireAuth, onClose,
   // product, zonder iets in te stellen.
   // MODELFOTO'S (admin M-knop, product.model_images): absolute voorrang — deze staan
   // ALTIJD vooraan in de strip, vóór de galerij én de hoofdfoto.
-  // VOLGORDE: modelfoto's → galerij → variantfoto's. De variantfoto's staan bewust
-  // ACHTERAAN: dat zijn losse kleurplaatjes (vaak een plat vlak of een uitsnede) en
-  // die horen niet vóór de foto's waar het kledingstuk gedragen wordt. Ze blijven wél
-  // in de strip staan, zodat doorswipen na een kleurkeuze gewoon werkt.
+  // VOLGORDE: modelfoto's → galerij → variantfoto's → close-ups. Zo kijkt een
+  // klant: eerst hoe het staat (model), dan welke kleuren er zijn (variant), en
+  // als laatste de details van de stof (close-up). De variantfoto's staan bewust
+  // ná de galerij: dat zijn losse kleurplaatjes en die horen niet vóór de foto's
+  // waar het kledingstuk gedragen wordt. Close-ups herken je aan "-closeup-" in de
+  // bestandsnaam (zo zet de Studio ze weg) — geen extra databasekolom nodig.
+  const isCloseup = (u) => typeof u === "string" && u.includes("-closeup-");
   const modelPhotos = (product.model_images || []).filter(u => typeof u === "string" && u.startsWith("http"));
-  const galerijPhotos = (product.gallery || []).filter(u => !modelPhotos.includes(u));
-  const setPhotos = [...modelPhotos, ...galerijPhotos, ...variantPhotos].filter(u => typeof u === "string" && u.startsWith("http"));
+  const galerijAlle = (product.gallery || []).filter(u => !modelPhotos.includes(u));
+  const galerijPhotos = galerijAlle.filter(u => !isCloseup(u));
+  const closeupPhotos = galerijAlle.filter(isCloseup);
+  const setPhotos = [...modelPhotos, ...galerijPhotos, ...variantPhotos, ...closeupPhotos].filter(u => typeof u === "string" && u.startsWith("http"));
   const mainHttp = product.image?.startsWith("http") ? product.image : null;
   const ordered = (mainHttp && setPhotos.includes(mainHttp)) ? [...modelPhotos, mainHttp, ...setPhotos] : setPhotos;
   const deduped = [...new Set(ordered)];
@@ -370,7 +375,16 @@ export default function OrderRequest({ product, session, onRequireAuth, onClose,
                       whileTap={echtOp ? {} : { scale: 0.85 }}
                       animate={{ scale: !oos && selectedVariants[variant.name] === opt ? [1, 1.15, 1] : 1 }}
                       transition={{ duration: 0.3, type: "spring", stiffness: 300 }}
-                      onClick={() => { if (echtOp) return; setSelectedVariants(kiesOptie(variant.name, opt)); setMissingVariants(m => m.filter(n => n !== variant.name)); const vimg = product.variant_images?.[opt]; if (vimg && vimg.startsWith("http")) setGalleryPhoto(vimg); }}
+                      onClick={() => {
+                        const vimg = product.variant_images?.[opt];
+                        // Uitverkocht ≠ onzichtbaar: tik je op een uitverkochte optie, dan
+                        // springt de foto WEL (zodat je kunt zien welke variant op is) —
+                        // alleen kiezen kan niet.
+                        if (echtOp) { if (vimg && vimg.startsWith("http")) setGalleryPhoto(vimg); return; }
+                        setSelectedVariants(kiesOptie(variant.name, opt));
+                        setMissingVariants(m => m.filter(n => n !== variant.name));
+                        if (vimg && vimg.startsWith("http")) setGalleryPhoto(vimg);
+                      }}
                       style={{ position: "relative", padding: "10px 18px", borderRadius: 12, border: `1.5px solid ${oos ? "#EAE7E0" : selectedVariants[variant.name] === opt ? "#0F0E0C" : missing ? "#FCA5A5" : "#E8E6E0"}`, background: oos ? "#F3F1EC" : selectedVariants[variant.name] === opt ? "#0F0E0C" : "#fff", color: oos ? "#B6B2AB" : selectedVariants[variant.name] === opt ? "#fff" : "#555", fontSize: 13, fontWeight: 600, cursor: echtOp ? "not-allowed" : "pointer" }}>
                       {!oos && selectedVariants[variant.name] === opt && (
                         <motion.svg width="11" height="11" viewBox="0 0 24 24" fill="none" style={{ marginRight: 6, verticalAlign: "-1px" }}>

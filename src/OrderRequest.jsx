@@ -64,7 +64,11 @@ export default function OrderRequest({ product, session, onRequireAuth, onClose,
   const [settled, setSettled] = useState(false);
   useEffect(() => { const t = setTimeout(() => setSettled(true), 620); return () => clearTimeout(t); }, []);
 
-  const productVariants = product.sizes?.length > 0 ? product.sizes : null;
+  const hiddenVars = Array.isArray(product.hidden_variants) ? product.hidden_variants : [];
+  const isHidden = (name, opt) => hiddenVars.some(h => h.name === name && h.value === opt);
+  const productVariants = product.sizes?.length > 0
+    ? product.sizes.map(g => ({ ...g, options: (g.options || []).filter(o => !isHidden(g.name, o)) })).filter(g => g.options.length > 0)
+    : null;
   // Door admin handmatig uitverkocht gemelde varianten (per groep+optie) — klant kan ze niet kiezen.
   const oosVariants = Array.isArray(product.oos_variants) ? product.oos_variants : [];
   const isOos = (name, opt) => oosVariants.some(o => o && o.name === name && o.value === opt);
@@ -74,6 +78,31 @@ export default function OrderRequest({ product, session, onRequireAuth, onClose,
     ? oosVariants.some(o => Array.isArray(o?.combo) && o.combo.length > 0
         && o.combo.every(c => selectedVariants[c.name] === c.value))
     : false;
+  // Zou DEZE optie botsen met wat er al gekozen is? Kies je een kleur, dan zie je
+  // meteen welke maten daarbij op zijn — in plaats van dat je een maat aanklikt en
+  // pas dán "deze combinatie is niet beschikbaar" krijgt. Heb je nog niets gekozen,
+  // dan blijft alles gewoon kiesbaar: een combinatie-regel noemt álle assen, dus
+  // zonder kleur is er nog niets om mee te botsen.
+  const botstMetKeuze = (name, opt) => {
+    const keuze = { ...selectedVariants, [name]: opt };
+    return oosVariants.some(o => Array.isArray(o?.combo) && o.combo.length > 0
+      && o.combo.every(c => keuze[c.name] === c.value));
+  };
+  // Vastlopen voorkomen: heb je maat L én een rok gekozen, en wil je daarna een top
+  // die alleen S/M heeft, dan is die top doorgestreept — maar S is dat óók (vanwege
+  // die rok). Zonder uitweg zit je klem. Daarom mag je een doorgestreepte optie die
+  // alléén botst wél aanklikken: hij wordt gekozen en de botsende keuze valt weg.
+  // Een écht uitverkochte optie (geen enkele combinatie mogelijk) blijft onklikbaar.
+  const kiesOptie = (name, opt) => {
+    const keuze = { ...selectedVariants, [name]: opt };
+    if (botstMetKeuze(name, opt)) {
+      for (const o of oosVariants) {
+        if (!Array.isArray(o?.combo) || !o.combo.every(c => keuze[c.name] === c.value)) continue;
+        for (const c of o.combo) if (c.name !== name) delete keuze[c.name];
+      }
+    }
+    return keuze;
+  };
 
   // Foto die hoort bij de laatst gekozen optie (bijv. "Wit" → witte foto).
   // Alleen nog gebruikt voor de order-thumbnail; de hoofdfoto wordt gestuurd door de galerij.
@@ -89,9 +118,14 @@ export default function OrderRequest({ product, session, onRequireAuth, onClose,
   // duplicaat → laat 'm weg (de kleur/galerij dekt 'm al). Zo nooit een dubbele foto — op elk
   // product, zonder iets in te stellen.
   // MODELFOTO'S (admin M-knop, product.model_images): absolute voorrang — deze staan
-  // ALTIJD vooraan in de strip, vóór de kleur/variant-foto's én de hoofdfoto.
+  // ALTIJD vooraan in de strip, vóór de galerij én de hoofdfoto.
+  // VOLGORDE: modelfoto's → galerij → variantfoto's. De variantfoto's staan bewust
+  // ACHTERAAN: dat zijn losse kleurplaatjes (vaak een plat vlak of een uitsnede) en
+  // die horen niet vóór de foto's waar het kledingstuk gedragen wordt. Ze blijven wél
+  // in de strip staan, zodat doorswipen na een kleurkeuze gewoon werkt.
   const modelPhotos = (product.model_images || []).filter(u => typeof u === "string" && u.startsWith("http"));
-  const setPhotos = [...modelPhotos, ...variantPhotos, ...(product.gallery || []).filter(u => !modelPhotos.includes(u))].filter(u => typeof u === "string" && u.startsWith("http"));
+  const galerijPhotos = (product.gallery || []).filter(u => !modelPhotos.includes(u));
+  const setPhotos = [...modelPhotos, ...galerijPhotos, ...variantPhotos].filter(u => typeof u === "string" && u.startsWith("http"));
   const mainHttp = product.image?.startsWith("http") ? product.image : null;
   const ordered = (mainHttp && setPhotos.includes(mainHttp)) ? [...modelPhotos, mainHttp, ...setPhotos] : setPhotos;
   const deduped = [...new Set(ordered)];
@@ -328,15 +362,16 @@ export default function OrderRequest({ product, session, onRequireAuth, onClose,
                 </div>
                 <motion.div animate={missing ? { x: [0, -8, 8, -6, 6, 0] } : { x: 0 }} transition={{ duration: 0.4 }} style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
                   {variant.options.map(opt => {
-                    const oos = isOos(variant.name, opt);
+                    const echtOp = isOos(variant.name, opt);
+                    const oos = echtOp || botstMetKeuze(variant.name, opt);
                     return (
                     <motion.button key={opt}
-                      whileHover={oos ? {} : { scale: 1.05 }}
-                      whileTap={oos ? {} : { scale: 0.85 }}
+                      whileHover={echtOp ? {} : { scale: 1.05 }}
+                      whileTap={echtOp ? {} : { scale: 0.85 }}
                       animate={{ scale: !oos && selectedVariants[variant.name] === opt ? [1, 1.15, 1] : 1 }}
                       transition={{ duration: 0.3, type: "spring", stiffness: 300 }}
-                      onClick={() => { if (oos) return; setSelectedVariants({ ...selectedVariants, [variant.name]: opt }); setMissingVariants(m => m.filter(n => n !== variant.name)); const vimg = product.variant_images?.[opt]; if (vimg && vimg.startsWith("http")) setGalleryPhoto(vimg); }}
-                      style={{ position: "relative", padding: "10px 18px", borderRadius: 12, border: `1.5px solid ${oos ? "#EAE7E0" : selectedVariants[variant.name] === opt ? "#0F0E0C" : missing ? "#FCA5A5" : "#E8E6E0"}`, background: oos ? "#F3F1EC" : selectedVariants[variant.name] === opt ? "#0F0E0C" : "#fff", color: oos ? "#B6B2AB" : selectedVariants[variant.name] === opt ? "#fff" : "#555", fontSize: 13, fontWeight: 600, cursor: oos ? "not-allowed" : "pointer" }}>
+                      onClick={() => { if (echtOp) return; setSelectedVariants(kiesOptie(variant.name, opt)); setMissingVariants(m => m.filter(n => n !== variant.name)); const vimg = product.variant_images?.[opt]; if (vimg && vimg.startsWith("http")) setGalleryPhoto(vimg); }}
+                      style={{ position: "relative", padding: "10px 18px", borderRadius: 12, border: `1.5px solid ${oos ? "#EAE7E0" : selectedVariants[variant.name] === opt ? "#0F0E0C" : missing ? "#FCA5A5" : "#E8E6E0"}`, background: oos ? "#F3F1EC" : selectedVariants[variant.name] === opt ? "#0F0E0C" : "#fff", color: oos ? "#B6B2AB" : selectedVariants[variant.name] === opt ? "#fff" : "#555", fontSize: 13, fontWeight: 600, cursor: echtOp ? "not-allowed" : "pointer" }}>
                       {!oos && selectedVariants[variant.name] === opt && (
                         <motion.svg width="11" height="11" viewBox="0 0 24 24" fill="none" style={{ marginRight: 6, verticalAlign: "-1px" }}>
                           <motion.path d="M4 12.5L9.5 18L20 6.5" stroke="#FF5C00" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round"

@@ -4205,12 +4205,19 @@ export default function SupplyFlow({ session, factoriesVisible = true }) {
             <div style={{ fontSize: 13.5, color: "#8A8780", marginBottom: 16 }}>{showFavoritesOnly ? tr("feed.subtitle.favorites", "Your starred products.") : selectedFactory ? (tab === "brands" ? tr("feed.subtitle.brand", "Curated products from this store.") : tr("feed.subtitle.factory", "Curated products from this factory.")) : tab === "brands" ? tr("feed.subtitle.brandsDefault", "Tap a store to explore its products.") : tr("feed.subtitle.default", "Tap a factory to explore its products.")}</div>
           )}
 
-          {/* Volle-breedte merk-header: het woordbeeld vult de ruimte tussen de knoppenrij
-              en de "All brands"-pill. multiply → witte logo-achtergrond valt weg. */}
+          {/* Volle-breedte merk-header (user 2026-08-12): banner met ronde hoeken zoals de
+              productkaarten. Het logo blijft ONAANGETAST scherp in het midden (contain);
+              de volle breedte wordt gevuld door dezelfde afbeelding er sterk vervaagd
+              achter te leggen — bij marmer/beige zie je doorlopend marmer, bij een wit
+              logo een strakke witte kaart. Werkt automatisch voor elk merk, elk formaat. */}
           {selectedFactory && !showFavoritesOnly && tab === "brands" && selectedFactory.brand_logo && (
-            <motion.img initial={{ opacity: 0, scale: 0.96 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.32, ease: [0.22, 0.61, 0.36, 1] }}
-              src={selectedFactory.brand_logo} referrerPolicy="no-referrer" alt={selectedFactory.name}
-              style={{ display: "block", width: "100%", height: 120, objectFit: "contain", mixBlendMode: "multiply", margin: "2px 0 12px" }} />
+            <motion.div initial={{ opacity: 0, scale: 0.96 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.32, ease: [0.22, 0.61, 0.36, 1] }}
+              style={{ position: "relative", width: "100%", height: 120, borderRadius: 18, overflow: "hidden", margin: "2px 0 12px", boxShadow: "0 1px 2px rgba(17,17,17,0.04), 0 8px 22px rgba(17,17,17,0.06)", transform: "translateZ(0)" }}>
+              <img src={selectedFactory.brand_logo} referrerPolicy="no-referrer" alt="" aria-hidden
+                style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover", filter: "blur(26px) saturate(1.05)", transform: "scale(1.3)" }} />
+              <img src={selectedFactory.brand_logo} referrerPolicy="no-referrer" alt={selectedFactory.name}
+                style={{ position: "relative", display: "block", width: "100%", height: "100%", objectFit: "contain" }} />
+            </motion.div>
           )}
 
           {/* Terug-knop bij drill-in — duidelijke pill. Op een merkpagina mét logo staat 'ie

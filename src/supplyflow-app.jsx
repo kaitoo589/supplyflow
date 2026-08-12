@@ -4038,7 +4038,9 @@ export default function SupplyFlow({ session, factoriesVisible = true }) {
             color: "#111", fontSize: 14, fontWeight: 700, whiteSpace: "nowrap",
             opacity: morph.target === "pill" ? 0 : 1,
           }}>
-            <span style={{ fontSize: 19, lineHeight: 1, marginTop: -2 }}>‹</span> All factories
+            {/* Label meebewegen met de tab — stond hardcoded op "All factories", waardoor
+                de Brands-morph heel even de verkeerde tekst flitste (user 2026-08-12). */}
+            <span style={{ fontSize: 19, lineHeight: 1, marginTop: -2 }}>‹</span> {tab === "brands" ? tr("feed.backToBrands", "All brands") : tr("feed.backToFactories", "All factories")}
           </div>
         </div>
       )}

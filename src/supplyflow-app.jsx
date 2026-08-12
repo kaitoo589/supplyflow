@@ -3978,6 +3978,20 @@ export default function SupplyFlow({ session, factoriesVisible = true }) {
     );
   };
 
+  // Terug-pill ("All brands"/"All factories") — één definitie, twee plekken (user 2026-08-12):
+  // normaal onder de kop; op een merkpagina MÉT logo in de kopregel naast de drie knopjes.
+  // Er rendert altijd precies één pill (condities sluiten elkaar uit), dus pillRef + de
+  // morph-meting (useLayoutEffect ná render) blijven gewoon kloppen.
+  const backPillEl = (inHeader) => (
+    <motion.div
+      ref={pillRef}
+      whileTap={{ scale: 0.96 }}
+      onClick={(e) => { const r = e.currentTarget.getBoundingClientRect(); const sf = selectedFactory; const spv = (sf.previews && sf.previews.length) ? sf.previews : (sf.cover ? [sf.cover] : []); setMorph({ from: { left: r.left, top: r.top, width: r.width, height: r.height }, target: "card", id: sf.id, previews: spv, extra: Math.max(0, (sf.count || 0) - 3), dia: Math.max(0, Math.min(4, Number(sf.diamonds) || 0)) }); setSelectedFactory(null); setSearch(""); setActiveCategory("All"); setActiveSub(null); }}
+      style={{ display: "inline-flex", alignItems: "center", gap: 4, marginBottom: inHeader ? 0 : 16, marginTop: inHeader ? 2 : 0, cursor: "pointer", color: "#111", fontSize: 14, fontWeight: 700, background: "#fff", border: "1px solid #E4E1DA", borderRadius: 22, padding: "9px 16px 9px 12px", boxShadow: "0 1px 2px rgba(17,17,17,0.05), 0 4px 12px rgba(17,17,17,0.05)", WebkitTapHighlightColor: "transparent", whiteSpace: "nowrap" }}>
+      <span style={{ fontSize: 19, lineHeight: 1, marginTop: -2 }}>‹</span> {tab === "brands" ? tr("feed.backToBrands", "All brands") : tr("feed.backToFactories", "All factories")}
+    </motion.div>
+  );
+
   return (
     <div style={{ fontFamily: "'Inter', 'Helvetica Neue', sans-serif", background: "#F8F7F4", minHeight: "100vh", maxWidth: 430, margin: "0 auto", width: "100%", position: "relative" }}>
 
@@ -4155,10 +4169,10 @@ export default function SupplyFlow({ session, factoriesVisible = true }) {
            (store_type='taobao') i.p.v. fabrieken — zelfde kaarten, morph, drill-in en cart. */
         <motion.div key={tab} {...pageTransition} style={{ padding: "10px 20px 80px" }}>
           <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 10 }}>
-            {/* Merkpagina (user 2026-08-12): heeft de store een brand_logo → dan is de titel
-                hier LEEG en komt het logo als volle-breedte header ónder de knoppenrij
-                (zie hieronder). Zonder logo: gewoon de naam. */}
-            <div style={{ fontSize: 30, fontWeight: 800, letterSpacing: -0.6, color: "#111111", marginBottom: 2, minWidth: 0 }}>{showFavoritesOnly ? tr("feed.title.favorites", "Favorites") : selectedFactory ? (tab === "brands" && selectedFactory.brand_logo ? null : selectedFactory.name) : tab === "brands" ? <>{tr("feed.title.brandFeed.word1", "Brand")} <span style={{ color: "#FF5C00" }}>{tr("feed.title.brandFeed.word2", "Feed")}</span></> : <>{tr("feed.title.factoryFeed.word1", "Factory")} <span style={{ color: "#FF5C00" }}>{tr("feed.title.factoryFeed.word2", "Feed")}</span></>}</div>
+            {/* Merkpagina (user 2026-08-12): heeft de store een brand_logo → dan staat op de
+                titelplek de "All brands"-pill (zelfde hoogte als de drie knopjes) en komt het
+                logo als volle-breedte header eronder. Zonder logo: gewoon de naam. */}
+            <div style={{ fontSize: 30, fontWeight: 800, letterSpacing: -0.6, color: "#111111", marginBottom: 2, minWidth: 0 }}>{showFavoritesOnly ? tr("feed.title.favorites", "Favorites") : selectedFactory ? (tab === "brands" && selectedFactory.brand_logo ? backPillEl(true) : selectedFactory.name) : tab === "brands" ? <>{tr("feed.title.brandFeed.word1", "Brand")} <span style={{ color: "#FF5C00" }}>{tr("feed.title.brandFeed.word2", "Feed")}</span></> : <>{tr("feed.title.factoryFeed.word1", "Factory")} <span style={{ color: "#FF5C00" }}>{tr("feed.title.factoryFeed.word2", "Feed")}</span></>}</div>
             <div style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
               {/* 💸 opent ALTIJD de vos-tour; de volledige tekst-sheet komt pas via
                   "See the full breakdown" in de tour (geen boogvlucht meer nodig). */}
@@ -4197,20 +4211,9 @@ export default function SupplyFlow({ session, factoriesVisible = true }) {
               style={{ display: "block", width: "100%", height: 120, objectFit: "contain", mixBlendMode: "multiply", margin: "2px 0 12px" }} />
           )}
 
-          {/* Terug-knop bij drill-in — duidelijke pill */}
-          {selectedFactory && !showFavoritesOnly && (
-            // Shape-morph: deelt dezelfde layoutId als de aangetikte fabriekskaart, dus
-            // Framer krimpt de grote kaart soepel ineen tot deze pill (en terug bij 'back').
-            // Het label faadt met een mini-delay in zodat je tijdens het krimpen geen
-            // meegeschaalde, vervormde tekst ziet.
-            <motion.div
-              ref={pillRef}
-              whileTap={{ scale: 0.96 }}
-              onClick={(e) => { const r = e.currentTarget.getBoundingClientRect(); const sf = selectedFactory; const spv = (sf.previews && sf.previews.length) ? sf.previews : (sf.cover ? [sf.cover] : []); setMorph({ from: { left: r.left, top: r.top, width: r.width, height: r.height }, target: "card", id: sf.id, previews: spv, extra: Math.max(0, (sf.count || 0) - 3), dia: Math.max(0, Math.min(4, Number(sf.diamonds) || 0)) }); setSelectedFactory(null); setSearch(""); setActiveCategory("All"); setActiveSub(null); }}
-              style={{ display: "inline-flex", alignItems: "center", gap: 4, marginBottom: 16, cursor: "pointer", color: "#111", fontSize: 14, fontWeight: 700, background: "#fff", border: "1px solid #E4E1DA", borderRadius: 22, padding: "9px 16px 9px 12px", boxShadow: "0 1px 2px rgba(17,17,17,0.05), 0 4px 12px rgba(17,17,17,0.05)", WebkitTapHighlightColor: "transparent", whiteSpace: "nowrap" }}>
-              <span style={{ fontSize: 19, lineHeight: 1, marginTop: -2 }}>‹</span> {tab === "brands" ? tr("feed.backToBrands", "All brands") : tr("feed.backToFactories", "All factories")}
-            </motion.div>
-          )}
+          {/* Terug-knop bij drill-in — duidelijke pill. Op een merkpagina mét logo staat 'ie
+              al bovenin de kopregel (backPillEl(true)), dus hier alleen zónder logo. */}
+          {selectedFactory && !showFavoritesOnly && !(tab === "brands" && selectedFactory.brand_logo) && backPillEl(false)}
           {/* === BODY: smooth fade+slide bij wisselen feed ↔ fabriek ↔ favorieten === */}
           {/* Bij een TERUG-morph géén y:22-entree: framer zet die translateY al bij de render
               als inline style, dus de morph zou de doelkaart 22px te laag meten en dáár landen

@@ -4155,10 +4155,10 @@ export default function SupplyFlow({ session, factoriesVisible = true }) {
            (store_type='taobao') i.p.v. fabrieken — zelfde kaarten, morph, drill-in en cart. */
         <motion.div key={tab} {...pageTransition} style={{ padding: "10px 20px 80px" }}>
           <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 10 }}>
-            {/* Merkpagina (user 2026-08-12): heeft de store een brand_logo (eigen woordbeeld,
-                Jikoo-stijl) → toon dát groot i.p.v. de naam. mixBlendMode multiply laat de
-                witte logo-achtergrond wegvallen tegen de crème pagina. Leeg = gewoon de naam. */}
-            <div style={{ fontSize: 30, fontWeight: 800, letterSpacing: -0.6, color: "#111111", marginBottom: 2, minWidth: 0 }}>{showFavoritesOnly ? tr("feed.title.favorites", "Favorites") : selectedFactory ? (tab === "brands" && selectedFactory.brand_logo ? <img src={selectedFactory.brand_logo} referrerPolicy="no-referrer" alt={selectedFactory.name} style={{ display: "block", height: 58, maxWidth: "100%", objectFit: "contain", objectPosition: "left center", mixBlendMode: "multiply", margin: "1px 0 3px" }} /> : selectedFactory.name) : tab === "brands" ? <>{tr("feed.title.brandFeed.word1", "Brand")} <span style={{ color: "#FF5C00" }}>{tr("feed.title.brandFeed.word2", "Feed")}</span></> : <>{tr("feed.title.factoryFeed.word1", "Factory")} <span style={{ color: "#FF5C00" }}>{tr("feed.title.factoryFeed.word2", "Feed")}</span></>}</div>
+            {/* Merkpagina (user 2026-08-12): heeft de store een brand_logo → dan is de titel
+                hier LEEG en komt het logo als volle-breedte header ónder de knoppenrij
+                (zie hieronder). Zonder logo: gewoon de naam. */}
+            <div style={{ fontSize: 30, fontWeight: 800, letterSpacing: -0.6, color: "#111111", marginBottom: 2, minWidth: 0 }}>{showFavoritesOnly ? tr("feed.title.favorites", "Favorites") : selectedFactory ? (tab === "brands" && selectedFactory.brand_logo ? null : selectedFactory.name) : tab === "brands" ? <>{tr("feed.title.brandFeed.word1", "Brand")} <span style={{ color: "#FF5C00" }}>{tr("feed.title.brandFeed.word2", "Feed")}</span></> : <>{tr("feed.title.factoryFeed.word1", "Factory")} <span style={{ color: "#FF5C00" }}>{tr("feed.title.factoryFeed.word2", "Feed")}</span></>}</div>
             <div style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
               {/* 💸 opent ALTIJD de vos-tour; de volledige tekst-sheet komt pas via
                   "See the full breakdown" in de tour (geen boogvlucht meer nodig). */}
@@ -4184,7 +4184,18 @@ export default function SupplyFlow({ session, factoriesVisible = true }) {
               </motion.button>
             </div>
           </div>
-          <div style={{ fontSize: 13.5, color: "#8A8780", marginBottom: 16 }}>{showFavoritesOnly ? tr("feed.subtitle.favorites", "Your starred products.") : selectedFactory ? (tab === "brands" ? tr("feed.subtitle.brand", "Curated products from this store.") : tr("feed.subtitle.factory", "Curated products from this factory.")) : tab === "brands" ? tr("feed.subtitle.brandsDefault", "Tap a store to explore its products.") : tr("feed.subtitle.default", "Tap a factory to explore its products.")}</div>
+          {/* Merkpagina mét logo: subtitel weg — het logo IS de header (user 2026-08-12). */}
+          {!(selectedFactory && !showFavoritesOnly && tab === "brands" && selectedFactory.brand_logo) && (
+            <div style={{ fontSize: 13.5, color: "#8A8780", marginBottom: 16 }}>{showFavoritesOnly ? tr("feed.subtitle.favorites", "Your starred products.") : selectedFactory ? (tab === "brands" ? tr("feed.subtitle.brand", "Curated products from this store.") : tr("feed.subtitle.factory", "Curated products from this factory.")) : tab === "brands" ? tr("feed.subtitle.brandsDefault", "Tap a store to explore its products.") : tr("feed.subtitle.default", "Tap a factory to explore its products.")}</div>
+          )}
+
+          {/* Volle-breedte merk-header: het woordbeeld vult de ruimte tussen de knoppenrij
+              en de "All brands"-pill. multiply → witte logo-achtergrond valt weg. */}
+          {selectedFactory && !showFavoritesOnly && tab === "brands" && selectedFactory.brand_logo && (
+            <motion.img initial={{ opacity: 0, scale: 0.96 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.32, ease: [0.22, 0.61, 0.36, 1] }}
+              src={selectedFactory.brand_logo} referrerPolicy="no-referrer" alt={selectedFactory.name}
+              style={{ display: "block", width: "100%", height: 120, objectFit: "contain", mixBlendMode: "multiply", margin: "2px 0 12px" }} />
+          )}
 
           {/* Terug-knop bij drill-in — duidelijke pill */}
           {selectedFactory && !showFavoritesOnly && (

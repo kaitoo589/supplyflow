@@ -3952,9 +3952,16 @@ export default function SupplyFlow({ session, factoriesVisible = true }) {
           {factoryCollage(pv, extra, dia)}
         </div>
         <div style={{ padding: "13px 15px 14px" }}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 8 }}>
-            <div style={{ fontSize: 15.5, fontWeight: 700, color: "#111111", lineHeight: 1.3 }}>{f.name}</div>
-            <div style={{ fontSize: 12, color: "#A8A5A0", whiteSpace: "nowrap" }}>{tr("feed.factoryCard.productCount", "{count} product{s} ›", { count: f.count, s: f.count === 1 ? "" : "s" })}</div>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8 }}>
+            {/* Brands (user 2026-08-12): Taobao-shopavatar als rondje naast de naam —
+                Instagram-patroon "rondje + naam = echte winkel". Fabrieken ongewijzigd. */}
+            <div style={{ display: "flex", alignItems: "center", gap: 9, minWidth: 0 }}>
+              {isTaobao && f.profile_image && (
+                <img src={f.profile_image} referrerPolicy="no-referrer" alt="" style={{ width: 30, height: 30, borderRadius: "50%", objectFit: "cover", border: "1px solid #ECEAE5", flexShrink: 0 }} />
+              )}
+              <div style={{ fontSize: 15.5, fontWeight: 700, color: "#111111", lineHeight: 1.3 }}>{f.name}</div>
+            </div>
+            <div style={{ fontSize: 12, color: "#A8A5A0", whiteSpace: "nowrap", flexShrink: 0 }}>{tr("feed.factoryCard.productCount", "{count} product{s} ›", { count: f.count, s: f.count === 1 ? "" : "s" })}</div>
           </div>
           {stats.length > 0 && (
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6, marginTop: 11 }}>
@@ -4148,7 +4155,10 @@ export default function SupplyFlow({ session, factoriesVisible = true }) {
            (store_type='taobao') i.p.v. fabrieken — zelfde kaarten, morph, drill-in en cart. */
         <motion.div key={tab} {...pageTransition} style={{ padding: "10px 20px 80px" }}>
           <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 10 }}>
-            <div style={{ fontSize: 30, fontWeight: 800, letterSpacing: -0.6, color: "#111111", marginBottom: 2 }}>{showFavoritesOnly ? tr("feed.title.favorites", "Favorites") : selectedFactory ? selectedFactory.name : tab === "brands" ? <>{tr("feed.title.brandFeed.word1", "Brand")} <span style={{ color: "#FF5C00" }}>{tr("feed.title.brandFeed.word2", "Feed")}</span></> : <>{tr("feed.title.factoryFeed.word1", "Factory")} <span style={{ color: "#FF5C00" }}>{tr("feed.title.factoryFeed.word2", "Feed")}</span></>}</div>
+            {/* Merkpagina (user 2026-08-12): heeft de store een brand_logo (eigen woordbeeld,
+                Jikoo-stijl) → toon dát groot i.p.v. de naam. mixBlendMode multiply laat de
+                witte logo-achtergrond wegvallen tegen de crème pagina. Leeg = gewoon de naam. */}
+            <div style={{ fontSize: 30, fontWeight: 800, letterSpacing: -0.6, color: "#111111", marginBottom: 2, minWidth: 0 }}>{showFavoritesOnly ? tr("feed.title.favorites", "Favorites") : selectedFactory ? (tab === "brands" && selectedFactory.brand_logo ? <img src={selectedFactory.brand_logo} referrerPolicy="no-referrer" alt={selectedFactory.name} style={{ display: "block", height: 58, maxWidth: "100%", objectFit: "contain", objectPosition: "left center", mixBlendMode: "multiply", margin: "1px 0 3px" }} /> : selectedFactory.name) : tab === "brands" ? <>{tr("feed.title.brandFeed.word1", "Brand")} <span style={{ color: "#FF5C00" }}>{tr("feed.title.brandFeed.word2", "Feed")}</span></> : <>{tr("feed.title.factoryFeed.word1", "Factory")} <span style={{ color: "#FF5C00" }}>{tr("feed.title.factoryFeed.word2", "Feed")}</span></>}</div>
             <div style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
               {/* 💸 opent ALTIJD de vos-tour; de volledige tekst-sheet komt pas via
                   "See the full breakdown" in de tour (geen boogvlucht meer nodig). */}

@@ -3328,6 +3328,19 @@ export default function SupplyFlow({ session, factoriesVisible = true }) {
   const toggleFavorite = (p) => { const k = favKey(p); if (!k) return; setFavorites((f) => f.includes(k) ? f.filter((x) => x !== k) : [...f, k]); };
   const [infoToast, setInfoToast] = useState("");
   useEffect(() => { if (!infoToast) return; const t = setTimeout(() => setInfoToast(""), 3500); return () => clearTimeout(t); }, [infoToast]);
+  // Servicebelofte op het TOEVOEGMOMENT (Kaito 13-08): precies daar denkt iemand
+  // "en als het niet past?". De mandje-balk zegt de eerste seconden wat wij doen,
+  // en zakt daarna terug naar z'n normale tekst — geen popup, geen vaste ruimte.
+  // Aan de toevoeg-ACTIE gehangen (niet aan een teller): dat is het enige moment
+  // dat we echt bedoelen, en het overleeft herladen met een gevuld mandje.
+  const [justAdded, setJustAdded] = useState(false);
+  const justAddedTimer = useRef(null);
+  const flashPromise = () => {
+    setJustAdded(true);
+    clearTimeout(justAddedTimer.current);
+    justAddedTimer.current = setTimeout(() => setJustAdded(false), 4600);
+  };
+  useEffect(() => () => clearTimeout(justAddedTimer.current), []);
   // Open de productpagina vanuit een groeps-item/share-kaart (sluit de Friends-sheet).
   const openProductByUrl = async (item) => {
     const url = item?.source_url;
@@ -5071,6 +5084,7 @@ export default function SupplyFlow({ session, factoriesVisible = true }) {
             listCount={requestList.length}
             onAddToList={(item, rect, pid) => {
               setRequestList(list => [...list, item]);
+              flashPromise();          // mandje-balk zegt heel even wat wij met het item doen
               setSelectedProduct(null);
               // Foto vliegt van de FEED-KAART van het item naar het 📋-icoon van de mand-balk.
               // We wachten tot de sheet-dichtklap-morph klaar is (anders vechten twee animaties
@@ -5208,7 +5222,19 @@ export default function SupplyFlow({ session, factoriesVisible = true }) {
               <span data-cart-emoji style={{ fontSize: 18 }}>📋</span>
               <div style={{ flex: 1 }}>
                 <div style={{ fontSize: 13, fontWeight: 700, color: "#fff" }}>{tr("cart.popBar.title", "Shopping cart · {count} item{s}", { count: requestList.length, s: requestList.length > 1 ? "s" : "" })}</div>
-                <div style={{ fontSize: 11.5, color: "#9C9893" }}>{tr("cart.popBar.subtitle", "Tap to open — one fee at shipping")} <Fox /></div>
+                <AnimatePresence mode="wait" initial={false}>
+                  {justAdded ? (
+                    <motion.div key="promise" initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -6 }} transition={{ duration: 0.22 }}
+                      style={{ fontSize: 11.5, color: "#FF8A3D", fontWeight: 600 }}>
+                      {tr("cart.popBar.promise", "✓ We photograph & measure it before it ships")}
+                    </motion.div>
+                  ) : (
+                    <motion.div key="sub" initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -6 }} transition={{ duration: 0.22 }}
+                      style={{ fontSize: 11.5, color: "#9C9893" }}>
+                      {tr("cart.popBar.subtitle", "Tap to open — one fee at shipping")} <Fox />
+                    </motion.div>
+                  )}
+                </AnimatePresence>
               </div>
               <motion.div animate={{ y: [0, -3, 0] }} transition={{ duration: 1.4, repeat: Infinity, ease: "easeInOut" }}
                 style={{ width: 30, height: 30, borderRadius: "50%", background: "rgba(255,92,0,0.15)", display: "flex", alignItems: "center", justifyContent: "center" }}>

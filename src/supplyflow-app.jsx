@@ -1906,9 +1906,15 @@ function WelcomeSheet({ onClose, onTour }) {
     step === 0 ? tr("welcome.greeting", "Hey! First time shopping from China? I'll walk you through it.")
     : step === 1 ? tr("welcome.langSay", "Set your language to your preference!")
     : step === 2 ? tr("welcome.sayOrder", "Here's a quick example of how ordering works.")
-    : step === 3 ? tr("welcome.sayCheck", "Before it ships, we photograph and measure your actual item. Something wrong? Send it back and get 100% of your money back.")
+    : step === 3 ? tr("welcome.sayCheck", "Before it ships internationally, we photograph and measure your actual item — and you get every photo in your Orders tab.")
     : step === 4 ? tr("welcome.sayWarehouse", "After the check, everything waits safely in our warehouse — free for 30 days. You bundle whatever you want into one parcel, and that's what flies to your door.")
     : tr("welcome.sayFinal", "But don't worry about that yet — have a look around first and see if you like what you find.");
+  // Tweede regel ín de wolk, onder een haarlijn en in oranje: de zin die de meeste
+  // aandacht verdient (Kaito) — de opdracht bij de foto, en de 100%-garantie.
+  const bubbleAccent =
+    step === 2 ? tr("welcome.capOrder", "Say you ordered this.")
+    : step === 3 ? tr("welcome.sayRefund", "Something wrong? Send it back and get 100% of your money back.")
+    : null;
   const caption = (t) => (
     <div style={{ fontSize: 12, color: "rgba(255,255,255,0.6)", textAlign: "center", marginTop: 10, lineHeight: 1.45 }}>{t}</div>
   );
@@ -1934,6 +1940,16 @@ function WelcomeSheet({ onClose, onTour }) {
               <span style={{ fontSize: 14.5, lineHeight: 1.55, fontWeight: 600, textAlign: "center", display: "block" }}>
                 <WordReveal key={bubbleText} text={bubbleText} delay={0.2} stagger={0.05} />
               </span>
+              {bubbleAccent && (
+                <>
+                  <motion.div initial={{ opacity: 0, scaleX: 0.3 }} animate={{ opacity: 1, scaleX: 1 }}
+                    transition={{ delay: 0.2 + bubbleText.split(" ").length * 0.05, duration: 0.35 }}
+                    style={{ height: 1, background: "rgba(255,255,255,0.18)", margin: "11px 0 10px", transformOrigin: "center" }} />
+                  <span style={{ fontSize: 14.5, lineHeight: 1.5, fontWeight: 800, color: "#FF8A3D", textAlign: "center", display: "block" }}>
+                    <WordReveal key={bubbleAccent} text={bubbleAccent} delay={0.3 + bubbleText.split(" ").length * 0.05} stagger={0.05} />
+                  </span>
+                </>
+              )}
             </motion.div>
             {/* dubbele tail — cross-fade als de vos van links naar rechts springt */}
             <motion.div aria-hidden animate={{ opacity: foxSide === "left" ? 1 : 0 }} transition={{ duration: 0.22 }}
@@ -1965,7 +1981,6 @@ function WelcomeSheet({ onClose, onTour }) {
             <div style={{ borderRadius: 16, overflow: "hidden", background: "rgba(255,255,255,0.06)" }}>
               <img src="/intro-model.webp" alt="" style={{ width: "100%", display: "block" }} />
             </div>
-            {caption(tr("welcome.capOrder", "Say you ordered this."))}
           </motion.div>
         )}
 
@@ -1980,7 +1995,7 @@ function WelcomeSheet({ onClose, onTour }) {
                 </motion.div>
               ))}
             </div>
-            {caption(tr("welcome.capCheck", "Quality-control and measurement photos — of that exact item."))}
+            {caption(tr("welcome.capCheck", "Real photos from a real order — yours arrive the same way."))}
           </motion.div>
         )}
 
@@ -2010,11 +2025,14 @@ function WelcomeSheet({ onClose, onTour }) {
         )}
       </div>
 
-      {/* tap-hint zolang er nog een stap volgt */}
+      {/* tap-hint zolang er nog een stap volgt — als pilletje, want de kale tekst
+          was op een drukke achtergrond nauwelijks te zien (Kaito 13-08). */}
       {beat >= 1 && step !== 1 && step < 5 && (
-        <motion.div animate={{ opacity: [0.3, 0.85, 0.3] }} transition={{ duration: 1.6, repeat: Infinity, ease: "easeInOut" }}
-          style={{ position: "fixed", bottom: 26, left: 0, right: 0, textAlign: "center", fontSize: 12.5, fontWeight: 700, color: "rgba(255,255,255,0.6)", pointerEvents: "none" }}>
-          {tr("tour.tap", "tap to continue")}
+        <motion.div animate={{ opacity: [0.65, 1, 0.65] }} transition={{ duration: 1.7, repeat: Infinity, ease: "easeInOut" }}
+          style={{ position: "fixed", bottom: 24, left: 0, right: 0, display: "flex", justifyContent: "center", pointerEvents: "none" }}>
+          <span style={{ background: "rgba(20,19,17,0.82)", border: "1px solid rgba(255,255,255,0.16)", color: "#fff", fontSize: 13.5, fontWeight: 700, padding: "9px 18px", borderRadius: 22, boxShadow: "0 6px 20px rgba(0,0,0,0.4)", whiteSpace: "nowrap" }}>
+            {tr("tour.tap", "tap to continue")}
+          </span>
         </motion.div>
       )}
     </motion.div>

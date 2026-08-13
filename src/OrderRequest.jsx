@@ -440,7 +440,9 @@ export default function OrderRequest({ product, session, onRequireAuth, onClose,
               return (
                 <motion.div variants={fadeUp} style={{ background: "#F8F7F4", borderRadius: 14, padding: "14px 16px", marginBottom: 24 }}>
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
-                    <span style={{ fontSize: 13, color: "#6B6862", fontWeight: 600 }}>{tr("product.factoryPrice","Factory price")}</span>
+                    {/* "Factory price" → "Price" (user 2026-08-13): de winkels zijn merken,
+                        geen fabrieken; "fabrieksprijs" klopte niet meer. */}
+                    <span style={{ fontSize: 13, color: "#6B6862", fontWeight: 600 }}>{tr("product.priceLabel","Price")}</span>
                     <span style={{ fontSize: 18, fontWeight: 800, color: "#111" }}>
                       {/* prijs-stempel: de échte fabrieksprijs wordt "gestempeld" */}
                       <motion.span initial={{ scale: 1.7, opacity: 0, rotate: -8 }} animate={{ scale: 1, opacity: 1, rotate: 0 }}
@@ -452,7 +454,7 @@ export default function OrderRequest({ product, session, onRequireAuth, onClose,
                     </span>
                   </div>
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginTop: 7 }}>
-                    <span style={{ fontSize: 12.5, color: "#8A8780" }}>{tr("product.chinaShipping","China shipping")}</span>
+                    <span style={{ fontSize: 12.5, color: "#8A8780" }}>{tr("product.domesticShipping","Domestic shipping (China)")}</span>
                     <span style={{ fontSize: 13.5, fontWeight: 700, color: "#111" }}>€{(shipCny / KOERS).toFixed(2)} <span style={{ fontSize: 12, color: "#A8A5A0", fontWeight: 600 }}>· ¥{shipCny}</span></span>
                   </div>
                   {/* Levertijd — dé vraag bij bestellen uit China; zonder antwoord haken

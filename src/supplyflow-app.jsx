@@ -4041,9 +4041,11 @@ export default function SupplyFlow({ session, factoriesVisible = true }) {
     // Taobao-stores hebben geen 1688-diamant-rang → geen 💎-badge op de collage.
     const dia = isTaobao ? 0 : Math.max(0, Math.min(4, Number(f.diamonds) || 0));
     const stats = (isTaobao ? [
-      { label: tr("feed.brandCard.stat.rating", "Store rating"), v: f.tb_rating },
+      // Reviews samengevoegd met de rating (user 2026-08-13): het aantal reviews staat
+      // nu rechtsboven ín de rating-tegel — twee losse cijfers vertelden hetzelfde verhaal.
+      { label: tr("feed.brandCard.stat.rating", "Store rating"), v: f.tb_rating,
+        extra: f.tb_reviews ? `${f.tb_reviews} ${tr("feed.brandCard.stat.reviewsWord", "reviews")}` : null },
       { label: tr("feed.brandCard.stat.followers", "Followers"), v: f.tb_followers },
-      { label: tr("feed.brandCard.stat.reviews", "Reviews"), v: f.tb_reviews },
       // Service score eruit (user 2026-07-26): zei bijna hetzelfde als Store rating,
       // en met 5 tegels bleef er een weesje onderaan het 2-koloms raster liggen.
       { label: tr("feed.brandCard.stat.shipSpeed", "Domestic shipping speed"), v: f.tb_ship_speed },
@@ -4086,7 +4088,11 @@ export default function SupplyFlow({ session, factoriesVisible = true }) {
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6, marginTop: 11 }}>
               {stats.map(s => (
                 <div key={s.label} style={{ background: "#F6F4EF", borderRadius: 10, padding: "7px 10px" }}>
-                  <div style={{ fontSize: 13, fontWeight: 800, color: "#FF5C00", lineHeight: 1.1 }}>{s.v}</div>
+                  {/* s.extra (aantal reviews) staat rechtsboven naast het cijfer. */}
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 5 }}>
+                    <span style={{ fontSize: 13, fontWeight: 800, color: "#FF5C00", lineHeight: 1.1 }}>{s.v}</span>
+                    {s.extra && <span style={{ fontSize: 9.5, fontWeight: 600, color: "#A8A5A0", lineHeight: 1.1, whiteSpace: "nowrap" }}>{s.extra}</span>}
+                  </div>
                   <div style={{ fontSize: 10, color: "#8A8780", lineHeight: 1.25, marginTop: 2 }}>{s.label}</div>
                 </div>
               ))}

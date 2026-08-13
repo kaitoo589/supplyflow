@@ -146,7 +146,6 @@ export default function App() {
         if (mounted) setRole(res?.data?.role || "customer");
       } else if (mounted) {
         setRole(null);
-        setSupportBotVisible(false);
       }
       // Globale zichtbaarheidsvlaggen (admin bestuurt deze via app_settings). Ook
       // ZONDER sessie ophalen: gasten browsen mee en moeten dezelfde etalage zien.
@@ -155,7 +154,9 @@ export default function App() {
         4000
       ).catch(() => null);
       if (mounted) {
-        if (session) setSupportBotVisible(cfg?.data?.support_bot_visible === true);
+        // Ook GASTEN zien de support-knop (mens-support, sinds 2026-08-13): het paneel
+        // legt hen uit dat chatten een gratis account vraagt. Contact vindbaar = vertrouwen.
+        setSupportBotVisible(cfg?.data?.support_bot_visible === true);
         // Alleen expliciet false verbergt de fabrieken — een mislukte call laat alles staan.
         if (cfg?.data) setFactoriesVisible(cfg.data.factories_visible !== false);
       }

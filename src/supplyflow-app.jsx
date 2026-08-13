@@ -1306,6 +1306,15 @@ function RequestListSheet({ items, onRemove, onSetQty, onClose, onSend, sending,
                 <span style={{ fontSize: 20, fontWeight: 800, color: "#FF5C00" }}>€{charge.toFixed(2)}</span>
               </motion.div>
 
+              {/* Wat er nu gebeurt + wanneer het komt — beantwoordt "hoe komt dit bij mij?"
+                  op het moment dat de twijfel het grootst is. */}
+              <div style={{ display: "flex", alignItems: "flex-start", gap: 8, background: "rgba(255,92,0,0.08)", border: "1px solid rgba(255,92,0,0.22)", borderRadius: 12, padding: "10px 12px", marginBottom: 12 }}>
+                <span style={{ fontSize: 14, lineHeight: "18px" }}>🚚</span>
+                <span style={{ fontSize: 12, color: "#C9C6C1", lineHeight: 1.55 }}>
+                  {tr("cart.deliveryExplainer", "Your items reach our warehouse in about a week — you'll see photos of your actual items there. Ship whenever you're ready; door-to-door is usually 2–4 weeks in total.")}
+                </span>
+              </div>
+
               {/* Saldo net te laag → geen doodlopende melding maar meteen het exacte
                   tekort, met de opwaardeerknop eronder bij de betaalknop. */}
               {showShort && (
@@ -1368,8 +1377,10 @@ function RequestListSheet({ items, onRemove, onSetQty, onClose, onSend, sending,
                       )}
                     </>
                   ) : (
-                  <motion.button whileTap={sending || !hasAddress || !addrValid || !payable.length || !agreed ? undefined : { scale: 0.97 }} onClick={confirmAndPay} disabled={sending || !hasAddress || !addrValid || payable.length === 0 || !agreed}
-                    style={{ width: "100%", marginTop: 10, background: sending ? "#333" : (!hasAddress || !addrValid || !payable.length || !agreed) ? "#444" : "#FF5C00", color: "#fff", border: "none", borderRadius: 14, padding: "16px", fontSize: 15, fontWeight: 700, cursor: sending || !hasAddress || !addrValid || !payable.length || !agreed ? "default" : "pointer", WebkitTapHighlightColor: "transparent" }}>
+                  // Zonder adres is dit een échte actieknop (opent login/adres-editor) — een
+                  // uitgeschakelde knop met "voeg een adres toe" erop leest als kapot.
+                  <motion.button whileTap={sending || (hasAddress && (!addrValid || !payable.length || !agreed)) ? undefined : { scale: 0.97 }} onClick={!hasAddress ? onEditAddress : confirmAndPay} disabled={sending || (hasAddress && (!addrValid || payable.length === 0 || !agreed))}
+                    style={{ width: "100%", marginTop: 10, background: sending ? "#333" : !hasAddress ? "#FF5C00" : (!addrValid || !payable.length || !agreed) ? "#444" : "#FF5C00", color: "#fff", border: "none", borderRadius: 14, padding: "16px", fontSize: 15, fontWeight: 700, cursor: sending || (hasAddress && (!addrValid || !payable.length || !agreed)) ? "default" : "pointer", WebkitTapHighlightColor: "transparent" }}>
                     {sending ? tr("cart.processingPayment", "Processing payment…") : !hasAddress ? tr("cart.addAddressToContinue", "Add an address to continue") : payable.length === 0 ? tr("cart.allOnHold", "All items are on hold") : !agreed ? tr("cart.tickBoxToContinue", "Tick the box to continue") : heldCount > 0 ? tr("cart.payForRest", "Order & pay €{amount} for the rest →", { amount: charge.toFixed(2) }) : tr("cart.payButton", "Order & pay €{amount} →", { amount: charge.toFixed(2) })}
                   </motion.button>
                   )}

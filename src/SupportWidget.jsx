@@ -5,13 +5,12 @@ import { supabase } from "./supabase";
 import { theme } from "./theme";
 import { springSoft, springSnappy, pressable } from "./motion";
 import Fox from "./Fox";
-
-const ESCALATED_TEXT =
-  "Great question! We're looking into it — you'll get your answer right here as soon as possible.";
+import { tr, useLangVersion } from "./i18n";
 
 const POS_KEY = "supportWidget:pos";
 
 export default function SupportWidget({ session }) {
+  useLangVersion(); // her-render bij taalwissel
   const [open, setOpen] = useState(false);
   const [panelPos, setPanelPos] = useState({ bottom: 92, right: 20 });
   const [questions, setQuestions] = useState([]);
@@ -101,6 +100,8 @@ export default function SupportWidget({ session }) {
     setSending(true);
     setDraft("");
     try {
+      // Mens-flow (geen AI): de vraag blijft "pending" tot Kaito 'm in de
+      // admin-inbox beantwoordt; het antwoord komt live binnen via realtime.
       const { data: row, error } = await supabase
         .from("support_questions")
         .insert({ user_id: userId, question: text, page_context: window.location.pathname })
@@ -108,15 +109,6 @@ export default function SupportWidget({ session }) {
         .single();
       if (error) throw error;
       setQuestions((qs) => [...qs, row]);
-
-      const { data: result } = await supabase.functions.invoke("support-answer", {
-        body: { question_id: row.id },
-      });
-      if (result?.status) {
-        setQuestions((qs) =>
-          qs.map((q) => (q.id === row.id ? { ...q, status: result.status, answer: result.answer ?? q.answer } : q))
-        );
-      }
     } catch (err) {
       console.error("Support send error:", err);
       setQuestions((qs) => [
@@ -127,8 +119,6 @@ export default function SupportWidget({ session }) {
       setSending(false);
     }
   };
-
-  if (!userId) return null;
 
   const bubbleBase = {
     maxWidth: "80%",
@@ -141,9 +131,8 @@ export default function SupportWidget({ session }) {
 
   const replyFor = (q) => {
     if (q.status === "answered" || q.status === "closed") return q.answer;
-    if (q.status === "escalated") return ESCALATED_TEXT;
-    if (q.status === "error") return "Something went wrong — please try again in a moment.";
-    return null; // pending
+    if (q.status === "error") return tr("support.error", "Something went wrong — please try again in a moment.");
+    return null; // pending/escalated: wacht op een echt mens
   };
 
   return (
@@ -185,8 +174,8 @@ export default function SupportWidget({ session }) {
               }}
             >
               <div>
-                <div style={{ fontWeight: 700, fontSize: 15 }}>Flowva support <Fox /></div>
-                <div style={{ fontSize: 12, opacity: 0.7 }}>Usually replies instantly</div>
+                <div style={{ fontWeight: 700, fontSize: 15 }}>{tr("support.title", "Flowva support")} <Fox /></div>
+                <div style={{ fontSize: 12, opacity: 0.7 }}>{tr("support.subtitle", "Talk to a human — a real person replies")}</div>
               </div>
               <button
                 onClick={() => setOpen(false)}
@@ -198,9 +187,14 @@ export default function SupportWidget({ session }) {
             </div>
 
             <div ref={scrollRef} style={{ flex: 1, overflowY: "auto", padding: 16, display: "flex", flexDirection: "column", gap: 10 }}>
-              {questions.length === 0 && (
+              {!userId && (
+                <div style={{ color: theme.ink, fontSize: 13.5, textAlign: "center", marginTop: 24, lineHeight: 1.6, padding: "0 8px" }}>
+                  {tr("support.guestBody", "Ask us anything — a real person reads and answers every message. Log in or create a free account (Profile tab) to start chatting.")}
+                </div>
+              )}
+              {userId && questions.length === 0 && (
                 <div style={{ color: theme.inkFaint, fontSize: 13, textAlign: "center", marginTop: 24 }}>
-                  Ask us anything — we're happy to help.
+                  {tr("support.empty", "Ask us anything — a real person reads and answers every message.")}
                 </div>
               )}
               {questions.map((q) => (
@@ -223,20 +217,21 @@ export default function SupportWidget({ session }) {
                       {replyFor(q)}
                     </motion.div>
                   ) : (
-                    <div style={{ ...bubbleBase, alignSelf: "flex-start", background: theme.field, color: theme.inkFaint }}>
-                      …
+                    <div style={{ ...bubbleBase, alignSelf: "flex-start", background: theme.field, color: theme.inkFaint, fontSize: 12.5 }}>
+                      {tr("support.pending", "✓ Sent — a real person will reply right here, usually within a few hours.")}
                     </div>
                   )}
                 </div>
               ))}
             </div>
 
+            {userId && (
             <div style={{ borderTop: `1px solid ${theme.line}`, padding: 12, display: "flex", gap: 8 }}>
               <input
                 value={draft}
                 onChange={(e) => setDraft(e.target.value)}
                 onKeyDown={(e) => e.key === "Enter" && send()}
-                placeholder="Type your question…"
+                placeholder={tr("support.placeholder", "Type your message…")}
                 style={{
                   flex: 1,
                   border: "none",
@@ -269,6 +264,7 @@ export default function SupportWidget({ session }) {
                 <Send size={16} />
               </motion.button>
             </div>
+            )}
           </motion.div>
         )}
       </AnimatePresence>

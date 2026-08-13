@@ -1869,7 +1869,110 @@ function EditProfileSheet({ session, onClose }) {
   );
 }
 
-// Altijd bereikbare uitleg-pagina (Profile + automatisch bij de eerste keer) —
+// ── WELKOM (2026-08-13) ──────────────────────────────────────────────────────
+// Vervangt de 7-schermen-tour als eerste indruk. Eén taak: laten zien dat dit
+// écht is. Taal kiezen → één belofte, gedragen door ECHTE quality-control-foto's:
+// de knopen op de modelfoto komen terug op de meetfoto, dus je ziet dat het
+// hetzelfde kledingstuk is. Bewijs verslaat beloftes.
+// De volledige tour is niet weg — die zit nu achter de ?-knop in de feed-header.
+const WELCOME_SAY = "Real Chinese brands — and we check every item before it reaches you.";
+function WelcomeSheet({ onClose, onTour }) {
+  const tr = useTr();
+  const { setLang } = useLang();
+  const [beat, setBeat] = useState(0);                       // 0 = vos dead-center · 1 = wolk
+  const [langPicking, setLangPicking] = useState(!hasChosenLang());
+  useBodyScrollLock(true);
+  const morph = { type: "spring", stiffness: 260, damping: 26 };
+  const bubbleText = langPicking
+    ? tr("welcome.langSay", "First, pick your language.")
+    : tr("welcome.say", WELCOME_SAY);
+
+  useEffect(() => { const t = setTimeout(() => setBeat(1), 560); return () => clearTimeout(t); }, []);
+  const chooseLang = (code) => { setLang(code); setLangPicking(false); };
+
+  const shot = (src, label) => (
+    <div style={{ flex: 1, minWidth: 0 }}>
+      <div style={{ width: "100%", aspectRatio: "1 / 1", borderRadius: 14, overflow: "hidden", background: "rgba(255,255,255,0.08)" }}>
+        <img src={src} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
+      </div>
+      <div style={{ fontSize: 11.5, fontWeight: 600, color: "rgba(255,255,255,0.66)", textAlign: "center", marginTop: 7, lineHeight: 1.35 }}>{label}</div>
+    </div>
+  );
+  const bullet = (text, delay) => (
+    <motion.div initial={{ opacity: 0, x: -8 }} animate={{ opacity: 1, x: 0 }} transition={{ delay, ...springSoft }}
+      style={{ display: "flex", gap: 9, alignItems: "flex-start", marginBottom: 9 }}>
+      <span style={{ color: "#FF8A3D", fontSize: 13, lineHeight: "20px", flexShrink: 0 }}>✓</span>
+      <span style={{ fontSize: 13.5, color: "rgba(255,255,255,0.86)", lineHeight: 1.5 }}>{text}</span>
+    </motion.div>
+  );
+
+  return (
+    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+      style={{ position: "fixed", inset: 0, zIndex: 300, background: "rgba(0,0,0,0.55)", backdropFilter: "blur(9px)", WebkitBackdropFilter: "blur(9px)", display: "flex", flexDirection: "column", alignItems: "center", overflowY: "auto", overscrollBehavior: "contain", padding: "0 22px 40px" }}>
+
+      {/* VOS dead-center tot de wolk verschijnt (zelfde morph als de tour) */}
+      {beat === 0 && (
+        <div style={{ position: "fixed", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", pointerEvents: "none" }}>
+          <motion.span layoutId="welcome-fox" transition={{ layout: morph }}
+            style={{ fontSize: 58, lineHeight: 1, display: "inline-block", filter: "drop-shadow(0 12px 30px rgba(0,0,0,0.5))" }}><Fox /></motion.span>
+        </div>
+      )}
+
+      <div style={{ width: "100%", maxWidth: 360, marginTop: "min(11vh, 84px)", paddingBottom: 30, display: "flex", flexDirection: "column", alignItems: "center" }}>
+        {beat >= 1 && (
+          <div style={{ position: "relative", maxWidth: 300, marginBottom: 26 }}>
+            <motion.div layout transition={{ layout: morph }}
+              style={{ background: "#1E1D1A", color: "#fff", borderRadius: 18, padding: "13px 17px", boxShadow: "0 12px 36px rgba(0,0,0,0.45)" }}>
+              <span style={{ fontSize: 14.5, lineHeight: 1.55, fontWeight: 600, textAlign: "center", display: "block" }}>
+                <WordReveal key={bubbleText} text={bubbleText} delay={0.2} stagger={0.05} />
+              </span>
+            </motion.div>
+            <div aria-hidden style={{ position: "absolute", right: -8, bottom: 13, width: 0, height: 0, borderTop: "8px solid transparent", borderBottom: "8px solid transparent", borderLeft: "9px solid #1E1D1A" }} />
+            <motion.span layoutId="welcome-fox" transition={{ layout: morph }}
+              style={{ position: "absolute", bottom: -2, right: -38, fontSize: 34, lineHeight: 1, display: "inline-block" }}><Fox /></motion.span>
+          </div>
+        )}
+
+        {/* TAALKIEZER — eerste scherm, alleen de allereerste keer */}
+        {beat >= 1 && langPicking && (
+          <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={springSoft}
+            style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, width: "100%" }}>
+            {LANGS.map((l) => (
+              <motion.button key={l.code} whileTap={{ scale: 0.96 }} onClick={() => chooseLang(l.code)}
+                style={{ display: "flex", alignItems: "center", gap: 10, background: "rgba(255,255,255,0.08)", border: "1px solid rgba(255,255,255,0.16)", borderRadius: 13, padding: "12px 14px", color: "#fff", fontSize: 14, fontWeight: 600, cursor: "pointer", textAlign: "left", WebkitTapHighlightColor: "transparent" }}>
+                <span style={{ fontSize: 20, lineHeight: 1 }}>{l.flag}</span>
+                <span>{l.label}</span>
+              </motion.button>
+            ))}
+          </motion.div>
+        )}
+
+        {/* DE BELOFTE — twee echte foto's van hetzelfde kledingstuk + drie regels */}
+        {beat >= 1 && !langPicking && (
+          <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15, ...springSoft }} style={{ width: "100%" }}>
+            <div style={{ display: "flex", gap: 10, marginBottom: 20 }}>
+              {shot("/intro-model.webp", tr("welcome.shotOrder", "What you order"))}
+              {shot("/intro-meting.webp", tr("welcome.shotCheck", "What we photograph & measure"))}
+            </div>
+            {bullet(tr("welcome.b1", "Authentic Chinese brands, at the price they charge at home."), 0.3)}
+            {bullet(tr("welcome.b2", "We buy it, photograph it and measure your actual item."), 0.42)}
+            {bullet(tr("welcome.b3", "Something wrong? It goes back and you get everything back."), 0.54)}
+            <motion.button whileTap={{ scale: 0.97 }} onClick={onClose}
+              style={{ width: "100%", marginTop: 14, background: "#FF5C00", color: "#fff", border: "none", borderRadius: 13, padding: "15px", fontSize: 15, fontWeight: 700, cursor: "pointer", WebkitTapHighlightColor: "transparent" }}>
+              {tr("tour.cta", "Start shopping")} <Fox />
+            </motion.button>
+            <button onClick={onTour}
+              style={{ width: "100%", marginTop: 10, background: "none", border: "none", color: "rgba(255,255,255,0.55)", fontSize: 13, fontWeight: 600, cursor: "pointer", padding: 6 }}>
+              {tr("welcome.how", "How does Flowva work?")} →
+            </button>
+          </motion.div>
+        )}
+      </div>
+    </motion.div>
+  );
+}
+
+// Altijd bereikbare uitleg-pagina (Profile + ?-knop in de feed) —
 // als VOS-GELEIDE TOUR met de bel-choreografie uit HypeCheck: per stop verschijnt
 // het icoon GROOT op het podium, schudt, de vos legt 'm woord-voor-woord uit, en
 // het icoon morpht (shared layoutId) z'n plek in de route in. De vos schuift mee
@@ -2789,6 +2892,7 @@ export default function SupplyFlow({ session, factoriesVisible = true }) {
   const [myVotes, setMyVotes] = useState({});
   const [showEditProfile, setShowEditProfile] = useState(false);
   const [showHowItWorks, setShowHowItWorks] = useState(false);
+  const [showWelcome, setShowWelcome] = useState(false);      // eerste indruk (2 schermen)
   const [showPricing, setShowPricing] = useState(false);
   const [showPricingTour, setShowPricingTour] = useState(false);
   const [showDiamond, setShowDiamond] = useState(false);
@@ -3294,15 +3398,15 @@ export default function SupplyFlow({ session, factoriesVisible = true }) {
     if (!isGuest) return;
     try {
       if (!localStorage.getItem(lsKey("flowva_seen_howitworks"))) {
-        const t = setTimeout(() => setShowHowItWorks(true), 900);
+        const t = setTimeout(() => setShowWelcome(true), 900);
         return () => clearTimeout(t);
       }
     } catch { /* localStorage kan geblokkeerd zijn */ }
   }, [isGuest]);
-  const closeHowItWorks = () => {
-    try { localStorage.setItem(lsKey("flowva_seen_howitworks"), "1"); } catch { /* ignore */ }
-    setShowHowItWorks(false);
-  };
+  // Eén vlag voor beide: wie het welkomstscherm heeft gezien krijgt 'm niet opnieuw.
+  const markIntroSeen = () => { try { localStorage.setItem(lsKey("flowva_seen_howitworks"), "1"); } catch { /* ignore */ } };
+  const closeHowItWorks = () => { markIntroSeen(); setShowHowItWorks(false); };
+  const closeWelcome = () => { markIntroSeen(); setShowWelcome(false); };
 
   // Instant checkout: reken de hele mand in één keer af (server-side pay_cart).
   // Geeft true terug bij succes → de sheet morpht dan naar de "placed"-weergave.
@@ -3378,7 +3482,7 @@ export default function SupplyFlow({ session, factoriesVisible = true }) {
     blocked: !!(selectedProduct || showRequestList || showFriends || showVable || hypeProduct || showNotifs || authOpen || morph || selectedOrder),
     // Voor de bottom-pull: alléén échte fixed-overlays blokkeren (order-detail is gewone
     // scrollende content en mág rekken → niet in deze lijst).
-    overlay: !!(selectedProduct || showRequestList || showFriends || showVable || hypeProduct || showNotifs || authOpen || morph || previewProduct || actionProduct || reviewProduct || orderSuccess || successProduct || showEditProfile || showHowItWorks || showPricing || showPricingTour || showDiamond || squadWheel || showClothesPicker),
+    overlay: !!(selectedProduct || showRequestList || showFriends || showVable || hypeProduct || showNotifs || authOpen || morph || previewProduct || actionProduct || reviewProduct || orderSuccess || successProduct || showEditProfile || showHowItWorks || showWelcome || showPricing || showPricingTour || showDiamond || squadWheel || showClothesPicker),
   };
   useEffect(() => {
     const onStart = (e) => {
@@ -3867,21 +3971,21 @@ export default function SupplyFlow({ session, factoriesVisible = true }) {
         )}
       </div>
       <div style={{ padding: "11px 13px 13px" }}>
-        <div style={{ fontSize: 11.5, color: "#A8A5A0", marginBottom: 3, display: "flex", justifyContent: "space-between", alignItems: "center", gap: 6 }}>
-          <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{p.platform}</span>
+        {/* Alleen het kledingtype — "Taobao", "MOQ 1" en de fee-disclaimer stonden op
+            élke kaart en zijn jargon dat honderden keren herhaald werd (Kaito 13-08).
+            De uitleg over fees hoort op één plek (?- en 💸-knop), niet overal. */}
+        <div style={{ fontSize: 11.5, marginBottom: 3, display: "flex", justifyContent: "flex-end", alignItems: "center", gap: 6 }}>
           <span style={{ color: "#FF5C00", fontWeight: 600, flexShrink: 0 }}>{garmentType(p.title)}</span>
         </div>
         <div style={{ fontSize: 13.5, fontWeight: 600, color: "#111111", marginBottom: 7, lineHeight: 1.35 }}>{p.title}</div>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end" }}>
           <div>
             <div style={{ fontSize: 15, fontWeight: 700, color: "#111111" }}>€{Number(p.price).toFixed(2)}</div>
-            <div style={{ fontSize: 9.5, color: "#A8A5A0", marginTop: 1, lineHeight: 1.2 }}>{isDemo ? tr("product.priceCaption.demo", "factory price · not live yet") : tr("product.priceCaption.live", "factory price · +fees & shipping")}</div>
+            {isDemo && <div style={{ fontSize: 9.5, color: "#A8A5A0", marginTop: 1, lineHeight: 1.2 }}>{tr("product.priceCaption.demo", "factory price · not live yet")}</div>}
           </div>
-          {isDemo
-            ? null
-            : Number(p.rating) > 0
-              ? <div style={{ fontSize: 11.5, fontWeight: 600, color: "#111111" }}>★ {Number(p.rating).toFixed(1)}</div>
-              : <div style={{ fontSize: 11, color: "#A8A5A0" }}>{tr("product.moq", "MOQ {value}", { value: p.moq })}</div>}
+          {!isDemo && Number(p.rating) > 0 && (
+            <div style={{ fontSize: 11.5, fontWeight: 600, color: "#111111" }}>★ {Number(p.rating).toFixed(1)}</div>
+          )}
         </div>
       </div>
     </motion.div>
@@ -4197,6 +4301,12 @@ export default function SupplyFlow({ session, factoriesVisible = true }) {
                 style={{ width: 42, height: 42, borderRadius: "50%", background: "#fff", border: "1px solid #ECEAE5", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", fontSize: 18, lineHeight: 1, WebkitTapHighlightColor: "transparent" }}>
                 {/* het emoji "vertrekt" tijdens de boogvlucht (de knop-cirkel blijft) */}
                 <span style={{ display: "inline-block", opacity: arcFlight?.kind === "pricing" ? 0 : 1, transition: "opacity .15s" }}>💸</span>
+              </motion.button>
+              {/* ? = de volledige uitleg-tour. Die start sinds 13-08 niet meer vanzelf
+                  (het welkomstscherm doet de eerste indruk) maar is hier altijd bereikbaar. */}
+              <motion.button whileTap={{ scaleX: 1.15, scaleY: 0.85 }} transition={springSnappy} onClick={() => setShowHowItWorks(true)} aria-label={tr("feed.aria.howButton", "How Flowva works")}
+                style={{ width: 42, height: 42, borderRadius: "50%", background: "#fff", border: "1px solid #ECEAE5", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", fontSize: 18, fontWeight: 800, color: "#0F0E0C", lineHeight: 1, WebkitTapHighlightColor: "transparent" }}>
+                ?
               </motion.button>
               {/* Diamant-rang is een 1688-fabriek-ding — niet tonen op de Brands-tab */}
               {tab !== "brands" && (
@@ -5181,6 +5291,7 @@ export default function SupplyFlow({ session, factoriesVisible = true }) {
 
       {/* Uitleg: hoe Flowva werkt */}
       <AnimatePresence>
+        {showWelcome && <WelcomeSheet onClose={closeWelcome} onTour={() => { markIntroSeen(); setShowWelcome(false); setShowHowItWorks(true); }} />}
         {showHowItWorks && <HowItWorksSheet onClose={closeHowItWorks} />}
         {showPricing && <PricingSheet onClose={() => setShowPricing(false)} arriving={arcFlight?.kind === "pricing"} onTour={() => { setShowPricing(false); setShowPricingTour(true); }} />}
         {showPricingTour && <PricingTourSheet onClose={closePricingTour} onDetails={openBreakdown} />}

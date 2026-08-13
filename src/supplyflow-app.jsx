@@ -1868,49 +1868,57 @@ function EditProfileSheet({ session, onClose }) {
     </>
   );
 }
-
 // ── WELKOM (2026-08-13) ──────────────────────────────────────────────────────
-// Vervangt de 7-schermen-tour als eerste indruk. Eén taak: laten zien dat dit
-// écht is. Taal kiezen → één belofte, gedragen door ECHTE quality-control-foto's:
-// de knopen op de modelfoto komen terug op de meetfoto, dus je ziet dat het
-// hetzelfde kledingstuk is. Bewijs verslaat beloftes.
-// De volledige tour is niet weg — die zit nu achter de ?-knop in de feed-header.
-const WELCOME_SAY = "Real Chinese brands — and we check every item before it reaches you.";
+// De eerste indruk: een kort verhaal in zes tikken in plaats van een lijstje met
+// zeven features. De vos vertelt één bestelling na, gedragen door ECHTE foto's uit
+// het magazijn — de knopen op de modelfoto komen terug op de meetfoto, dus je ziet
+// dat het hetzelfde kledingstuk is. Bewijs verslaat beloftes.
+// Slot: de vos geeft toe dat het veel is en stuurt je gewoon de winkel in.
+// De volledige feature-tour is niet weg — die zit achter de ?-knop in de feed-header.
+const WELCOME_QC = [1, 2, 3, 4, 5, 6, 7];   // public/intro-qc1..7.webp — 3 controle- + 4 meetfoto's
 function WelcomeSheet({ onClose, onTour }) {
   const tr = useTr();
   const { setLang } = useLang();
-  const [beat, setBeat] = useState(0);                       // 0 = vos dead-center · 1 = wolk
-  const [langPicking, setLangPicking] = useState(!hasChosenLang());
+  const needLang = !hasChosenLang();
+  const [beat, setBeat] = useState(0);        // 0 = vos dead-center · 1 = wolk staat er
+  const [step, setStep] = useState(0);        // 0 groet · 1 taal · 2 bestellen · 3 controle · 4 magazijn · 5 slot
   useBodyScrollLock(true);
   const morph = { type: "spring", stiffness: 260, damping: 26 };
-  const bubbleText = langPicking
-    ? tr("welcome.langSay", "First, pick your language.")
-    : tr("welcome.say", WELCOME_SAY);
 
   useEffect(() => { const t = setTimeout(() => setBeat(1), 560); return () => clearTimeout(t); }, []);
-  const chooseLang = (code) => { setLang(code); setLangPicking(false); };
+  // De foto's van de volgende stap alvast in de browsercache (buiten de DOM, dus
+  // geen onzichtbare kopieën in de pagina) — anders flitsen ze in bij stap 3.
+  useEffect(() => {
+    if (step < 2) return;
+    WELCOME_QC.forEach((n) => { const i = new Image(); i.src = `/intro-qc${n}.webp`; });
+  }, [step]);
 
-  const shot = (src, label) => (
-    <div style={{ flex: 1, minWidth: 0 }}>
-      <div style={{ width: "100%", aspectRatio: "1 / 1", borderRadius: 14, overflow: "hidden", background: "rgba(255,255,255,0.08)" }}>
-        <img src={src} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
-      </div>
-      <div style={{ fontSize: 11.5, fontWeight: 600, color: "rgba(255,255,255,0.66)", textAlign: "center", marginTop: 7, lineHeight: 1.35 }}>{label}</div>
-    </div>
-  );
-  const bullet = (text, delay) => (
-    <motion.div initial={{ opacity: 0, x: -8 }} animate={{ opacity: 1, x: 0 }} transition={{ delay, ...springSoft }}
-      style={{ display: "flex", gap: 9, alignItems: "flex-start", marginBottom: 9 }}>
-      <span style={{ color: "#FF8A3D", fontSize: 13, lineHeight: "20px", flexShrink: 0 }}>✓</span>
-      <span style={{ fontSize: 13.5, color: "rgba(255,255,255,0.86)", lineHeight: 1.5 }}>{text}</span>
-    </motion.div>
+  // Tik = één stap verder. Tijdens het taal kiezen doet tikken niets (kies een taal).
+  const advance = () => {
+    if (step >= 5) return;
+    if (step === 0) { setStep(needLang ? 1 : 2); return; }
+    if (step === 1) return;
+    setStep((s) => s + 1);
+  };
+  const chooseLang = (code) => { setLang(code); setStep(2); };
+  const foxSide = step === 0 ? "left" : "right";
+  const bubbleText =
+    step === 0 ? tr("welcome.greeting", "Hey! First time shopping from China? I'll walk you through it.")
+    : step === 1 ? tr("welcome.langSay", "Set your language to your preference!")
+    : step === 2 ? tr("welcome.sayOrder", "Here's a quick example of how ordering works.")
+    : step === 3 ? tr("welcome.sayCheck", "Before it ships, we photograph and measure your actual item. Something wrong? Send it back and get 100% of your money back.")
+    : step === 4 ? tr("welcome.sayWarehouse", "After the check, everything waits safely in our warehouse — free for 30 days. You bundle whatever you want into one parcel, and that's what flies to your door.")
+    : tr("welcome.sayFinal", "But don't worry about that yet — have a look around first and see if you like what you find.");
+  const caption = (t) => (
+    <div style={{ fontSize: 12, color: "rgba(255,255,255,0.6)", textAlign: "center", marginTop: 10, lineHeight: 1.45 }}>{t}</div>
   );
 
   return (
-    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-      style={{ position: "fixed", inset: 0, zIndex: 300, background: "rgba(0,0,0,0.55)", backdropFilter: "blur(9px)", WebkitBackdropFilter: "blur(9px)", display: "flex", flexDirection: "column", alignItems: "center", overflowY: "auto", overscrollBehavior: "contain", padding: "0 22px 40px" }}>
+    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={advance}
+      style={{ position: "fixed", inset: 0, zIndex: 300, background: "rgba(0,0,0,0.55)", backdropFilter: "blur(9px)", WebkitBackdropFilter: "blur(9px)", display: "flex", flexDirection: "column", alignItems: "center", overflowY: "auto", overscrollBehavior: "contain", padding: "0 22px 40px", cursor: step >= 5 ? "default" : "pointer" }}>
 
-      {/* VOS dead-center tot de wolk verschijnt (zelfde morph als de tour) */}
+
+      {/* VOS dead-center tot de wolk verschijnt */}
       {beat === 0 && (
         <div style={{ position: "fixed", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", pointerEvents: "none" }}>
           <motion.span layoutId="welcome-fox" transition={{ layout: morph }}
@@ -1918,28 +1926,32 @@ function WelcomeSheet({ onClose, onTour }) {
         </div>
       )}
 
-      <div style={{ width: "100%", maxWidth: 360, marginTop: "min(11vh, 84px)", paddingBottom: 30, display: "flex", flexDirection: "column", alignItems: "center" }}>
+      <div style={{ width: "100%", maxWidth: 360, marginTop: "min(9vh, 70px)", paddingBottom: 24, display: "flex", flexDirection: "column", alignItems: "center" }}>
         {beat >= 1 && (
-          <div style={{ position: "relative", maxWidth: 300, marginBottom: 26 }}>
+          <div style={{ position: "relative", maxWidth: 300, marginBottom: 24 }}>
             <motion.div layout transition={{ layout: morph }}
               style={{ background: "#1E1D1A", color: "#fff", borderRadius: 18, padding: "13px 17px", boxShadow: "0 12px 36px rgba(0,0,0,0.45)" }}>
               <span style={{ fontSize: 14.5, lineHeight: 1.55, fontWeight: 600, textAlign: "center", display: "block" }}>
                 <WordReveal key={bubbleText} text={bubbleText} delay={0.2} stagger={0.05} />
               </span>
             </motion.div>
-            <div aria-hidden style={{ position: "absolute", right: -8, bottom: 13, width: 0, height: 0, borderTop: "8px solid transparent", borderBottom: "8px solid transparent", borderLeft: "9px solid #1E1D1A" }} />
+            {/* dubbele tail — cross-fade als de vos van links naar rechts springt */}
+            <motion.div aria-hidden animate={{ opacity: foxSide === "left" ? 1 : 0 }} transition={{ duration: 0.22 }}
+              style={{ position: "absolute", left: -8, bottom: 13, width: 0, height: 0, borderTop: "8px solid transparent", borderBottom: "8px solid transparent", borderRight: "9px solid #1E1D1A" }} />
+            <motion.div aria-hidden animate={{ opacity: foxSide === "right" ? 1 : 0 }} transition={{ duration: 0.22 }}
+              style={{ position: "absolute", right: -8, bottom: 13, width: 0, height: 0, borderTop: "8px solid transparent", borderBottom: "8px solid transparent", borderLeft: "9px solid #1E1D1A" }} />
             <motion.span layoutId="welcome-fox" transition={{ layout: morph }}
-              style={{ position: "absolute", bottom: -2, right: -38, fontSize: 34, lineHeight: 1, display: "inline-block" }}><Fox /></motion.span>
+              style={{ position: "absolute", bottom: -2, [foxSide]: -38, fontSize: 34, lineHeight: 1, display: "inline-block" }}><Fox /></motion.span>
           </div>
         )}
 
-        {/* TAALKIEZER — eerste scherm, alleen de allereerste keer */}
-        {beat >= 1 && langPicking && (
+        {/* TAAL — stap 1 */}
+        {beat >= 1 && step === 1 && (
           <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={springSoft}
             style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, width: "100%" }}>
             {LANGS.map((l) => (
-              <motion.button key={l.code} whileTap={{ scale: 0.96 }} onClick={() => chooseLang(l.code)}
-                style={{ display: "flex", alignItems: "center", gap: 10, background: "rgba(255,255,255,0.08)", border: "1px solid rgba(255,255,255,0.16)", borderRadius: 13, padding: "12px 14px", color: "#fff", fontSize: 14, fontWeight: 600, cursor: "pointer", textAlign: "left", WebkitTapHighlightColor: "transparent" }}>
+              <motion.button key={l.code} whileTap={{ scale: 0.96 }} onClick={(e) => { e.stopPropagation(); chooseLang(l.code); }}
+                style={{ display: "flex", alignItems: "center", gap: 10, background: "rgba(255,255,255,0.08)", border: "1px solid rgba(255,255,255,0.16)", borderRadius: 13, padding: "12px 14px", color: "#fff", fontSize: 14, fontWeight: 600, cursor: "pointer", textAlign: "left", pointerEvents: "auto", WebkitTapHighlightColor: "transparent" }}>
                 <span style={{ fontSize: 20, lineHeight: 1 }}>{l.flag}</span>
                 <span>{l.label}</span>
               </motion.button>
@@ -1947,27 +1959,64 @@ function WelcomeSheet({ onClose, onTour }) {
           </motion.div>
         )}
 
-        {/* DE BELOFTE — twee echte foto's van hetzelfde kledingstuk + drie regels */}
-        {beat >= 1 && !langPicking && (
-          <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15, ...springSoft }} style={{ width: "100%" }}>
-            <div style={{ display: "flex", gap: 10, marginBottom: 20 }}>
-              {shot("/intro-model.webp", tr("welcome.shotOrder", "What you order"))}
-              {shot("/intro-meting.webp", tr("welcome.shotCheck", "What we photograph & measure"))}
+        {/* STAP 2 — "stel dat je dit bestelt": de modelfoto groot en volledig */}
+        {step === 2 && (
+          <motion.div initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} transition={springSoft} style={{ width: "100%" }}>
+            <div style={{ borderRadius: 16, overflow: "hidden", background: "rgba(255,255,255,0.06)" }}>
+              <img src="/intro-model.webp" alt="" style={{ width: "100%", display: "block" }} />
             </div>
-            {bullet(tr("welcome.b1", "Authentic Chinese brands, at the price they charge at home."), 0.3)}
-            {bullet(tr("welcome.b2", "We buy it, photograph it and measure your actual item."), 0.42)}
-            {bullet(tr("welcome.b3", "Something wrong? It goes back and you get everything back."), 0.54)}
-            <motion.button whileTap={{ scale: 0.97 }} onClick={onClose}
-              style={{ width: "100%", marginTop: 14, background: "#FF5C00", color: "#fff", border: "none", borderRadius: 13, padding: "15px", fontSize: 15, fontWeight: 700, cursor: "pointer", WebkitTapHighlightColor: "transparent" }}>
+            {caption(tr("welcome.capOrder", "Say you ordered this."))}
+          </motion.div>
+        )}
+
+        {/* STAP 3 — wat wij ermee doen: alle zeven échte foto's */}
+        {step === 3 && (
+          <motion.div initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} transition={springSoft} style={{ width: "100%" }}>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 7 }}>
+              {WELCOME_QC.map((n, i) => (
+                <motion.div key={n} initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.12 + i * 0.055, ...springSoft }}
+                  style={{ aspectRatio: "1 / 1", borderRadius: 10, overflow: "hidden", background: "rgba(255,255,255,0.06)" }}>
+                  <img src={`/intro-qc${n}.webp`} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
+                </motion.div>
+              ))}
+            </div>
+            {caption(tr("welcome.capCheck", "Quality-control and measurement photos — of that exact item."))}
+          </motion.div>
+        )}
+
+        {/* STAP 4 — magazijn: één groot pakket-icoon, zelfde bel-moment als de tour */}
+        {step === 4 && (
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={springSoft}
+            style={{ width: "100%", display: "flex", flexDirection: "column", alignItems: "center", padding: "18px 0 4px" }}>
+            <motion.span initial={{ scale: 0.5 }} animate={{ scale: 1, rotate: [0, -18, 12, -6, 0] }}
+              transition={{ scale: springSoft, rotate: { duration: 0.72, ease: [0.32, 0.72, 0, 1], delay: 0.1 } }}
+              style={{ fontSize: 74, lineHeight: 1, display: "inline-block", filter: "drop-shadow(0 12px 30px rgba(255,92,0,0.35))" }}>📦</motion.span>
+            {caption(tr("welcome.capWarehouse", "30 days free storage — you decide when it ships."))}
+          </motion.div>
+        )}
+
+        {/* STAP 5 — slot: de winkel in, of alsnog de volledige uitleg */}
+        {step === 5 && (
+          <motion.div initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.25, ...springSoft }} style={{ width: "100%" }}>
+            <motion.button whileTap={{ scale: 0.97 }} onClick={(e) => { e.stopPropagation(); onClose(); }}
+              style={{ width: "100%", background: "#FF5C00", color: "#fff", border: "none", borderRadius: 13, padding: "15px", fontSize: 15, fontWeight: 700, cursor: "pointer", WebkitTapHighlightColor: "transparent" }}>
               {tr("tour.cta", "Start shopping")} <Fox />
             </motion.button>
-            <button onClick={onTour}
-              style={{ width: "100%", marginTop: 10, background: "none", border: "none", color: "rgba(255,255,255,0.55)", fontSize: 13, fontWeight: 600, cursor: "pointer", padding: 6 }}>
-              {tr("welcome.how", "How does Flowva work?")} →
+            <button onClick={(e) => { e.stopPropagation(); onTour(); }}
+              style={{ width: "100%", marginTop: 10, background: "none", border: "none", color: "rgba(255,255,255,0.6)", fontSize: 13, fontWeight: 600, cursor: "pointer", padding: 8 }}>
+              {tr("welcome.demo", "Want the full picture? See the next demo")} →
             </button>
           </motion.div>
         )}
       </div>
+
+      {/* tap-hint zolang er nog een stap volgt */}
+      {beat >= 1 && step !== 1 && step < 5 && (
+        <motion.div animate={{ opacity: [0.3, 0.85, 0.3] }} transition={{ duration: 1.6, repeat: Infinity, ease: "easeInOut" }}
+          style={{ position: "fixed", bottom: 26, left: 0, right: 0, textAlign: "center", fontSize: 12.5, fontWeight: 700, color: "rgba(255,255,255,0.6)", pointerEvents: "none" }}>
+          {tr("tour.tap", "tap to continue")}
+        </motion.div>
+      )}
     </motion.div>
   );
 }
@@ -2003,8 +2052,10 @@ function HowItWorksSheet({ onClose }) {
   const { setLang } = useLang();
   const [beat, setBeat] = useState(0);          // 0 = vos dead-center · 1 = wolk zichtbaar
   const [step, setStep] = useState(-1);         // -1 intro · 0..5 actieve stap · 6 klaar
-  const [langPicking, setLangPicking] = useState(false);   // taalkiezer tussen begroeting en stap 1
-  const needLang = !hasChosenLang();            // alleen de allereerste keer de taalkiezer tonen
+  const [langPicking, setLangPicking] = useState(false);
+  // De taalkeuze zit sinds 13-08 in het WELKOMSTSCHERM (dat komt altijd als eerste),
+  // dus deze tour begint meteen bij de eerste stop.
+  const needLang = false;
   useBodyScrollLock(true);                       // feed erachter niet mee laten scrollen (anders verschuiven de anchors)
   const done = step >= HIW_STOPS.length;
   const foxSide = (step >= 0 || done) ? "right" : "left";

@@ -3780,7 +3780,11 @@ export default function SupplyFlow({ session, factoriesVisible = true }) {
     const matchSearch = !q || (p.title || "").toLowerCase().includes(q);
     const matchFav = !showFavoritesOnly || isFavorite(p);
     return matchCat && matchSearch && matchFav;
-  }).sort((a, b) => (a.demo ? 1 : 0) - (b.demo ? 1 : 0));
+    // Demo's altijd achteraan; daarbinnen de handmatige winkelvolgorde uit de admin
+    // (products.sort_order — mooiste producten bovenaan), id als terugval.
+  }).sort((a, b) => (a.demo ? 1 : 0) - (b.demo ? 1 : 0)
+    || (a.sort_order ?? 1e9) - (b.sort_order ?? 1e9)
+    || (a.id ?? 0) - (b.id ?? 0));
 
   // ── Fabriek-first feed ──────────────────────────────────────────────────
   // Hoort een product bij deze fabriek? Echte koppeling (factory_id), met

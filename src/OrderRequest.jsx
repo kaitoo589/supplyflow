@@ -35,11 +35,31 @@ function variantPriceEur(product, chosen) {
   const eur = Number(skuFor(product, chosen)?.priceEur);
   return Number.isFinite(eur) ? eur : (Number(product?.price) || 0);
 }
-// De échte ¥-prijs van de bron. Zonder variantkeuze tonen we niets in yuan
-// liever dan een teruggerekend bedrag dat bij geen enkele variant hoort.
-function variantPriceYuan(product, chosen) {
-  const y = Number(skuFor(product, chosen)?.priceYuan);
-  return Number.isFinite(y) ? y : null;
+
+// ── Prijs bij een GEDEELTELIJKE keuze (2026-08-14, Kaito) ───────────────────
+// skuFor eist dat álle assen gekozen zijn; tot dat moment viel de weergave terug
+// op de goedkoopste variant. Koos je dus alleen de dure wollen jas, dan bleef er
+// €33,23 staan tot je óók een maat aanklikte — en pas dán sprong 'ie naar €38,36.
+// Dat leest als een prijsverhoging onderweg. Nu filteren we op wat er al gekozen
+// is: blijft er één prijs over, dan is dat de prijs; zijn er meerdere, dan tonen
+// we de laagste mét een "vanaf"-label, zodat het bedrag nooit stilletjes stijgt.
+function skusMatching(product, chosen) {
+  const skus = Array.isArray(product?.bd_skus) ? product.bd_skus : [];
+  if (!skus.length) return [];
+  return skus.filter((s) => {
+    const props = Array.isArray(s?.props) ? s.props : [];
+    if (!props.length) return false;
+    return props.every((p) => chosen?.[p.name] == null || chosen[p.name] === p.value);
+  });
+}
+function variantPriceView(product, chosen) {
+  const passend = skusMatching(product, chosen);
+  const eurs = [...new Set(passend.map((s) => Number(s.priceEur)).filter(Number.isFinite))];
+  if (!eurs.length) return { eur: Number(product?.price) || 0, cny: null, vanaf: false };
+  const laagste = Math.min(...eurs);
+  const bij = passend.find((s) => Number(s.priceEur) === laagste);
+  const cny = Number(bij?.priceYuan);
+  return { eur: laagste, cny: Number.isFinite(cny) ? cny : null, vanaf: eurs.length > 1 };
 }
 
 export default function OrderRequest({ product, session, onRequireAuth, onClose, onSuccess, onAddToList, listCount = 0, isFavorite = false, onToggleFavorite, activeGroup = null, activeGroupShipLocked = false, onActiveGroupGone, groupLocked = false, lockedGroupName = null }) {
@@ -434,15 +454,17 @@ export default function OrderRequest({ product, session, onRequireAuth, onClose,
             {/* Prijs — duidelijk boven Quantity, in euro én yuan, plus de China-verzending. */}
             {(() => {
               const KOERS = 7.8;
-              const priceEur = variantPriceEur(product, selectedVariants);
-              const priceCny = variantPriceYuan(product, selectedVariants);
+              const { eur: priceEur, cny: priceCny, vanaf } = variantPriceView(product, selectedVariants);
               const shipCny = 5;
               return (
                 <motion.div variants={fadeUp} style={{ background: "#F8F7F4", borderRadius: 14, padding: "14px 16px", marginBottom: 24 }}>
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
                     {/* "Factory price" → "Price" (user 2026-08-13): de winkels zijn merken,
                         geen fabrieken; "fabrieksprijs" klopte niet meer. */}
-                    <span style={{ fontSize: 13, color: "#6B6862", fontWeight: 600 }}>{tr("product.priceLabel","Price")}</span>
+                    <span style={{ fontSize: 13, color: "#6B6862", fontWeight: 600 }}>
+                      {tr("product.priceLabel","Price")}
+                      {vanaf && <span style={{ fontSize: 11.5, color: "#A8A5A0", fontWeight: 600 }}> · {tr("product.priceFrom","from")}</span>}
+                    </span>
                     <span style={{ fontSize: 18, fontWeight: 800, color: "#111" }}>
                       {/* prijs-stempel: de échte fabrieksprijs wordt "gestempeld" */}
                       <motion.span initial={{ scale: 1.7, opacity: 0, rotate: -8 }} animate={{ scale: 1, opacity: 1, rotate: 0 }}

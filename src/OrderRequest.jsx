@@ -526,7 +526,7 @@ export default function OrderRequest({ product, session, onRequireAuth, onClose,
               </div>
             </motion.div>
 
-            {(product.size_chart?.measures?.length > 0 || product.size_chart?.image) && (
+            {(product.size_chart?.measures?.length > 0 || product.size_chart?.image || product.size_chart?.sketch) && (
               <motion.button variants={fadeUp} type="button" onClick={() => setShowSizeGuide(true)}
                 style={{ width: "100%", marginBottom: 16, background: "#F8F7F4", color: "#111", border: "1px solid #E8E6E0", borderRadius: 12, padding: "12px", fontSize: 13.5, fontWeight: 700, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
                 {tr("product.sizeGuideButton","📐 Size guide")}
@@ -631,12 +631,15 @@ export default function OrderRequest({ product, session, onRequireAuth, onClose,
                     ))}
                   </tbody>
                 </table>
-                {sc.sketch && (
-                  <div style={{ marginTop: 16, background: "#fff", border: "1px solid #F0EEE8", borderRadius: 16, padding: 12, maxWidth: 300, margin: "16px auto 0", aspectRatio: "1" }}>
-                    <img src={sc.sketch} referrerPolicy="no-referrer" alt="size sketch" style={{ width: "100%", height: "100%", objectFit: "contain" }} />
-                  </div>
-                )}
               </>
+            )}
+            {/* Meet-diagram (2026-08-14): stond eerst BINNEN het tabel-blok, dus bij een
+                product met alleen een maattabel-fóto werd 'ie nooit getoond. Staat nu los
+                onderaan, en de hoogte volgt de afbeelding — een meetschets is zelden vierkant. */}
+            {sc.sketch && (
+              <div style={{ marginTop: 16, background: "#fff", border: "1px solid #F0EEE8", borderRadius: 16, padding: 12 }}>
+                <img src={sc.sketch} referrerPolicy="no-referrer" alt="how to measure" style={{ width: "100%", display: "block", borderRadius: 8 }} />
+              </div>
             )}
           </motion.div>
         </>

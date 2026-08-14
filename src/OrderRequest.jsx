@@ -94,8 +94,12 @@ export default function OrderRequest({ product, session, onRequireAuth, onClose,
   const isOos = (name, opt) => oosVariants.some(o => o && o.name === name && o.value === opt);
   // Combinatie-uitverkocht (auto-geleerd van een BuckyDrop-afwijzing): alleen déze
   // combinatie (bijv. white + M) is op — losse opties blijven gewoon kiesbaar.
+  // PLUS (2026-08-14, Kaito): is een gekozen optie zélf helemaal uitverkocht — bv. de
+  // kleur bruin — dan kan geen enkele maat in die kleur. Tik je 'm toch aan (dat mag,
+  // want de foto springt mee), dan hoort de hele rest ook op "uitverkocht" te staan.
+  const keuzeHeeftOpOptie = Object.entries(selectedVariants).some(([n, v]) => isOos(n, v));
   const comboOos = productVariants
-    ? oosVariants.some(o => Array.isArray(o?.combo) && o.combo.length > 0
+    ? keuzeHeeftOpOptie || oosVariants.some(o => Array.isArray(o?.combo) && o.combo.length > 0
         && o.combo.every(c => selectedVariants[c.name] === c.value))
     : false;
   // Zou DEZE optie botsen met wat er al gekozen is? Kies je een kleur, dan zie je
@@ -105,6 +109,9 @@ export default function OrderRequest({ product, session, onRequireAuth, onClose,
   // zonder kleur is er nog niets om mee te botsen.
   const botstMetKeuze = (name, opt) => {
     const keuze = { ...selectedVariants, [name]: opt };
+    // Zit er een compleet uitverkochte optie in de keuze (bv. kleur bruin)? Dan is
+    // élke combinatie daarmee onmogelijk — dus alle maten doorstrepen.
+    if (Object.entries(keuze).some(([n, v]) => isOos(n, v))) return true;
     return oosVariants.some(o => Array.isArray(o?.combo) && o.combo.length > 0
       && o.combo.every(c => keuze[c.name] === c.value));
   };
@@ -398,10 +405,12 @@ export default function OrderRequest({ product, session, onRequireAuth, onClose,
                       onClick={() => {
                         const vimg = product.variant_images?.[opt];
                         // Uitverkocht ≠ onzichtbaar: tik je op een uitverkochte optie, dan
-                        // springt de foto WEL (zodat je kunt zien welke variant op is) —
-                        // alleen kiezen kan niet.
-                        if (echtOp) { if (vimg && vimg.startsWith("http")) setGalleryPhoto(vimg); return; }
-                        setSelectedVariants(kiesOptie(variant.name, opt));
+                        // springt de foto WEL (zodat je kunt zien welke variant op is).
+                        // Hij wordt óók echt geselecteerd (2026-08-14): pas dan zie je dat
+                        // álle maten in die kleur op zijn, in plaats van een kleur die
+                        // "uitverkocht" heet naast maten die vrij lijken. Bestellen kan niet:
+                        // de knop springt op "Sold out" via comboOos.
+                        setSelectedVariants(echtOp ? { ...selectedVariants, [variant.name]: opt } : kiesOptie(variant.name, opt));
                         setMissingVariants(m => m.filter(n => n !== variant.name));
                         if (vimg && vimg.startsWith("http")) setGalleryPhoto(vimg);
                       }}

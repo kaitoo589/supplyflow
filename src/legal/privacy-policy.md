@@ -2,7 +2,7 @@
 
 **Last updated: 23 July 2026**
 
-This Privacy Policy explains how Flowva collects, uses, shares, and protects your personal data when you use the Flowva website and app at flowva.app (the "Service"). We believe in radical transparency — the same principle that leads us to show you the real factory price and every fee also applies to how we handle your data. This policy is written in plain language, but it is intended to be legally complete and to comply with the EU General Data Protection Regulation (GDPR / AVG) and Dutch data-protection law.
+This Privacy Policy explains how Flowva collects, uses, shares, and protects your personal data when you use the Flowva website and app at flowva.app (the "Service"). We believe in radical transparency — the same principle that leads us to show you the real source price and every fee also applies to how we handle your data. This policy is written in plain language, but it is intended to be legally complete and to comply with the EU General Data Protection Regulation (GDPR / AVG) and Dutch data-protection law.
 
 By using the Service, you acknowledge that you have read and understood this Privacy Policy. Where we rely on your consent, we will ask for it separately and you can withdraw it at any time.
 
@@ -89,7 +89,7 @@ Under the GDPR we must have a lawful basis for every purpose. The table below se
 | Purpose | Data used | Lawful basis |
 |---|---|---|
 | Create and manage your account; let you sign in | Account data, device data | **Contract** (Art. 6(1)(b)) — necessary to provide the Service you requested |
-| Process and fulfil your orders (buy at the factory via our partner, quality-control, ship, deliver) | Order, delivery, wallet data | **Contract** (Art. 6(1)(b)) |
+| Process and fulfil your orders (buy from the Brand via our partner, quality-control, ship, deliver) | Order, delivery, wallet data | **Contract** (Art. 6(1)(b)) |
 | Operate the prepaid wallet, process top-ups, apply your balance, issue refunds and shipping reconciliations | Wallet/payment data | **Contract** (Art. 6(1)(b)) |
 | Handle returns, the right of withdrawal, complaints, and after-sales | Order, delivery, support data | **Contract** (Art. 6(1)(b)) and **legal obligation** (Art. 6(1)(c)) — EU consumer law |
 | Comply with tax, accounting, customs, and consumer-protection law (e.g. keeping invoices, DDP import records) | Order, wallet, address data | **Legal obligation** (Art. 6(1)(c)) |
@@ -115,7 +115,7 @@ We do not sell your personal data. We share it only with the parties below, each
 |---|---|---|
 | **Stripe** (Stripe, Inc. / Stripe Payments Europe) | Payment processing for wallet top-ups | Payment and card data you enter at checkout; we receive only confirmation/limited data back. Stripe acts as an independent controller for payment processing under its own privacy policy. |
 | **Supabase** | Hosting, database, and authentication backend | Account, order, wallet, support, and technical data stored to run the Service. |
-| **BuckyDrop** (sourcing/fulfilment partner in China) | Sourcing, purchasing at the factory, warehousing, quality-control, and arranging international shipping | The fulfilment data needed to buy and ship your order: recipient name, delivery address, phone number, and order/item details. |
+| **BuckyDrop** (sourcing/fulfilment partner in China) | Sourcing, purchasing from the Brand, warehousing, quality-control, and arranging international shipping | The fulfilment data needed to buy and ship your order: recipient name, delivery address, phone number, and order/item details. |
 | **E-mail provider** (e.g. Resend) | Sending transactional (and any consented marketing) e-mail | Your e-mail address and the content of the message (order confirmations, status updates, etc.). |
 | **Web-push service** (browser push infrastructure) | Delivering push notifications you opted into | Your push subscription token and the notification content. |
 

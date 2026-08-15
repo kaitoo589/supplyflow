@@ -4,9 +4,9 @@
 
 This Returns & Right of Withdrawal Policy explains how you can cancel an order, return goods, and obtain a refund when you buy from Flowva. It forms part of, and should be read together with, our Terms of Service and Privacy Policy.
 
-Flowva is operated by **Kaito Kratsborn, trading as Flowva**, registered with the Netherlands Chamber of Commerce (KvK) under number **42104121**, VAT number **NL005496086B61**, registered address **Kleikoeleweg 108, 6373 CD Landgraaf, Netherlands**. You can reach us at **contact@flowva.app**.
+Flowva is operated by **Kaito Kratsborn, trading as Flowva**, registered with the Netherlands Chamber of Commerce (KvK) under number **42104121**, VAT number **NL005496086B61**, registered address **Kleikoeleweg 108, 6373 CD Landgraaf, Netherlands**. You can reach us at **returns@flowva.app**.
 
-**Flowva is the seller.** Although your products are made factory-direct by manufacturers in China and fulfilled through our sourcing and fulfilment partner, your purchase contract is with Flowva — not with the factory. That means Flowva carries full responsibility under EU consumer law for the conformity of the goods, for defects, and for returns. The rights described in this policy are in addition to your statutory rights, which we cannot exclude or limit.
+**Flowva is the seller.** Although your products are made by independent Brands in China and fulfilled through our sourcing and fulfilment partner, your purchase contract is with Flowva — not with the Brand. That means Flowva carries full responsibility under EU consumer law for the conformity of the goods, for defects, and for returns. The rights described in this policy are in addition to your statutory rights, which we cannot exclude or limit.
 
 This policy is written for **consumers** — that is, individuals buying for purposes outside their trade, business, craft, or profession. Mandatory EU and Dutch consumer-protection law always applies to consumers and overrides anything in this document that would give you fewer rights.
 
@@ -28,7 +28,7 @@ The 14-day withdrawal period starts on the day **after** you (or a third party y
 - **Multiple items in one order, delivered separately:** the day after you receive the **last** item of the order.
 - **An order delivered in multiple lots or pieces:** the day after you receive the **last** lot or piece.
 
-> **Important — the order lifecycle.** With Flowva, an order goes through several stages before it ever leaves China: you place the order, we buy the item at the factory, it arrives at our warehouse in China, it passes mandatory quality-control (inspection plus measurement photos), you review and confirm shipping, and only then is it shipped internationally to you. **Your 14-day right of withdrawal runs from delivery to you — not from any earlier stage.** Quality-control happens before international shipping and gives you a separate, additional opportunity to deal with defects early (see **Section 5**); it does not start, shorten, or replace your statutory 14-day period.
+> **Important — the order lifecycle.** With Flowva, an order goes through several stages before it ever leaves China: you place the order, we buy the item from the Brand, it arrives at our warehouse in China, it passes mandatory quality-control (inspection plus measurement photos), you review and confirm shipping, and only then is it shipped internationally to you. **Your 14-day right of withdrawal runs from delivery to you — not from any earlier stage.** Quality-control happens before international shipping and gives you a separate, additional opportunity to deal with defects early (see **Section 5**); it does not start, shorten, or replace your statutory 14-day period.
 
 ### 1.3 For Flowva Friends (group buying): when the 14 days start
 
@@ -41,14 +41,12 @@ For each member, the 14-day withdrawal period starts on the day after **physical
 
 We recommend members collect their items from the host promptly. Collection between the host and other members happens between you and is outside Flowva's control. See **Section 8** for full Flowva Friends details.
 
-> `[LEGAL REVIEW: Confirm the correct trigger for the start of the withdrawal period for non-host Friends members under art. 6:230o BW / Directive 2011/83/EU art. 9. Two readings are possible: (a) the period runs from the host's receipt (goods placed at the member's disposal at the host's address, which is the framing used above), or (b) the period runs from the individual member's actual physical possession on collection from the host. Choose and align the wording — and confirm whether the host can be treated as the "third party nominated by the consumer" under art. 9(2)(b).]`
-
 ### 1.4 How to exercise your right of withdrawal
 
 To withdraw, you simply need to tell us, **before the 14-day period ends**, that you have decided to withdraw. You can do this in any of these ways:
 
 - **In the app:** open the order and use the in-app withdrawal/return flow (see **Section 7**); or
-- **By email** to **contact@flowva.app**; or
+- **By email** to **returns@flowva.app**; or
 - **Using the Model Withdrawal Form** in **Section 2** (optional — you do not have to use it).
 
 **Any clear, unambiguous statement that you wish to withdraw is enough.** You do not need to use any particular form of words, and you do not have to give a reason. To meet the deadline, it is enough that you **send** your communication about exercising the right of withdrawal **before** the 14-day period expires. The burden of proving that you withdrew in time is on you, so we recommend you keep a copy of your message or use the in-app flow, which records the date and time automatically.
@@ -64,7 +62,7 @@ After you withdraw, you must **send the goods back** without undue delay and in 
 > **To:**
 > Kaito Kratsborn, trading as Flowva
 > Kleikoeleweg 108, 6373 CD Landgraaf, Netherlands
-> Email: contact@flowva.app
+> Email: returns@flowva.app
 >
 > I/We (\*) hereby give notice that I/We (\*) withdraw from my/our (\*) contract of sale of the following goods (\*)/for the supply of the following service (\*):
 >
@@ -102,15 +100,17 @@ After you withdraw, you must **send the goods back** without undue delay and in 
 
 ### 3.1 What you get back
 
-If you validly withdraw within the 14-day period, we refund the **product price** (the factory price of the returned item(s)).
+If you validly withdraw within the 14-day period, we always refund the **price of the returned item(s)**.
 
-**The service fee and the international shipping cost are not refunded on a change-of-mind withdrawal** once an item has passed Quality Control and been shipped internationally. The Quality-Control inspection photographs we take before your item ships serve as the record of its condition and the basis on which a change-of-mind return is assessed. You also bear the cost of returning the item to us (see Section 4).
+**International shipping.** If you withdraw from **your entire parcel**, we also refund the international shipping you paid for it. If you withdraw from **part of a parcel** and keep the rest, the international shipping is **not** refunded, because that parcel was shipped regardless of the returned item.
 
-**Exception — an order we cannot fulfil.** If you ask to cancel at the **Quality-Control stage** (before international shipping) and your order cannot be completed — for example, the factory does not accept the item back — we also refund your **share of the shipping**, calculated in proportion to weight (the weight of your item divided by the total parcel weight).
+**The service fee** is not refunded once you have confirmed international shipping. That fee covers work already carried out for you — sourcing, Quality-control and preparing your parcel — and you confirm shipping only after seeing the Quality-control result. When you confirm, you expressly ask us to carry out and complete that service and acknowledge that you lose your right to withdraw from the service itself once it has been fully performed. This does not affect your right to withdraw from the products.
+
+You bear the cost of returning the item to us (see Section 4). The Quality-control inspection photographs we take before your item ships serve as the record of its condition, and are used to establish whether an item was defective or simply not what you hoped for.
+
+**Exception — an order we cannot fulfil.** If you ask to cancel at the **Quality-control stage** (before international shipping) and your order cannot be completed — for example, the Brand does not accept the item back — we also refund your **share of the shipping**, calculated in proportion to weight (the weight of your item divided by the total parcel weight).
 
 Where shipping was charged as an **estimate with a buffer** and later reconciled to the real carrier cost, any refund is calculated on the amount actually charged to you after reconciliation (see our Terms of Service).
-
-[LEGAL REVIEW: Flowva has chosen to make the service fee and the international shipping cost non-refundable on a post-Quality-Control change-of-mind withdrawal (the Quality-Control photographs evidence the item's condition), refunding only the product price — plus, in the "cannot-fulfil" exception, a weight-proportional shipping share. This deviates from the EU Consumer Rights Directive default (art. 13 / art. 6:230r BW), under which a full withdrawal in principle also reimburses the service fee and the standard outbound delivery cost. The operator is aware of this and accepts the associated legal/enforceability risk. Confirm the wording and risk position.]
 
 ### 3.2 How we refund
 
@@ -134,7 +134,7 @@ Who bears the cost of sending goods back depends on **why** the goods are being 
 
 ### 4.1 Change of mind (you withdraw or chose the wrong size/item)
 
-If you withdraw because you changed your mind — for example, you no longer want the item, or you ordered the wrong size or colour — **you bear the direct cost of returning the goods**, to the extent the law allows. Because items are returned to a factory or warehouse abroad, **international return shipping can be expensive**; we will tell you the available return method and, where we can, an estimate of the cost before you send anything back. You remain entitled to your refund as set out in **Section 3**, less any return-shipping costs you are responsible for and any deduction for diminished value.
+If you withdraw because you changed your mind — for example, you no longer want the item, or you ordered the wrong size or colour — **you bear the direct cost of returning the goods**, to the extent the law allows. Because items are returned to a Brand or warehouse abroad, **international return shipping can be expensive**; we will tell you the available return method and, where we can, an estimate of the cost before you send anything back. You remain entitled to your refund as set out in **Section 3**, less any return-shipping costs you are responsible for and any deduction for diminished value.
 
 > `[LEGAL REVIEW: Under art. 6:230s BW / Directive art. 14(1), the trader must inform the consumer BEFORE the contract that they bear the direct cost of return; where goods cannot normally be returned by post, the trader must state the cost (or a reasonable estimate). Confirm this disclosure is also given pre-contractually (product page / checkout), not only in this policy, and confirm how the international return cost / estimate is presented to satisfy the "reasonable estimate" requirement.]`
 
@@ -142,7 +142,7 @@ If you withdraw because you changed your mind — for example, you no longer wan
 
 If the item is **defective, faulty, damaged, or not as described** — in other words, it does not conform to the contract — then **Flowva pays the full cost, including return shipping**. You will not be out of pocket for sending back an item that was not right. In these cases you are entitled, depending on the circumstances and your statutory rights, to repair, replacement, a price reduction, or a full refund. These conformity rights are separate from, and in addition to, the 14-day right of withdrawal.
 
-If you are unsure whether an item is defective or simply not what you hoped for, contact us at **contact@flowva.app** or start the flow in the app and we will help you choose the right route.
+If you are unsure whether an item is defective or simply not what you hoped for, contact us at **returns@flowva.app** or start the flow in the app and we will help you choose the right route.
 
 ---
 
@@ -152,7 +152,7 @@ Every item you order is **inspected in our warehouse in China before it is shipp
 
 After quality-control, and **before** the item ships internationally, you review the results and **confirm shipping**. If quality-control reveals a problem — for example a defect, damage, or a measurement that does not match — you choose what happens next:
 
-- **RETURN:** the item is returned to the factory and you receive a **refund**. Because this is a defect (a conformity problem), **Flowva bears the cost** of this return. You do not pay for a faulty item or for sending it back to the factory; or
+- **RETURN:** the item is returned to the Brand and you receive a **refund**. Because this is a defect (a conformity problem), **Flowva bears the cost** of this return. You do not pay for a faulty item or for sending it back to the Brand; or
 - **ACCEPT:** you decide to accept the item as-is and proceed with international shipping.
 
 This quality-control gate is an **extra protection** we give you on top of your legal rights. Choosing to ACCEPT an item at this stage, or confirming shipping, **does not waive** your statutory 14-day right of withdrawal (Section 1) or your statutory conformity rights for defects discovered later. If an item that passed quality-control turns out to be defective on arrival, **Section 4.2** still applies and Flowva still bears the cost.
@@ -196,7 +196,7 @@ The easiest way to withdraw or return is directly in the Flowva app:
 4. We will confirm your request, tell you the return method and any return-shipping cost you are responsible for, and provide return instructions.
 5. Send the goods back within 14 days of notifying us. We will process your refund as set out in **Section 3**.
 
-You can also withdraw by emailing **contact@flowva.app** or by using the **Model Withdrawal Form** in Section 2 — the app is simply the quickest route and keeps a timestamped record for you.
+You can also withdraw by emailing **returns@flowva.app** or by using the **Model Withdrawal Form** in Section 2 — the app is simply the quickest route and keeps a timestamped record for you.
 
 ---
 
@@ -228,7 +228,7 @@ Because shipping is shared and split by weight, the refund of any shipping eleme
 
 Nothing in this policy limits your **mandatory statutory rights** as a consumer under Dutch and EU law, including your rights where goods do not conform to the contract. These rights apply in addition to the 14-day right of withdrawal and cannot be excluded.
 
-If you are not satisfied with how we have handled a return, withdrawal, or complaint, please contact us first at **contact@flowva.app** so we can try to put it right. If we cannot resolve it together, you may also be entitled to use the **European Commission's Online Dispute Resolution (ODR) platform** at <https://ec.europa.eu/consumers/odr>, which connects consumers and traders to an out-of-court dispute-resolution body.
+If you are not satisfied with how we have handled a return, withdrawal, or complaint, please contact us first at **returns@flowva.app** so we can try to put it right. If we cannot resolve it together, you may also be entitled to use the **European Commission's Online Dispute Resolution (ODR) platform** at <https://ec.europa.eu/consumers/odr>, which connects consumers and traders to an out-of-court dispute-resolution body.
 
 This policy and your purchase are governed by the **law of the Netherlands**, without prejudice to the mandatory consumer-protection rules of the country in which you habitually reside, which continue to protect you.
 
@@ -236,4 +236,4 @@ This policy and your purchase are governed by the **law of the Netherlands**, wi
 
 ---
 
-*If anything in this policy is unclear, or you need help with a return or withdrawal, email us at **contact@flowva.app** and we will help.*
+*If anything in this policy is unclear, or you need help with a return or withdrawal, email us at **returns@flowva.app** and we will help.*

@@ -4,7 +4,9 @@
 
 These General Terms & Conditions ("**Terms**") govern your use of the Flowva platform and your purchase of products through it. Please read them carefully. By creating an account, topping up your Flowva balance, or placing an order, you agree to these Terms.
 
-Flowva is built on radical transparency: we show you the real factory price and every fee on top of it. We have tried to write these Terms in the same spirit — plain and honest, but legally complete. Nothing in these Terms limits or removes the rights you have as a consumer under mandatory EU and Dutch law.
+Flowva sells clothing that independent Chinese labels design and make themselves. We buy it from their own shops, have it checked and packed in China, and bring it to your door in Europe. We are the seller you buy from — we are not the designer or the manufacturer.
+
+We are built on transparency about money: you see what an item costs at the source and exactly what we charge on top of it. These Terms are written in that same plain language. Nothing in them limits or removes the rights you have as a consumer under mandatory EU and Dutch law; where these Terms and that law conflict, the law prevails.
 
 ---
 
@@ -12,25 +14,25 @@ Flowva is built on radical transparency: we show you the real factory price and 
 
 In these Terms, the following words have the following meanings:
 
-1.1 **"Flowva", "we", "us", "our"** — Kaito Kratsborn, trading as Flowva, a sole proprietorship (*eenmanszaak*) registered in the Netherlands under Chamber of Commerce (KvK) number 42104121, VAT number NL005496086B61, with its registered address at Kleikoeleweg 108, 6373 CD Landgraaf, Netherlands. Flowva operates the website and application available at flowva.app (the "**Platform**"). Flowva is the **seller** of the products offered through the Platform.
+1.1 **"Flowva", "we", "us", "our"** — Kaito Kratsborn, trading as Flowva, a sole proprietorship (*eenmanszaak*) registered in the Netherlands under Chamber of Commerce (KvK) number 42104121, VAT number NL005496086B61, with its registered address at Kleikoeleweg 108, 6373 CD Landgraaf, Netherlands. Flowva operates the website and application available at flowva.app (the "**Platform**"). Flowva is the **seller** of the Products offered through the Platform. Flowva does not design or manufacture them (see 1.8).
 
 1.2 **"You", "your", "customer"** — the natural person who creates an account and/or places an order through the Platform, acting as a consumer (i.e. for purposes outside your trade, business, craft or profession).
 
 1.3 **"Account"** — your personal user account on the Platform.
 
-1.4 **"Balance"** or **"Flowva Balance"** — the prepaid credit held in your Account, topped up by you and used to pay for orders, shipping and related charges, as described in section 5.
+1.4 **"Balance"** or **"Flowva Balance"** — the amount you have prepaid to Flowva towards Products, shipping and related charges you order from us, as described in section 5.
 
-1.5 **"Product"** — any item offered for sale through the Platform.
+1.5 **"Product"** — any item offered for sale through the Platform. All Products are original items made by the Brand that designed them. Flowva does not offer replicas, counterfeits, or copies of other brands' products.
 
 1.6 **"Order"** — your request to buy one or more Products through the Platform, which becomes a contract of sale once we confirm it.
 
-1.7 **"BuckyDrop"** — our sourcing and fulfilment partner, which buys Products from the manufacturer, receives them at a warehouse in China, performs quality control, and arranges international shipping on our instruction. BuckyDrop acts on our behalf; your contract is always with Flowva, never with BuckyDrop or the factory.
+1.7 **"BuckyDrop"** — our sourcing and fulfilment partner, which buys Products from the Brand, receives them at a warehouse in China, performs quality control, and arranges international shipping on our instruction. BuckyDrop acts on our behalf; your contract is always with Flowva, never with BuckyDrop or the Brand.
 
-1.8 **"Factory" / "Manufacturer"** — the third-party manufacturer that produces a Product. You do **not** enter into a contract with the Factory; Flowva does.
+1.8 **"Brand"** — an independent business in China that designs, makes and sells its own clothing in its own shop. The Brand owns the design and any intellectual-property rights in the Product. You do **not** enter into a contract with the Brand; Flowva does.
 
-1.9 **"Quality Control"** — the mandatory inspection (including measurement photographs) of each Product carried out at the warehouse in China before international shipping.
+1.9 **"Quality-control"** — the mandatory inspection (including measurement photographs) of each Product carried out at the warehouse in China before international shipping.
 
-1.10 **"DDP" (Delivered Duty Paid)** — a shipping arrangement in which import duties and import VAT are included in the price you pay, so there are no surprise charges on delivery (see section 8).
+1.10 **"DDP" (Delivered Duty Paid)** — a shipping arrangement in which import duties and import VAT are included in the price you pay, so you should not have to pay anything extra on delivery. If a carrier does ask you for import charges on a Flowva parcel, contact us and we will refund what you paid (see section 8).
 
 1.11 **"Flowva Friends"** — the optional group-buying feature described in section 13, in which several customers combine their items into one shared parcel to split international shipping.
 
@@ -44,16 +46,15 @@ In these Terms, the following words have the following meanings:
 
 ## 2. About Flowva and scope of these Terms
 
-2.1 Flowva is a transparent, factory-direct fashion marketplace. We source Products directly from manufacturers (primarily in China) and sell them to you as a consumer in the European Union. We show you the real factory price and a clearly itemised service fee and shipping cost — we do not add hidden margins.
+2.1 Flowva is an online shop for clothing from independent Chinese brands. We buy Products directly from the Brand's own shop and sell them to you as a consumer in the European Union. We show you the real source price and a clearly itemised service fee and shipping cost — we do not add hidden margins.
 
-2.2 **Flowva is the seller.** Even though Products are made by third-party Factories and handled by our fulfilment partner BuckyDrop, your contract of sale is with Flowva. This means **Flowva carries full responsibility under EU consumer law** for the conformity of the Products, for defects, and for returns and withdrawal, as set out in these Terms and in the Returns Policy.
+2.2 **Flowva is the seller.** Even though Products are made by third-party Brands and handled by our fulfilment partner BuckyDrop, your contract of sale is with Flowva. This means **Flowva carries full responsibility under EU consumer law** for the conformity of the Products, for defects, and for returns and withdrawal, as set out in these Terms and in the Returns Policy.
 
 2.3 These Terms apply to every visit to the Platform, every Account, every top-up of your Balance, and every Order. By using the Platform you accept these Terms. If you do not agree, please do not use the Platform.
 
 2.4 These Terms, together with the Returns Policy, the Privacy Policy, and the order confirmation, form the entire agreement between you and Flowva for each Order.
 
-2.5 We may make available translations of these Terms for convenience. The English version is the version on which the contract is based, unless mandatory local law of your country of residence provides otherwise.
-[LEGAL REVIEW: confirm whether a consumer's own-language version must prevail under the consumer's local mandatory law; for NL-targeted sales an English-only set of terms is generally acceptable but verify per target market.]
+2.5 These Terms are written in English, and the English version is the version on which the contract is based. We provide the key information about your order — costs, delivery time, and your right to withdraw — in the language you use the Platform in. Where the mandatory law of your country of residence requires a term to be provided in your own language, that requirement takes precedence over this section.
 
 ---
 
@@ -63,37 +64,35 @@ In these Terms, the following words have the following meanings:
 
 3.2 By using the Platform you confirm that you meet the requirement in section 3.1, that you are acting as a consumer, and that the information you give us is true and complete.
 
-3.3 The Platform is intended for customers in countries we serve. We may refuse, restrict or cancel Orders to destinations we do not ship to, or where doing so would breach applicable law (including export, sanctions or import rules).
+3.3 The Platform is intended for customers in countries we serve. We may refuse, restrict or cancel Orders to destinations we do not ship to, or where doing so would breach applicable law (including export, sanctions or import rules). If we cancel an Order you have already paid for, we credit the full amount back to your Balance, which you can have paid out under section 5.6.
 
 ---
 
 ## 4. Your Account
 
-4.1 To place Orders you need an Account. You are responsible for keeping your login details confidential and for all activity under your Account. Tell us promptly at contact@flowva.app if you believe your Account has been used without your permission.
+4.1 To place Orders you need an Account. You are responsible for keeping your login details confidential and for not sharing your Account with anyone else. Activity under your Account is treated as yours unless you tell us your Account was used without your permission. Tell us promptly at support@flowva.app if you believe that has happened, so we can secure your Account.
 
 4.2 You agree to keep your Account information — in particular your delivery address, email and phone number — accurate and up to date. We are not responsible for failed or delayed delivery caused by incorrect information you provided.
 
-4.3 You may close your Account at any time. If you close your Account while you have unused Balance or open Orders, sections 5 and 12 apply. We may suspend or close your Account if you seriously or repeatedly breach these Terms, in line with section 14.
+4.3 You may close your Account at any time. Any unused Balance is yours — we refund it to the payment method you topped up with (see section 5.6). If you still have open Orders, we finish those first. We may suspend or close your Account if you seriously or repeatedly breach these Terms, in line with section 14.
 
 ---
 
 ## 5. The Flowva Balance (prepayment)
 
-5.1 **What the Balance is.** The Flowva Balance is a **prepayment** that you make towards goods and services you will order from Flowva. You top up your Balance and then use it to pay for Products, shipping and related charges. The Balance is **not** general-purpose stored value, it is **not** electronic money, it is **not** a bank deposit or payment account, and it cannot be used to pay anyone other than Flowva. It exists solely to pay for what you order from us. We do not apply a fixed maximum to your Balance. We may, however, decline or reverse a top-up where we reasonably believe it is not intended to pay for Orders — for example where the Balance appears to be used as a store of value rather than as prepayment for goods, or where a top-up raises fraud or anti-money-laundering concerns.
-[LEGAL REVIEW — REOPENED 23 July 2026: counsel previously confirmed that the closed-loop, single-merchant, goods-only prepaid Balance falls under the EMD2/Wft limited-purpose exemption (no e-money licence required), and that opinion expressly rested on **a maximum Balance cap** together with the refundability of unused Balance (section 5.6). The operator has since decided **not** to apply any cap, which changes the model the opinion was given on. Counsel must therefore re-confirm: (a) whether the limited-purpose exemption still holds for an **uncapped** prepaid balance; (b) whether uncapped customer prepayments trigger e-money licensing, safeguarding of customer funds, or AML/CDD obligations; and (c) whether the discretionary refusal right above is a sufficient substitute for a hard cap.]
+5.1 **What the Balance is.** The Flowva Balance is a **prepayment** that you make towards goods and services you will order from Flowva. You top up your Balance and then use it to pay for Products, shipping and related charges. The Balance is **not** general-purpose stored value, it is **not** electronic money, it is **not** a bank deposit or payment account, and it cannot be used to pay anyone other than Flowva. It exists solely to pay for what you order from us. **Your Balance cannot exceed EUR 1,000 at any time.** We may decline or reverse a top-up where we reasonably believe it is not intended to pay for Orders — for example where the Balance appears to be used as a store of value rather than as prepayment for goods, or where a top-up raises fraud or anti-money-laundering concerns.
 
 5.2 **Topping up.** You add to your Balance by paying us, for example by card or another supported payment method, through our payment processor Stripe (see section 5.8). The amount you pay is added to your Balance. Top-ups are payments to Flowva.
 
-5.3 **How the Balance is used.** When you place an Order, the price of the Products and the China-side handling costs (domestic shipping and Quality Control) are deducted from your Balance. The **service fee** and the **international shipping estimate** (plus any import taxes) are deducted later, when you confirm international shipping of your parcel. If a shipping reconciliation later results in a refund (see section 8), the difference is added back to your Balance.
+5.3 **How the Balance is used.** When you place an Order, the price of the Products and the China-side handling costs (domestic shipping and Quality-control) are deducted from your Balance. The **service fee**, the **international shipping estimate**, the **currency-conversion fee** and any **storage fee** are deducted later, when you confirm international shipping of your parcel. Every one of these is shown to you, itemised, before you confirm. If a shipping reconciliation later results in a refund (see section 8), the difference is added back to your Balance.
 
 5.4 **No interest.** Your Balance does not earn interest and is not an investment.
 
 5.5 **Sufficient funds.** You can only place an Order if your Balance covers the amount due for that Order (the Product price and the China-side handling costs). The service fee and international shipping are charged separately when you confirm shipping, and also require sufficient Balance at that point. If your Balance is insufficient at either step, you will be asked to top up first.
 
-5.6 **Refund / withdrawal of unused Balance.** Any Balance that you have topped up but not yet spent on an Order remains yours. You can ask us at any time to refund your **unused** Balance to your original payment method (or, where that is not possible, by another reasonable means). We will process such a request without undue delay. We may apply reasonable identity checks and anti-fraud / anti-money-laundering checks before refunding, and we may decline to refund amounts that are subject to an open Order, a dispute, a chargeback, or a legal hold.
-[LEGAL REVIEW: confirm refund handling of unused balance, any reasonable processing fee (if charged at all), AML/KYC thresholds and obligations, and whether refundability strengthens or weakens the e-money analysis.]
+5.6 **Paying out unused Balance.** Any Balance that you have topped up but not yet spent remains yours, and you can ask for it back at any time. You do this yourself in the app, under **Profile → Pay out my balance**. We return the money to the payment method you topped up with — Stripe only allows refunds to the original card or bank account, so we never pay out to a different account and never ask you for your bank details. Payouts are processed without undue delay. The minimum payout is EUR 5. We cannot pay out while you have an Order running, because that Balance still has to cover its shipping; once your parcel has been delivered and the Order is complete, the rest is available again. We may apply reasonable identity, anti-fraud and anti-money-laundering checks, and we may decline to pay out amounts subject to a dispute, a chargeback, or a legal hold. If your original payment method is closed or too old for us to refund automatically, contact us and we will arrange it another way.
 
-5.7 **Dormant Balance.** [LEGAL REVIEW: decide whether to apply an expiry or dormancy rule to long-unused Balance, and confirm it complies with consumer law (which generally restricts forfeiture of prepaid amounts). If no forfeiture, state that the Balance does not expire.]
+5.7 **Your Balance does not expire.** We do not apply an expiry date or a dormancy fee to unused Balance. It stays yours until you spend it or have it paid out.
 
 5.8 **Payment processing.** Card and other payments are processed by Stripe. Flowva does not receive or store your full card number. Your use of Stripe is also subject to Stripe's terms. All payments are made directly to Flowva — no third party (including any Flowva Friends Host) ever holds or routes your money.
 
@@ -101,39 +100,38 @@ In these Terms, the following words have the following meanings:
 
 ## 6. How ordering works
 
-6.1 **Placing an Order.** You select Products, review the price breakdown for that Order (factory price plus the China-side handling costs) and confirm your Order. The service fee and international shipping are shown and charged later, when you confirm shipping of your parcel (see sections 7 and 8). Your confirmation is an offer to buy. A binding contract of sale is formed when we accept your Order — normally shown by an on-screen and/or email order confirmation.
+6.1 **Placing an Order.** You select Products, review the price breakdown for that Order (source price plus the China-side handling costs) and confirm your Order. The service fee and international shipping are shown and charged later, when you confirm shipping of your parcel (see sections 7 and 8). When you confirm, you are asking us to sell you the item. The sale becomes final once we confirm your Order — you will see this in Flowva. Until then, we may still tell you that an item is unavailable or that its price was wrong (see 6.6).
 
-6.2 **Factory-direct sourcing.** Once your Order is confirmed and paid from your Balance, Flowva (through BuckyDrop) buys the Product from the Factory on your behalf as part of fulfilling our sale to you.
+6.2 **Brand-direct sourcing.** Once your Order is confirmed and paid from your Balance, Flowva (through BuckyDrop) buys the Product from the Brand in order to fulfil our sale to you.
 
-6.3 **Warehouse and mandatory Quality Control.** The Product is delivered to a warehouse in China, where it goes through **mandatory Quality Control** — an inspection that includes measurement photographs. This step is part of how we protect you against defective or wrong items before they travel internationally.
+6.3 **Warehouse and mandatory Quality-control.** The Product is delivered to a warehouse in China, where it goes through **mandatory Quality-control** — an inspection that includes measurement photographs. This step is part of how we protect you against defective or wrong items before they travel internationally.
 
-6.4 **You confirm shipping.** After Quality Control, you are shown the result (including measurement photos and any issues found) and you decide how to proceed:
-- if the item passed Quality Control, you confirm international shipping;
-- if a defect or discrepancy is found, you choose to **return** the item (factory return + refund — see section 10) or **accept** it as-is.
+6.4 **You confirm shipping.** After Quality-control, you are shown the result (including measurement photos and any issues found) and you decide how to proceed:
+- if the item passed Quality-control, you confirm international shipping;
+- if a defect or discrepancy is found, you choose to **return** the item (Brand return + refund — see section 10) or **accept** it as-is.
 
 International shipping starts only after you confirm. Until then your item is held at the warehouse.
 
-6.5 **Free storage, extended storage and abandonment.** Items are stored at the warehouse **free of charge for the first 30 days** after arrival. Days are counted as Netherlands calendar days and the day the item arrives counts as day 1. After the free period an **extended storage fee** applies per item:
+6.5 **Free storage, extended storage and unclaimed items.** Items are stored at the warehouse **free of charge for the first 30 days** after arrival. Days are counted as Netherlands calendar days and the day the item arrives counts as day 1. After the free period an **extended storage fee** applies per item:
 
 - **days 31–60: EUR 2 per item**
 - **days 61–90: EUR 4 per item**
 
 The extended storage fee is **charged together with international shipping, at the moment you confirm shipping of your parcel**. It is shown as a separate line in the cost breakdown before you confirm, and is never deducted from your Balance without that confirmation. We notify you in the app around **day 60** (one month remaining) and again on **day 90**, which is the last day on which the item can still be shipped.
 
-**Day 91 — abandonment.** An item that is still unclaimed on day 91 is treated as **abandoned**: it is no longer shipped to you and no refund is due for it. We apply this because warehouse capacity is finite, and only after a 90-day window and at least two notices.
-[LEGAL REVIEW — HIGHEST-RISK CLAUSE IN THESE TERMS: confirm that (a) the EUR 2 / EUR 4 extended-storage charge is enforceable against a consumer and sufficiently disclosed in advance, and (b) the day-91 forfeiture is lawful under NL/EU consumer law. Forfeiting goods a consumer has **already paid for** is the specific exposure: consumer-protection rules generally restrict forfeiture of prepaid value, and an unclaimed item may instead have to be refunded, sold with account rendered to the consumer, or stored longer. Confirm the 30-day free period, the day-60 and day-90 notices and the 90-day window are fair, and advise whether the forfeiture should be replaced by a refund-minus-costs mechanism.]
+**After day 90.** If an item is still unclaimed on day 91, we may dispose of it or sell it, and we **refund the price you paid for that item to your Balance, minus the storage fees that have accrued**. We apply this because warehouse capacity is finite, and only after a 90-day window and at least two notices. You never lose the money you paid for the item.
 
-6.6 **Availability and pricing errors.** Products are subject to availability. Because prices come live from the Factory/source, a Product's price or stock may change between browsing and checkout. If a Product becomes unavailable or its price has materially changed after you order, we may place the affected item on hold, contact you, and either re-confirm the corrected price with you or cancel the affected item and refund it to your Balance. We are not obliged to fulfil an Order affected by an obvious pricing or description error.
+6.6 **Availability and pricing errors.** Products are subject to availability. Because prices come live from the Brand's own shop, a Product's price or stock may change between browsing and checkout. If a Product becomes unavailable or its price has materially changed after you order, we may place the affected item on hold, contact you, and either re-confirm the corrected price with you or cancel the affected item and refund it to your Balance. We are not obliged to fulfil an Order affected by an obvious pricing or description error.
 
 ---
 
 ## 7. Prices, transparent fees and taxes
 
 7.1 **Transparent pricing.** Across your Order and its parcel we show you every amount you pay, itemised:
-- the **factory price** (the real price charged by the manufacturer/source);
-- the **China-side handling costs** — domestic shipping to the warehouse and Quality-Control inspection, each charged per item;
+- the **source price** (the real price charged by the Brand);
+- the **China-side handling costs** — domestic shipping to the warehouse and Quality-control inspection, each charged per item;
 - a **fulfilment fee**, charged once per parcel (in a Flowva Friends group this single fee is split between the members in that parcel — see section 13);
-- a **service fee** (currently approximately 8% of the factory price, with a minimum of EUR 5 for solo orders; lower tiered fees apply in Flowva Friends groups — see section 13);
+- a **service fee** (currently 8% of the source price **plus the estimated international shipping**, with a minimum of EUR 5 for solo orders; lower tiered fees apply in Flowva Friends groups — see section 13);
 - a **currency-conversion fee** (see section 7.2);
 - **international shipping** (see section 8);
 - an **extended storage fee**, only if it applies (see section 6.5); and
@@ -141,14 +139,13 @@ The extended storage fee is **charged together with international shipping, at t
 
 The total you pay is the sum of these clearly itemised amounts. We do not add hidden margins.
 
-**When each is charged.** The factory price and the China-side handling costs (domestic shipping and Quality Control) are charged when you place an Order. The **fulfilment fee**, the **service fee**, the **currency-conversion fee**, **international shipping** and any **extended storage fee** are charged once per parcel, when you confirm international shipping — so items you bundle into a single parcel share one fulfilment fee, one service fee and one international shipping charge. Every one of these amounts is shown in the cost breakdown before you confirm.
+**When each is charged.** The source price and the China-side handling costs (domestic shipping and Quality-control) are charged when you place an Order. The **fulfilment fee**, the **service fee**, the **currency-conversion fee**, **international shipping** and any **extended storage fee** are charged once per parcel, when you confirm international shipping — so items you bundle into a single parcel share one fulfilment fee, one service fee and one international shipping charge. Every one of these amounts is shown in the cost breakdown before you confirm.
 
-7.2 **Currency and the currency-conversion fee.** Prices are shown and charged to you in euro (EUR). Because the factory price and the China-side costs are ultimately settled in Chinese yuan (CNY), a **currency-conversion fee of 3%** is charged to cover the cost of that conversion.
+7.2 **Currency and the currency-conversion fee.** Prices are shown and charged to you in euro (EUR). Because the source price and the China-side costs are ultimately settled in Chinese yuan (CNY), a **currency-conversion fee of 3%** is charged to cover the cost of that conversion.
 
-It is calculated on the amounts that are actually converted: the **factory price**, the **China-side handling costs** (domestic shipping and Quality Control), the **fulfilment fee** and the **international shipping charge including the buffer** described in section 8.1. It is **not** charged on import VAT, on the service fee or on extended storage. The fee is shown as its own line in the cost breakdown before you confirm shipping.
-[LEGAL REVIEW: confirm that a 3% currency-conversion fee charged to a consumer is permissible and adequately disclosed under EU price-transparency rules (Consumer Rights Directive art. 6(1)(e) — every additional charge must be given before the consumer is bound). Note specifically that the fee base **includes the shipping buffer**, which is itself an estimate that is partly refunded on reconciliation under section 8.2; confirm whether charging the conversion fee over an amount that is later partly refunded is defensible, or whether the fee should be recalculated at reconciliation.]
+It is calculated on the amounts that are actually converted: the **source price**, the **China-side handling costs** (domestic shipping and Quality-control), the **fulfilment fee** and the **international shipping charge**. Where the shipping charge includes the buffer described in section 8.1 and part of that buffer is refunded to you on reconciliation, the conversion fee charged over the refunded part is refunded with it. It is **not** charged on import VAT, on the service fee or on extended storage. The fee is shown as its own line in the cost breakdown before you confirm shipping.
 
-7.3 **Taxes, duties and DDP.** Prices for delivery into the EU are **tax-inclusive** and shipped **DDP (Delivered Duty Paid)**: import duties and **21% import VAT** are already included in what you pay, so you will **not** face surprise customs charges on delivery. Where a price line is shown as tax-inclusive, there is no separate VAT line added on top — the VAT is already contained in the price.
+7.3 **Taxes, duties and DDP.** Prices for delivery into the EU are **tax-inclusive** and shipped **DDP (Delivered Duty Paid)**: import duties and import VAT are already included in what you pay, so you should not have to pay anything extra on delivery. Where a price line is shown as tax-inclusive, there is no separate VAT line added on top — the VAT is already contained in the price.
 [LEGAL REVIEW: confirm correct VAT treatment for goods imported from China and sold by an EU-established seller (IOSS / import VAT, place of supply, invoicing requirements, the 21% NL rate vs. the rate of the customer's country), and confirm the DDP duty/VAT-inclusive representation is accurate for all destinations served.]
 
 7.4 **Fee changes.** We may change our fee structure for future Orders. Any change applies only to Orders placed after the change and is shown transparently before you confirm.
@@ -157,69 +154,70 @@ It is calculated on the amounts that are actually converted: the **factory price
 
 ## 8. Shipping, delivery and reconciliation
 
-8.1 **Shipping estimate and buffer.** International shipping is charged when you confirm shipping of your parcel, as an **estimate** that includes a reasonable buffer, because the exact carrier cost is not known until the parcel is actually shipped and weighed.
+8.1 **Shipping estimate and buffer.** International shipping is charged when you confirm shipping of your parcel, as an **estimate that includes a buffer of 25%**, because the exact carrier cost is not known until the parcel is actually shipped and weighed. The estimate and the buffer are shown to you before you confirm.
 
-8.2 **Reconciliation and refund of the difference.** Approximately one week after shipping, we reconcile the estimate against the **real** carrier cost. If the real cost is **lower** than the estimate you paid, the difference is **refunded to your Balance**. The estimate plus buffer is set so that, in the normal course, reconciliation results in a refund to you rather than an additional charge.
-[LEGAL REVIEW: confirm whether Flowva may ever charge the customer *more* than the estimate if the real cost exceeds estimate-plus-buffer. Best practice for consumer transparency is to bear any overrun ourselves and never post-charge a consumer beyond the disclosed estimate; if any top-up charge is possible, it must be disclosed clearly before the Order and likely requires the customer's prior express consent.]
+8.2 **Reconciliation and refund of the difference.** Approximately one week after shipping, we reconcile the estimate against the **real** carrier cost. If the real cost is **lower** than the estimate you paid, the difference is **refunded to your Balance**, together with the currency-conversion fee charged over that difference (see section 7.2). **If the real cost turns out to be higher, we bear it — we never charge you more than the amount you confirmed.**
 
-8.3 **Delivery times are estimates.** Any delivery dates or transit times shown are good-faith **estimates**, not guarantees, because they depend on the Factory, Quality Control, your shipping confirmation, carriers and customs. Where a binding maximum delivery period is required by law and not otherwise agreed, we will deliver without undue delay and in any event within the period required by applicable consumer law.
+8.3 **Delivery times are estimates.** Any delivery dates or transit times shown are good-faith **estimates**, not guarantees, because they depend on the Brand, Quality-control, your shipping confirmation, carriers and customs. Because your items wait at the warehouse until **you** decide to ship them, the delivery period runs from the moment you confirm international shipping, not from the moment you place your Order. Where a binding maximum delivery period is required by law and not otherwise agreed, we will deliver without undue delay and in any event within the period required by applicable consumer law.
 
 8.4 **Risk and title.** Risk of loss or damage to the Products passes to you when you (or someone you nominate, other than the carrier) take physical possession of the Products. For Flowva Friends, see section 13 regarding delivery to the Host.
 
-8.5 **Delivery problems.** If your Order is not delivered within a reasonable time, contact us at contact@flowva.app and we will help resolve it consistent with your statutory rights, including (where applicable) re-delivery or refund.
+8.5 **Delivery problems.** If your Order is not delivered within a reasonable time, open **Flowva support** in the app and talk to us — a real person reads and answers every message, and we sort it out from there. You can also email support@flowva.app. We will help resolve it consistent with your statutory rights, including (where applicable) re-delivery or refund.
 
 ---
 
 ## 9. Conformity and legal guarantee
 
-9.1 **Your statutory rights.** As a consumer you are entitled, under mandatory EU and Dutch law, to Products that conform to the contract — that match their description, are of the expected quality, and are fit for their normal purpose. If a Product does not conform, you have a **legal guarantee** entitling you (depending on the circumstances) to repair or replacement and, where appropriate, to a price reduction or to cancel the purchase and receive a refund. These statutory rights apply **in addition** to, and are not limited by, anything in these Terms.
+9.1 **Your statutory rights.** As a consumer you are entitled, under mandatory EU and Dutch law, to Products that conform to the contract — that match their description, are of the expected quality, and are fit for their normal purpose. This legal guarantee applies **for at least two years** from delivery. If a Product does not conform, you have a **legal guarantee** entitling you (depending on the circumstances) to repair or replacement and, where appropriate, to a price reduction or to cancel the purchase and receive a refund. These statutory rights apply **in addition** to, and are not limited by, anything in these Terms.
 
-9.2 **Flowva is responsible.** Because Flowva is the seller (section 2.2), you bring conformity and guarantee claims to **Flowva**, not to the Factory or BuckyDrop.
+9.2 **Flowva is responsible.** Because Flowva is the seller (section 2.2), you bring conformity and guarantee claims to **Flowva**, not to the Brand or BuckyDrop.
 
-9.3 **The Quality-Control gate.** Our mandatory Quality Control (section 6.3) is designed to catch defects and wrong items **before** international shipping. If Quality Control reveals a defect, a damaged item, or an item that is not as described, you may choose to **return** it (factory return + refund) at **no cost to you, including return shipping**, because the problem is a defect — see section 10.
+9.3 **The Quality-control gate.** Our mandatory Quality-control (section 6.3) is designed to catch defects and wrong items **before** international shipping. If Quality-control reveals a defect, a damaged item, or an item that is not as described, you may choose to **return** it (Brand return + refund) at **no cost to you, including return shipping**, because the problem is a defect — see section 10.
 
-9.4 **Defects discovered after delivery.** The Quality-Control gate does not reduce your statutory rights if a defect only becomes apparent after delivery. Contact us at contact@flowva.app and we will handle your conformity claim under the legal guarantee.
+9.4 **Defects discovered after delivery.** The Quality-control gate does not reduce your statutory rights if a defect only becomes apparent after delivery. Contact us at returns@flowva.app and we will handle your conformity claim under the legal guarantee.
 
 ---
 
-## 10. Defect handling (Quality-Control gate) and faulty / not-as-described items
+## 10. Defect handling (Quality-control gate) and faulty / not-as-described items
 
-10.1 **At the Quality-Control stage.** If Quality Control finds that an item is defective, damaged, or not as described, you choose between:
-- **Return** — the item is returned to the Factory and you are refunded. **Flowva bears the cost**, including return shipping, because it is a defect; or
+10.1 **At the Quality-control stage.** If Quality-control finds that an item is defective, damaged, or not as described, you choose between:
+- **Return** — the item is returned to the Brand and you are refunded. **Flowva bears the cost**, including return shipping, because it is a defect; or
 - **Accept** — you accept the item as-is (for example with a minor cosmetic issue) and shipping proceeds.
 
-10.2 **After delivery.** If a Product is faulty, damaged in transit, or not as described when it reaches you, report it to us promptly (and within the period your statutory rights allow). Where the problem is a genuine defect or our error, **Flowva bears the cost of the remedy, including return shipping**, and provides a repair, replacement, price reduction or refund in line with section 9 and applicable law.
+10.2 **After delivery.** If a Product is faulty, damaged in transit, or not as described when it reaches you, tell us **within two months of discovering the problem** (and in any event within the period your statutory rights allow). Where the problem is a genuine defect or our error, **Flowva bears the cost of the remedy, including return shipping**, and provides a repair, replacement, price reduction or refund in line with section 9 and applicable law.
 
-10.3 **How to report.** Report problems through the Platform's problem/after-sales function or by emailing contact@flowva.app. We may ask for photos or other reasonable evidence to assess the claim.
+10.3 **How to report.** Report problems through the Platform's problem/after-sales function, or open **Flowva support** in the app — a real person reads and answers every message. You can also email returns@flowva.app. We may ask for photos or other reasonable evidence to assess the claim.
 
 ---
 
 ## 11. Right of withdrawal and returns
 
-11.1 **14-day right of withdrawal.** As an EU consumer you generally have the right to withdraw from a distance purchase within **14 days** without giving any reason. The 14-day period normally starts on the day you (or someone you nominate, other than the carrier) receive the Products. For Flowva Friends, the Host's own 14-day period starts when the **Host** receives the combined parcel (see section 13).
+11.1 **14-day right of withdrawal.** As an EU consumer you generally have the right to withdraw from a distance purchase within **14 days** without giving any reason. The 14-day period normally starts on the day you (or someone you nominate, other than the carrier) receive the Products. For Flowva Friends, the 14-day period starts when the **Host** receives the combined parcel, because you nominated the Host to receive your items (see section 13.4).
 
-11.2 **How to withdraw.** You can withdraw using the withdrawal function on the Platform, by the model withdrawal form, or by any other clear statement to contact@flowva.app. After a valid withdrawal we refund you as set out in our Returns Policy — in short, the **product price** of the returned item; the **service fee and international shipping are not refunded** on a change-of-mind withdrawal once an item has passed Quality Control and shipped (see Returns Policy section 3.1) — without undue delay and within the period required by law, using the same means of payment you used for the original transaction, unless you expressly agree to a refund to your Balance instead.
+11.2 **How to withdraw.** You can withdraw using the withdrawal function on the Platform, by the model withdrawal form, or by any other clear statement to returns@flowva.app. After a valid withdrawal we refund you without undue delay and within the period required by law, using the same means of payment you used for the original transaction, unless you expressly agree to a refund to your Balance instead.
 
-11.3 **Who pays return shipping.**
+11.3 **What we refund.** We always refund the **price of the returned item**.
+- If you withdraw from **your entire parcel**, we also refund the international shipping you paid for it.
+- If you withdraw from **part of a parcel** and keep the rest, the international shipping is **not** refunded, because that parcel was shipped regardless of the returned item.
+- The **service fee** is not refunded once you have confirmed international shipping. That fee covers work already carried out for you — sourcing, Quality-control and preparing your parcel — and you confirm shipping only after seeing the Quality-control result. You agree to this when you confirm (see 11.4).
+
+11.4 **Starting the service early.** When you confirm international shipping, you expressly ask us to carry out and complete the service that the service fee covers, and you acknowledge that you lose your right to withdraw from **that service** once it has been fully performed. This does not affect your right to withdraw from the **Products** themselves, or any of your statutory rights in respect of defective or non-conforming goods.
+
+11.5 **Who pays return shipping.**
 - **Genuine defect / faulty / not-as-described:** **Flowva** bears the cost, including return shipping (see sections 9 and 10).
-- **Change of mind / wrong size chosen by you:** you may withdraw, but **you bear the direct cost of returning the goods**, to the extent the law allows.
+- **Change of mind / wrong size chosen by you:** you may withdraw, but **you bear the direct cost of returning the goods**, to the extent the law allows. The Quality-control photographs and measurements shown to you before shipping are used to establish whether an item was defective or simply not what you hoped for.
 
-11.4 **Exclusions from withdrawal.** Certain Products may be **excluded** from the right of withdrawal where EU law permits, for example:
-- goods **made to your specifications or clearly personalised** (e.g. made-to-order or custom-embroidered items);
-- **sealed goods that are not suitable for return for health-protection or hygiene reasons** once unsealed.
+11.6 **Exclusions from withdrawal.** Certain Products are **excluded** from the right of withdrawal where EU law permits. For Flowva this applies to **sealed items that are not suitable for return for health-protection or hygiene reasons — such as swimwear and underwear — once the seal has been broken**. Where this exclusion applies, we tell you clearly on the product page before you order, and the item is delivered sealed. Exclusions never affect your separate rights in respect of **defective** or **non-conforming** goods under sections 9 and 10.
 
-Where an exclusion applies, we will tell you clearly before you order. Exclusions never affect your separate rights in respect of **defective** or **non-conforming** goods under sections 9 and 10.
-[LEGAL REVIEW: confirm the list and exact wording of withdrawal-right exclusions against Article 6:230p Dutch Civil Code / the Consumer Rights Directive, especially for made-to-order/personalised and hygiene-sealed fashion items, and confirm the required pre-contract disclosure is given for each affected Product.]
-
-11.5 **Returns Policy.** The full details of withdrawal and returns — including how to start a return, deadlines, the condition items must be in, and refund timing — are set out in the separate **Returns Policy**, which forms part of these Terms. If there is any conflict, the version most favourable to your mandatory consumer rights prevails.
+11.7 **Returns Policy.** The full details of withdrawal and returns — including how to start a return, deadlines, the condition items must be in, and refund timing — are set out in the separate **Returns Policy**, which forms part of these Terms. If there is any conflict, the version most favourable to your mandatory consumer rights prevails.
 
 ---
 
 ## 12. Cancellations
 
-12.1 **Before sourcing.** You may cancel an Order at any time before we have bought the Product from the Factory, and we refund the full amount to your Balance (or original payment method on request).
+12.1 **Before sourcing.** You may cancel an Order at any time before we have bought the Product from the Brand, and we refund the full amount to your Balance — which you can have paid out to your original payment method under section 5.6.
 
-12.2 **After sourcing, before shipping.** Once the Product has been bought from the Factory, cancellation may not be fully possible because we have already incurred the cost. Where we can still cancel, we refund what we are able to recover. This does not affect your right of withdrawal (section 11) or your rights for defective items (sections 9–10).
+12.2 **After sourcing, before shipping.** Once the Product has been bought from the Brand, we may no longer be able to cancel, because we have already paid for it. Where we can still cancel, we refund what we are able to recover. **Where we cannot, the item remains yours**: it goes to the warehouse as normal, and you can either have it shipped to you, or withdraw once you receive it under section 11. This does not affect your right of withdrawal (section 11) or your rights for defective items (sections 9–10).
 
 12.3 **By Flowva.** We may cancel an Order (and refund you in full to your Balance) if a Product is unavailable, if there was an obvious pricing or description error (section 6.6), if we reasonably suspect fraud or a breach of these Terms, or if delivery to your destination is not lawfully possible.
 
@@ -233,14 +231,13 @@ Where an exclusion applies, we will tell you clearly before you order. Exclusion
 
 13.3 **Everyone pays Flowva directly.** Each member pays **Flowva** directly for their own items, fees and share of shipping, from their own Balance. **The Host is not a payment intermediary, reseller, or merchant** and never collects, holds or routes another member's money. Flowva's lower tiered service fees may apply to group orders (see section 7.1).
 
-13.4 **The Host role.** The Host is the member designated to **receive the combined parcel**. The Host then makes each member's items available for the members to collect.
+13.4 **The Host role and your consent.** The Host is the member designated to **receive the combined parcel**. The Host then makes each member's items available for the members to collect. **When you join a group, you are shown who the Host is and where the parcel will be delivered, and you expressly nominate that Host to receive your items on your behalf.** You also agree that the Host will see your name and the items in your part of the parcel, because they are needed to hand your items over. If you do not want that, order solo instead.
 
-13.5 **Withdrawal and the Host.** Because the combined parcel is delivered to the Host, the **Host's own 14-day right of withdrawal** (for the Host's own items) starts when the **Host receives the parcel** (section 11.1). Each member's right of withdrawal and consumer rights in respect of their **own** items are with **Flowva** and are exercised individually.
+13.5 **Withdrawal and the Host.** Because you have nominated the Host to receive your items (section 13.4), your **14-day right of withdrawal starts on the day the Host receives the combined parcel** — for the Host's own items and for every member's items alike. Each member's right of withdrawal and consumer rights in respect of their **own** items are with **Flowva** and are exercised individually (see section 11).
 
 13.6 **Member-to-member collection is outside Flowva.** The arrangement by which a member collects their items from the Host (when, where and how) is **between those individuals and is outside Flowva's control and responsibility**. Flowva delivers the combined parcel to the Host; what happens between Host and members after that is their own arrangement.
 
-13.7 **Host disclaimer.** The Host receives other members' goods purely as a convenience to enable shared shipping. To the extent permitted by law, **the Host is not liable to other members as a seller** and Flowva is the party responsible for the Products. Members should agree among themselves on safe and timely handover. Flowva is not responsible for loss, damage or delay caused after the parcel is delivered to the Host and while items are in the Host's keeping or being handed over between members. **In plain terms: if a Host keeps your items or fails to hand them over, that is a matter between you and that Host — Flowva is not responsible, and cannot refund or replace items already delivered to your Host. Only join a group whose Host you personally trust.**
-[LEGAL REVIEW: this is a key risk area. Confirm (a) that the Host does not become a "trader"/reseller or assume seller liability by receiving and handing over others' goods; (b) the data-protection position of the Host receiving other members' names/items (and whether a member's delivery to the Host needs its own consent / disclosure); (c) whether Flowva needs to obtain each member's informed consent to ship their goods to the Host's address; (d) how risk/title passes for a non-Host member whose goods are delivered to the Host rather than to the member; and (e) the enforceability of the Host disclaimer against both members and the Host.]
+13.7 **Host disclaimer.** The Host receives other members' goods purely as a convenience to enable shared shipping. **Because you nominated the Host to receive your items, risk in those items passes to you when the Host takes delivery of the parcel.** To the extent permitted by law, **the Host is not liable to other members as a seller** and Flowva is the party responsible for the Products. Members should agree among themselves on safe and timely handover. Flowva is not responsible for loss, damage or delay caused after the parcel is delivered to the Host and while items are in the Host's keeping or being handed over between members. **In plain terms: if a Host keeps your items or fails to hand them over, that is a matter between you and that Host — Flowva is not responsible, and cannot refund or replace items already delivered to your Host. Only join a group whose Host you personally trust.**
 
 13.8 **One member's problem is handled individually.** If one member's item has a defect, is delayed, or is withdrawn, that is resolved **individually for that member** (for example by refunding that member). A single member's problem **never** blocks, delays or penalises the whole group.
 
@@ -255,7 +252,7 @@ Where an exclusion applies, we will tell you clearly before you order. Exclusion
 - interfere with, attack, scrape, reverse-engineer or disrupt the Platform or its security;
 - abuse the returns, withdrawal, refund or Flowva Friends features in bad faith.
 
-14.2 If you breach these Terms, we may (proportionately) place Orders on hold, refuse or cancel Orders, suspend or close your Account, withhold refunds connected to the breach, and take legal action. Where we close your Account, we still refund your legitimate unused Balance subject to section 5.6.
+14.2 If you breach these Terms, we may (proportionately) place Orders on hold, refuse or cancel Orders, suspend or close your Account, withhold refunds connected to the breach, and take legal action. Unless we suspect fraud or a serious breach, we tell you what the problem is and give you a reasonable opportunity to put it right before we suspend or close your Account. Where we close your Account, we still refund your legitimate unused Balance subject to section 5.6.
 
 ---
 
@@ -267,7 +264,7 @@ Where an exclusion applies, we will tell you clearly before you order. Exclusion
 
 15.3 **No exclusion of consumer remedies.** Any limitation in these Terms applies only to the extent permitted by mandatory consumer law and never reduces the remedies the law gives you for defective, faulty or non-conforming Products, or your right of withdrawal.
 
-15.4 **Force majeure.** We are not liable for delay or failure to perform caused by events beyond our reasonable control (for example natural disasters, war, strikes, carrier or customs disruption, factory closures, or failures of essential third-party services). This does not affect your statutory rights, including any right to a refund where we cannot deliver.
+15.4 **Force majeure.** We are not liable for delay or failure to perform caused by events beyond our reasonable control (for example natural disasters, war, strikes, carrier or customs disruption, Brand or supplier closures, or failures of essential third-party services). This does not affect your statutory rights, including any right to a refund where we cannot deliver.
 
 ---
 
@@ -277,18 +274,23 @@ Where an exclusion applies, we will tell you clearly before you order. Exclusion
 
 16.2 You may not copy, reproduce, distribute, modify, or create derivative works from the Platform or its content, or use Flowva's trademarks, without our prior written permission, except as allowed by law.
 
-16.3 Product images and descriptions may originate from manufacturers or third parties and remain the property of their respective owners.
+16.3 **The Brands' rights.** The clothing sold through Flowva is designed and made by independent Brands. **The designs, patterns, prints, trade names and logos of those Brands belong to them, not to Flowva.** We sell their original products and we name the Brand that made each item, so that you know whose work you are buying. We do not claim any right in their designs, and nothing on the Platform should be read as suggesting that Flowva is the designer of an item, or that a Brand endorses or is affiliated with Flowva.
+
+16.4 **Product images and descriptions.** Product photographs, images and descriptions may originate from the Brand or from third parties and remain the property of their respective owners. We use them to show the products we sell.
+
+16.5 **Only original products.** Flowva sells only original items made by the Brand that designed them (see section 1.5). We do not knowingly offer replicas, counterfeits, or products that copy another brand's design or trademark. If we discover that an item does not meet this standard, we remove it from the Platform.
+
+16.6 **Reporting an intellectual-property concern.** If you own a trade mark, design or copyright and believe that something on the Platform infringes it, tell us at **contact@flowva.app** with "IP notice" in the subject line. Please include what you own, where on the Platform the problem is, and how we can reach you. We review every notice, and where a concern is well-founded we remove or delist the item without delay.
 
 ---
 
 ## 17. Complaints and dispute resolution
 
-17.1 **Talk to us first.** If you have a complaint, please contact us at contact@flowva.app. We aim to acknowledge complaints promptly and to resolve them within a reasonable time (and in any event within the period required by applicable consumer law).
+17.1 **Talk to us first.** If you have a complaint, open **Flowva support** in the app — a real person reads and answers every message — or email support@flowva.app. We aim to acknowledge complaints promptly and to resolve them within a reasonable time (and in any event within the period required by applicable consumer law).
 
-17.2 **EU Online Dispute Resolution (ODR).** If we cannot resolve your complaint, EU consumers may use the European Commission's Online Dispute Resolution platform at **https://ec.europa.eu/consumers/odr**. Our contact email for this purpose is contact@flowva.app.
-[LEGAL REVIEW: confirm the EU ODR platform is still operative at the effective date (the Commission has signalled changes to the ODR platform) and update or replace this reference accordingly; consider naming a relevant Dutch alternative dispute-resolution body (Geschillencommissie / Stichting Webshop Keurmerk) if Flowva is affiliated.]
+17.2 **Alternative dispute resolution.** Flowva is not currently affiliated with an alternative dispute-resolution body. If we cannot resolve your complaint together, you may bring your dispute to a competent court (see section 19), or to a consumer body in your country of residence that handles complaints about traders established in the Netherlands, such as the European Consumer Centre (ECC-Net).
 
-17.3 **Your statutory route.** Using the complaints procedure or ODR does not affect your right to take your dispute to a competent court (see section 18).
+17.3 **Your statutory route.** Using the complaints procedure does not affect your right to take your dispute to a competent court (see section 19).
 
 ---
 
@@ -304,8 +306,7 @@ Where an exclusion applies, we will tell you clearly before you order. Exclusion
 
 19.1 These Terms and any Order are governed by the **law of the Netherlands**.
 
-19.2 This choice of law does **not** deprive you of the protection of the **mandatory consumer-protection rules of the country where you habitually reside** — those protections continue to apply to you in addition to Dutch law.
-[LEGAL REVIEW: confirm the Rome I (Art. 6) consumer-contract wording so the governing-law clause does not appear to override the consumer's home-country mandatory protections.]
+19.2 This choice of law does **not** deprive you of the protection of the **mandatory consumer-protection rules of the country where you habitually reside**. Where those rules give you more protection than Dutch law on a particular point, that protection applies to you instead.
 
 19.3 Disputes may be brought before the competent court in the Netherlands. Where mandatory consumer law gives you the right to bring proceedings in, or be sued only in, the courts of your country of residence, that right is unaffected.
 

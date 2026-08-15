@@ -1336,7 +1336,11 @@ function RequestListSheet({ items, onRemove, onSetQty, onClose, onSend, sending,
                   <input type="checkbox" className="fl-check-input" checked={agreed} onChange={(e) => setAgreed(e.target.checked)} />
                   <span className="fl-check-box" />
                 </span>
-                <span>I confirm <b style={{ color: "#C9C6C1" }}>my delivery address above is correct</b>, and I agree to the <a href="/terms" target="_blank" rel="noreferrer" style={{ color: "#A5B4FC" }}>Terms</a> and <a href="/returns-policy" target="_blank" rel="noreferrer" style={{ color: "#A5B4FC" }}>Returns &amp; withdrawal policy</a>. Refunds go to my Flowva balance, and I have a <b style={{ color: "#C9C6C1" }}>14-day right of withdrawal</b>.</span>
+                <span>I confirm <b style={{ color: "#C9C6C1" }}>my delivery address above is correct</b>, and I agree to the <a href="/terms" target="_blank" rel="noreferrer" style={{ color: "#A5B4FC" }}>Terms</a> and <a href="/returns-policy" target="_blank" rel="noreferrer" style={{ color: "#A5B4FC" }}>Returns &amp; withdrawal policy</a>. Refunds go to my Flowva balance, and I have a <b style={{ color: "#C9C6C1" }}>14-day right of withdrawal</b>.{" "}
+                  {/* Wettelijke informatieplicht (art. 6:230s BW): wie de retour betaalt moet VÓÓR de koop
+                      duidelijk zijn, mét kostenindicatie. Staat dit er niet, dan draait Flowva zelf op voor
+                      de retourkosten. Retour gaat naar Landgraaf, dus gewoon een EU-pakketje. */}
+                  {tr("cart.returnCost", "If I change my mind, I pay for sending the item back — usually €5–€8 within the EU.")}</span>
               </label>
               {paying === "check" ? (
                 /* Betaald → de knop wordt een cirkel waarin het vinkje zichzelf tekent */
@@ -1550,6 +1554,11 @@ const TX_LABEL = {
   refund:            () => tr("tx.line.refund", "Refunded"),
   return_refund:     () => tr("tx.line.returnRefund", "Return refund"),
   buffer_return:     () => tr("tx.line.bufferRefund", "Shipping refund"),
+  shipping_refund:   () => tr("tx.line.bufferRefund", "Shipping refund"),
+  // 3% conversie over het teruggegeven verzenddeel — daar is nooit yuan voor gekocht.
+  currency_fee_refund: () => tr("tx.line.currencyRefund", "Currency conversion refunded"),
+  payout:            () => tr("tx.line.payout", "Paid out to your bank"),
+  payout_reversed:   () => tr("tx.line.payoutReversed", "Payout could not be sent — returned to your balance"),
   extra_service:     () => tr("tx.line.extraService", "Extra service"),
 };
 const txLabel = (type) => (TX_LABEL[type] ? TX_LABEL[type]() : type);
@@ -3814,6 +3823,16 @@ export default function SupplyFlow({ session, factoriesVisible = true }) {
         amount: Math.round(parseFloat(topupAmount) * 100),
       });
       if (error) throw new Error(await functionErrorMessage(error));
+      // Saldo-plafond (Terms §5.1): server weigert boven €1.000. Nette melding i.p.v.
+      // een technische foutcode, mét het bedrag dat nog wél kan.
+      if (data?.error === "balance_cap_reached") {
+        alert(tr("profile.topup.capReached", "Your balance is already at the €{cap} maximum. Spend some of it first, or pay part of it out.", { cap: data.cap }));
+        setLoadingBalance(false); return;
+      }
+      if (data?.error === "balance_cap_exceeded") {
+        alert(tr("profile.topup.capExceeded", "Your balance can hold at most €{cap}. You can add up to €{max} right now.", { cap: data.cap, max: Number(data.maxTopUp).toFixed(2) }));
+        setLoadingBalance(false); return;
+      }
       if (!data?.url) throw new Error(data?.error || "Could not start the payment");
       window.location.href = data.url;
     } catch (err) { alert("Something went wrong: " + err.message); }

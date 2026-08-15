@@ -485,6 +485,22 @@ export default function Friends({ session, onClose, initialJoinCode, initialGrou
               <div style={{ fontSize: 21, fontWeight: 800, color: "#fff", marginBottom: 6 }}>{preview.name}</div>
               <div style={{ fontSize: 12.5, color: "#9C9893", marginBottom: 14 }}>{preview.member_count}/{preview.max_size} friends · {preview.is_private ? "🔒 private — invite only" : preview.status === "gathering" ? "open to join" : "closed"}</div>
               <div style={{ display: "inline-block", background: "linear-gradient(135deg, #FF7A1A, #FF5C00)", color: "#fff", fontSize: 12.5, fontWeight: 800, padding: "8px 16px", borderRadius: 999, marginBottom: 16, boxShadow: "0 5px 16px rgba(255,92,0,0.3)" }}>💸 You both save up to 50% on fees &amp; shipping</div>
+              {/* Wie de host is en waar het pakket heen gaat — VOOR de knop. Door mee te doen
+                  wijs je die persoon aan om jouw spullen in ontvangst te nemen; dat is wat het
+                  risico bij hem laat overgaan en de bedenktijd laat starten bij zijn ontvangst.
+                  Zonder dit blijft Flowva aansprakelijk als een host spullen houdt. */}
+              {preview.host_name && (
+                <div style={{ background: "rgba(255,255,255,0.04)", border: "1px solid #2c2b29", borderRadius: 12, padding: "11px 13px", marginBottom: 14, textAlign: "left" }}>
+                  <div style={{ fontSize: 11.5, color: "#9C9893", lineHeight: 1.5 }}>
+                    {tr("ff.join.hostIntro", "The whole group ships in one parcel to")}{" "}
+                    <b style={{ color: "#fff" }}>{preview.host_name}</b>
+                    {preview.host_place ? <span style={{ color: "#c9c6c1" }}> · {preview.host_place}</span> : null}.
+                  </div>
+                  <div style={{ fontSize: 11, color: "#7d7a75", lineHeight: 1.5, marginTop: 5 }}>
+                    {tr("ff.join.hostConsent", "By joining you ask them to receive your items for you, and they'll see your name and what you ordered so they can hand it over. Only join a group whose host you trust.")}
+                  </div>
+                </div>
+              )}
               <button style={{ ...primaryBtn, opacity: busy || preview.is_full || preview.is_private || preview.status !== "gathering" ? 0.5 : 1 }}
                 disabled={busy || preview.is_full || preview.is_private || preview.status !== "gathering"} onClick={doJoin}>
                 {preview.is_private ? "Private group" : preview.is_full ? "Group is full" : preview.status !== "gathering" ? "Group is closed" : busy ? "Joining…" : `Join ${preview.name} →`}

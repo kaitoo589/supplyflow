@@ -811,7 +811,13 @@ function NormalShippingConfirm({ session, haulItems, balance, onBack, onSuccess 
       {chosen && !error && !quoting && (
         <label style={{ display: "flex", alignItems: "flex-start", gap: 10, marginBottom: 12, cursor: "pointer" }}>
           <input type="checkbox" checked={addrOk} onChange={e => setAddrOk(e.target.checked)} style={{ marginTop: 1, width: 16, height: 16, accentColor: "#FF5C00", flexShrink: 0 }} />
-          <span style={{ fontSize: 12, color: "#555", lineHeight: 1.5 }}>I confirm my delivery address is correct. A parcel sent to a wrong address can't be recovered.</span>
+          {/* Twee dingen in één vinkje, bewust geen tweede klik. De tweede zin is de
+              uitdrukkelijke instemming uit art. 16(a) Richtlijn 2011/83: zonder die
+              erkenning moet de service fee terugbetaald worden bij een herroeping. */}
+          <span style={{ fontSize: 12, color: "#555", lineHeight: 1.5 }}>
+            {tr("haul.confirm.address", "I confirm my delivery address is correct. A parcel sent to a wrong address can't be recovered.")}{" "}
+            {tr("haul.confirm.serviceFee", "I ask Flowva to start shipping now, and I understand the service fee is not refunded once that work is done.")}
+          </span>
         </label>
       )}
       <button onClick={payLive} disabled={quoting || !!error || !chosen || !canAfford || confirming || !addrOk}

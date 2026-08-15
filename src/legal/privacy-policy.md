@@ -2,9 +2,9 @@
 
 **Last updated: 23 July 2026**
 
-This Privacy Policy explains how Flowva collects, uses, shares, and protects your personal data when you use the Flowva website and app at flowva.app (the "Service"). We believe in radical transparency — the same principle that leads us to show you the real source price and every fee also applies to how we handle your data. This policy is written in plain language, but it is intended to be legally complete and to comply with the EU General Data Protection Regulation (GDPR / AVG) and Dutch data-protection law.
+This Privacy Policy explains how Flowva collects, uses, shares, and protects your personal data when you use the Flowva website and app at flowva.app (the "Service"). We handle your data the same way we handle money on Flowva: you can see what we do and why. This policy is written in plain language and follows the EU General Data Protection Regulation (GDPR / AVG) and Dutch data-protection law.
 
-By using the Service, you acknowledge that you have read and understood this Privacy Policy. Where we rely on your consent, we will ask for it separately and you can withdraw it at any time.
+This policy tells you what we do with your data — it is not a contract and you are not asked to agree to it. Where we rely on your **consent** for something, we ask for it separately and you can withdraw it at any time.
 
 ---
 
@@ -20,9 +20,9 @@ The data controller responsible for your personal data is:
 
 In this policy, "Flowva", "we", "us", and "our" refer to Kaito Kratsborn, trading as Flowva. A "data controller" is the party that decides why and how your personal data is processed — that is us.
 
-If you have any question about this policy or want to exercise your rights (see Section 8), please contact us at **contact@flowva.app**.
+We are not required to appoint a Data Protection Officer, because we do not monitor people on a large scale and we do not process special categories of personal data. The contact above is the person who handles all privacy questions.
 
-`[LEGAL REVIEW: Confirm whether the scale of processing requires a formal Data Protection Officer (DPO) under Article 37 GDPR, or whether a designated privacy contact is sufficient. If a DPO is appointed, add their contact details here.]`
+If you have any question about this policy or want to exercise your rights (see Section 8), please contact us at **contact@flowva.app**.
 
 ---
 
@@ -48,22 +48,21 @@ When you place an order, we process:
 ### 2.3 Wallet, balance, and payment data
 Flowva uses a prepaid balance ("wallet"). Your balance is **prepayment** that you load in advance and that we apply to goods and services you order from Flowva; it is not general-purpose stored value. We process:
 - Your top-up amounts, balance, and transaction history;
-- Records of what your balance was applied to (orders, shipping, refunds, shipping reconciliations).
+- Records of what your balance was applied to (orders, shipping, refunds, shipping reconciliations);
+- Records of payouts of unused balance back to your original payment method.
 
-Card payments are handled entirely by our payment processor, **Stripe**. We do **not** receive or store your full card number, CVC, or other complete card credentials. We may receive limited payment-confirmation data from Stripe (for example, that a payment succeeded, the last four digits and card brand, and a transaction reference) to reconcile your balance.
-
-`[LEGAL REVIEW: The prepaid wallet must be assessed against the Electronic Money Directive (EMD2) / Dutch Wft "elektronisch geld" rules and PSD2. Confirm the balance qualifies as limited-purpose prepayment for Flowva goods/services (and is presented and contractually framed as such), not as e-money or a stored-value/payment instrument that would require a licence or exemption. This affects how the wallet is described here.]`
+Card and iDEAL payments are handled entirely by our payment processor, **Stripe**. We do **not** receive or store your full card number, CVC, or other complete card credentials. We may receive limited payment-confirmation data from Stripe (for example, that a payment succeeded, the last four digits and card brand or bank, and a transaction reference) to reconcile your balance and to pay out unused balance to the account you paid from.
 
 ### 2.4 Flowva Friends (group buying) data
 If you use Flowva Friends, we process group-related data so members can combine items into one shared parcel and split international shipping:
 - The group you belong to and your role (member or host);
 - Items you add to a shared cart and your "ready" status;
 - Messages you send in the group chat;
-- If you are the **host**, the combined delivery address used to receive the shared parcel.
+- If you are the **host**, the delivery address used to receive the shared parcel.
+
+**What the host sees.** To hand your items over, the host is shown **your name and the items in your part of the parcel**. The host does not see your address, your balance, or what you paid. We share this because you nominate the host to receive your items when you join a group, and we cannot deliver your order without it — so this sharing is necessary to perform our contract with you. You are shown who the host is and where the parcel goes **before** you join. If you would rather not share this, order solo instead.
 
 Each member pays Flowva directly. The host is **not** a payment intermediary or reseller. See our Terms for how Flowva Friends works.
-
-`[LEGAL REVIEW: A host receives parcels containing other members' goods and the host's delivery details are shared within the group. Confirm the lawful basis and the information given to members about this sharing, the host's role, and host liability/disclaimer. Member-to-member hand-off after the parcel reaches the host is outside Flowva's control — confirm wording.]`
 
 ### 2.5 Device, technical, and push-notification data
 When you use the Service we may collect:
@@ -80,6 +79,9 @@ When you contact us or use in-app support, we process:
 ### 2.7 Data we do **not** collect
 We do not knowingly collect special categories of personal data (such as health, religion, or political opinions). Please do not send us such data in support messages. We do not buy personal data from third parties to build marketing profiles.
 
+### 2.8 No tracking cookies
+We do not use tracking or advertising cookies, and we do not run analytics that follow you around the web. The app stores a small amount of information on your own device — your cart, your favourites, and which notices you have dismissed — purely so that the app works. That stays on your device and we do not use it to profile you.
+
 ---
 
 ## 3. Why we use your data and our lawful basis
@@ -90,20 +92,16 @@ Under the GDPR we must have a lawful basis for every purpose. The table below se
 |---|---|---|
 | Create and manage your account; let you sign in | Account data, device data | **Contract** (Art. 6(1)(b)) — necessary to provide the Service you requested |
 | Process and fulfil your orders (buy from the Brand via our partner, quality-control, ship, deliver) | Order, delivery, wallet data | **Contract** (Art. 6(1)(b)) |
-| Operate the prepaid wallet, process top-ups, apply your balance, issue refunds and shipping reconciliations | Wallet/payment data | **Contract** (Art. 6(1)(b)) |
+| Operate the prepaid balance, process top-ups, apply your balance, issue refunds and shipping reconciliations, and pay out unused balance | Wallet/payment data | **Contract** (Art. 6(1)(b)) |
 | Handle returns, the right of withdrawal, complaints, and after-sales | Order, delivery, support data | **Contract** (Art. 6(1)(b)) and **legal obligation** (Art. 6(1)(c)) — EU consumer law |
 | Comply with tax, accounting, customs, and consumer-protection law (e.g. keeping invoices, DDP import records) | Order, wallet, address data | **Legal obligation** (Art. 6(1)(c)) |
-| Verify you are 18+ (or the local age of majority) | Account data | **Contract** and **legal obligation** |
 | Send transactional e-mails (order confirmations, status updates, refunds, password resets) | Account, order, e-mail | **Contract** (Art. 6(1)(b)) |
 | Send web-push notifications about your order status | Push subscription token | **Consent** (Art. 6(1)(a)) — you opt in and can opt out |
 | Provide customer support and resolve disputes | Support, order data | **Contract** and **legitimate interest** (Art. 6(1)(f)) |
-| Keep the Service secure, prevent fraud and abuse, debug and maintain the platform | Device, technical, log data | **Legitimate interest** (Art. 6(1)(f)) — running a safe, reliable service |
-| Improve the Service and understand how it is used (aggregated/limited) | Technical/usage data | **Legitimate interest** (Art. 6(1)(f)) |
-| Send marketing communications (if we offer them) | Account, e-mail | **Consent** (Art. 6(1)(a)) where required; you can unsubscribe at any time |
+| Keep the Service secure, prevent fraud and abuse, and find and fix errors | Device, technical, log data | **Legitimate interest** (Art. 6(1)(f)) — running a safe, reliable service |
+| Send marketing communications | Account, e-mail | **Consent** (Art. 6(1)(a)) — we do not send marketing today; if we start, we ask you first and every message has an unsubscribe link |
 
 Where we rely on **legitimate interest**, we have balanced our interest against your rights and freedoms and concluded that the processing is proportionate and not overridden by your interests. You can object to processing based on legitimate interest (see Section 8). Where we rely on **consent**, you can withdraw it at any time without affecting processing that already took place.
-
-`[LEGAL REVIEW: Confirm whether any marketing is actually sent at launch and, if so, that opt-in/soft opt-in requirements under the ePrivacy/Telecommunicatiewet are met for e-mail marketing to consumers.]`
 
 ---
 
@@ -116,7 +114,8 @@ We do not sell your personal data. We share it only with the parties below, each
 | **Stripe** (Stripe, Inc. / Stripe Payments Europe) | Payment processing for wallet top-ups | Payment and card data you enter at checkout; we receive only confirmation/limited data back. Stripe acts as an independent controller for payment processing under its own privacy policy. |
 | **Supabase** | Hosting, database, and authentication backend | Account, order, wallet, support, and technical data stored to run the Service. |
 | **BuckyDrop** (sourcing/fulfilment partner in China) | Sourcing, purchasing from the Brand, warehousing, quality-control, and arranging international shipping | The fulfilment data needed to buy and ship your order: recipient name, delivery address, phone number, and order/item details. |
-| **E-mail provider** (e.g. Resend) | Sending transactional (and any consented marketing) e-mail | Your e-mail address and the content of the message (order confirmations, status updates, etc.). |
+| **Vercel** | Hosting the website and app | Technical data generated when you visit: IP address, browser/device information, timestamps, and error logs. |
+| **Resend** | Sending transactional e-mail | Your e-mail address and the content of the message (order confirmations, status updates, password resets). |
 | **Web-push service** (browser push infrastructure) | Delivering push notifications you opted into | Your push subscription token and the notification content. |
 
 We may also disclose data:
@@ -125,21 +124,23 @@ We may also disclose data:
 - To **public authorities, courts, or regulators** where we are legally required to do so;
 - In connection with a **merger, acquisition, or sale** of all or part of our business, in which case we will inform you and ensure your data remains protected.
 
-`[LEGAL REVIEW: Confirm the exact legal entities, locations, and current sub-processors for Stripe, Supabase, BuckyDrop, the e-mail provider, and the push service, and that a data-processing agreement (Art. 28 GDPR) is in place with each. Confirm whether Stripe is correctly characterised as an independent controller vs processor for the payment flow used.]`
+`[LEGAL REVIEW: Confirm a data-processing agreement (Art. 28 GDPR) is in place with each recipient. Stripe, Supabase, Vercel and Resend provide one automatically through their standard terms; BuckyDrop most likely does not, and it receives recipient name, delivery address and phone number in China — obtain a DPA and SCCs from them (see Section 5).]`
 
 ---
 
 ## 5. International data transfers
 
-Some of our processors are located outside the European Economic Area (EEA). In particular, our fulfilment partner **BuckyDrop is located in China**, and we transfer the fulfilment data described in Section 4 (recipient name, delivery address, phone number, and order details) to China so your order can be purchased, inspected, and shipped.
+**Your account and order data stay in Europe.** Our database, accounts and files are hosted by Supabase in **Ireland (EU)**, so the data you enter into Flowva is stored inside the European Union.
+
+There is one transfer outside the European Economic Area that we cannot avoid: our fulfilment partner **BuckyDrop is located in China**. We send them only what is needed to buy, inspect and ship your order — recipient name, delivery address, phone number, and the order details.
 
 China is not the subject of a European Commission "adequacy decision," which means we must put appropriate safeguards in place for this transfer. We rely on the EU **Standard Contractual Clauses (SCCs)** and additional technical and organisational measures, and we transfer only the data strictly necessary for fulfilment.
 
-Stripe, Supabase, and our other providers may also process data outside the EEA (for example in the United States). Where they do, the transfer is protected by an adequacy decision, the SCCs, or another valid transfer mechanism.
+Stripe, Vercel and Resend may process limited data outside the EEA (for example in the United States). Where they do, the transfer is protected by an adequacy decision, the SCCs, or another valid transfer mechanism.
 
 You can request more information about these safeguards by contacting **contact@flowva.app**.
 
-`[LEGAL REVIEW: This is a high-priority item. Confirm the transfer mechanism for personal data sent to BuckyDrop in China — SCCs (with the correct module), a transfer impact assessment, and supplementary measures. China is not an adequacy country, and government-access risk should be assessed. Confirm the mechanism and location for each non-EEA processor (Stripe, Supabase, e-mail/push providers) and update this section to match.]`
+`[LEGAL REVIEW: Highest-priority open item. Obtain from BuckyDrop a data-processing agreement and signed Standard Contractual Clauses (correct module), plus a transfer impact assessment, since China is not an adequacy country and government-access risk must be assessed. This is the one transfer that is not already covered by a provider's standard terms.]`
 
 ---
 
@@ -147,13 +148,13 @@ You can request more information about these safeguards by contacting **contact@
 
 We keep your personal data only as long as necessary for the purposes described in this policy, then delete or anonymise it.
 
-- **Account data:** for as long as your account is active. If you close your account or it becomes inactive, we delete or anonymise account data within a reasonable period, except where we must keep certain records (see below).
+- **Account data:** for as long as your account is active. If you close your account, we delete or anonymise your account data **within 90 days**, except where we must keep certain records (see below).
 - **Order, invoice, wallet, and tax records:** retained for the period required by Dutch and EU law. Under Dutch tax law, accounting and invoice records must generally be kept for **7 years**.
 - **Support and after-sales correspondence:** kept for as long as needed to resolve the matter and to handle any related legal claims, then deleted.
 - **Quality-control records and measurement photos:** kept for the duration needed to fulfil the order and to handle returns, withdrawals, and warranty/conformity claims, then deleted or anonymised.
 - **Push subscription tokens:** kept until you disable notifications or the token expires.
 - **Security and technical logs:** kept for a short period needed for security, troubleshooting, and fraud prevention.
-- **Marketing consent records:** kept until you withdraw consent, plus a short period to evidence that consent was given.
+- **Consent records:** where you gave consent (for example for push notifications), we keep a record until you withdraw it, plus a short period to evidence that consent was given.
 
 When a legal retention period applies, we may keep limited data beyond the points above solely to meet that obligation, after which it is deleted.
 
@@ -163,11 +164,11 @@ When a legal retention period applies, we may keep limited data beyond the point
 
 ## 7. Cookies, local storage, and analytics
 
-Flowva uses cookies and local/session storage to make the Service work — for example to keep you signed in, remember your cart and group, store your preferences, and operate the app as a PWA. These **strictly necessary** technologies are used on the basis of our legitimate interest in providing the Service and do not require consent.
+**We do not use tracking cookies, advertising cookies, or analytics.** We do not follow you around the web, we do not build profiles, and we do not share your behaviour with advertisers. That is also why you do not see a cookie banner on Flowva — there is nothing to ask you about.
 
-If we use any **non-essential** cookies or analytics that are not strictly necessary, we will ask for your consent first through a cookie banner and you can change your choice at any time. We will keep this section updated to reflect exactly which cookies and storage we use.
+What we do use is **local storage on your own device**, purely to make the app work: to keep you signed in, to remember your cart and your group, to store your language and preferences, and to run the app as a Progressive Web App. This is **strictly necessary** for a service you asked us to provide, which is exactly the case in which the law does not require your consent. It stays on your device and you can clear it at any time through your browser settings.
 
-`[LEGAL REVIEW: Confirm the full cookie/local-storage inventory and whether any analytics or non-essential trackers are used. Under the ePrivacy Directive / Dutch Telecommunicatiewet (cookiebepaling), non-essential cookies require prior consent; ensure a compliant consent mechanism and a cookie statement are in place if any such trackers exist.]`
+If we ever introduce anything non-essential — analytics, or any tracker that is not needed to run the Service — we will ask for your consent first, and we will update this section before we do.
 
 ---
 
@@ -204,9 +205,7 @@ We take appropriate technical and organisational measures to protect your data a
 - Access controls limiting who can access personal data, on a need-to-know basis;
 - Logging and monitoring to detect and respond to security issues.
 
-No system is perfectly secure, but we work continuously to protect your data. If a personal-data breach occurs that is likely to result in a risk to your rights, we will notify the Autoriteit Persoonsgegevens and, where required, you, in line with our legal obligations.
-
-`[LEGAL REVIEW: Confirm a data-breach notification procedure is documented (72-hour notification to the AP under Art. 33, and to data subjects under Art. 34 where required).]`
+No system is perfectly secure, but we work continuously to protect your data. If a personal-data breach occurs that is likely to result in a risk to your rights, we will notify the Autoriteit Persoonsgegevens **within 72 hours** and, where the risk to you is high, we will tell you directly, in line with our legal obligations.
 
 ---
 
@@ -218,7 +217,7 @@ Flowva is intended only for adults. You must be **18 years old (or the age of ma
 
 ## 11. Changes to this policy
 
-We may update this Privacy Policy from time to time, for example when we change how the Service works or to reflect legal requirements. When we make material changes, we will update the "Last updated" date above and, where appropriate, notify you in the app or by e-mail. We encourage you to review this policy periodically. Your continued use of the Service after an update means you have read the revised policy.
+We may update this Privacy Policy from time to time, for example when we change how the Service works or to reflect legal requirements. When we make material changes, we will update the "Last updated" date above and, where appropriate, notify you in the app or by e-mail. The current version is always available on the Platform.
 
 ---
 
@@ -231,4 +230,4 @@ If you have any questions, requests, or concerns about this Privacy Policy or yo
 - E-mail: **contact@flowva.app**
 - KvK: **42104121** · VAT: **NL005496086B61**
 
-We are committed to handling your data with the same transparency we bring to our prices.
+We handle your data with the same openness we bring to our prices: you can always ask us what we have, and we will tell you.

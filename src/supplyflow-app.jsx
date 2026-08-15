@@ -5025,8 +5025,8 @@ export default function SupplyFlow({ session, factoriesVisible = true }) {
                 <>
                   <div style={{ fontSize: 13, fontWeight: 700, color: "#111111", marginBottom: 6 }}>{tr("profile.payout.blockedTitle", "We can't pay this out automatically")}</div>
                   <div style={{ fontSize: 12, color: "#8A8780", lineHeight: 1.5, marginBottom: 12 }}>
-                    {payoutInfo.openOrders > 0
-                      ? tr("profile.payout.blockedOrders", "You still have items on the way. Your balance covers their shipping, so you can pay it out once they've been sent.")
+                    {payoutInfo.openOrders > 0 || payoutInfo.inTransit > 0
+                      ? tr("profile.payout.blockedOrders", "You still have an order running. Your balance covers its shipping, so you can pay out what's left once your parcel has been delivered.")
                       : tr("profile.payout.blockedOther", "Write to us and a real person will sort it out for you — contact@flowva.app.")}
                   </div>
                   <button onClick={() => setPayoutInfo(null)} style={{ width: "100%", background: "transparent", color: "#111111", border: "1px solid #E8E6E0", borderRadius: 10, padding: "11px", fontSize: 13, fontWeight: 700, cursor: "pointer" }}>

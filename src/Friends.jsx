@@ -7,7 +7,7 @@ import { exactTopUp, startTopUp, TOPUP_MIN } from "./topup";
 import {
   ffMyGroups, ffPreview, ffCreateGroup, ffJoinGroup, ffLeaveGroup,
   ffKickMember, ffSetHost, ffSetAdmin, ffSetPrivate, ffUpdateSettings, ffAddItem, ffRemoveItem, ffFetchGroup,
-  ffCartCheckout, ffCartRemove, ffCartSetQty,
+  ffCartCheckout, ffCartRemove, ffCartSetQty, ffAdminAddress,
   ffSetReady, ffUnready, ffShipLocked, estimateMemberFee, ffSyncProfile,
   ffPostMessage, ffReact, ffNudge, ffFetchMessages, subscribeGroup,
   inviteLink, whatsappShare,
@@ -173,10 +173,21 @@ export default function Friends({ session, onClose, initialJoinCode, initialGrou
   const [cartErr, setCartErr] = useState("");        // checkout-foutmelding
   const [cartNeeded, setCartNeeded] = useState(null); // wat ff_cart_checkout server-side nodig had (te weinig saldo)
   // BUG-FIX 15-08: "Go to checkout" betaalde DIRECT — ffCartCheckout schrijft meteen af,
-  // er was nooit een tussenstap. Nu een echte bevestigingsstap, net als de solo-mand:
-  // klik 1 klapt het akkoord-blok uit (Terms + retour + 14 dagen), klik 2 betaalt pas.
+  // er was nooit een tussenstap. Nu een échte checkout-pagina, zoals solo (Kaito 15-08):
+  // klik 1 opent de checkout-view (Shipping to admin + jouw items + kosten + akkoord),
+  // klik 2 betaalt pas.
   const [cartConfirm, setCartConfirm] = useState(false);
   const [cartAgree, setCartAgree] = useState(false);
+  const [adminAddr, setAdminAddr] = useState(null);   // bezorgadres van de admin (checkout-view)
+  // Adres van de admin ophalen zodra de checkout opent (alleen leden krijgen het).
+  const lobbyGid = lobby?.group?.id;
+  useEffect(() => {
+    let on = true;
+    if (cartConfirm && lobbyGid) {
+      ffAdminAddress(lobbyGid).then((r) => { if (on && r?.ok) setAdminAddr(r); });
+    }
+    return () => { on = false; };
+  }, [cartConfirm, lobbyGid]);
   const [topping, setTopping] = useState(false);      // opwaarderen midden in de checkout
   const [topErr, setTopErr] = useState("");
   // Verzend-lock (user 2026-07-22): zodra de admin de verzending lockt is de mand dicht —
@@ -577,6 +588,123 @@ export default function Friends({ session, onClose, initialJoinCode, initialGrou
     // Uitnodig-balk: hoeveel plekken vrij + of de groep vol is.
     const isFull = !!g && members.length >= (g.max_size || 7);
     const spotsLeft = g ? Math.max(0, (g.max_size || 7) - members.length) : 0;
+
+    // ── CHECKOUT-VIEW (Kaito 15-08): eigen schone pagina zoals solo ──────────────
+    // Geen vrienden-items meer; wél waar het pakket heengaat (de admin), jouw items,
+    // jouw kosten, de levertijd-uitleg en het akkoord-vinkje. Pas hier wordt betaald.
+    if (cartConfirm && g && myItems.length > 0) {
+      const a = adminAddr?.ok ? adminAddr : null;
+      body = (
+        <div style={{ padding: "16px 18px 28px" }}>
+          <button onClick={() => { setCartConfirm(false); setCartAgree(false); }}
+            style={{ background: "none", border: "none", color: "#9C9893", fontSize: 13, fontWeight: 600, cursor: "pointer", padding: "0 0 12px" }}>
+            {tr("ff.checkout.backToCart", "← Back to shared cart")}
+          </button>
+
+          <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 16 }}>
+            <span style={{ fontSize: 34, flexShrink: 0 }}><Fox /></span>
+            <div>
+              <div style={{ fontSize: 18, fontWeight: 700, color: "#fff" }}>{tr("cart.checkoutTitle", "Checkout")}</div>
+              <div style={{ fontSize: 12, color: "#9C9893" }}>{tr("cart.checkoutSubtitle", "Just confirm and we'll start sourcing.")}</div>
+            </div>
+          </div>
+
+          <div style={{ background: "#1E1D1A", borderRadius: 14, padding: "12px 14px", marginBottom: 12 }}>
+            <div style={{ fontSize: 11.5, fontWeight: 700, color: "#9C9893", letterSpacing: 0.3, marginBottom: 6 }}>
+              {tr("ff.checkout.shippingToAdmin", "📦 SHIPPING TO · YOUR ADMIN")}
+            </div>
+            {a ? (
+              <div style={{ fontSize: 12.5, color: "#C9C6C1", lineHeight: 1.55 }}>
+                {a.name && <div style={{ color: "#fff", fontWeight: 600 }}>{a.name}</div>}
+                {a.adres && <div>{a.adres}</div>}
+                <div>{[a.postcode, a.stad].filter(Boolean).join(" ")}{a.land ? `, ${a.land}` : ""}</div>
+                {a.telefoon && <div style={{ color: "#9C9893" }}>{a.telefoon}</div>}
+              </div>
+            ) : (
+              <div style={{ fontSize: 12.5, color: "#9C9893" }}>…</div>
+            )}
+            <div style={{ marginTop: 8, fontSize: 11, color: "#8A8780", lineHeight: 1.5 }}>
+              {tr("ff.checkout.adminNote", "The whole group ships in one parcel to your admin — you collect your items there.")}
+            </div>
+          </div>
+
+          {myItems.map((it) => (
+            <div key={it.id} style={{ display: "flex", alignItems: "center", gap: 10, background: "#1A1917", borderRadius: 12, padding: "8px 10px", marginBottom: 6 }}>
+              <div style={{ width: 46, height: 46, borderRadius: 10, background: "#fff", overflow: "hidden", flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                {it.variant_image ? <img src={it.variant_image} referrerPolicy="no-referrer" alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : <span style={{ fontSize: 20 }}>📦</span>}
+              </div>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontSize: 12.5, fontWeight: 600, color: "#fff", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{it.product_title}</div>
+                <div style={{ fontSize: 11, color: "#9C9893" }}>{tr("cart.itemPcsColor", "{qty} pcs{color}", { qty: it.qty || 1, color: it.kleur ? ` · ${it.kleur}` : "" })}</div>
+              </div>
+              <div style={{ fontSize: 12.5, fontWeight: 700, color: "#fff", flexShrink: 0 }}>€{(Number(it.price) * Math.max(Number(it.qty) || 1, 1)).toFixed(2)}</div>
+            </div>
+          ))}
+
+          <div style={{ background: "#1E1D1A", borderRadius: "14px 14px 0 0", padding: "12px 14px", marginTop: 6 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
+              <span style={{ fontSize: 12.5, color: "#9C9893" }}>{tr("cart.lineItems", "Items")}</span>
+              <span style={{ fontSize: 12.5, color: "#fff" }}>€{myTotal.toFixed(2)}</span>
+            </div>
+            <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
+              <span style={{ fontSize: 12.5, color: "#9C9893" }}>{tr("cart.lineDomestic", "Domestic shipping (¥5 × {qty})", { qty: myUnits })}</span>
+              <span style={{ fontSize: 12.5, color: "#fff" }}>€{(myUnits * 5 / 7.8).toFixed(2)} <span style={{ color: "#9C9893" }}>· ¥{myUnits * 5}</span></span>
+            </div>
+            <div style={{ display: "flex", justifyContent: "space-between" }}>
+              <span style={{ fontSize: 12.5, color: "#9C9893" }}>{tr("cart.lineQualityControl", "Quality-control (¥6 × {qty})", { qty: myUnits })}</span>
+              <span style={{ fontSize: 12.5, color: "#fff" }}>€{(myUnits * 6 / 7.8).toFixed(2)} <span style={{ color: "#9C9893" }}>· ¥{myUnits * 6}</span></span>
+            </div>
+          </div>
+          <div style={{ background: "#1E1D1A", borderRadius: "0 0 14px 14px", padding: "12px 14px", marginBottom: 12, borderTop: "1px solid rgba(255,255,255,0.1)", display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
+            <span style={{ fontSize: 14, fontWeight: 700, color: "#fff" }}>{tr("cart.totalNow", "Total now")}</span>
+            <span style={{ fontSize: 20, fontWeight: 800, color: "#FF5C00" }}>€{myCartCharge.toFixed(2)}</span>
+          </div>
+
+          <div style={{ display: "flex", alignItems: "flex-start", gap: 8, background: "rgba(255,92,0,0.08)", border: "1px solid rgba(255,92,0,0.22)", borderRadius: 12, padding: "10px 12px", marginBottom: 12 }}>
+            <span style={{ fontSize: 14, lineHeight: "18px" }}>🚚</span>
+            <span style={{ fontSize: 12, color: "#C9C6C1", lineHeight: 1.55 }}>
+              {tr("cart.deliveryExplainer", "Your items reach our warehouse in about a week — you'll see photos of your actual items there. Ship whenever you're ready; door-to-door is usually 2–4 weeks in total.")}
+            </span>
+          </div>
+          <div style={{ fontSize: 11, color: "#8A8780", lineHeight: 1.5, marginBottom: 12 }}>
+            {tr("ff.checkout.onlyOwnItems", "You pay only your own items now. The group fee + shipping are split by weight later, when the parcel ships.")}
+          </div>
+
+          {myShort > 0 ? (
+            <>
+              <div style={{ background: "rgba(245,158,11,0.12)", border: "1px solid rgba(245,158,11,0.3)", borderRadius: 12, padding: "10px 12px", fontSize: 11.5, color: "#F0B45B", lineHeight: 1.5 }}>
+                {tr("group.cart.shortExplain", "Your balance is €{short} short — top up exactly that and you're set.", { short: myShort.toFixed(2) })}
+                {myTopUpOver > 0 && <> {tr("cart.shortMinimum", "The minimum top-up is €{min}, so €{rest} stays on your balance for next time.", { min: TOPUP_MIN.toFixed(2), rest: myTopUpOver.toFixed(2) })}</>}
+              </div>
+              <button onClick={doTopUp} disabled={topping} style={{ ...primaryBtn, marginTop: 8, opacity: topping ? 0.6 : 1 }}>
+                {topping ? tr("cart.openingIdeal", "Opening iDEAL…") : tr("cart.topUpExact", "Top up €{amount} & continue →", { amount: myTopUp.toFixed(2) })}
+              </button>
+              {topErr && <div style={{ color: "#F0997B", fontSize: 11.5, marginTop: 6, textAlign: "center" }}>{topErr}</div>}
+            </>
+          ) : (
+            <>
+              <label style={{ display: "flex", alignItems: "flex-start", gap: 9, cursor: "pointer", fontSize: 11, color: "#8A8780", lineHeight: 1.55 }}>
+                <input type="checkbox" checked={cartAgree} onChange={(e) => setCartAgree(e.target.checked)}
+                  style={{ marginTop: 1, width: 16, height: 16, accentColor: "#FF5C00", flexShrink: 0 }} />
+                <span>
+                  {tr("ff.cart.agree", "I agree to the")}{" "}
+                  <a href="/terms" target="_blank" rel="noreferrer" style={{ color: "#A5B4FC" }}>{tr("ff.cart.agreeTerms", "Terms")}</a>{" "}
+                  {tr("ff.cart.agreeAnd", "and")}{" "}
+                  <a href="/returns-policy" target="_blank" rel="noreferrer" style={{ color: "#A5B4FC" }}>{tr("ff.cart.agreeReturns", "Returns & withdrawal policy")}</a>.{" "}
+                  {tr("ff.cart.agreeRest", "Refunds go to my Flowva balance, and I have a 14-day right of withdrawal.")}{" "}
+                  {tr("cart.returnCost", "If I change my mind, I pay for sending the item back — usually €5–€8 within the EU.")}
+                </span>
+              </label>
+              <button onClick={doCheckout} disabled={cartBusy || !cartAgree}
+                style={{ ...primaryBtn, marginTop: 10, opacity: cartBusy || !cartAgree ? 0.6 : 1 }}>
+                {cartBusy ? "…" : !cartAgree ? tr("cart.tickBoxToContinue", "Tick the box to continue") : `${tr("ff.cart.confirmPay", "Confirm & pay")} €${myCartCharge.toFixed(2)} →`}
+              </button>
+            </>
+          )}
+          {cartErr && <div style={{ color: "#F0997B", fontSize: 11.5, marginTop: 8, textAlign: "center" }}>{cartErr}</div>}
+        </div>
+      );
+    } else
     body = (
       <>
         {header(g ? g.name : "Group", initialGroupId ? onClose : () => { setErr(""); openIdRef.current = null; setView("list"); loadGroups(); },
@@ -821,35 +949,11 @@ export default function Friends({ session, onClose, initialJoinCode, initialGrou
                         </button>
                         {topErr && <div style={{ color: "#F0997B", fontSize: 11.5, marginTop: 6, textAlign: "center" }}>{topErr}</div>}
                       </>
-                    ) : !cartConfirm ? (
-                    /* Stap 1: klapt alleen het bevestigingsblok uit — betaalt NIETS. */
-                    <button onClick={() => { setCartConfirm(true); setCartErr(""); }} style={{ ...primaryBtn, marginTop: 8 }}>
+                    ) : (
+                    /* Opent de checkout-VIEW (aparte pagina zoals solo) — betaalt NIETS. */
+                    <button onClick={() => { setCartConfirm(true); setCartAgree(false); setCartErr(""); }} style={{ ...primaryBtn, marginTop: 8 }}>
                       {`${tr("ff.cart.goToCheckout", "Go to checkout")} → €${myCartCharge.toFixed(2)}`}
                     </button>
-                    ) : (
-                    /* Stap 2: akkoord-vinkje (Terms + retour + 14 dagen, zoals solo) en pas dán betalen. */
-                    <>
-                      <label style={{ display: "flex", alignItems: "flex-start", gap: 9, marginTop: 10, cursor: "pointer", fontSize: 11, color: "#8A8780", lineHeight: 1.55 }}>
-                        <input type="checkbox" checked={cartAgree} onChange={(e) => setCartAgree(e.target.checked)}
-                          style={{ marginTop: 1, width: 16, height: 16, accentColor: "#FF5C00", flexShrink: 0 }} />
-                        <span>
-                          {tr("ff.cart.agree", "I agree to the")}{" "}
-                          <a href="/terms" target="_blank" rel="noreferrer" style={{ color: "#A5B4FC" }}>{tr("ff.cart.agreeTerms", "Terms")}</a>{" "}
-                          {tr("ff.cart.agreeAnd", "and")}{" "}
-                          <a href="/returns-policy" target="_blank" rel="noreferrer" style={{ color: "#A5B4FC" }}>{tr("ff.cart.agreeReturns", "Returns & withdrawal policy")}</a>.{" "}
-                          {tr("ff.cart.agreeRest", "Refunds go to my Flowva balance, and I have a 14-day right of withdrawal.")}{" "}
-                          {tr("cart.returnCost", "If I change my mind, I pay for sending the item back — usually €5–€8 within the EU.")}
-                        </span>
-                      </label>
-                      <button onClick={doCheckout} disabled={cartBusy || !cartAgree}
-                        style={{ ...primaryBtn, marginTop: 8, opacity: cartBusy || !cartAgree ? 0.6 : 1 }}>
-                        {cartBusy ? "…" : !cartAgree ? tr("cart.tickBoxToContinue", "Tick the box to continue") : `${tr("ff.cart.confirmPay", "Confirm & pay")} €${myCartCharge.toFixed(2)} →`}
-                      </button>
-                      <button onClick={() => { setCartConfirm(false); setCartAgree(false); }}
-                        style={{ width: "100%", marginTop: 6, background: "none", border: "none", color: "#8A8780", fontSize: 12, fontWeight: 600, cursor: "pointer", padding: 6 }}>
-                        {tr("common.back", "← Back")}
-                      </button>
-                    </>
                     )}
                     <div style={{ fontSize: 10.5, color: "#6b6862", textAlign: "center", marginTop: 6, lineHeight: 1.4 }}>You pay only your own items now. The group fee + shipping are split by weight later, when the parcel ships.</div>
                     {cartErr && <div style={{ color: "#F0997B", fontSize: 11.5, marginTop: 6, textAlign: "center" }}>{cartErr}</div>}

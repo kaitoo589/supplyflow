@@ -25,6 +25,9 @@ export const ffRemoveItem     = (itemId) => rpc("ff_remove_item", { p_item_id: i
 export const ffCartRemove     = (itemId) => rpc("ff_cart_remove", { p_item_id: itemId });
 export const ffCartSetQty     = (itemId, qty) => rpc("ff_cart_set_qty", { p_item_id: itemId, p_qty: qty });
 export const ffCartCheckout   = (id) => rpc("ff_cart_checkout", { p_group_id: id });
+// Bezorgadres van de group-admin — voor de "Shipping to"-kaart in de Friends-checkout
+// (de server geeft het alleen aan groepsleden).
+export const ffAdminAddress   = (id) => rpc("ff_admin_address", { p_group_id: id });
 export const ffSyncProfile    = () => rpc("ff_sync_profile");
 export const ffSetAdmin       = (id, uid) => rpc("ff_set_admin", { p_group_id: id, p_user_id: uid });
 export const ffSetPrivate     = (id, priv) => rpc("ff_set_private", { p_group_id: id, p_private: priv });

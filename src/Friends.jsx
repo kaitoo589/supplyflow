@@ -172,6 +172,11 @@ export default function Friends({ session, onClose, initialJoinCode, initialGrou
   const [cartBusy, setCartBusy] = useState(false);   // gedeelde-mand checkout bezig
   const [cartErr, setCartErr] = useState("");        // checkout-foutmelding
   const [cartNeeded, setCartNeeded] = useState(null); // wat ff_cart_checkout server-side nodig had (te weinig saldo)
+  // BUG-FIX 15-08: "Go to checkout" betaalde DIRECT — ffCartCheckout schrijft meteen af,
+  // er was nooit een tussenstap. Nu een echte bevestigingsstap, net als de solo-mand:
+  // klik 1 klapt het akkoord-blok uit (Terms + retour + 14 dagen), klik 2 betaalt pas.
+  const [cartConfirm, setCartConfirm] = useState(false);
+  const [cartAgree, setCartAgree] = useState(false);
   const [topping, setTopping] = useState(false);      // opwaarderen midden in de checkout
   const [topErr, setTopErr] = useState("");
   // Verzend-lock (user 2026-07-22): zodra de admin de verzending lockt is de mand dicht —
@@ -529,10 +534,11 @@ export default function Friends({ session, onClose, initialJoinCode, initialGrou
     const myCartCharge = Math.round((myTotal + (myUnits * 5 / 7.8) + (myUnits * 6 / 7.8)) * 100) / 100;
     const doCartQty = async (it, q) => { if (q < 1) { await ffCartRemove(it.id); } else { await ffCartSetQty(it.id, q); } refreshLobby(); };
     const doCheckout = async () => {
-      if (cartBusy) return;
+      if (cartBusy || !cartAgree) return;   // betalen kan alleen mét het akkoord-vinkje
       setCartBusy(true); setCartErr(""); setCartNeeded(null);
       const r = await ffCartCheckout(g.id);
       setCartBusy(false);
+      setCartConfirm(false); setCartAgree(false);
       if (!r || !r.ok) {
         if (r?.error === "Insufficient balance") {
           // Geen doodlopende melding meer: het blok hieronder biedt "waardeer
@@ -815,10 +821,35 @@ export default function Friends({ session, onClose, initialJoinCode, initialGrou
                         </button>
                         {topErr && <div style={{ color: "#F0997B", fontSize: 11.5, marginTop: 6, textAlign: "center" }}>{topErr}</div>}
                       </>
-                    ) : (
-                    <button onClick={doCheckout} disabled={cartBusy} style={{ ...primaryBtn, marginTop: 8, opacity: cartBusy ? 0.6 : 1 }}>
-                      {cartBusy ? "…" : `Go to checkout → €${myCartCharge.toFixed(2)}`}
+                    ) : !cartConfirm ? (
+                    /* Stap 1: klapt alleen het bevestigingsblok uit — betaalt NIETS. */
+                    <button onClick={() => { setCartConfirm(true); setCartErr(""); }} style={{ ...primaryBtn, marginTop: 8 }}>
+                      {`${tr("ff.cart.goToCheckout", "Go to checkout")} → €${myCartCharge.toFixed(2)}`}
                     </button>
+                    ) : (
+                    /* Stap 2: akkoord-vinkje (Terms + retour + 14 dagen, zoals solo) en pas dán betalen. */
+                    <>
+                      <label style={{ display: "flex", alignItems: "flex-start", gap: 9, marginTop: 10, cursor: "pointer", fontSize: 11, color: "#8A8780", lineHeight: 1.55 }}>
+                        <input type="checkbox" checked={cartAgree} onChange={(e) => setCartAgree(e.target.checked)}
+                          style={{ marginTop: 1, width: 16, height: 16, accentColor: "#FF5C00", flexShrink: 0 }} />
+                        <span>
+                          {tr("ff.cart.agree", "I agree to the")}{" "}
+                          <a href="/terms" target="_blank" rel="noreferrer" style={{ color: "#A5B4FC" }}>{tr("ff.cart.agreeTerms", "Terms")}</a>{" "}
+                          {tr("ff.cart.agreeAnd", "and")}{" "}
+                          <a href="/returns-policy" target="_blank" rel="noreferrer" style={{ color: "#A5B4FC" }}>{tr("ff.cart.agreeReturns", "Returns & withdrawal policy")}</a>.{" "}
+                          {tr("ff.cart.agreeRest", "Refunds go to my Flowva balance, and I have a 14-day right of withdrawal.")}{" "}
+                          {tr("cart.returnCost", "If I change my mind, I pay for sending the item back — usually €5–€8 within the EU.")}
+                        </span>
+                      </label>
+                      <button onClick={doCheckout} disabled={cartBusy || !cartAgree}
+                        style={{ ...primaryBtn, marginTop: 8, opacity: cartBusy || !cartAgree ? 0.6 : 1 }}>
+                        {cartBusy ? "…" : !cartAgree ? tr("cart.tickBoxToContinue", "Tick the box to continue") : `${tr("ff.cart.confirmPay", "Confirm & pay")} €${myCartCharge.toFixed(2)} →`}
+                      </button>
+                      <button onClick={() => { setCartConfirm(false); setCartAgree(false); }}
+                        style={{ width: "100%", marginTop: 6, background: "none", border: "none", color: "#8A8780", fontSize: 12, fontWeight: 600, cursor: "pointer", padding: 6 }}>
+                        {tr("common.back", "← Back")}
+                      </button>
+                    </>
                     )}
                     <div style={{ fontSize: 10.5, color: "#6b6862", textAlign: "center", marginTop: 6, lineHeight: 1.4 }}>You pay only your own items now. The group fee + shipping are split by weight later, when the parcel ships.</div>
                     {cartErr && <div style={{ color: "#F0997B", fontSize: 11.5, marginTop: 6, textAlign: "center" }}>{cartErr}</div>}

@@ -3054,6 +3054,8 @@ export default function SupplyFlow({ session, factoriesVisible = true }) {
   const [loadingBalance, setLoadingBalance] = useState(false);
   const [topupAmount, setTopupAmount] = useState("");
   const [topupAgreed, setTopupAgreed] = useState(false);
+  const [payoutInfo, setPayoutInfo] = useState(null);    // null = paneel dicht
+  const [payoutBusy, setPayoutBusy] = useState(false);
   // Apparaat-lokale state PER GEBRUIKER opslaan, zodat een ander account op hetzelfde
   // toestel nooit de mand/favorieten/haul van de vorige ziet — ook zonder uitloggen.
   const uid = session?.user?.id || "anon";
@@ -3816,6 +3818,33 @@ export default function SupplyFlow({ session, factoriesVisible = true }) {
       window.location.href = data.url;
     } catch (err) { alert("Something went wrong: " + err.message); }
     setLoadingBalance(false);
+  };
+
+  // ── Saldo terug naar de bank ──────────────────────────────────────────────
+  // Stripe stort alleen terug NAAR DE BETAALMETHODE WAARMEE GESTORT IS — een ander
+  // rekeningnummer kan technisch niet. Daarom vragen we niets: we halen op wat er
+  // terug kan en waarheen, en de klant bevestigt alleen nog.
+  const askPayout = async () => {
+    setPayoutBusy(true); setPayoutInfo(null);
+    try {
+      const { data, error } = await invokeAsUser("payout-balance", { action: "check" });
+      if (error) throw new Error(await functionErrorMessage(error));
+      setPayoutInfo(data);
+    } catch (err) { setPayoutInfo({ ok: false, error: err.message }); }
+    setPayoutBusy(false);
+  };
+
+  const doPayout = async () => {
+    if (!payoutInfo?.payable) return;
+    setPayoutBusy(true);
+    try {
+      const { data, error } = await invokeAsUser("payout-balance", { action: "payout", amount: payoutInfo.payable });
+      if (error) throw new Error(await functionErrorMessage(error));
+      if (!data?.ok) throw new Error(data?.error || "Could not process the payout");
+      setPayoutInfo({ ...data, done: true });
+      fetchBalance();
+    } catch (err) { setPayoutInfo({ ok: false, error: err.message }); }
+    setPayoutBusy(false);
   };
 
   const handleAvatarUpload = async (e) => {
@@ -4944,6 +4973,70 @@ export default function SupplyFlow({ session, factoriesVisible = true }) {
               </button>
             )}
           </div>
+          {/* Geld over? Terug naar de bank. Bewust klein en onder het opwaarderen: het
+              is een recht, geen aanbod. Stripe stort uitsluitend terug naar de methode
+              waarmee betaald is, dus er valt niets in te vullen. */}
+          {parseFloat(balance) > 0 && (
+            <div style={{ background: "#fff", borderRadius: 18, padding: "16px 18px", marginBottom: 12, boxShadow: "0 1px 2px rgba(17,17,17,0.04), 0 6px 18px rgba(17,17,17,0.05)" }}>
+              {!payoutInfo ? (
+                <>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: "#111111", marginBottom: 4 }}>{tr("profile.payout.title", "Money left over?")}</div>
+                  <div style={{ fontSize: 12, color: "#8A8780", lineHeight: 1.5, marginBottom: 12 }}>
+                    {tr("profile.payout.body", "Send your remaining balance back to the bank account or card you paid with. It's your money — you can ask for it any time.")}
+                  </div>
+                  <button onClick={askPayout} disabled={payoutBusy}
+                    style={{ width: "100%", background: "transparent", color: "#111111", border: "1px solid #E8E6E0", borderRadius: 10, padding: "12px", fontSize: 13.5, fontWeight: 700, cursor: payoutBusy ? "default" : "pointer" }}>
+                    {payoutBusy ? tr("common.loading", "Loading...") : tr("profile.payout.cta", "Pay out my balance →")}
+                  </button>
+                </>
+              ) : payoutInfo.done ? (
+                <div style={{ textAlign: "center", padding: "6px 0" }}>
+                  <div style={{ fontSize: 26, marginBottom: 6 }}>✓</div>
+                  <div style={{ fontSize: 14, fontWeight: 700, color: "#111111", marginBottom: 4 }}>
+                    {tr("profile.payout.doneTitle", "€{amount} is on its way", { amount: Number(payoutInfo.paid).toFixed(2) })}
+                  </div>
+                  <div style={{ fontSize: 12, color: "#8A8780", lineHeight: 1.5 }}>
+                    {tr("profile.payout.doneBody", "Your bank usually shows it within a few working days. It goes back to the account you paid with.")}
+                  </div>
+                </div>
+              ) : payoutInfo.ok && payoutInfo.payable > 0 ? (
+                <>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: "#111111", marginBottom: 8 }}>{tr("profile.payout.confirmTitle", "Pay out your balance")}</div>
+                  <div style={{ background: "#F8F7F4", borderRadius: 12, padding: "12px 14px", marginBottom: 10 }}>
+                    <div style={{ fontSize: 24, fontWeight: 800, color: "#111111", letterSpacing: -0.4 }}>€{Number(payoutInfo.payable).toFixed(2)}</div>
+                    {payoutInfo.destination && (
+                      <div style={{ fontSize: 12, color: "#8A8780", marginTop: 3 }}>
+                        {tr("profile.payout.destination", "back to your {method}{last4}", {
+                          method: payoutInfo.destination.method,
+                          last4: payoutInfo.destination.last4 ? ` ••${payoutInfo.destination.last4}` : "",
+                        })}
+                      </div>
+                    )}
+                  </div>
+                  <button onClick={doPayout} disabled={payoutBusy}
+                    style={{ width: "100%", background: payoutBusy ? "#E8E6E0" : "#FF5C00", color: "#fff", border: "none", borderRadius: 10, padding: "12px", fontSize: 14, fontWeight: 700, cursor: payoutBusy ? "default" : "pointer" }}>
+                    {payoutBusy ? tr("profile.payout.sending", "Sending…") : tr("profile.payout.confirmCta", "Send it back →")}
+                  </button>
+                  <button onClick={() => setPayoutInfo(null)} style={{ width: "100%", marginTop: 8, background: "none", border: "none", color: "#8A8780", fontSize: 12.5, fontWeight: 600, cursor: "pointer", padding: 6 }}>
+                    {tr("common.close", "Close")}
+                  </button>
+                </>
+              ) : (
+                <>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: "#111111", marginBottom: 6 }}>{tr("profile.payout.blockedTitle", "We can't pay this out automatically")}</div>
+                  <div style={{ fontSize: 12, color: "#8A8780", lineHeight: 1.5, marginBottom: 12 }}>
+                    {payoutInfo.openOrders > 0
+                      ? tr("profile.payout.blockedOrders", "You still have items on the way. Your balance covers their shipping, so you can pay it out once they've been sent.")
+                      : tr("profile.payout.blockedOther", "Write to us and a real person will sort it out for you — contact@flowva.app.")}
+                  </div>
+                  <button onClick={() => setPayoutInfo(null)} style={{ width: "100%", background: "transparent", color: "#111111", border: "1px solid #E8E6E0", borderRadius: 10, padding: "11px", fontSize: 13, fontWeight: 700, cursor: "pointer" }}>
+                    {tr("common.close", "Close")}
+                  </button>
+                </>
+              )}
+            </div>
+          )}
+
           {/* Flowva Friends — switch-lijst: Solo (standaard aan) + één groep tegelijk live. activeGroup = één waarde → wederzijds uitsluitend. */}
           {(() => {
             const gathering = myGroups.filter((g) => g.status === "gathering");

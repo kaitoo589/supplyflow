@@ -37,7 +37,7 @@ In **Flowva Friends**, members combine items into one shared parcel to split int
 For each member, the 14-day withdrawal period starts on the day after **physical possession of the goods is taken**:
 
 - For the **host**: the day after the host receives the combined parcel.
-- For **other members**: because each member's contract is directly with Flowva and the goods are received on their behalf at the host's address, the 14-day period for each member starts on the day after the host receives the combined parcel — that is the moment the goods are placed at the member's disposal.
+- For **other members**: when you join a group you expressly nominate the host to receive your items for you, so the host is the third party you nominated. The 14-day period for each member therefore starts on the day after the host receives the combined parcel — that is the moment the goods are placed at your disposal.
 
 We recommend members collect their items from the host promptly. Collection between the host and other members happens between you and is outside Flowva's control. See **Section 8** for full Flowva Friends details.
 
@@ -134,9 +134,14 @@ Who bears the cost of sending goods back depends on **why** the goods are being 
 
 ### 4.1 Change of mind (you withdraw or chose the wrong size/item)
 
-If you withdraw because you changed your mind — for example, you no longer want the item, or you ordered the wrong size or colour — **you bear the direct cost of returning the goods**, to the extent the law allows. Because items are returned to a Brand or warehouse abroad, **international return shipping can be expensive**; we will tell you the available return method and, where we can, an estimate of the cost before you send anything back. You remain entitled to your refund as set out in **Section 3**, less any return-shipping costs you are responsible for and any deduction for diminished value.
+If you withdraw because you changed your mind — for example, you no longer want the item, or you ordered the wrong size or colour — **you bear the direct cost of returning the goods**, to the extent the law allows.
 
-> `[LEGAL REVIEW: Under art. 6:230s BW / Directive art. 14(1), the trader must inform the consumer BEFORE the contract that they bear the direct cost of return; where goods cannot normally be returned by post, the trader must state the cost (or a reasonable estimate). Confirm this disclosure is also given pre-contractually (product page / checkout), not only in this policy, and confirm how the international return cost / estimate is presented to satisfy the "reasonable estimate" requirement.]`
+**You send it back to us in the Netherlands, not to China.** That makes it an ordinary parcel: **usually between EUR 5 and EUR 8** within the EU, depending on your country and the carrier you choose. Our return address is:
+
+> **Flowva — returns**
+> Kleikoeleweg 108, 6373 CD Landgraaf, Netherlands
+
+We confirm the return address and the expected cost when you start the return. You remain entitled to your refund as set out in **Section 3**, less any return-shipping costs you are responsible for and any deduction for diminished value.
 
 ### 4.2 Genuine defect, faulty, or not as described (Flowva pays)
 
@@ -163,14 +168,13 @@ This quality-control gate is an **extra protection** we give you on top of your 
 
 ### 6.1 Products excluded from the right of withdrawal
 
-EU law allows certain types of product to be excluded from the 14-day right of withdrawal. Where the exclusion genuinely applies, the right of withdrawal **does not apply** to:
+EU law allows certain types of product to be excluded from the 14-day right of withdrawal. For Flowva there is **one** such category:
 
-- **Made-to-order or personalised goods** — goods made to your specifications or clearly personalised (for example, custom-made, custom-sized, monogrammed, or embroidered-to-order items). Once production of a personalised item has started at your request, it cannot be withdrawn.
-- **Sealed goods that are not suitable for return for health-protection or hygiene reasons, if they have been unsealed after delivery** — for example certain intimate-wear or hygiene-sensitive items where a hygiene seal has been opened. If the seal is intact, the right of withdrawal still applies.
+- **Sealed items that are not suitable for return for health-protection or hygiene reasons, once the seal has been broken** — swimwear and underwear. If the seal is intact, the right of withdrawal still applies in full.
 
-Where an exclusion applies to a product, we will make this clear **before** you order. Exclusions do **not** affect your rights if the item is **defective, faulty, or not as described** — those conformity rights always apply (see **Section 4.2**).
+Everything else in our catalogue is ordinary clothing picked in a standard size, and **that is never excluded**. Choosing a size from our size chart does not make an item "made to order".
 
-> `[LEGAL REVIEW: Confirm the exact list of withdrawal-right exclusions Flowva relies on against art. 6:230p BW / Directive 2011/83/EU art. 16, and confirm each is actually applicable to Flowva's catalogue. In particular: (a) "made-to-order/personalised" (art. 16(c)) vs. ordinary stock items merely picked in a chosen size — a standard catalogue size is NOT personalised and is NOT excluded; (b) the sealed-hygiene exclusion (art. 16(e)) — verify which SKUs are genuinely sold hygiene-sealed and how the seal/unsealing is evidenced. Confirm the required pre-contractual disclosure of any exclusion is given at the product/checkout stage. Misclassifying ordinary clothing as "made-to-order" to defeat withdrawal would be unlawful.]`
+Where this exclusion applies to a product, we say so clearly **on the product page, before you order**, and the item is delivered sealed. Exclusions do **not** affect your rights if the item is **defective, faulty, or not as described** — those conformity rights always apply (see **Section 4.2**).
 
 ### 6.2 Condition of returned goods
 
@@ -193,7 +197,7 @@ The easiest way to withdraw or return is directly in the Flowva app:
 1. Open **My Orders** and select the relevant order.
 2. Choose **Return / Withdraw** (or **Report a problem** if the item is defective, faulty, or not as described).
 3. Tell us which item(s) the request covers and, if it is a defect, briefly describe the issue (photos help us resolve it faster).
-4. We will confirm your request, tell you the return method and any return-shipping cost you are responsible for, and provide return instructions.
+4. We will confirm your request, give you the return address in the Netherlands, and tell you any return-shipping cost you are responsible for.
 5. Send the goods back within 14 days of notifying us. We will process your refund as set out in **Section 3**.
 
 You can also withdraw by emailing **returns@flowva.app** or by using the **Model Withdrawal Form** in Section 2 — the app is simply the quickest route and keeps a timestamped record for you.
@@ -210,9 +214,9 @@ Every member buys directly from Flowva and **pays Flowva directly**. The host is
 
 ### 8.2 The host receives the combined parcel
 
-The designated **host** receives the single combined parcel on behalf of the group. The host's **own** 14-day right of withdrawal for the host's own items starts on the day after the host receives the parcel (Section 1.3). Other members collect their items from the host; collection between members happens **between you** and is outside Flowva's control and responsibility.
+The designated **host** receives the single combined parcel on behalf of the group. **When you join a group you are shown who the host is and where the parcel goes, and you expressly nominate that host to receive your items for you.** Because of that, your own 14-day right of withdrawal starts on the day after the host receives the parcel (Section 1.3), and risk in your items passes to you at that moment.
 
-> `[LEGAL REVIEW: Clarify the host's legal position and liability. Address: (i) the host receiving and temporarily holding other members' goods — risk of loss/damage in the host's custody and any disclaimer of host liability toward Flowva and toward other members; (ii) whether the host can be characterised as the "third party nominated by the consumer" to receive each member's goods (affecting when each member's withdrawal period starts — see 1.3); (iii) data-protection implications of the host learning other members' order contents/identities; (iv) ensuring the host is not inadvertently acting as a trader/reseller. Provide a clear host disclaimer and a member acknowledgement that member-to-member handover is outside Flowva.]`
+The host receives your goods purely as a convenience so the group can share one parcel. The host is **not** a seller, reseller or trader towards you — Flowva remains responsible for the products themselves. Collection between members happens **between you** and is outside Flowva's control: if a host keeps your items or fails to hand them over, that is a matter between you and that host. Only join a group whose host you personally trust.
 
 ### 8.3 An individual member's problem is resolved individually
 
@@ -228,11 +232,9 @@ Because shipping is shared and split by weight, the refund of any shipping eleme
 
 Nothing in this policy limits your **mandatory statutory rights** as a consumer under Dutch and EU law, including your rights where goods do not conform to the contract. These rights apply in addition to the 14-day right of withdrawal and cannot be excluded.
 
-If you are not satisfied with how we have handled a return, withdrawal, or complaint, please contact us first at **returns@flowva.app** so we can try to put it right. If we cannot resolve it together, you may also be entitled to use the **European Commission's Online Dispute Resolution (ODR) platform** at <https://ec.europa.eu/consumers/odr>, which connects consumers and traders to an out-of-court dispute-resolution body.
+If you are not satisfied with how we have handled a return, withdrawal, or complaint, please contact us first at **support@flowva.app** so we can try to put it right. Flowva is not currently affiliated with an alternative dispute-resolution body. If we cannot resolve it together, you may bring your dispute to a competent court, or to a consumer body in your country of residence that handles complaints about traders established in the Netherlands, such as the European Consumer Centre (ECC-Net).
 
-This policy and your purchase are governed by the **law of the Netherlands**, without prejudice to the mandatory consumer-protection rules of the country in which you habitually reside, which continue to protect you.
-
-> `[LEGAL REVIEW: (1) Confirm whether Flowva is required or chooses to register with a specific Dutch/EU ADR (alternative dispute resolution) entity and, if so, name it and its contact details here, per art. 13/14 of the ODR Regulation (EU) 524/2013 and the ADR Directive 2013/11/EU. Note: the EU ODR platform is being wound down — verify it is still the correct reference at the effective date and update if it has been replaced. (2) Confirm the governing-law / mandatory-protection wording aligns with Rome I art. 6 for cross-border EU consumers. (3) Confirm all pre-contractual information duties under art. 6:230m BW (incl. the right-of-withdrawal notice and Model Withdrawal Form) are surfaced at checkout, not only in this standalone policy.]`
+This policy and your purchase are governed by the **law of the Netherlands**. Where the mandatory consumer-protection rules of the country in which you habitually reside give you more protection on a particular point, that protection applies to you instead.
 
 ---
 

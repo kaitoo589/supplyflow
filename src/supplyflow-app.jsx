@@ -2889,6 +2889,9 @@ export default function SupplyFlow({ session, factoriesVisible = true }) {
   useEffect(() => {
     let taal = null;
     try { taal = localStorage.getItem("flowva_lang"); } catch { /* geen taal bekend */ }
+    // Verse bezoeker zonder opgeslagen keuze → browsertaal meesturen, anders toont
+    // de trechter "?" terwijl juist de taal van nieuwe bezoekers interessant is.
+    if (!taal) { try { taal = (navigator.language || "en").slice(0, 2); } catch { taal = "en"; } }
     track("visit", null, taal);
     const tik = () => { if (!document.hidden) track("visit"); };
     const id = setInterval(tik, 30000);

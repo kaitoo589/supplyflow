@@ -31,6 +31,7 @@ import HypeCheckSheet from "./HypeCheck";
 import { getVoteStats, getMyVotes } from "./votes";
 import { CountUp, ConfettiBurst, FlyingImage, useBodyScrollLock } from "./DelightBits";
 import { tr, useTr, useLang, useLangVersion, LANGS, hasChosenLang } from "./i18n";
+import { track } from "./track";
 
 // —— PREVIEW / LAUNCH-GATE —————————————————————————————————————————————
 // Tot de officiële launch (Stripe live) kan er nog niet betaald worden. Zolang
@@ -2881,6 +2882,19 @@ function LanguageRow() {
 
 export default function SupplyFlow({ session, factoriesVisible = true }) {
   useLangVersion();   // her-render de héle app bij een taalwissel (bv. via de Profiel-switcher)
+  // ── Bezoek-trechter (2026-08-16) ────────────────────────────────────────────
+  // "Ik ben er" bij binnenkomst + een hartslag zolang het tabblad zichtbaar is,
+  // zodat we weten hoe lang iemand blijft. Product-opens en mandje-acties worden
+  // apart gemeld (zie hieronder). Stil falen: meten mag de app nooit ophouden.
+  useEffect(() => {
+    let taal = null;
+    try { taal = localStorage.getItem("flowva_lang"); } catch { /* geen taal bekend */ }
+    track("visit", null, taal);
+    const tik = () => { if (!document.hidden) track("visit"); };
+    const id = setInterval(tik, 30000);
+    document.addEventListener("visibilitychange", tik);
+    return () => { clearInterval(id); document.removeEventListener("visibilitychange", tik); };
+  }, []);
   const [rawTab, setTab] = useState(() => { try { return new URLSearchParams(window.location.search).get("tab") === "profile" ? "profile" : "feed"; } catch { return "feed"; } });
   // 🫧 Blob-pull op de nav: houd een knop vast en beweeg → de oranje blob wordt elastisch
   // naar je vinger toe getrokken (rekt uit, wordt platter); loslaten boven een andere tab
@@ -2959,6 +2973,15 @@ export default function SupplyFlow({ session, factoriesVisible = true }) {
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [orderFilter, setOrderFilter] = useState("all");
   const [selectedProduct, setSelectedProduct] = useState(null);
+  // Trechter: "product geopend" — centraal gemeten zodra de productsheet opengaat,
+  // zodat ELK pad meetelt (feed, merkpagina, favorieten, zoeken) en niets dubbel telt.
+  const laatstGemetenProduct = useRef(null);
+  useEffect(() => {
+    const pid = selectedProduct?.id;
+    if (pid == null || laatstGemetenProduct.current === pid) return;
+    laatstGemetenProduct.current = pid;
+    track("product", pid);
+  }, [selectedProduct?.id]);
   const [previewProduct, setPreviewProduct] = useState(null);
   const [reviewProduct, setReviewProduct] = useState(null);
   const [actionProduct, setActionProduct] = useState(null);
@@ -5195,6 +5218,7 @@ export default function SupplyFlow({ session, factoriesVisible = true }) {
             onSuccess={() => { setSuccessProduct(selectedProduct); setSelectedProduct(null); fetchOrders(); }}
             listCount={requestList.length}
             onAddToList={(item, rect, pid) => {
+              track("cart");                       // trechter: "in mandje gelegd"
               setRequestList(list => [...list, item]);
               flashPromise();          // mandje-balk zegt heel even wat wij met het item doen
               setSelectedProduct(null);

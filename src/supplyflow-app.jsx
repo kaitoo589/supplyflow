@@ -3081,6 +3081,8 @@ export default function SupplyFlow({ session, factoriesVisible = true }) {
     }
   };
   const [balance, setBalance] = useState(0);
+  // Mag dit account winkels zien die nog verborgen zijn? (profiles.can_preview)
+  const [canPreview, setCanPreview] = useState(false);
   const [orderSuccess, setOrderSuccess] = useState(false);
   const [successProduct, setSuccessProduct] = useState(null);
   const [loadingBalance, setLoadingBalance] = useState(false);
@@ -3575,13 +3577,21 @@ export default function SupplyFlow({ session, factoriesVisible = true }) {
       supabase.from("products").select("*").order("id"),
       supabase.from("factories").select("*"),
     ]);
+    // Verborgen winkels (factories.hidden) verdwijnen mét hun producten uit de app.
+    // Accounts met can_preview zien ze wél — zo kan een winkel rustig afgemaakt worden
+    // terwijl klanten er niets van merken (2026-08-16).
+    const verborgenWinkels = new Set((f.data ?? []).filter((x) => x.hidden).map((x) => x.id));
     if (p.error) { if (initial) setProductsError(p.error.message); }
-    else setProducts((p.data ?? []).filter((x) => !x.hidden));
-    setFactories(f.data ?? []);
+    else setProducts((p.data ?? []).filter((x) => !x.hidden && (canPreview || !verborgenWinkels.has(x.factory_id))));
+    setFactories((f.data ?? []).filter((x) => canPreview || !x.hidden));
     if (initial) setLoadingProducts(false);
   };
   useEffect(() => { refreshCatalog(true); // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+  // De catalogus laadt vóórdat het profiel binnen is. Blijkt dit account te mogen
+  // vooruitkijken, dan halen we 'm één keer opnieuw op — nu mét de verborgen winkels.
+  useEffect(() => { if (canPreview) refreshCatalog(false); // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [canPreview]);
 
   // 🦊 Pull-to-refresh op de feed: trek omlaag → drie pootafdrukken lichten één voor
   // één op; ver genoeg loslaten → de vos huppelt terwijl de catalogus ververst.
@@ -3748,8 +3758,10 @@ export default function SupplyFlow({ session, factoriesVisible = true }) {
   }, [session]);
 
   const fetchBalance = async () => {
-    const { data } = await supabase.from("profiles").select("balance").eq("id", session.user.id).single();
+    // can_preview: mag dit account winkels zien die nog verborgen zijn? (2026-08-16)
+    const { data } = await supabase.from("profiles").select("balance, can_preview").eq("id", session.user.id).single();
     setBalance(data?.balance || 0);
+    setCanPreview(!!data?.can_preview);
   };
 
   const fetchOrders = async () => {
@@ -4233,7 +4245,16 @@ export default function SupplyFlow({ session, factoriesVisible = true }) {
               {isTaobao && f.profile_image && (
                 <img src={f.profile_image} referrerPolicy="no-referrer" alt="" style={{ width: 30, height: 30, borderRadius: "50%", objectFit: "cover", border: "1px solid #ECEAE5", flexShrink: 0 }} />
               )}
-              <div style={{ fontSize: 15.5, fontWeight: 700, color: "#111111", lineHeight: 1.3 }}>{f.name}</div>
+              <div style={{ fontSize: 15.5, fontWeight: 700, color: "#111111", lineHeight: 1.3 }}>
+                {f.name}
+                {/* Verborgen winkel: alleen jij ziet 'm. Duidelijk labelen, anders vergeet
+                    je dat klanten deze winkel helemaal niet zien (2026-08-16). */}
+                {f.hidden && (
+                  <span style={{ display: "inline-block", marginLeft: 7, verticalAlign: "middle", background: "#FEF3C7", color: "#92400E", border: "1px solid #FCD9B6", borderRadius: 7, padding: "2px 7px", fontSize: 10, fontWeight: 800, whiteSpace: "nowrap" }}>
+                    🙈 {tr("feed.hiddenStore", "Only you can see this")}
+                  </span>
+                )}
+              </div>
             </div>
             <div style={{ fontSize: 12, color: "#A8A5A0", whiteSpace: "nowrap", flexShrink: 0 }}>{tr("feed.factoryCard.productCount", "{count} product{s} ›", { count: f.count, s: f.count === 1 ? "" : "s" })}</div>
           </div>

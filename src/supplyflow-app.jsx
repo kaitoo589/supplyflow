@@ -3247,6 +3247,11 @@ export default function SupplyFlow({ session, factoriesVisible = true }) {
   const [showFavoritesOnly, setShowFavoritesOnly] = useState(false);
   // VABLE — eigen merk (borduurdesigns). Knop in de feed-header opent dit blad.
   // Vervang img:null door je echte foto-URL's (en VABLE_URL door je winkel-link).
+  //
+  // ⚡ AAN/UIT-KNOP (Kaito 17-08): op false staat de phoenix-knop niet in de feed.
+  // Alles eromheen — het blad, de items, de vertalingen — blijft gewoon bestaan.
+  // Wil je VABLE terug? Zet deze ene regel op `true` en het staat er weer.
+  const VABLE_AAN = false;
   const [showVable, setShowVable] = useState(false);
   // Tab-wissel (Feed ↔ Brands ↔ rest): drill-in/zoek/favorieten-staat resetten zodat je
   // nooit met de fabriek-drill van de éne feed in de andere landt.
@@ -4554,10 +4559,12 @@ export default function SupplyFlow({ session, factoriesVisible = true }) {
                 style={{ width: 42, height: 42, borderRadius: "50%", background: showFavoritesOnly ? "#FF5C00" : "#fff", border: "1px solid #ECEAE5", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}>
                 <Star size={19} color={showFavoritesOnly ? "#fff" : "#111111"} fill={showFavoritesOnly ? "#fff" : "none"} strokeWidth={2} />
               </motion.button>
-              <motion.button whileTap={{ scale: 0.85 }} transition={springSnappy} onClick={() => setShowVable(true)} aria-label={tr("feed.aria.vableButton", "VABLE — our brand")}
-                style={{ width: 42, height: 42, borderRadius: "50%", background: "#111111", border: "1px solid #111111", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", WebkitTapHighlightColor: "transparent" }}>
-                <img src="/vable-phoenix.svg" alt="VABLE" style={{ width: 26, height: 26, filter: "brightness(0) invert(1)" }} />
-              </motion.button>
+              {VABLE_AAN && (
+                <motion.button whileTap={{ scale: 0.85 }} transition={springSnappy} onClick={() => setShowVable(true)} aria-label={tr("feed.aria.vableButton", "VABLE — our brand")}
+                  style={{ width: 42, height: 42, borderRadius: "50%", background: "#111111", border: "1px solid #111111", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", WebkitTapHighlightColor: "transparent" }}>
+                  <img src="/vable-phoenix.svg" alt="VABLE" style={{ width: 26, height: 26, filter: "brightness(0) invert(1)" }} />
+                </motion.button>
+              )}
             </div>
           </div>
           {/* Merkpagina mét logo: subtitel weg — het logo IS de header (user 2026-08-12). */}

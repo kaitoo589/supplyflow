@@ -4094,7 +4094,18 @@ export default function SupplyFlow({ session, factoriesVisible = true }) {
     .filter(f => { const q = search.trim().toLowerCase(); return !q || (f.name || "").toLowerCase().includes(q); })
     .sort((a, b) => (a.sort_order ?? 1e9) - (b.sort_order ?? 1e9) || (Number(b.diamonds) || 0) - (Number(a.diamonds) || 0) || (a.name || "").localeCompare(b.name || "")), [factories, products, search, tab]);
   // ── Winkel-filters (16-08) ────────────────────────────────────────────────
-  // Welke maat-opties biedt dit product, en is zo'n maat als geheel uitverkocht?
+  // Sommige winkels verkopen bereiken ("S-M", "M-L") in plaats van losse maten.
+  // Die krijgen géén eigen knop maar tellen mee bij elke maat die ze dekken —
+  // een S-M-kledingstuk past immers zowel een S- als een M-klant.
+  const MAAT_VOLGORDE = ["XS", "S", "M", "L", "XL", "XXL", "2XL", "3XL"];
+  const splitsMaat = (o) => {
+    const s = String(o || "").trim();
+    const m = s.toUpperCase().match(/^(XS|S|M|L|XL|XXL|2XL|3XL)\s*[-–/]\s*(XS|S|M|L|XL|XXL|2XL|3XL)$/);
+    if (!m) return [s];
+    const a = MAAT_VOLGORDE.indexOf(m[1]), b = MAAT_VOLGORDE.indexOf(m[2]);
+    return (a < 0 || b < 0) ? [s] : MAAT_VOLGORDE.slice(Math.min(a, b), Math.max(a, b) + 1);
+  };
+  // Welke maten biedt dit product, en is zo'n maat als geheel uitverkocht?
   // (Combinatie-uitval per kleur negeren we hier bewust — te zwaar voor de feed;
   //  de productpagina streept die zelf al door.)
   const productSizes = (p) => {
@@ -4102,12 +4113,12 @@ export default function SupplyFlow({ session, factoriesVisible = true }) {
     if (!g) return [];
     const oosLos = new Set((Array.isArray(p.oos_variants) ? p.oos_variants : [])
       .filter(o => o && !o.combo && /size|maat/i.test(o.name || "")).map(o => o.value));
-    return (g.options || []).filter(o => !oosLos.has(o));
+    // Uitverkocht-check op de rúwe optiewaarde ("S-M"), pas daarna uitklappen.
+    return [...new Set((g.options || []).filter(o => !oosLos.has(o)).flatMap(splitsMaat))];
   };
   // Alle producten van de geopende winkel (zonder categorie/maat-filter) — hieruit
   // komen de filterknoppen mét aantallen, zodat je ziet wat er te halen valt.
   const facAll = selectedFactory ? products.filter(p => belongsToFactory(p, selectedFactory)) : [];
-  const MAAT_VOLGORDE = ["XS", "S", "M", "L", "XL", "XXL", "2XL", "3XL"];
   const facSizes = [...new Set(facAll.flatMap(productSizes))]
     .sort((a, b) => {
       const ia = MAAT_VOLGORDE.indexOf(String(a).toUpperCase()), ib = MAAT_VOLGORDE.indexOf(String(b).toUpperCase());
@@ -4120,7 +4131,7 @@ export default function SupplyFlow({ session, factoriesVisible = true }) {
   // Drill-in: producten van de geopende fabriek, met de gewone filters + maatfilter.
   const factoryProducts = selectedFactory
     ? visibleProducts.filter(p => belongsToFactory(p, selectedFactory)
-        && (!sizeFilter || productSizes(p).some(s => String(s).toUpperCase() === sizeFilter)))
+        && (!sizeFilter || productSizes(p).includes(sizeFilter)))
     : [];
 
   // Herbruikbare productkaart (zelfde stijl als voorheen) — voor drill-in + favorieten.
@@ -4608,13 +4619,12 @@ export default function SupplyFlow({ session, factoriesVisible = true }) {
                 <div style={{ display: "flex", gap: 6, alignItems: "center", overflowX: "auto", paddingBottom: 4, marginBottom: 12, WebkitOverflowScrolling: "touch", scrollbarWidth: "none" }}>
                   <span style={{ flexShrink: 0, fontSize: 11.5, color: "#A8A5A0", fontWeight: 600 }}>{tr("feed.sizeLabel", "Size")}</span>
                   {facSizes.map((m) => {
-                    const mv = String(m).toUpperCase();
-                    const sel = sizeFilter === mv;
+                    const sel = sizeFilter === m;
                     return (
-                      <motion.button key={mv} whileTap={{ scale: 0.9 }} transition={springSnappy}
-                        onClick={() => setSizeFilter(sel ? null : mv)}
+                      <motion.button key={m} whileTap={{ scale: 0.9 }} transition={springSnappy}
+                        onClick={() => setSizeFilter(sel ? null : m)}
                         style={{ flexShrink: 0, minWidth: 34, padding: "6px 9px", borderRadius: 10, border: "1px solid " + (sel ? "#FF5C00" : "#E8E6E0"), background: sel ? "#FF5C00" : "#fff", color: sel ? "#fff" : "#555", fontSize: 12, fontWeight: 700, cursor: "pointer", WebkitTapHighlightColor: "transparent" }}>
-                        {mv}
+                        {m}
                       </motion.button>
                     );
                   })}

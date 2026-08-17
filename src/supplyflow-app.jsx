@@ -3804,7 +3804,7 @@ export default function SupplyFlow({ session, factoriesVisible = true }) {
   };
   // Parcels (oudste eerst) — zelfde set + nummering als de In transit-tab.
   const fetchHauls = async () => {
-    const { data } = await supabase.from("hauls").select("id, items, created_at, status").eq("user_id", session.user.id).in("status", ["confirmed", "shipped"]).order("created_at", { ascending: true });
+    const { data } = await supabase.from("hauls").select("id, items, created_at, status, settled_at, refund_eur").eq("user_id", session.user.id).in("status", ["confirmed", "shipped"]).order("created_at", { ascending: true });
     setHauls(data || []);
   };
 
@@ -3945,6 +3945,14 @@ export default function SupplyFlow({ session, factoriesVisible = true }) {
           ? tr("orders.notif.oosRefund", "“{productName}” is out of stock — you received a refund", { productName: o.product_title || o.product })
           : tr("orders.notif.unsentRefund", "“{productName}” could not be sent — the reason is unclear and you received a refund", { productName: o.product_title || o.product }),
       dismissId: o.id,
+    })),
+    // 🎉 Verzend-refund (user 2026-08-17): de echte vrachtrekening viel lager uit →
+    // geld terug op het saldo. Tikken = naar Transit (daar staat het bewijs); daarna weg.
+    ...hauls.filter((h) => h.settled_at && Number(h.refund_eur) > 0 && !seenRefundIds.includes(h.id)).map((h) => ({
+      icon: "🎉",
+      text: tr("orders.notif.shipRefund", "Good news — you got €{amount} back! The real shipping bill was lower than the estimate. Tap to see the proof in Transit.", { amount: Number(h.refund_eur).toFixed(2) }),
+      dismissId: h.id,
+      transit: true,
     })),
     ...flaggedInCart.map((it) => ({ icon: "⏸️", text: `On hold: ${it.product_title} — ${flaggedReasons[it.source_url] || "changed at the factory"}`, cart: true })),
     ...orders.filter(o => o.problem_type).map(o => ({ icon: "⚠️", text: tr("orders.notif.actionNeeded", "Action needed: issue with {productName}", { productName: o.product_title || o.product }), order: o })),
@@ -4442,11 +4450,11 @@ export default function SupplyFlow({ session, factoriesVisible = true }) {
                   {notifications.map((n, i) => (
                     // Refund-melding (dismissId): tikken = gelezen/wegtikken (er is geen order
                     // meer om te openen — die is geannuleerd + terugbetaald). Anders: navigeren.
-                    <div key={n.dismissId || i} onClick={() => { if (n.support) { openSupport(); return; } if (n.dismissId) { dismissRefundNotice(n.dismissId); return; } setShowNotifs(false); if (n.cart) { setShowRequestList(true); } else { setTab("orders"); setSelectedOrder(n.order); } }}
+                    <div key={n.dismissId || i} onClick={() => { if (n.support) { openSupport(); return; } if (n.transit) { dismissRefundNotice(n.dismissId); setShowNotifs(false); setTab("transit"); return; } if (n.dismissId) { dismissRefundNotice(n.dismissId); return; } setShowNotifs(false); if (n.cart) { setShowRequestList(true); } else { setTab("orders"); setSelectedOrder(n.order); } }}
                       style={{ display: "flex", alignItems: "center", gap: 10, padding: "11px 14px", borderBottom: i < notifications.length - 1 ? "1px solid #F0EEE8" : "none", cursor: "pointer" }}>
                       <span style={{ fontSize: 17 }}>{n.icon}</span>
                       <span style={{ fontSize: 12.5, color: "#333", lineHeight: 1.4, flex: 1 }}>{n.text}</span>
-                      <span style={{ color: "#ccc", fontSize: 14 }}>{n.dismissId ? "✕" : "→"}</span>
+                      <span style={{ color: "#ccc", fontSize: 14 }}>{n.dismissId && !n.transit ? "✕" : "→"}</span>
                     </div>
                   ))}
                 </motion.div>

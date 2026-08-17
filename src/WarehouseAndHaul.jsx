@@ -2148,6 +2148,7 @@ export function TransitTab({ session, orders = [], activeGroupId = null }) {
   const [loading, setLoading] = useState(true);
   const [hideDelivered, setHideDelivered] = useState(() => { try { return localStorage.getItem("flowva_hide_delivered") === "1"; } catch { return false; } });
   const [receipt, setReceipt] = useState(null); // pakket waarvan de volledige bon getoond wordt
+  const [proofZoom, setProofZoom] = useState(null); // bewijsfoto die groot bekeken wordt (in-app viewer)
 
   useEffect(() => {
     (async () => {
@@ -2279,18 +2280,21 @@ export function TransitTab({ session, orders = [], activeGroupId = null }) {
             </button>
 
             {/* Bewijs bij de verrekening (2026-08-17): kan uit MEERDERE bestanden bestaan —
-                de echte vrachtrekening én de yuan→euro-omrekening. Elk plaatje opent los. */}
+                de echte vrachtrekening én de yuan→euro-omrekening. Tikken opent een
+                IN-APP viewer (gecentreerd, donkere achtergrond) — niet meer de kale
+                browser-tab waar een brede screenshot piepklein bovenin hing. */}
             {(() => {
               const proofs = [...new Set([...(Array.isArray(haul.settle_proof_urls) ? haul.settle_proof_urls : []), haul.settle_proof_url].filter(u => typeof u === "string" && u.startsWith("http")))];
               if (!proofs.length) return null;
               return (
                 <div style={{ marginBottom: 10 }}>
-                  <div style={{ fontSize: 11.5, color: "#FF5C00", fontWeight: 600, marginBottom: 6 }}>📄 {tr("transit.proofDocs", "The real shipping bill & the ¥→€ conversion — tap to view")}</div>
+                  <div style={{ fontSize: 11.5, color: "#FF5C00", fontWeight: 600, marginBottom: 6 }}>🧾 {tr("transit.proofDocs", "Here's your proof — the real shipping bill & the ¥→€ conversion")}</div>
                   <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
                     {proofs.map((u, i) => (
-                      <a key={i} href={u} target="_blank" rel="noreferrer" style={{ display: "block", width: 52, height: 52, borderRadius: 10, overflow: "hidden", border: "1px solid #E8E4DC" }}>
+                      <motion.button key={i} whileTap={{ scale: 0.93 }} onClick={() => setProofZoom(u)}
+                        style={{ display: "block", width: 62, height: 62, borderRadius: 10, overflow: "hidden", border: "1px solid #E8E4DC", padding: 0, background: "#F8F7F4", cursor: "zoom-in" }}>
                         <img src={u} referrerPolicy="no-referrer" alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-                      </a>
+                      </motion.button>
                     ))}
                   </div>
                 </div>
@@ -2401,6 +2405,22 @@ export function TransitTab({ session, orders = [], activeGroupId = null }) {
           </div>
         );
       })()}
+
+      {/* 🔍 In-app bewijs-viewer (2026-08-17): foto gecenterd op donker, past altijd in
+          beeld (ook brede screenshot-stroken), tik waar dan ook = dicht. Vervangt de
+          kale browser-tab waar het plaatje piepklein linksboven hing. */}
+      <AnimatePresence>
+        {proofZoom && (
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.18 }}
+            onClick={() => setProofZoom(null)}
+            style={{ position: "fixed", inset: 0, zIndex: 2200, background: "rgba(10,9,8,0.92)", display: "flex", alignItems: "center", justifyContent: "center", padding: 16, cursor: "zoom-out" }}>
+            <motion.img initial={{ scale: 0.92 }} animate={{ scale: 1 }} transition={{ type: "spring", stiffness: 380, damping: 30 }}
+              src={proofZoom} referrerPolicy="no-referrer" alt=""
+              style={{ maxWidth: "100%", maxHeight: "88vh", objectFit: "contain", borderRadius: 12, background: "#fff" }} />
+            <div style={{ position: "absolute", bottom: 26, left: 0, right: 0, textAlign: "center", color: "rgba(255,255,255,0.65)", fontSize: 12 }}>{tr("transit.proofClose", "Tap anywhere to close")}</div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

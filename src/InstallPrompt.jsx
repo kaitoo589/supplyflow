@@ -2,6 +2,10 @@ import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { ChevronUp, ChevronDown, X } from "lucide-react";
 import Fox from "./Fox";
+import { useTr } from "./i18n";
+
+// **vet** in vertaalde strings → echte <b> (mini-variant van renderBold uit de hoofdapp).
+const bold = (s) => String(s).split("**").map((part, i) => (i % 2 ? <b key={i} style={{ color: "#fff" }}>{part}</b> : part));
 
 // Install bar: only shows in Chrome (Android) or Safari (iOS), and never once the
 // app is already installed. Dismissing = snooze for 1 day (returns tomorrow).
@@ -31,6 +35,9 @@ function today() {
 }
 
 export default function InstallPrompt() {
+  // useTr abonneert dit blokje op taalwissels — het staat buiten SupplyFlow, dus
+  // zonder dit bleef het Engels nadat de gast een taal koos (bug 2026-08-17).
+  const tr = useTr();
   const [deferred, setDeferred] = useState(null);
   const [show, setShow] = useState(false);
   const [iosHint, setIosHint] = useState(false);
@@ -102,12 +109,12 @@ export default function InstallPrompt() {
   const installCta =
     iosHint ? (
       <div style={{ background: "#1A1917", borderRadius: 10, padding: "10px 12px", fontSize: 12.5, color: "#C9C6C1", lineHeight: 1.5 }}>
-        Tap <b style={{ color: "#fff" }}>Share</b> ⬆️ at the bottom → <b style={{ color: "#fff" }}>Add to Home Screen</b> → Add.
+        {bold(tr("install.iosSteps", "Tap **Share** ⬆️ at the bottom → **Add to Home Screen** → Add."))}
       </div>
     ) : deferred ? (
       <motion.button whileTap={{ scale: 0.97 }} onClick={install}
         style={{ width: "100%", background: "#FF5C00", color: "#fff", border: "none", borderRadius: 12, padding: "13px", fontSize: 14, fontWeight: 700, cursor: "pointer", WebkitTapHighlightColor: "transparent" }}>
-        📲 Install Flowva
+        📲 {tr("install.button", "Install Flowva")}
       </motion.button>
     ) : null;
 
@@ -127,8 +134,8 @@ export default function InstallPrompt() {
             <motion.div layout="position" style={{ padding: "12px 14px", display: "flex", alignItems: "center", gap: 12 }}>
               {fox}
               <div style={{ flex: 1, minWidth: 0, cursor: "pointer" }} onClick={() => setExpanded(true)}>
-                <div style={{ fontSize: 13, fontWeight: 700, color: "#fff" }}>Add Flowva to your home screen</div>
-                <div style={{ fontSize: 11.5, color: "#9C9893" }}>Open as an app — see why</div>
+                <div style={{ fontSize: 13, fontWeight: 700, color: "#fff" }}>{tr("install.title", "Add Flowva to your home screen")}</div>
+                <div style={{ fontSize: 11.5, color: "#9C9893" }}>{tr("install.subtitle", "Open as an app — see why")}</div>
               </div>
               <motion.button whileTap={{ scale: 0.85 }} onClick={() => setExpanded(true)} aria-label="More info"
                 animate={{ y: [0, -2.5, 0] }} transition={{ duration: 1.6, repeat: Infinity, ease: "easeInOut" }}
@@ -150,14 +157,14 @@ export default function InstallPrompt() {
               </div>
               <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10 }}>
                 {fox}
-                <div style={{ fontSize: 15, fontWeight: 700, color: "#fff" }}>Why use Flowva as an app?</div>
+                <div style={{ fontSize: 15, fontWeight: 700, color: "#fff" }}>{tr("install.whyTitle", "Why use Flowva as an app?")}</div>
               </div>
               <div style={{ fontSize: 12.5, color: "#C9C6C1", lineHeight: 1.55, marginBottom: 14 }}>
-                Follow your order from the factory to your door — so you never miss an update!
+                {tr("install.whyBody", "Follow your order from the factory to your door — so you never miss an update!")}
               </div>
-              <div style={{ fontSize: 13, fontWeight: 700, color: "#fff", marginBottom: 9 }}>When do you get a notification?</div>
+              <div style={{ fontSize: 13, fontWeight: 700, color: "#fff", marginBottom: 9 }}>{tr("install.notifTitle", "When do you get a notification?")}</div>
               <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 14 }}>
-                {["Quality-control photos", "Shipping", "Delivery"].map((text) => (
+                {[tr("install.notifQc", "Quality-control photos"), tr("install.notifShipping", "Shipping"), tr("install.notifDelivery", "Delivery")].map((text) => (
                   <div key={text} style={{ display: "flex", alignItems: "center", gap: 11 }}>
                     <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#FF5C00", flexShrink: 0 }} />
                     <span style={{ fontSize: 12.5, color: "#C9C6C1" }}>{text}</span>
@@ -167,8 +174,8 @@ export default function InstallPrompt() {
               <div style={{ height: 1, background: "rgba(255,255,255,0.08)", margin: "0 0 13px" }} />
               <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 14 }}>
                 {[
-                  ["⚡", "Faster and fullscreen — just like a real app"],
-                  [<Fox />, "Your own icon on your home screen"],
+                  ["⚡", tr("install.perkFast", "Faster and fullscreen — just like a real app")],
+                  [<Fox />, tr("install.perkIcon", "Your own icon on your home screen")],
                 ].map(([icon, text]) => (
                   <div key={text} style={{ display: "flex", alignItems: "center", gap: 10 }}>
                     <span style={{ fontSize: 15, width: 20, textAlign: "center", flexShrink: 0 }}>{icon}</span>
@@ -179,7 +186,7 @@ export default function InstallPrompt() {
               {installCta}
               <button onClick={dismiss}
                 style={{ width: "100%", marginTop: 8, background: "transparent", color: "#5A5853", border: "none", padding: "8px", fontSize: 12, fontWeight: 600, cursor: "pointer" }}>
-                Maybe later
+                {tr("install.later", "Maybe later")}
               </button>
             </motion.div>
           )}

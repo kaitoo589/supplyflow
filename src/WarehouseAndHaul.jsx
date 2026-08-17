@@ -1632,6 +1632,72 @@ function GroupShippingPanel({ session, groupId, shipment, waitingCount, isHost, 
   </div>;
 }
 
+// ── In-app bewijs-viewer met knijp-zoom (user 2026-08-18) ────────────────────
+// Twee vingers = zoomen (1×–5×), dubbeltik = snel 2,5× in/uit, slepen = bewegen
+// zodra je ingezoomd bent. touchAction:none zodat de browser zelf niet meezoomt.
+function ProofViewer({ url, onClose }) {
+  const [t, setT] = useState({ s: 1, x: 0, y: 0 });
+  const ptrs = useRef(new Map());     // actieve vingers/muis
+  const start = useRef(null);         // gebaar-beginstand
+  const lastTap = useRef(0);          // voor dubbeltik
+  const clamp = (v, lo, hi) => Math.min(hi, Math.max(lo, v));
+
+  const down = (e) => {
+    e.currentTarget.setPointerCapture?.(e.pointerId);
+    ptrs.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    const list = [...ptrs.current.values()];
+    if (list.length === 2) {
+      const dx = list[0].x - list[1].x, dy = list[0].y - list[1].y;
+      start.current = { ...t, dist: Math.hypot(dx, dy), cx: (list[0].x + list[1].x) / 2, cy: (list[0].y + list[1].y) / 2, mode: "pinch", moved: true };
+    } else {
+      start.current = { ...t, cx: e.clientX, cy: e.clientY, mode: "pan", moved: false };
+    }
+  };
+  const move = (e) => {
+    if (!ptrs.current.has(e.pointerId) || !start.current) return;
+    ptrs.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    const st = start.current;
+    const list = [...ptrs.current.values()];
+    if (st.mode === "pinch" && list.length === 2) {
+      const dx = list[0].x - list[1].x, dy = list[0].y - list[1].y;
+      const mx = (list[0].x + list[1].x) / 2, my = (list[0].y + list[1].y) / 2;
+      setT({ s: clamp(st.s * (Math.hypot(dx, dy) / st.dist), 1, 5), x: st.x + (mx - st.cx), y: st.y + (my - st.cy) });
+    } else if (st.mode === "pan") {
+      const dx = e.clientX - st.cx, dy = e.clientY - st.cy;
+      if (Math.hypot(dx, dy) > 6) st.moved = true;
+      if (st.s > 1 && st.moved) setT({ s: st.s, x: st.x + dx, y: st.y + dy });
+    }
+  };
+  const up = (e) => {
+    ptrs.current.delete(e.pointerId);
+    const st = start.current;
+    if (ptrs.current.size === 0 && st) {
+      if (st.mode === "pan" && !st.moved) {
+        // Tik zonder bewegen → dubbeltik-detectie: 2 tikken binnen 300 ms = zoom-toggle.
+        const now = Date.now();
+        if (now - lastTap.current < 300) { setT(t.s > 1 ? { s: 1, x: 0, y: 0 } : { s: 2.5, x: 0, y: 0 }); lastTap.current = 0; }
+        else lastTap.current = now;
+      }
+      if (t.s <= 1.05 && st.mode === "pinch") setT({ s: 1, x: 0, y: 0 });   // bijna-1 → netjes terug
+      start.current = null;
+    }
+  };
+
+  return (
+    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.18 }}
+      onPointerDown={down} onPointerMove={move} onPointerUp={up} onPointerCancel={up}
+      style={{ position: "fixed", inset: 0, zIndex: 2200, background: "rgba(10,9,8,0.94)", overflow: "hidden", touchAction: "none", display: "flex", alignItems: "center", justifyContent: "center", padding: 14 }}>
+      <img src={url} referrerPolicy="no-referrer" alt="" draggable={false}
+        style={{ maxWidth: "100%", maxHeight: "86vh", objectFit: "contain", borderRadius: 12, background: "#fff",
+          transform: `translate(${t.x}px, ${t.y}px) scale(${t.s})`,
+          transition: ptrs.current.size > 0 ? "none" : "transform 0.16s ease-out",
+          userSelect: "none", pointerEvents: "none" }} />
+      <motion.button whileTap={{ scale: 0.88 }} onClick={onClose} onPointerDown={(e) => e.stopPropagation()} aria-label={tr("common.close", "Close")}
+        style={{ position: "absolute", top: "max(14px, env(safe-area-inset-top))", right: 14, width: 38, height: 38, borderRadius: "50%", background: "rgba(255,255,255,0.14)", border: "none", color: "#fff", fontSize: 16, lineHeight: 1, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", WebkitTapHighlightColor: "transparent" }}>✕</motion.button>
+    </motion.div>
+  );
+}
+
 // "In transit": de pakketten van de klant — betaald en verzonden, met live tracking.
 // De cron-functie track-haul vult trace_status/trace_nodes/carrier; wij tonen ze hier.
 const TRACE_LABEL = { 1: "In transit", 2: "Out for delivery", 3: "Delivered", 4: "Delivery issue", 5: "Held at customs", 6: "Returning", 7: "Returned", 8: "Return pending", 9: "Awaiting tracking" };
@@ -2284,22 +2350,32 @@ export function TransitTab({ session, orders = [], activeGroupId = null }) {
                 IN-APP viewer (gecentreerd, donkere achtergrond) — niet meer de kale
                 browser-tab waar een brede screenshot piepklein bovenin hing. */}
             {(() => {
-              const proofs = [...new Set([...(Array.isArray(haul.settle_proof_urls) ? haul.settle_proof_urls : []), haul.settle_proof_url].filter(u => typeof u === "string" && u.startsWith("http")))];
+              // Bewijzen kunnen gelabelde objecten {url, kind} zijn (nieuw) of platte
+              // strings (oude pakketten). kind: bill = vrachtrekening, rate = ¥→€.
+              const raw = [...(Array.isArray(haul.settle_proof_urls) ? haul.settle_proof_urls : []), haul.settle_proof_url];
+              const seen = new Set(); const proofs = [];
+              for (const x of raw) {
+                const u = typeof x === "string" ? x : x?.url;
+                if (u && u.startsWith("http") && !seen.has(u)) { seen.add(u); proofs.push({ url: u, kind: (x && typeof x === "object" && x.kind) || null }); }
+              }
               if (!proofs.length) return null;
+              const label = (p, i) => p.kind === "bill" ? tr("transit.labelBill", "Shipping bill")
+                : p.kind === "rate" ? tr("transit.labelRate", "¥ → € rate")
+                : tr("transit.receiptN", "Proof {n}", { n: i + 1 });
               return (
                 <div style={{ marginBottom: 10 }}>
-                  {/* Kopje koppelt het bewijs aan het groene refund-blok erboven; elk document
-                      krijgt een eigen label (Receipt 1/2) zodat meteen duidelijk is dat het
-                      LOSSE bonnetjes zijn die je apart kunt bekijken (user 2026-08-18). */}
                   <div style={{ fontSize: 11.5, color: "#FF5C00", fontWeight: 600, marginBottom: 6 }}>🧾 {tr("transit.proofDocs", "Proof of your refund")}</div>
-                  <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-                    {proofs.map((u, i) => (
-                      <motion.button key={i} whileTap={{ scale: 0.93 }} onClick={() => setProofZoom(u)}
+                  <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
+                    {proofs.map((p, i) => (
+                      // Document-kaartje: duidelijke rand + schaduw + 🔍-badge, zodat je
+                      // zonder woorden ziet dat dit LOSSE, openbare documenten zijn.
+                      <motion.button key={i} whileTap={{ scale: 0.93 }} onClick={() => setProofZoom(p.url)}
                         style={{ display: "block", padding: 0, border: "none", background: "none", cursor: "zoom-in", WebkitTapHighlightColor: "transparent" }}>
-                        <span style={{ display: "block", width: 64, height: 64, borderRadius: 10, overflow: "hidden", border: "1px solid #E8E4DC", background: "#F8F7F4" }}>
-                          <img src={u} referrerPolicy="no-referrer" alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                        <span style={{ position: "relative", display: "block", width: 68, height: 68, borderRadius: 11, overflow: "hidden", border: "1.5px solid #DAD6CE", background: "#F8F7F4", boxShadow: "0 2px 6px rgba(17,17,17,0.10)" }}>
+                          <img src={p.url} referrerPolicy="no-referrer" alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                          <span style={{ position: "absolute", right: 3, bottom: 3, width: 19, height: 19, borderRadius: "50%", background: "rgba(15,14,12,0.72)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 9.5 }}>🔍</span>
                         </span>
-                        <span style={{ display: "block", marginTop: 3, fontSize: 9.5, fontWeight: 600, color: "#8A8780", textAlign: "center" }}>{tr("transit.receiptN", "Receipt {n}", { n: i + 1 })}</span>
+                        <span style={{ display: "block", marginTop: 4, maxWidth: 74, fontSize: 9.5, fontWeight: 700, color: "#6B6862", textAlign: "center", lineHeight: 1.25 }}>{label(p, i)}</span>
                       </motion.button>
                     ))}
                   </div>
@@ -2412,20 +2488,11 @@ export function TransitTab({ session, orders = [], activeGroupId = null }) {
         );
       })()}
 
-      {/* 🔍 In-app bewijs-viewer (2026-08-17): foto gecenterd op donker, past altijd in
-          beeld (ook brede screenshot-stroken), tik waar dan ook = dicht. Vervangt de
-          kale browser-tab waar het plaatje piepklein linksboven hing. */}
+      {/* 🔍 In-app bewijs-viewer met knijp-zoom (user 2026-08-18): twee vingers =
+          zoomen, dubbeltikken = snel in/uit, slepen = bewegen als je ingezoomd bent,
+          ✕ rechtsboven = dicht. */}
       <AnimatePresence>
-        {proofZoom && (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.18 }}
-            onClick={() => setProofZoom(null)}
-            style={{ position: "fixed", inset: 0, zIndex: 2200, background: "rgba(10,9,8,0.92)", display: "flex", alignItems: "center", justifyContent: "center", padding: 16, cursor: "zoom-out" }}>
-            <motion.img initial={{ scale: 0.92 }} animate={{ scale: 1 }} transition={{ type: "spring", stiffness: 380, damping: 30 }}
-              src={proofZoom} referrerPolicy="no-referrer" alt=""
-              style={{ maxWidth: "100%", maxHeight: "88vh", objectFit: "contain", borderRadius: 12, background: "#fff" }} />
-            <div style={{ position: "absolute", bottom: 26, left: 0, right: 0, textAlign: "center", color: "rgba(255,255,255,0.65)", fontSize: 12 }}>{tr("transit.proofClose", "Tap anywhere to close")}</div>
-          </motion.div>
-        )}
+        {proofZoom && <ProofViewer url={proofZoom} onClose={() => setProofZoom(null)} />}
       </AnimatePresence>
     </div>
   );

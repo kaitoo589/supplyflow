@@ -6,6 +6,7 @@
 import { supabase } from "./supabase";
 
 const KEY = "flowva_visit_key";
+const VISITOR_KEY = "flowva_visitor";   // blijvend anoniem nummer → nieuw vs. terugkerend
 
 function sessionKey() {
   try {
@@ -18,9 +19,24 @@ function sessionKey() {
   } catch { return null; }   // privémodus e.d. → gewoon niet meten
 }
 
+// Bezoekersnummer (fase 2, 2026-08-19): blijft op het toestel staan zodat we nieuw
+// van terugkerend kunnen onderscheiden. Willekeurig nummer, zegt niets over wie je
+// bent; staat zo beschreven in de privacyverklaring (2.8).
+function visitorKey() {
+  try {
+    let k = localStorage.getItem(VISITOR_KEY);
+    if (!k) {
+      k = (crypto.randomUUID?.() || String(Math.random()).slice(2) + Date.now());
+      localStorage.setItem(VISITOR_KEY, k);
+    }
+    return k;
+  } catch { return null; }
+}
+
 let lastPing = 0;
 
-// action: "visit" (ook als hartslag) | "product" | "cart"
+// action: "visit" (ook hartslag) | "product" | "cart" | "checkout" | "topup" |
+// "topup_done" | "paid" — mijlpalen per bezoek, volgorde maakt niet uit.
 export function track(action, productId = null, lang = null) {
   const key = sessionKey();
   if (!key) return;
@@ -40,5 +56,6 @@ export function track(action, productId = null, lang = null) {
     p_action: action,
     p_product_id: productId != null ? Number(productId) : null,
     p_lang: taal || null,
+    p_visitor: visitorKey(),
   }).then(() => {}, () => {});   // stil falen: nooit de app ophouden
 }

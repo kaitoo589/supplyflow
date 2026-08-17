@@ -3173,6 +3173,12 @@ export default function SupplyFlow({ session, factoriesVisible = true }) {
     } catch { return []; }
   });
   const [showRequestList, setShowRequestList] = useState(false);
+  // Trechter: "checkout gestart" = het mandje/checkout-scherm openen mét items erin
+  // (in deze app is de mand-sheet hét afrekenscherm: totalen + betaalknop).
+  useEffect(() => {
+    if (showRequestList && requestList.length > 0) track("checkout");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [showRequestList]);
   const [sendingList, setSendingList] = useState(false);
   const [listError, setListError] = useState(null);
   // Het bedrag dat pay_cart server-side nodig had toen het saldo te laag was —
@@ -3572,6 +3578,7 @@ export default function SupplyFlow({ session, factoriesVisible = true }) {
       return false;
     }
     // Betaalde items verlaten de cart; held items blijven bewaard.
+    track("paid");                                     // trechter: bestelling betaald ✓
     setRequestList((list) => list.filter((it) => it.source_url && heldSet.has(it.source_url)));
     fetchOrders();
     fetchBalance();
@@ -3864,6 +3871,7 @@ export default function SupplyFlow({ session, factoriesVisible = true }) {
 
   const handleTopup = async () => {
     if (!topupAmount || parseFloat(topupAmount) < 5) { alert("Minimum top-up is €5"); return; }
+    track("topup");                                    // trechter: opwaarderen gestart
     setLoadingBalance(true);
     try {
       // invokeAsUser ververst een (bijna) verlopen sessie eerst en stuurt de JWT

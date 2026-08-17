@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { springMorph } from "./motion";
 import Fox from "./Fox";
+import { track } from "./track";
 import { tr } from "./i18n";
 import { exactTopUp, startTopUp, TOPUP_MIN } from "./topup";
 import {
@@ -546,6 +547,7 @@ export default function Friends({ session, onClose, initialJoinCode, initialGrou
     const doCartQty = async (it, q) => { if (q < 1) { await ffCartRemove(it.id); } else { await ffCartSetQty(it.id, q); } refreshLobby(); };
     const doCheckout = async () => {
       if (cartBusy || !cartAgree) return;   // betalen kan alleen mét het akkoord-vinkje
+      track("checkout");   // trechter: checkout gestart (Friends rekent hier direct af)
       setCartBusy(true); setCartErr(""); setCartNeeded(null);
       const r = await ffCartCheckout(g.id);
       setCartBusy(false);
@@ -562,6 +564,7 @@ export default function Friends({ session, onClose, initialJoinCode, initialGrou
         }
         return;
       }
+      track("paid");    // trechter: bestelling betaald ✓
       refreshLobby();   // mand nu leeg voor mij; items zijn groeps-orders (zie Orders · squad)
     };
     // Saldo-tekort voor MIJN deel van de gedeelde mand — live, en na een echte

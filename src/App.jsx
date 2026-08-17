@@ -13,6 +13,7 @@ import privacySrc from "./legal/privacy-policy.md?raw";
 import termsSrc from "./legal/terms-and-conditions.md?raw";
 import returnsPolicySrc from "./legal/returns-right-of-withdrawal.md?raw";
 import Fox from "./Fox";
+import { track } from "./track";
 import { takeReturn } from "./topup";
 
 // De admin draait volledig in het gamified command center (ai-ops-hud).
@@ -45,6 +46,9 @@ function AdminGate() {
 function PaymentSuccess({ session }) {
   const [balance, setBalance] = useState(null);
   const [added, setAdded] = useState(null);
+  // Trechter: opwaarderen afgerond — de klant landt hier alleen na een geslaagde
+  // Stripe-betaling. Eén keer melden per bezoek aan deze pagina.
+  useEffect(() => { track("topup_done"); }, []);
   // Kwam de klant hier vanuit een betaling die net te weinig saldo had? Dan
   // brengt "terug" hem naar dat scherm terug i.p.v. naar de feed, zodat hij
   // alleen nog op Order & pay hoeft te drukken. Eenmalig uitlezen (takeReturn

@@ -80,7 +80,7 @@ When you contact us or use in-app support, we process:
 We do not knowingly collect special categories of personal data (such as health, religion, or political opinions). Please do not send us such data in support messages. We do not buy personal data from third parties to build marketing profiles.
 
 ### 2.8 Visit statistics — and no tracking cookies
-We keep a simple, first-party count of how the shop is used: that someone visited, which products were opened, whether something was added to the cart, the app language, and how long the visit lasted. This uses a random session number that disappears when you close the tab — no cookie, no location, no device fingerprint. If you are signed in, the visit is linked to your account. We use this only to see where the shop loses people, and we never share it with anyone.
+We keep a simple, first-party count of how the shop is used: that someone visited, which products were opened, whether something was added to the cart, whether a checkout or balance top-up was started or completed, the app language, and how long the visit lasted. This uses a random session number that disappears when you close the tab, plus a random visitor number stored on your device so we can tell new visits from returning ones. Neither number contains or reveals anything about who you are — no cookie files, no location, no device fingerprint. If you are signed in, the visit is linked to your account. We use this only to see where the shop loses people, and we never share it with anyone.
 
 We do not use tracking or advertising cookies, and we do not run analytics that follow you around the web. The app stores a small amount of information on your own device — your cart, your favourites, and which notices you have dismissed — purely so that the app works. That stays on your device and we do not use it to profile you.
 
@@ -171,7 +171,7 @@ When a legal retention period applies, we may keep limited data beyond the point
 
 What we do use is **local storage on your own device**, purely to make the app work: to keep you signed in, to remember your cart and your group, to store your language and preferences, and to run the app as a Progressive Web App. This is **strictly necessary** for a service you asked us to provide, which is exactly the case in which the law does not require your consent. It stays on your device and you can clear it at any time through your browser settings.
 
-The one measurement we do is our own **visit statistic** (see 2.8): a random session number that lives only until you close the tab, used to count visits and see which products are opened. It involves no cookie, no cross-site tracking and no third party, and Dutch law exempts this kind of minimal, privacy-friendly first-party measurement from the consent requirement.
+The one measurement we do is our own **visit statistic** (see 2.8): a random session number that lives only until you close the tab, plus a random visitor number stored on your device to tell new visits from returning ones, used to count visits and see which products are opened. It involves no cookie files, no cross-site tracking and no third party, and Dutch law exempts this kind of minimal, privacy-friendly first-party measurement from the consent requirement.
 
 If we ever introduce anything beyond that — third-party analytics, or any tracker that is not needed to run the Service — we will ask for your consent first, and we will update this section before we do.
 

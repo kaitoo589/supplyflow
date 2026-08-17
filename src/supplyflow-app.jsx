@@ -2971,8 +2971,8 @@ export default function SupplyFlow({ session, factoriesVisible = true }) {
   const [productsError, setProductsError] = useState(null);
   const [search, setSearch] = useState("");
   const [activeCategory, setActiveCategory] = useState("All");
-  const [activeSub, setActiveSub] = useState(null);
-  const [showClothesPicker, setShowClothesPicker] = useState(false);
+  const [activeSub, setActiveSub] = useState(null);          // categorieknop binnen een winkel
+  const [sizeFilter, setSizeFilter] = useState(null);        // maatknop binnen een winkel
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [orderFilter, setOrderFilter] = useState("all");
   const [selectedProduct, setSelectedProduct] = useState(null);
@@ -3252,7 +3252,7 @@ export default function SupplyFlow({ session, factoriesVisible = true }) {
   // nooit met de fabriek-drill van de éne feed in de andere landt.
   useEffect(() => {
     setSelectedFactory(null); setShowFavoritesOnly(false); setSearch("");
-    setActiveCategory("All"); setActiveSub(null); setMorph(null);
+    setActiveCategory("All"); setActiveSub(null); setSizeFilter(null); setMorph(null);
     feedScrollRef.current = 0;
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tab]);
@@ -3611,7 +3611,7 @@ export default function SupplyFlow({ session, factoriesVisible = true }) {
     blocked: !!(selectedProduct || showRequestList || showFriends || showVable || hypeProduct || showNotifs || authOpen || morph || selectedOrder),
     // Voor de bottom-pull: alléén échte fixed-overlays blokkeren (order-detail is gewone
     // scrollende content en mág rekken → niet in deze lijst).
-    overlay: !!(selectedProduct || showRequestList || showFriends || showVable || hypeProduct || showNotifs || authOpen || morph || previewProduct || actionProduct || reviewProduct || orderSuccess || successProduct || showEditProfile || showHowItWorks || showWelcome || showPricing || showPricingTour || showDiamond || squadWheel || showClothesPicker),
+    overlay: !!(selectedProduct || showRequestList || showFriends || showVable || hypeProduct || showNotifs || authOpen || morph || previewProduct || actionProduct || reviewProduct || orderSuccess || successProduct || showEditProfile || showHowItWorks || showWelcome || showPricing || showPricingTour || showDiamond || squadWheel),
   };
   useEffect(() => {
     const onStart = (e) => {
@@ -4045,13 +4045,14 @@ export default function SupplyFlow({ session, factoriesVisible = true }) {
   // het voor élke (zelf toegevoegde) categorie, niet alleen Clothes.
   const subsForCategory = (cat) => [...new Set(products.filter(p => p.category === cat).map(p => p.subcategory).filter(Boolean))];
   const visibleProducts = products.filter(p => {
-    const matchCat =
-      activeCategory === "All" ? true :
-      (p.category === activeCategory && (!activeSub || p.subcategory === activeSub));
+    const matchCat = activeCategory === "All" ? true : p.category === activeCategory;
+    // Subcategorie werkt los van de hoofdcategorie: de winkel-filterknoppen (Tops,
+    // Skirts, …) zetten alleen activeSub, ook als de hoofdcategorie op "All" staat.
+    const matchSub = !activeSub || p.subcategory === activeSub;
     const q = search.trim().toLowerCase();
     const matchSearch = !q || (p.title || "").toLowerCase().includes(q);
     const matchFav = !showFavoritesOnly || isFavorite(p);
-    return matchCat && matchSearch && matchFav;
+    return matchCat && matchSub && matchSearch && matchFav;
     // Demo's altijd achteraan; daarbinnen de handmatige winkelvolgorde uit de admin
     // (products.sort_order — mooiste producten bovenaan), id als terugval.
   }).sort((a, b) => (a.demo ? 1 : 0) - (b.demo ? 1 : 0)
@@ -4092,9 +4093,34 @@ export default function SupplyFlow({ session, factoriesVisible = true }) {
     .filter(f => f.count > 0)
     .filter(f => { const q = search.trim().toLowerCase(); return !q || (f.name || "").toLowerCase().includes(q); })
     .sort((a, b) => (a.sort_order ?? 1e9) - (b.sort_order ?? 1e9) || (Number(b.diamonds) || 0) - (Number(a.diamonds) || 0) || (a.name || "").localeCompare(b.name || "")), [factories, products, search, tab]);
-  // Drill-in: producten van de geopende fabriek, met de gewone filters erop.
+  // ── Winkel-filters (16-08) ────────────────────────────────────────────────
+  // Welke maat-opties biedt dit product, en is zo'n maat als geheel uitverkocht?
+  // (Combinatie-uitval per kleur negeren we hier bewust — te zwaar voor de feed;
+  //  de productpagina streept die zelf al door.)
+  const productSizes = (p) => {
+    const g = (Array.isArray(p.sizes) ? p.sizes : []).find(v => /size|maat/i.test(v?.name || ""));
+    if (!g) return [];
+    const oosLos = new Set((Array.isArray(p.oos_variants) ? p.oos_variants : [])
+      .filter(o => o && !o.combo && /size|maat/i.test(o.name || "")).map(o => o.value));
+    return (g.options || []).filter(o => !oosLos.has(o));
+  };
+  // Alle producten van de geopende winkel (zonder categorie/maat-filter) — hieruit
+  // komen de filterknoppen mét aantallen, zodat je ziet wat er te halen valt.
+  const facAll = selectedFactory ? products.filter(p => belongsToFactory(p, selectedFactory)) : [];
+  const MAAT_VOLGORDE = ["XS", "S", "M", "L", "XL", "XXL", "2XL", "3XL"];
+  const facSizes = [...new Set(facAll.flatMap(productSizes))]
+    .sort((a, b) => {
+      const ia = MAAT_VOLGORDE.indexOf(String(a).toUpperCase()), ib = MAAT_VOLGORDE.indexOf(String(b).toUpperCase());
+      return (ia === -1 ? 99 : ia) - (ib === -1 ? 99 : ib) || String(a).localeCompare(String(b));
+    });
+  const facSubs = [...new Set(facAll.map(p => p.subcategory).filter(Boolean))]
+    .map(sub => ({ sub, n: facAll.filter(p => p.subcategory === sub).length }))
+    .sort((a, b) => b.n - a.n);
+
+  // Drill-in: producten van de geopende fabriek, met de gewone filters + maatfilter.
   const factoryProducts = selectedFactory
-    ? visibleProducts.filter(p => belongsToFactory(p, selectedFactory))
+    ? visibleProducts.filter(p => belongsToFactory(p, selectedFactory)
+        && (!sizeFilter || productSizes(p).some(s => String(s).toUpperCase() === sizeFilter)))
     : [];
 
   // Herbruikbare productkaart (zelfde stijl als voorheen) — voor drill-in + favorieten.
@@ -4233,7 +4259,7 @@ export default function SupplyFlow({ session, factoriesVisible = true }) {
         initial={isMorphTarget ? false : { opacity: 0, scale: 0.96, y: 14 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
         exit={{ opacity: 0, scale: 0.96, transition: { duration: 0.16, ease: [0.32, 0.72, 0, 1] } }}
-        onClick={(e) => { const card = e.currentTarget; const ia = card.querySelector('[data-factory-img]'); const r = (ia || card).getBoundingClientRect(); feedScrollRef.current = window.scrollY; setMorph({ from: { left: r.left, top: r.top, width: r.width, height: r.height }, target: "pill", id: f.id, previews: pv, extra, dia }); setSelectedFactory(f); setSearch(""); setActiveCategory("All"); setActiveSub(null); window.scrollTo(0, 0); }}
+        onClick={(e) => { const card = e.currentTarget; const ia = card.querySelector('[data-factory-img]'); const r = (ia || card).getBoundingClientRect(); feedScrollRef.current = window.scrollY; setMorph({ from: { left: r.left, top: r.top, width: r.width, height: r.height }, target: "pill", id: f.id, previews: pv, extra, dia }); setSelectedFactory(f); setSearch(""); setActiveCategory("All"); setActiveSub(null); setSizeFilter(null); window.scrollTo(0, 0); }}
         whileHover={{ y: -3 }} whileTap={{ scale: 0.99 }}
         transition={springMorph}
         style={{ background: "#fff", borderRadius: 20, overflow: "hidden", boxShadow: "0 1px 2px rgba(17,17,17,0.04), 0 8px 22px rgba(17,17,17,0.06)", cursor: "pointer" }}>
@@ -4288,7 +4314,7 @@ export default function SupplyFlow({ session, factoriesVisible = true }) {
     <motion.div
       ref={pillRef}
       whileTap={{ scale: 0.96 }}
-      onClick={(e) => { const r = e.currentTarget.getBoundingClientRect(); const sf = selectedFactory; const spv = (sf.previews && sf.previews.length) ? sf.previews : (sf.cover ? [sf.cover] : []); setMorph({ from: { left: r.left, top: r.top, width: r.width, height: r.height }, target: "card", id: sf.id, previews: spv, extra: Math.max(0, (sf.count || 0) - 3), dia: Math.max(0, Math.min(4, Number(sf.diamonds) || 0)) }); setSelectedFactory(null); setSearch(""); setActiveCategory("All"); setActiveSub(null); }}
+      onClick={(e) => { const r = e.currentTarget.getBoundingClientRect(); const sf = selectedFactory; const spv = (sf.previews && sf.previews.length) ? sf.previews : (sf.cover ? [sf.cover] : []); setMorph({ from: { left: r.left, top: r.top, width: r.width, height: r.height }, target: "card", id: sf.id, previews: spv, extra: Math.max(0, (sf.count || 0) - 3), dia: Math.max(0, Math.min(4, Number(sf.diamonds) || 0)) }); setSelectedFactory(null); setSearch(""); setActiveCategory("All"); setActiveSub(null); setSizeFilter(null); }}
       style={{ display: "inline-flex", alignItems: "center", gap: 4, marginBottom: inHeader ? 0 : 16, marginTop: inHeader ? 2 : 0, cursor: "pointer", color: "#111", fontSize: 14, fontWeight: 700, background: "#fff", border: "1px solid #E4E1DA", borderRadius: 22, padding: "9px 16px 9px 12px", boxShadow: "0 1px 2px rgba(17,17,17,0.05), 0 4px 12px rgba(17,17,17,0.05)", WebkitTapHighlightColor: "transparent", whiteSpace: "nowrap" }}>
       <span style={{ fontSize: 19, lineHeight: 1, marginTop: -2 }}>‹</span> {tab === "brands" ? tr("feed.backToBrands", "All brands") : tr("feed.backToFactories", "All factories")}
     </motion.div>
@@ -4554,6 +4580,46 @@ export default function SupplyFlow({ session, factoriesVisible = true }) {
             </>
           ) : selectedFactory ? (
             <>
+              {/* Winkel-filters (16-08): categorieknoppen mét aantallen + maatknoppen.
+                  Alleen categorieën die déze winkel echt heeft; lege knoppen bestaan niet. */}
+              {facSubs.length > 1 && (
+                <div style={{ display: "flex", gap: 7, overflowX: "auto", paddingBottom: 4, marginBottom: 8, WebkitOverflowScrolling: "touch", scrollbarWidth: "none" }}>
+                  {[{ sub: null, n: facAll.length }, ...facSubs].map(({ sub, n }) => {
+                    const sel = activeSub === sub;
+                    const label = sub === null ? tr("feed.sub.all", "All")
+                      : sub === "Tops" ? tr("feed.sub.tops", "Tops")
+                      : sub === "Trousers" ? tr("feed.sub.trousers", "Trousers")
+                      : sub === "Dresses" ? tr("feed.sub.dresses", "Dresses")
+                      : sub === "Skirts" ? tr("feed.sub.skirts", "Skirts")
+                      : sub === "Outerwear" ? tr("feed.sub.outerwear", "Outerwear")
+                      : sub === "Shorts" ? tr("feed.sub.shorts", "Shorts")
+                      : sub === "Sets" ? tr("feed.sub.sets", "Sets") : sub;
+                    return (
+                      <motion.button key={sub || "all"} whileTap={{ scale: 0.93 }} transition={springSnappy}
+                        onClick={() => setActiveSub(sub)}
+                        style={{ flexShrink: 0, padding: "7px 13px", borderRadius: 999, border: "1px solid " + (sel ? "#0F0E0C" : "#E8E6E0"), background: sel ? "#0F0E0C" : "#fff", color: sel ? "#fff" : "#555", fontSize: 12.5, fontWeight: 600, cursor: "pointer", WebkitTapHighlightColor: "transparent" }}>
+                        {label} <span style={{ opacity: 0.55, fontWeight: 500 }}>{n}</span>
+                      </motion.button>
+                    );
+                  })}
+                </div>
+              )}
+              {facSizes.length > 1 && (
+                <div style={{ display: "flex", gap: 6, alignItems: "center", overflowX: "auto", paddingBottom: 4, marginBottom: 12, WebkitOverflowScrolling: "touch", scrollbarWidth: "none" }}>
+                  <span style={{ flexShrink: 0, fontSize: 11.5, color: "#A8A5A0", fontWeight: 600 }}>{tr("feed.sizeLabel", "Size")}</span>
+                  {facSizes.map((m) => {
+                    const mv = String(m).toUpperCase();
+                    const sel = sizeFilter === mv;
+                    return (
+                      <motion.button key={mv} whileTap={{ scale: 0.9 }} transition={springSnappy}
+                        onClick={() => setSizeFilter(sel ? null : mv)}
+                        style={{ flexShrink: 0, minWidth: 34, padding: "6px 9px", borderRadius: 10, border: "1px solid " + (sel ? "#FF5C00" : "#E8E6E0"), background: sel ? "#FF5C00" : "#fff", color: sel ? "#fff" : "#555", fontSize: 12, fontWeight: 700, cursor: "pointer", WebkitTapHighlightColor: "transparent" }}>
+                        {mv}
+                      </motion.button>
+                    );
+                  })}
+                </div>
+              )}
               {factoryProducts.length === 0 && (
                 <div style={{ textAlign: "center", padding: 40, color: "#999" }}>{tr("feed.empty.factoryProducts", "No products in this view.")}</div>
               )}
@@ -5571,51 +5637,6 @@ export default function SupplyFlow({ session, factoriesVisible = true }) {
       <AnimatePresence>
         {reviewProduct && (
           <ReviewPage product={reviewProduct} session={session} onClose={() => setReviewProduct(null)} />
-        )}
-      </AnimatePresence>
-
-      {/* Clothes categorie-kiezer */}
-      <AnimatePresence>
-        {showClothesPicker && (
-          <>
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-              onClick={() => setShowClothesPicker(false)}
-              style={{ position: "fixed", inset: 0, zIndex: 200, background: "rgba(0,0,0,0.5)", backdropFilter: "blur(6px)" }} />
-            <motion.div initial={{ y: "100%" }} animate={{ y: 0 }} exit={{ y: "100%" }}
-              transition={{ type: "spring", stiffness: 320, damping: 34 }}
-              style={{ position: "fixed", bottom: 0, left: 0, right: 0, margin: "0 auto", width: "100%", maxWidth: 430, boxSizing: "border-box", background: "#fff", borderRadius: "24px 24px 0 0", zIndex: 201, maxHeight: "80vh", overflowY: "auto", padding: "20px 20px 40px" }}>
-              <div style={{ width: 36, height: 4, background: "#E8E6E0", borderRadius: 2, margin: "0 auto 16px" }} />
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
-                <div style={{ fontSize: 18, fontWeight: 700, color: "#0F0E0C" }}>{tr("feed.categoryPicker.title", "Choose a category")}</div>
-                {activeSub && (
-                  <button onClick={() => { setActiveSub(null); setShowClothesPicker(false); }}
-                    style={{ background: "none", border: "none", fontSize: 13, color: "#6366F1", fontWeight: 600, cursor: "pointer" }}>{tr("feed.categoryPicker.clear", "Clear filter")}</button>
-                )}
-              </div>
-              {/* Alleen subcategorieën met producten — lege blijven verborgen */}
-              {(() => {
-                const pickerCat = activeCategory !== "All" ? activeCategory : (visibleCategories.slice(1).find((c) => subsForCategory(c).length > 0) || visibleCategories[1] || null);
-                const subs = pickerCat ? subsForCategory(pickerCat) : [];
-                if (subs.length === 0) {
-                  return <div style={{ textAlign: "center", padding: "24px 0", color: "#aaa", fontSize: 13 }}><Fox /> {tr("feed.categoryPicker.empty", "No subcategories yet — they appear as products are added.")}</div>;
-                }
-                return (
-                  <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
-                    {subs.map((it) => {
-                      const sel = activeSub === it;
-                      return (
-                        <motion.button key={it} whileTap={{ scale: 0.9 }} transition={springSnappy}
-                          onClick={() => { setActiveSub(it); setActiveCategory(pickerCat); setShowClothesPicker(false); }}
-                          style={{ padding: "8px 14px", borderRadius: 20, border: "1px solid " + (sel ? "#0F0E0C" : "#E8E6E0"), background: sel ? "#0F0E0C" : "#fff", color: sel ? "#FF5C00" : "#555", fontSize: 13, fontWeight: 600, cursor: "pointer", WebkitTapHighlightColor: "transparent" }}>
-                          {it}
-                        </motion.button>
-                      );
-                    })}
-                  </div>
-                );
-              })()}
-            </motion.div>
-          </>
         )}
       </AnimatePresence>
 

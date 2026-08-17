@@ -2288,12 +2288,18 @@ export function TransitTab({ session, orders = [], activeGroupId = null }) {
               if (!proofs.length) return null;
               return (
                 <div style={{ marginBottom: 10 }}>
-                  <div style={{ fontSize: 11.5, color: "#FF5C00", fontWeight: 600, marginBottom: 6 }}>🧾 {tr("transit.proofDocs", "Here's your proof — the real shipping bill & the ¥→€ conversion")}</div>
-                  <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                  {/* Kopje koppelt het bewijs aan het groene refund-blok erboven; elk document
+                      krijgt een eigen label (Receipt 1/2) zodat meteen duidelijk is dat het
+                      LOSSE bonnetjes zijn die je apart kunt bekijken (user 2026-08-18). */}
+                  <div style={{ fontSize: 11.5, color: "#FF5C00", fontWeight: 600, marginBottom: 6 }}>🧾 {tr("transit.proofDocs", "Proof of your refund")}</div>
+                  <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
                     {proofs.map((u, i) => (
                       <motion.button key={i} whileTap={{ scale: 0.93 }} onClick={() => setProofZoom(u)}
-                        style={{ display: "block", width: 62, height: 62, borderRadius: 10, overflow: "hidden", border: "1px solid #E8E4DC", padding: 0, background: "#F8F7F4", cursor: "zoom-in" }}>
-                        <img src={u} referrerPolicy="no-referrer" alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                        style={{ display: "block", padding: 0, border: "none", background: "none", cursor: "zoom-in", WebkitTapHighlightColor: "transparent" }}>
+                        <span style={{ display: "block", width: 64, height: 64, borderRadius: 10, overflow: "hidden", border: "1px solid #E8E4DC", background: "#F8F7F4" }}>
+                          <img src={u} referrerPolicy="no-referrer" alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                        </span>
+                        <span style={{ display: "block", marginTop: 3, fontSize: 9.5, fontWeight: 600, color: "#8A8780", textAlign: "center" }}>{tr("transit.receiptN", "Receipt {n}", { n: i + 1 })}</span>
                       </motion.button>
                     ))}
                   </div>

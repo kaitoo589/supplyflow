@@ -2278,14 +2278,24 @@ export function TransitTab({ session, orders = [], activeGroupId = null }) {
               🧾 {tr("group.pay.seeReceipt", "See receipt")} ›
             </button>
 
-            {haul.settle_proof_url && (
-              <a href={haul.settle_proof_url} target="_blank" rel="noreferrer" style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10, textDecoration: "none" }}>
-                <div style={{ width: 34, height: 34, borderRadius: 8, overflow: "hidden", border: "1px solid #E8E4DC", flexShrink: 0 }}>
-                  <img src={haul.settle_proof_url} referrerPolicy="no-referrer" alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+            {/* Bewijs bij de verrekening (2026-08-17): kan uit MEERDERE bestanden bestaan —
+                de echte vrachtrekening én de yuan→euro-omrekening. Elk plaatje opent los. */}
+            {(() => {
+              const proofs = [...new Set([...(Array.isArray(haul.settle_proof_urls) ? haul.settle_proof_urls : []), haul.settle_proof_url].filter(u => typeof u === "string" && u.startsWith("http")))];
+              if (!proofs.length) return null;
+              return (
+                <div style={{ marginBottom: 10 }}>
+                  <div style={{ fontSize: 11.5, color: "#FF5C00", fontWeight: 600, marginBottom: 6 }}>📄 {tr("transit.proofDocs", "The real shipping bill & the ¥→€ conversion — tap to view")}</div>
+                  <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                    {proofs.map((u, i) => (
+                      <a key={i} href={u} target="_blank" rel="noreferrer" style={{ display: "block", width: 52, height: 52, borderRadius: 10, overflow: "hidden", border: "1px solid #E8E4DC" }}>
+                        <img src={u} referrerPolicy="no-referrer" alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                      </a>
+                    ))}
+                  </div>
                 </div>
-                <span style={{ fontSize: 11.5, color: "#FF5C00", fontWeight: 600 }}>📄 Carrier's final bill — your real shipping cost ↗</span>
-              </a>
-            )}
+              );
+            })()}
 
             {(haul.tracking_no || nodes.length > 0) ? (
               <div style={{ background: "#F8F7F4", borderRadius: 12, padding: "12px 13px" }}>

@@ -30,10 +30,15 @@ export function track(action, productId = null, lang = null) {
     if (lastPing && now - lastPing < 25000) return;
     lastPing = now;
   }
+  // Taal bij ELKE ping meelezen (2026-08-18): een nieuwe bezoeker heeft bij de eerste
+  // ping nog geen taal gekozen — door 'm hier steeds mee te sturen vult de database
+  // 'm alsnog in zodra er gekozen is. "?" betekent dan écht "vertrok vóór de taalkeuze".
+  let taal = lang;
+  if (!taal) { try { taal = localStorage.getItem("flowva_lang"); } catch { /* privémodus */ } }
   supabase.rpc("track_visit", {
     p_key: key,
     p_action: action,
     p_product_id: productId != null ? Number(productId) : null,
-    p_lang: lang || null,
+    p_lang: taal || null,
   }).then(() => {}, () => {});   // stil falen: nooit de app ophouden
 }

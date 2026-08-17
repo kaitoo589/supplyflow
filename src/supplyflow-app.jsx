@@ -2973,6 +2973,7 @@ export default function SupplyFlow({ session, factoriesVisible = true }) {
   const [activeCategory, setActiveCategory] = useState("All");
   const [activeSub, setActiveSub] = useState(null);          // categorieknop binnen een winkel
   const [sizeFilter, setSizeFilter] = useState(null);        // maatknop binnen een winkel
+  const [genderFilter, setGenderFilter] = useState(null);    // dames/heren bovenaan Brands
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [orderFilter, setOrderFilter] = useState("all");
   const [selectedProduct, setSelectedProduct] = useState(null);
@@ -4099,6 +4100,8 @@ export default function SupplyFlow({ session, factoriesVisible = true }) {
   const factoryCards = useMemo(() => factories
     // Feed toont fabrieken; Brands toont taobao-stores (zelfde tabel, store_type splitst).
     .filter(f => tab === "brands" ? f.store_type === "taobao" : (f.store_type || "factory") !== "taobao")
+    // Dames/heren-keuze bovenaan Brands (Kaito 17-08): winkels dragen factories.gender.
+    .filter(f => tab !== "brands" || !genderFilter || (f.gender || "women") === genderFilter)
     .map(f => {
       const fp = products.filter(p => belongsToFactory(p, f));
       // Kaart-plaatje: een geüploade fabrieksfoto wint, anders pakt de kaart
@@ -4120,7 +4123,7 @@ export default function SupplyFlow({ session, factoriesVisible = true }) {
     })
     .filter(f => f.count > 0)
     .filter(f => { const q = search.trim().toLowerCase(); return !q || (f.name || "").toLowerCase().includes(q); })
-    .sort((a, b) => (a.sort_order ?? 1e9) - (b.sort_order ?? 1e9) || (Number(b.diamonds) || 0) - (Number(a.diamonds) || 0) || (a.name || "").localeCompare(b.name || "")), [factories, products, search, tab]);
+    .sort((a, b) => (a.sort_order ?? 1e9) - (b.sort_order ?? 1e9) || (Number(b.diamonds) || 0) - (Number(a.diamonds) || 0) || (a.name || "").localeCompare(b.name || "")), [factories, products, search, tab, genderFilter]);
   // ── Winkel-filters (16-08) ────────────────────────────────────────────────
   // Sommige winkels verkopen bereiken ("S-M", "M-L") in plaats van losse maten.
   // Die krijgen géén eigen knop maar tellen mee bij elke maat die ze dekken —
@@ -4688,6 +4691,29 @@ export default function SupplyFlow({ session, factoriesVisible = true }) {
             </>
           ) : (
             <>
+              {/* Dames/heren-keuze (17-08) — alleen op Brands, en alleen als beide bestaan. */}
+              {tab === "brands" && !loadingProducts && (() => {
+                const genders = new Set(factories.filter(f => f.store_type === "taobao").map(f => f.gender || "women"));
+                if (genders.size < 2) return null;
+                return (
+                  <div style={{ display: "flex", gap: 7, marginBottom: 14 }}>
+                    {[
+                      { key: null, label: tr("feed.gender.all", "All") },
+                      { key: "women", label: tr("feed.gender.women", "Women") },
+                      { key: "men", label: tr("feed.gender.men", "Men") },
+                    ].map(({ key, label }) => {
+                      const sel = genderFilter === key;
+                      return (
+                        <motion.button key={key ?? "all"} whileTap={{ scale: 0.93 }} transition={springSnappy}
+                          onClick={() => setGenderFilter(key)}
+                          style={{ padding: "8px 16px", borderRadius: 999, border: "1px solid " + (sel ? "#0F0E0C" : "#E8E6E0"), background: sel ? "#0F0E0C" : "#fff", color: sel ? "#fff" : "#555", fontSize: 13, fontWeight: 600, cursor: "pointer", WebkitTapHighlightColor: "transparent" }}>
+                          {label}
+                        </motion.button>
+                      );
+                    })}
+                  </div>
+                );
+              })()}
               {loadingProducts && <div style={{ textAlign: "center", padding: 40, color: "#999" }}>{tab === "brands" ? tr("feed.loading.brands", "Loading brands...") : tr("feed.loading.factories", "Loading factories...")}</div>}
               {productsError && <div style={{ textAlign: "center", padding: 40, color: "#B45309" }}>{tr("feed.error.factories", "Couldn't load: {error}", { error: productsError })}</div>}
               {!loadingProducts && !productsError && factoryCards.length === 0 && (

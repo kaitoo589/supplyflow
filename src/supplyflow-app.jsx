@@ -3813,6 +3813,13 @@ export default function SupplyFlow({ session, factoriesVisible = true }) {
   useEffect(() => {
     if (session && (tab === "orders" || tab === "transit")) { fetchOrders(); fetchHauls(); }
   }, [tab]);
+  // Pakketten ook bij BINNENKOMST laden (2026-08-17): de 🎉-refundmelding leeft in
+  // het belletje op de feed — zonder deze fetch wist het belletje pas van de refund
+  // nadat je toevallig Orders/Transit had geopend.
+  useEffect(() => {
+    if (session) fetchHauls();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [session]);
 
   // Reactie van de klant op een gemeld probleem (zie problemTypes.js).
   const acknowledgeProblem = async () => {

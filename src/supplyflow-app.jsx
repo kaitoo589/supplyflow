@@ -4242,7 +4242,7 @@ export default function SupplyFlow({ session, factoriesVisible = true }) {
     // (±10px meeschuiven, iets ingezoomd zodat er geen randen ontstaan).
     const imgBox = (src, big) => (
       <div style={{ flex: 1, minHeight: 0, minWidth: 0, background: "#ECE8E0", display: "flex", alignItems: "center", justifyContent: "center", fontSize: big ? 44 : 26, overflow: "hidden" }}>
-        {src ? <img src={src} referrerPolicy="no-referrer" alt="" decoding="async" data-plx={big ? "0.05" : "0.035"} style={{ width: "100%", height: "100%", objectFit: "cover", display: "block", transform: coarsePointer ? "none" : "scale(1.12)", willChange: coarsePointer ? "auto" : "transform" }} /> : "🏭"}
+        {src ? <img src={src} referrerPolicy="no-referrer" alt="" decoding="async" data-plx={big ? "0.05" : "0.035"} style={{ width: "100%", height: "100%", objectFit: "cover", objectPosition: "50% 12%", display: "block", transform: coarsePointer ? "none" : "scale(1.12)", willChange: coarsePointer ? "auto" : "transform" }} /> : "🏭"}
       </div>
     );
     return (

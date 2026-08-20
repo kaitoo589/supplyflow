@@ -4307,7 +4307,7 @@ export default function SupplyFlow({ session, factoriesVisible = true }) {
         initial={isMorphTarget ? false : { opacity: 0, scale: 0.96, y: 14 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
         exit={{ opacity: 0, scale: 0.96, transition: { duration: 0.16, ease: [0.32, 0.72, 0, 1] } }}
-        onClick={(e) => { const card = e.currentTarget; const ia = card.querySelector('[data-factory-img]'); const r = (ia || card).getBoundingClientRect(); feedScrollRef.current = window.scrollY; setMorph({ from: { left: r.left, top: r.top, width: r.width, height: r.height }, target: "pill", id: f.id, previews: pv, extra, dia }); setSelectedFactory(f); setSearch(""); setActiveCategory("All"); setActiveSub(null); setSizeFilter(null); window.scrollTo(0, 0); }}
+        onClick={(e) => { const card = e.currentTarget; const ia = card.querySelector('[data-factory-img]'); const r = (ia || card).getBoundingClientRect(); feedScrollRef.current = window.scrollY; setMorph({ from: { left: r.left, top: r.top, width: r.width, height: r.height }, target: "pill", id: f.id, previews: pv, extra, dia }); track("store", f.id); setSelectedFactory(f); setSearch(""); setActiveCategory("All"); setActiveSub(null); setSizeFilter(null); window.scrollTo(0, 0); }}
         whileHover={{ y: -3 }} whileTap={{ scale: 0.99 }}
         transition={springMorph}
         style={{ background: "#fff", borderRadius: 20, overflow: "hidden", boxShadow: "0 1px 2px rgba(17,17,17,0.04), 0 8px 22px rgba(17,17,17,0.06)", cursor: "pointer" }}>

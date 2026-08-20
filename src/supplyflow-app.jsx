@@ -2974,6 +2974,7 @@ export default function SupplyFlow({ session, factoriesVisible = true }) {
   const [activeSub, setActiveSub] = useState(null);          // categorieknop binnen een winkel
   const [sizeFilter, setSizeFilter] = useState(null);        // maatknop binnen een winkel
   const [genderFilter, setGenderFilter] = useState(null);    // dames/heren bovenaan Brands
+  const [productScores, setProductScores] = useState(new Map()); // populariteit per product (gastdata)
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [orderFilter, setOrderFilter] = useState("all");
   const [selectedProduct, setSelectedProduct] = useState(null);
@@ -3589,10 +3590,14 @@ export default function SupplyFlow({ session, factoriesVisible = true }) {
   // Catalogus (producten + fabrieken) — óók aangeroepen door de vos-pull-to-refresh.
   const refreshCatalog = async (initial = false) => {
     if (initial) { setLoadingProducts(true); setProductsError(null); }
-    const [p, f] = await Promise.all([
+    const [p, f, sc] = await Promise.all([
       supabase.from("products").select("*").order("id"),
       supabase.from("factories").select("*"),
+      supabase.rpc("product_scores"),
     ]);
+    // Populariteit op eigen gastdata (22-08): bekeken + 10× in-mandje, interne
+    // accounts niet meegeteld. Bepaalt de volgorde in de winkel én de etalage.
+    setProductScores(new Map((sc.data ?? []).map((r) => [r.product_id, Number(r.score) || 0])));
     // Verborgen winkels (factories.hidden) verdwijnen mét hun producten uit de app.
     // Accounts met can_preview zien ze wél — zo kan een winkel rustig afgemaakt worden
     // terwijl klanten er niets van merken (2026-08-16).
@@ -4109,21 +4114,19 @@ export default function SupplyFlow({ session, factoriesVisible = true }) {
       const cover = (f.logo && f.logo.startsWith("http"))
         ? f.logo
         : (fp.find(p => p.image && p.image.startsWith("http"))?.image || null);
-      // Etalage: handmatig gekozen + bijgesneden foto's (admin) winnen; anders automatisch top-3.
-      const manual = Array.isArray(f.storefront_images)
-        ? f.storefront_images.filter(u => typeof u === "string" && u.startsWith("http"))
-        : [];
-      const previews = manual.length
-        ? manual
-        : fp.filter(p => p.image && p.image.startsWith("http"))
-            .sort((a, b) => (Number(b.rating) || 0) - (Number(a.rating) || 0))
-            .slice(0, 3)
-            .map(p => p.image);
+      // Etalage = de top-3 populairste producten van de winkel (gastdata), zodat de
+      // kaart in Brands hetzelfde toont als de eerste rij ín de winkel (Kaito 22-08).
+      // De handmatig geüploade storefront_images blijven in de database als reserve,
+      // maar worden niet meer getoond.
+      const previews = fp.filter(p => p.image && p.image.startsWith("http"))
+        .sort((a, b) => (productScores.get(b.id) || 0) - (productScores.get(a.id) || 0) || a.id - b.id)
+        .slice(0, 3)
+        .map(p => p.image);
       return { ...f, count: fp.length, cover, previews };
     })
     .filter(f => f.count > 0)
     .filter(f => { const q = search.trim().toLowerCase(); return !q || (f.name || "").toLowerCase().includes(q); })
-    .sort((a, b) => (a.sort_order ?? 1e9) - (b.sort_order ?? 1e9) || (Number(b.diamonds) || 0) - (Number(a.diamonds) || 0) || (a.name || "").localeCompare(b.name || "")), [factories, products, search, tab, genderFilter]);
+    .sort((a, b) => (a.sort_order ?? 1e9) - (b.sort_order ?? 1e9) || (Number(b.diamonds) || 0) - (Number(a.diamonds) || 0) || (a.name || "").localeCompare(b.name || "")), [factories, products, search, tab, genderFilter, productScores]);
   // ── Winkel-filters (16-08) ────────────────────────────────────────────────
   // Sommige winkels verkopen bereiken ("S-M", "M-L") in plaats van losse maten.
   // Die krijgen géén eigen knop maar tellen mee bij elke maat die ze dekken —
@@ -4163,6 +4166,9 @@ export default function SupplyFlow({ session, factoriesVisible = true }) {
   const factoryProducts = selectedFactory
     ? visibleProducts.filter(p => belongsToFactory(p, selectedFactory)
         && (!sizeFilter || productSizes(p).includes(sizeFilter)))
+        // Populairste eerst (gastdata: bekeken + 10× mandje); zonder data blijft
+        // de oorspronkelijke volgorde staan (score 0 → stabiele sort op id).
+        .sort((a, b) => (productScores.get(b.id) || 0) - (productScores.get(a.id) || 0) || a.id - b.id)
     : [];
 
   // Herbruikbare productkaart (zelfde stijl als voorheen) — voor drill-in + favorieten.
@@ -5374,7 +5380,7 @@ export default function SupplyFlow({ session, factoriesVisible = true }) {
             onSuccess={() => { setSuccessProduct(selectedProduct); setSelectedProduct(null); fetchOrders(); }}
             listCount={requestList.length}
             onAddToList={(item, rect, pid) => {
-              track("cart");                       // trechter: "in mandje gelegd"
+              track("cart", pid ?? selectedProduct?.id);  // trechter: "in mandje gelegd" — mét product, voor de populariteits-sortering
               setRequestList(list => [...list, item]);
               flashPromise();          // mandje-balk zegt heel even wat wij met het item doen
               setSelectedProduct(null);

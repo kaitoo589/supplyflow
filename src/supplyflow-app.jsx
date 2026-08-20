@@ -4122,11 +4122,14 @@ export default function SupplyFlow({ session, factoriesVisible = true }) {
         .sort((a, b) => (productScores.get(b.id) || 0) - (productScores.get(a.id) || 0) || a.id - b.id)
         .slice(0, 3)
         .map(p => p.image);
-      return { ...f, count: fp.length, cover, previews };
+      // Winkelscore (Kaito 21-08): som van de populariteit van de producten —
+      // de winkel waar gasten het meest naar kijken/toevoegen staat bovenaan.
+      const popScore = fp.reduce((s, p) => s + (productScores.get(p.id) || 0), 0);
+      return { ...f, count: fp.length, cover, previews, popScore };
     })
     .filter(f => f.count > 0)
     .filter(f => { const q = search.trim().toLowerCase(); return !q || (f.name || "").toLowerCase().includes(q); })
-    .sort((a, b) => (a.sort_order ?? 1e9) - (b.sort_order ?? 1e9) || (Number(b.diamonds) || 0) - (Number(a.diamonds) || 0) || (a.name || "").localeCompare(b.name || "")), [factories, products, search, tab, genderFilter, productScores]);
+    .sort((a, b) => (b.popScore || 0) - (a.popScore || 0) || (a.sort_order ?? 1e9) - (b.sort_order ?? 1e9) || (Number(b.diamonds) || 0) - (Number(a.diamonds) || 0) || (a.name || "").localeCompare(b.name || "")), [factories, products, search, tab, genderFilter, productScores]);
   // ── Winkel-filters (16-08) ────────────────────────────────────────────────
   // Sommige winkels verkopen bereiken ("S-M", "M-L") in plaats van losse maten.
   // Die krijgen géén eigen knop maar tellen mee bij elke maat die ze dekken —

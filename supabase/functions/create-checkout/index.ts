@@ -46,7 +46,10 @@ Deno.serve(async (req) => {
     }
 
     const session = await stripe.checkout.sessions.create({
-      payment_method_types: ["card", "ideal"],
+      // Vaste lijst wint van het Stripe-dashboard (daar stond iDEAL zelfs uit en
+      // Bancontact aan, terwijl de checkout het omgekeerde toonde — 22-08).
+      // Bancontact = het iDEAL van België. Apple Pay/Link liften mee op "card".
+      payment_method_types: ["card", "ideal", "bancontact"],
       mode: "payment",
       customer_email: user.email,
       line_items: [

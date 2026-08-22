@@ -3587,11 +3587,25 @@ export default function SupplyFlow({ session, factoriesVisible = true }) {
     return true;
   };
 
+  // Supabase geeft maximaal 1000 rijen per verzoek; met 2000+ producten viel de
+  // nieuwste helft van de catalogus stilletjes buiten beeld (22-08). Bladeren dus.
+  const fetchAlleProducten = async () => {
+    const alle = [];
+    const stap = 1000;
+    for (let van = 0; ; van += stap) {
+      const { data, error } = await supabase.from("products").select("*").order("id").range(van, van + stap - 1);
+      if (error) return { data: alle.length ? alle : null, error };
+      alle.push(...(data ?? []));
+      if (!data || data.length < stap) break;
+    }
+    return { data: alle, error: null };
+  };
+
   // Catalogus (producten + fabrieken) — óók aangeroepen door de vos-pull-to-refresh.
   const refreshCatalog = async (initial = false) => {
     if (initial) { setLoadingProducts(true); setProductsError(null); }
     const [p, f, sc] = await Promise.all([
-      supabase.from("products").select("*").order("id"),
+      fetchAlleProducten(),
       supabase.from("factories").select("*"),
       supabase.rpc("product_scores"),
     ]);

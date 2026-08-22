@@ -469,8 +469,14 @@ export default function SupplyFlowAdmin({ session }) {
   }, []);
 
   const fetchProducts = async () => {
-    const { data } = await supabase.from("products").select("*").order("id");
-    setProducts(data || []);
+    // Supabase geeft max 1000 rijen per verzoek — bladeren tot alles binnen is (22-08).
+    const alle = [];
+    for (let van = 0; ; van += 1000) {
+      const { data } = await supabase.from("products").select("*").order("id").range(van, van + 999);
+      alle.push(...(data ?? []));
+      if (!data || data.length < 1000) break;
+    }
+    setProducts(alle);
     setLoading(false);
   };
 

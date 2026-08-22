@@ -1371,7 +1371,7 @@ function RequestListSheet({ items, onRemove, onSetQty, onClose, onSend, sending,
                       ) : (
                         <motion.button whileTap={topping || !agreed ? undefined : { scale: 0.97 }} onClick={doTopUp} disabled={topping || !agreed}
                           style={{ width: "100%", marginTop: 10, background: topping ? "#333" : !agreed ? "#444" : "#FF5C00", color: "#fff", border: "none", borderRadius: 14, padding: "16px", fontSize: 15, fontWeight: 700, cursor: topping || !agreed ? "default" : "pointer", WebkitTapHighlightColor: "transparent" }}>
-                          {topping ? tr("cart.openingIdeal", "Opening iDEAL…") : !agreed ? tr("cart.tickBoxToContinue", "Tick the box to continue") : tr("cart.topUpExact", "Top up €{amount} & continue →", { amount: topUpAmount.toFixed(2) })}
+                          {topping ? tr("cart.openingIdeal", "Opening payment…") : !agreed ? tr("cart.tickBoxToContinue", "Tick the box to continue") : tr("cart.topUpExact", "Top up €{amount} & continue →", { amount: topUpAmount.toFixed(2) })}
                         </motion.button>
                       )}
                       {onTopUp && !PRELAUNCH && (
@@ -3890,7 +3890,7 @@ export default function SupplyFlow({ session, factoriesVisible = true }) {
   };
 
   const handleTopup = async () => {
-    if (!topupAmount || parseFloat(topupAmount) < 5) { alert("Minimum top-up is €5"); return; }
+    if (!topupAmount || parseFloat(topupAmount) < TOPUP_MIN) { alert(tr("profile.topup.minAlert", "Minimum top-up is €{min}", { min: TOPUP_MIN })); return; }
     track("topup");                                    // trechter: opwaarderen gestart
     setLoadingBalance(true);
     try {
@@ -5175,7 +5175,7 @@ export default function SupplyFlow({ session, factoriesVisible = true }) {
                 );
               })}
             </div>
-            <input type="number" placeholder={tr("profile.topup.customPlaceholder", "Or type an amount...")} value={topupAmount} onChange={e => setTopupAmount(e.target.value)}
+            <input type="number" placeholder={tr("profile.topup.customPlaceholder", "Or type an amount (min. €{min})...", { min: TOPUP_MIN })} value={topupAmount} onChange={e => setTopupAmount(e.target.value)}
               style={{ width: "100%", border: "1px solid #E8E6E0", borderRadius: 10, padding: "10px 14px", fontSize: 14, background: "#F8F7F4", boxSizing: "border-box", marginBottom: 10 }} />
             <label style={{ display: "flex", alignItems: "flex-start", gap: 9, margin: "2px 2px 10px", cursor: "pointer", fontSize: 11, color: "#8A8780", lineHeight: 1.5 }}>
               <input type="checkbox" checked={topupAgreed} onChange={e => setTopupAgreed(e.target.checked)} style={{ marginTop: 1, accentColor: "#FF5C00", width: 16, height: 16, flexShrink: 0 }} />
@@ -5190,7 +5190,7 @@ export default function SupplyFlow({ session, factoriesVisible = true }) {
             ) : (
               <button onClick={handleTopup} disabled={loadingBalance || !topupAmount || !topupAgreed}
                 style={{ width: "100%", background: loadingBalance || !topupAmount || !topupAgreed ? "#E8E6E0" : "#FF5C00", color: "#fff", border: "none", borderRadius: 10, padding: "12px", fontSize: 14, fontWeight: 700, cursor: loadingBalance || !topupAmount || !topupAgreed ? "default" : "pointer" }}>
-                {loadingBalance ? tr("common.loading", "Loading...") : tr("profile.topup.cta", "+ Add €{amount} via iDEAL", { amount: topupAmount || "0" })}
+                {loadingBalance ? tr("common.loading", "Loading...") : tr("profile.topup.cta", "+ Add €{amount} to balance", { amount: topupAmount || "0" })}
               </button>
             )}
           </div>

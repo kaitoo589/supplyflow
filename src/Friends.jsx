@@ -680,7 +680,7 @@ export default function Friends({ session, onClose, initialJoinCode, initialGrou
                 {myTopUpOver > 0 && <> {tr("cart.shortMinimum", "The minimum top-up is €{min}, so €{rest} stays on your balance for next time.", { min: TOPUP_MIN.toFixed(2), rest: myTopUpOver.toFixed(2) })}</>}
               </div>
               <button onClick={doTopUp} disabled={topping} style={{ ...primaryBtn, marginTop: 8, opacity: topping ? 0.6 : 1 }}>
-                {topping ? tr("cart.openingIdeal", "Opening iDEAL…") : tr("cart.topUpExact", "Top up €{amount} & continue →", { amount: myTopUp.toFixed(2) })}
+                {topping ? tr("cart.openingIdeal", "Opening payment…") : tr("cart.topUpExact", "Top up €{amount} & continue →", { amount: myTopUp.toFixed(2) })}
               </button>
               {topErr && <div style={{ color: "#F0997B", fontSize: 11.5, marginTop: 6, textAlign: "center" }}>{topErr}</div>}
             </>
@@ -948,7 +948,7 @@ export default function Friends({ session, onClose, initialJoinCode, initialGrou
                           {myTopUpOver > 0 && <> {tr("cart.shortMinimum", "The minimum top-up is €{min}, so €{rest} stays on your balance for next time.", { min: TOPUP_MIN.toFixed(2), rest: myTopUpOver.toFixed(2) })}</>}
                         </div>
                         <button onClick={doTopUp} disabled={topping} style={{ ...primaryBtn, marginTop: 8, opacity: topping ? 0.6 : 1 }}>
-                          {topping ? tr("cart.openingIdeal", "Opening iDEAL…") : tr("cart.topUpExact", "Top up €{amount} & continue →", { amount: myTopUp.toFixed(2) })}
+                          {topping ? tr("cart.openingIdeal", "Opening payment…") : tr("cart.topUpExact", "Top up €{amount} & continue →", { amount: myTopUp.toFixed(2) })}
                         </button>
                         {topErr && <div style={{ color: "#F0997B", fontSize: 11.5, marginTop: 6, textAlign: "center" }}>{topErr}</div>}
                       </>

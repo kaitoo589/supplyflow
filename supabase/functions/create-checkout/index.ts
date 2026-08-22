@@ -41,8 +41,8 @@ Deno.serve(async (req) => {
     }
 
     const { amount } = await req.json();
-    if (!amount || typeof amount !== "number" || amount < 500) {
-      return json({ error: "Minimum storting is €5" }, 400);
+    if (!amount || typeof amount !== "number" || amount < 1000) {
+      return json({ error: "Minimum storting is €10" }, 400);
     }
 
     const session = await stripe.checkout.sessions.create({

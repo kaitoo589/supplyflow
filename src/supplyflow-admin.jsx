@@ -323,7 +323,7 @@ function ProductForm({ product, onSave, onCancel, eurRate, title, saveLabel }) {
 }
 
 const txTypeLabels = {
-  top_up: "Stortingen (iDEAL)",
+  top_up: "Stortingen",
   order: "Bestellingen",
   shipping: "Verzendkosten",
   refund: "Refunds",

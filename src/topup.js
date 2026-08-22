@@ -10,8 +10,8 @@
 // dezelfde redirect, zodat het bedrag overal op dezelfde manier klopt.
 import { invokeAsUser, functionErrorMessage } from "./supabase";
 
-// create-checkout (edge function) weigert alles onder €5 — harde ondergrens.
-export const TOPUP_MIN = 5;
+// create-checkout (edge function) weigert alles onder €10 — harde ondergrens (22-08: 5→10).
+export const TOPUP_MIN = 10;
 
 // Precies het tekort, naar boven afgerond op hele centen (nooit één cent te
 // weinig), maar minstens het Stripe-minimum.

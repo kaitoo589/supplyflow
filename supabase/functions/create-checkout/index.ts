@@ -46,10 +46,11 @@ Deno.serve(async (req) => {
     }
 
     const session = await stripe.checkout.sessions.create({
-      // Vaste lijst wint van het Stripe-dashboard (daar stond iDEAL zelfs uit en
-      // Bancontact aan, terwijl de checkout het omgekeerde toonde — 22-08).
-      // Bancontact = het iDEAL van België. Apple Pay/Link liften mee op "card".
-      payment_method_types: ["card", "ideal", "bancontact"],
+      // Géén vaste payment_method_types meer (22-08): Stripe volgt nu de
+      // schakelaars in Dashboard → Settings → Payment methods en toont elke
+      // klant automatisch de methodes van zijn land (iDEAL, Bancontact, BLIK,
+      // P24, EPS, Klarna, Revolut Pay, Google/Apple Pay...). Nieuwe methode
+      // aanzetten = alleen een dashboard-klik, geen deploy.
       mode: "payment",
       customer_email: user.email,
       line_items: [

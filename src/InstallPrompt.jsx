@@ -137,11 +137,21 @@ export default function InstallPrompt() {
                 <div style={{ fontSize: 13, fontWeight: 700, color: "#fff" }}>{tr("install.title", "Add Flowva to your home screen")}</div>
                 <div style={{ fontSize: 11.5, color: "#9C9893" }}>{tr("install.subtitle", "Open as an app — see why")}</div>
               </div>
-              <motion.button whileTap={{ scale: 0.85 }} onClick={() => setExpanded(true)} aria-label="More info"
-                animate={{ y: [0, -2.5, 0] }} transition={{ duration: 1.6, repeat: Infinity, ease: "easeInOut" }}
-                style={{ width: 32, height: 32, borderRadius: "50%", background: "rgba(255,92,0,0.15)", border: "none", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", flexShrink: 0, WebkitTapHighlightColor: "transparent" }}>
-                <ChevronUp size={17} color="#FF5C00" strokeWidth={2.6} />
-              </motion.button>
+              {deferred && !iosHint ? (
+                /* Android/Chrome (22-08): één tik = meteen het installatievenster. De knop
+                   stond eerst alleen in het uitgeklapte paneel (pijltje → lezen → knop →
+                   bevestigen); Kaito wilde 'm direct. Uitleg blijft bereikbaar via de titel. */
+                <motion.button whileTap={{ scale: 0.94 }} onClick={install} aria-label={tr("install.button", "Install Flowva")}
+                  style={{ background: "#FF5C00", color: "#fff", border: "none", borderRadius: 999, padding: "9px 14px", fontSize: 12.5, fontWeight: 700, cursor: "pointer", flexShrink: 0, whiteSpace: "nowrap", WebkitTapHighlightColor: "transparent" }}>
+                  📲 {tr("install.buttonShort", "Install")}
+                </motion.button>
+              ) : (
+                <motion.button whileTap={{ scale: 0.85 }} onClick={() => setExpanded(true)} aria-label="More info"
+                  animate={{ y: [0, -2.5, 0] }} transition={{ duration: 1.6, repeat: Infinity, ease: "easeInOut" }}
+                  style={{ width: 32, height: 32, borderRadius: "50%", background: "rgba(255,92,0,0.15)", border: "none", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", flexShrink: 0, WebkitTapHighlightColor: "transparent" }}>
+                  <ChevronUp size={17} color="#FF5C00" strokeWidth={2.6} />
+                </motion.button>
+              )}
               <motion.button whileTap={{ scale: 0.9 }} onClick={dismiss} aria-label="Close"
                 style={{ width: 32, height: 32, borderRadius: "50%", background: "rgba(255,255,255,0.08)", border: "none", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", flexShrink: 0, WebkitTapHighlightColor: "transparent" }}>
                 <X size={14} color="#9C9893" />

@@ -4132,8 +4132,11 @@ export default function SupplyFlow({ session, factoriesVisible = true }) {
       // kaart in Brands hetzelfde toont als de eerste rij ín de winkel (Kaito 22-08).
       // De handmatig geüploade storefront_images blijven in de database als reserve,
       // maar worden niet meer getoond.
+      // Zelfde tie-break als de winkelpagina (score → sort_order → id), anders wijkt
+      // de etalage af zodra er nog geen gastdata is (CURRI AND, Kaito 22-08).
       const previews = fp.filter(p => p.image && p.image.startsWith("http"))
-        .sort((a, b) => (productScores.get(b.id) || 0) - (productScores.get(a.id) || 0) || a.id - b.id)
+        .sort((a, b) => (productScores.get(b.id) || 0) - (productScores.get(a.id) || 0)
+          || (a.sort_order ?? 1e9) - (b.sort_order ?? 1e9) || a.id - b.id)
         .slice(0, 3)
         .map(p => p.image);
       // Winkelscore (Kaito 21-08): som van de populariteit van de producten —

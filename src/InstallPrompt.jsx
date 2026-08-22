@@ -135,7 +135,16 @@ export default function InstallPrompt() {
               {fox}
               <div style={{ flex: 1, minWidth: 0, cursor: "pointer" }} onClick={() => setExpanded(true)}>
                 <div style={{ fontSize: 13, fontWeight: 700, color: "#fff" }}>{tr("install.title", "Add Flowva to your home screen")}</div>
-                <div style={{ fontSize: 11.5, color: "#9C9893" }}>{tr("install.subtitle", "Open as an app — see why")}</div>
+                <div style={{ fontSize: 11.5, color: "#9C9893", display: "flex", alignItems: "center", gap: 3 }}>
+                  <span>{tr("install.subtitle", "Open as an app — see why")}</span>
+                  {/* Op Android staat de pijl-knop niet meer rechts (daar zit nu "Install"),
+                      dus hier een klein wipje: zo zie je dat "see why" uitklapt (Kaito 22-08). */}
+                  {deferred && !iosHint && (
+                    <motion.span animate={{ y: [0, -2, 0] }} transition={{ duration: 1.6, repeat: Infinity, ease: "easeInOut" }} style={{ display: "inline-flex" }}>
+                      <ChevronUp size={13} color="#FF5C00" strokeWidth={2.8} />
+                    </motion.span>
+                  )}
+                </div>
               </div>
               {deferred && !iosHint ? (
                 /* Android/Chrome (22-08): één tik = meteen het installatievenster. De knop

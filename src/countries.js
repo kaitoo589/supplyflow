@@ -36,6 +36,12 @@ export const RETURN_COST = {
   "United Kingdom": "€10–€15", "USA": "€15–€25", "Canada": "€15–€25", "Australia": "€15–€25", "Norway": "€12–€20",
 };
 
+// Engelse weergavenaam mét lidwoord ("delivery to the USA", niet "to USA"). Alleen voor
+// de ENGELSE zinnen — vertalingen gebruiken {country} (kale naam), want "bezorging in
+// the USA" zou juist fout zijn.
+export const countryDisplayEn = (land) =>
+  land === "USA" ? "the USA" : land === "United Kingdom" ? "the United Kingdom" : land;
+
 // Lokale/oude spellingen → de Engelse EU-naam. Oudere accounts hebben soms de Nederlandse
 // landnaam opgeslagen ("Nederland"); BuckyDrop's vrachtberekening (channel-carriage-list)
 // kent ALLEEN de Engelse naam en geeft anders 0 routes terug → daarom normaliseren we het

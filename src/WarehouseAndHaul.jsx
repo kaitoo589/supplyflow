@@ -10,7 +10,7 @@ import Fox from "./Fox";
 import { garmentType } from "./garment";
 import { tr } from "./i18n";
 import { exactTopUp, startTopUp, TOPUP_MIN } from "./topup";
-import { isEUCountry, DELIVERY_DAYS } from "./countries";
+import { isEUCountry, DELIVERY_DAYS, countryDisplayEn } from "./countries";
 
 // Gedeeld tekort-blok voor de twee verzendschermen (solo + groep). Zelfde regel als
 // bij de mand: kom je net tekort, dan waardeer je precies dat bedrag op via iDEAL en
@@ -812,7 +812,7 @@ function NormalShippingConfirm({ session, haulItems, balance, onBack, onSuccess 
               dus hier per land de levertijd ná verzending erbij. */}
           {(() => { const land = session?.user?.user_metadata?.land;
             return land && !isEUCountry(land) && DELIVERY_DAYS[land] ? (
-              <div style={{ marginTop: 6, fontSize: 11, color: "#555", lineHeight: 1.5 }}>🚚 {tr("haul.deliveryDaysWorld", "Typically {days} days to {country} once shipped.", { days: DELIVERY_DAYS[land], country: land })}</div>
+              <div style={{ marginTop: 6, fontSize: 11, color: "#555", lineHeight: 1.5 }}>🚚 {tr("haul.deliveryDaysWorld", "Typically {days} days to {countryThe} once shipped.", { days: DELIVERY_DAYS[land], country: land, countryThe: countryDisplayEn(land) })}</div>
             ) : null; })()}
         </motion.div>
       )}

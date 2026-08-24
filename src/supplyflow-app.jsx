@@ -7,7 +7,7 @@ let _cartPayToken = null;
 const cartPayToken = () => (_cartPayToken ||= (globalThis.crypto?.randomUUID?.() || `cp-${Date.now()}-${Math.random().toString(36).slice(2)}`));
 const rotateCartPayToken = () => { _cartPayToken = null; };
 import { supabase, invokeAsUser, functionErrorMessage } from "./supabase";
-import { EU_COUNTRIES, SHIPPING_COUNTRIES, PHONE_REQUIRED_COUNTRIES, normalizeCountry, EU_PROVINCES, isValidPostcode, POSTCODE_EXAMPLE, isEUCountry, DELIVERY_DAYS, RETURN_COST } from "./countries";
+import { EU_COUNTRIES, SHIPPING_COUNTRIES, PHONE_REQUIRED_COUNTRIES, normalizeCountry, EU_PROVINCES, isValidPostcode, POSTCODE_EXAMPLE, isEUCountry, DELIVERY_DAYS, RETURN_COST, countryDisplayEn } from "./countries";
 import OrderRequest from "./OrderRequest";
 import Friends from "./Friends";
 import GroupModeGlow from "./GroupModeGlow";
@@ -1312,11 +1312,12 @@ function RequestListSheet({ items, onRemove, onSetQty, onClose, onSend, sending,
               <div style={{ display: "flex", alignItems: "flex-start", gap: 8, background: "rgba(255,92,0,0.08)", border: "1px solid rgba(255,92,0,0.22)", borderRadius: 12, padding: "10px 12px", marginBottom: 12 }}>
                 <span style={{ fontSize: 14, lineHeight: "18px" }}>🚚</span>
                 <span style={{ fontSize: 12, color: "#C9C6C1", lineHeight: 1.55 }}>
-                  {/* Niet-EU: eigen levertijd per land + de alles-inbegrepen-belofte (de grootste
+                  {/* Zelfde opbouw voor iedereen (Kaito 24-08): magazijn 3–7 dgn + Quality-control-
+                      foto's, dan de levertijd ná verzenden + de alles-inbegrepen-belofte (de grootste
                       angst bij bestellen uit China is een douanerekening aan de deur). */}
                   {m.land && !isEUCountry(m.land) && DELIVERY_DAYS[m.land]
-                    ? tr("cart.deliveryExplainerWorld", "Your items reach our warehouse in about a week — you'll see photos of your actual items there. Ship whenever you're ready; delivery to {country} usually takes {days} days after your parcel ships. All import duties and taxes are included — nothing extra at your door.", { country: m.land, days: DELIVERY_DAYS[m.land] })
-                    : tr("cart.deliveryExplainer", "Your items reach our warehouse in about a week — you'll see photos of your actual items there. Ship whenever you're ready; door-to-door is usually 1.5–3 weeks in total.")}
+                    ? tr("cart.deliveryExplainerWorld", "Your items reach our warehouse in about 3–7 days — you'll see quality-control & measurement photos of your actual items there. Ship whenever you're ready; delivery to {countryThe} usually takes {days} days after your parcel ships. All import duties and taxes are included — nothing extra at your door.", { country: m.land, countryThe: countryDisplayEn(m.land), days: DELIVERY_DAYS[m.land] })
+                    : tr("cart.deliveryExplainer", "Your items reach our warehouse in about 3–7 days — you'll see quality-control & measurement photos of your actual items there. Ship whenever you're ready; delivery to Europe usually takes 5–10 days after your parcel ships. All import duties and taxes are included — nothing extra at your door.")}
                 </span>
               </div>
 
@@ -1347,7 +1348,7 @@ function RequestListSheet({ items, onRemove, onSetQty, onClose, onSend, sending,
                       de retourkosten. Retour gaat altijd naar Landgraaf; buiten de EU is het duurder,
                       dus daar de eerlijke per-land indicatie (fase 3 wereldwijd). */}
                   {m.land && !isEUCountry(m.land) && RETURN_COST[m.land]
-                    ? tr("cart.returnCostWorld", "If I change my mind, I pay for sending the item back to our address in the Netherlands — usually {cost} from {country}.", { cost: RETURN_COST[m.land], country: m.land })
+                    ? tr("cart.returnCostWorld", "If I change my mind, I pay for sending the item back to our address in the Netherlands — usually {cost} from {countryThe}.", { cost: RETURN_COST[m.land], country: m.land, countryThe: countryDisplayEn(m.land) })
                     : tr("cart.returnCost", "If I change my mind, I pay for sending the item back — usually €5–€8 within the EU.")}</span>
               </label>
               {paying === "check" ? (

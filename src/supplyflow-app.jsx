@@ -1011,6 +1011,7 @@ function QuoteAcceptance({ order, session, balance, allOrders = [], onAccepted }
 function RequestListSheet({ items, onRemove, onSetQty, onClose, onSend, sending, error, needed, balance, session, onEditAddress, onTopUp, onTopUpExact, onFinish, flagged, reasons, initialView }) {
   const [view, setView] = useState(initialView || "cart");
   const [agreed, setAgreed] = useState(false);   // 1 vinkje: Terms + retour + "adres klopt"
+  const [showReturnInfo, setShowReturnInfo] = useState(false); // ?-knopje bij het vinkje → blur-overlay met de retourregel
   const dragControls = useDragControls();           // rubber-band: sheet omlaag trekken om te sluiten
   // Gel-rek: hoe verder je trekt, hoe meer de kaart uitrekt (bovenkant "plakt").
   const dragStretch = useMotionValue(0);
@@ -1342,21 +1343,44 @@ function RequestListSheet({ items, onRemove, onSetQty, onClose, onSend, sending,
                   <input type="checkbox" className="fl-check-input" checked={agreed} onChange={(e) => setAgreed(e.target.checked)} />
                   <span className="fl-check-box" />
                 </span>
-                {/* Herformulering 24-08 (Kaito): glashelder wie de retour betaalt — Flowva alleen
-                    bij een gebrek dat de Quality-control miste; bedenktijd of "accept as is" =
-                    klant betaalt. Nu ook volledig vertaald (was deels hardcoded Engels). */}
+                {/* Kort vinkje (Kaito 24-08): alleen adres + Terms. De volledige retourregel
+                    (wie betaalt, wettelijke informatieplicht art. 6:230s BW) zit achter het
+                    ?-knopje in een blur-overlay — zelfde inhoud, minder muur van tekst. */}
                 <span>
                   <b style={{ color: "#C9C6C1" }}>{tr("cart.agreeAddrConfirm", "I confirm my delivery address above is correct.")}</b>{" "}
                   {tr("ff.cart.agree", "I agree to the")} <a href="/terms" target="_blank" rel="noreferrer" style={{ color: "#A5B4FC" }}>{tr("ff.cart.agreeTerms", "Terms")}</a> {tr("ff.cart.agreeAnd", "and")} <a href="/returns-policy" target="_blank" rel="noreferrer" style={{ color: "#A5B4FC" }}>{tr("ff.cart.agreeReturns", "Returns & withdrawal policy")}</a>.{" "}
-                  {tr("ff.cart.agreeRest", "Refunds go to my Flowva balance. I can always return an item within 14 days to Flowva's address in the Netherlands.")}{" "}
-                  {/* Wettelijke informatieplicht (art. 6:230s BW): wie de retour betaalt moet VÓÓR de koop
-                      duidelijk zijn, mét kostenindicatie. Staat dit er niet, dan draait Flowva zelf op voor
-                      de retourkosten. Retour gaat altijd naar Landgraaf; buiten de EU is het duurder,
-                      dus daar de eerlijke per-land indicatie (fase 3 wereldwijd). */}
-                  {m.land && !isEUCountry(m.land) && RETURN_COST[m.land]
-                    ? tr("cart.returnCostWorld", "Flowva covers the return shipping only if my item turns out to have a defect that quality-control missed — not flagged, and not visible in the quality-control photos. If I change my mind, or I shipped an item after accepting a flagged issue, I pay the return shipping myself — usually {cost} from {countryThe}.", { cost: RETURN_COST[m.land], country: m.land, countryThe: countryDisplayEn(m.land) })
-                    : tr("cart.returnCost", "Flowva covers the return shipping only if my item turns out to have a defect that quality-control missed — not flagged, and not visible in the quality-control photos. If I change my mind, or I shipped an item after accepting a flagged issue, I pay the return shipping myself — usually €5–€10 within the EU.")}</span>
+                  <button type="button" onClick={(e) => { e.preventDefault(); e.stopPropagation(); setShowReturnInfo(true); }}
+                    aria-label={tr("cart.returnInfoTitle", "Refunds & returns")}
+                    style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: 17, height: 17, borderRadius: 9, border: "1px solid rgba(255,255,255,0.25)", background: "rgba(255,255,255,0.06)", color: "#C9C6C1", fontSize: 10.5, fontWeight: 700, cursor: "pointer", verticalAlign: "middle", padding: 0 }}>?</button>
+                </span>
               </label>
+              {/* Blur-overlay met de volledige retourregel — alles erachter vervaagt, de
+                  regel staat midden in beeld. Tik ernaast of "Got it" sluit. */}
+              <AnimatePresence>
+                {showReturnInfo && (
+                  <motion.div key="return-info" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.18 }}
+                    onClick={() => setShowReturnInfo(false)}
+                    style={{ position: "fixed", inset: 0, zIndex: 400, background: "rgba(15,14,12,0.45)", backdropFilter: "blur(10px)", WebkitBackdropFilter: "blur(10px)", display: "flex", alignItems: "center", justifyContent: "center", padding: 26 }}>
+                    <motion.div initial={{ scale: 0.92, y: 10 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.95, y: 6 }} transition={{ type: "spring", stiffness: 380, damping: 28 }}
+                      onClick={(e) => e.stopPropagation()}
+                      style={{ maxWidth: 420, background: "#1E1D1A", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 18, padding: "20px 20px 16px", boxShadow: "0 18px 60px rgba(0,0,0,0.5)" }}>
+                      <div style={{ fontSize: 14.5, fontWeight: 700, color: "#fff", marginBottom: 8 }}>{tr("cart.returnInfoTitle", "Refunds & returns")}</div>
+                      <div style={{ fontSize: 12.5, color: "#C9C6C1", lineHeight: 1.65 }}>
+                        {tr("ff.cart.agreeRest", "Refunds go to my Flowva balance. I can always return an item within 14 days to Flowva's address in the Netherlands.")}{" "}
+                        {/* Wettelijke informatieplicht (art. 6:230s BW): wie de retour betaalt moet VÓÓR
+                            de koop duidelijk zijn, mét kostenindicatie — daarom per land het bedrag. */}
+                        {m.land && !isEUCountry(m.land) && RETURN_COST[m.land]
+                          ? tr("cart.returnCostWorld", "Flowva covers the return shipping only if my item turns out to have a defect that quality-control missed — not flagged, and not visible in the quality-control photos. If I change my mind, or I shipped an item after accepting a flagged issue, I pay the return shipping myself — usually {cost} from {countryThe}.", { cost: RETURN_COST[m.land], country: m.land, countryThe: countryDisplayEn(m.land) })
+                          : tr("cart.returnCost", "Flowva covers the return shipping only if my item turns out to have a defect that quality-control missed — not flagged, and not visible in the quality-control photos. If I change my mind, or I shipped an item after accepting a flagged issue, I pay the return shipping myself — usually €5–€10 within the EU.")}
+                      </div>
+                      <button onClick={() => setShowReturnInfo(false)}
+                        style={{ marginTop: 14, width: "100%", background: "#FF5C00", color: "#fff", border: "none", borderRadius: 12, padding: "11px", fontSize: 13.5, fontWeight: 700, cursor: "pointer" }}>
+                        {tr("sheets.gotIt", "Got it")}
+                      </button>
+                    </motion.div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
               {paying === "check" ? (
                 /* Betaald → de knop wordt een cirkel waarin het vinkje zichzelf tekent */
                 <div style={{ display: "flex", justifyContent: "center", marginTop: 14, marginBottom: 6 }}>

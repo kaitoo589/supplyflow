@@ -180,6 +180,7 @@ export default function Friends({ session, onClose, initialJoinCode, initialGrou
   // klik 2 betaalt pas.
   const [cartConfirm, setCartConfirm] = useState(false);
   const [cartAgree, setCartAgree] = useState(false);
+  const [showReturnInfo, setShowReturnInfo] = useState(false); // ?-knopje bij het vinkje → blur-overlay met de retourregel
   const [adminAddr, setAdminAddr] = useState(null);   // bezorgadres van de admin (checkout-view)
   // Adres van de admin ophalen zodra de checkout opent (alleen leden krijgen het).
   const lobbyGid = lobby?.group?.id;
@@ -695,19 +696,41 @@ export default function Friends({ session, onClose, initialJoinCode, initialGrou
                   <a href="/terms" target="_blank" rel="noreferrer" style={{ color: "#A5B4FC" }}>{tr("ff.cart.agreeTerms", "Terms")}</a>{" "}
                   {tr("ff.cart.agreeAnd", "and")}{" "}
                   <a href="/returns-policy" target="_blank" rel="noreferrer" style={{ color: "#A5B4FC" }}>{tr("ff.cart.agreeReturns", "Returns & withdrawal policy")}</a>.{" "}
-                  {tr("ff.cart.agreeRest", "Refunds go to my Flowva balance. I can always return an item within 14 days to Flowva's address in the Netherlands.")}{" "}
-                  {/* Retour verstuur je vanuit je EIGEN land (niet dat van de admin), dus de
-                      kostenindicatie volgt het eigen adres van dit lid (fase 3 wereldwijd). */}
-                  {(() => { const land = session?.user?.user_metadata?.land;
-                    return land && !isEUCountry(land) && RETURN_COST[land]
-                      ? tr("cart.returnCostWorld", "Flowva covers the return shipping only if my item turns out to have a defect that quality-control missed — not flagged, and not visible in the quality-control photos. If I change my mind, or I shipped an item after accepting a flagged issue, I pay the return shipping myself — usually {cost} from {countryThe}.", { cost: RETURN_COST[land], country: land, countryThe: countryDisplayEn(land) })
-                      : tr("cart.returnCost", "Flowva covers the return shipping only if my item turns out to have a defect that quality-control missed — not flagged, and not visible in the quality-control photos. If I change my mind, or I shipped an item after accepting a flagged issue, I pay the return shipping myself — usually €5–€10 within the EU."); })()}
+                  <button type="button" onClick={(e) => { e.preventDefault(); e.stopPropagation(); setShowReturnInfo(true); }}
+                    aria-label={tr("cart.returnInfoTitle", "Refunds & returns")}
+                    style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: 17, height: 17, borderRadius: 9, border: "1px solid rgba(255,255,255,0.25)", background: "rgba(255,255,255,0.06)", color: "#C9C6C1", fontSize: 10.5, fontWeight: 700, cursor: "pointer", verticalAlign: "middle", padding: 0 }}>?</button>
                 </span>
               </label>
               <button onClick={doCheckout} disabled={cartBusy || !cartAgree}
                 style={{ ...primaryBtn, marginTop: 10, opacity: cartBusy || !cartAgree ? 0.6 : 1 }}>
                 {cartBusy ? "…" : !cartAgree ? tr("cart.tickBoxToContinue", "Tick the box to continue") : `${tr("ff.cart.confirmPay", "Confirm & pay")} €${myCartCharge.toFixed(2)} →`}
               </button>
+              {/* Blur-overlay met de volledige retourregel (kosten volgen het EIGEN adres van
+                  dit lid — een retour verstuur je vanuit je eigen land, niet dat van de admin). */}
+              <AnimatePresence>
+                {showReturnInfo && (
+                  <motion.div key="ff-return-info" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.18 }}
+                    onClick={() => setShowReturnInfo(false)}
+                    style={{ position: "fixed", inset: 0, zIndex: 400, background: "rgba(15,14,12,0.45)", backdropFilter: "blur(10px)", WebkitBackdropFilter: "blur(10px)", display: "flex", alignItems: "center", justifyContent: "center", padding: 26 }}>
+                    <motion.div initial={{ scale: 0.92, y: 10 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.95, y: 6 }} transition={{ type: "spring", stiffness: 380, damping: 28 }}
+                      onClick={(e) => e.stopPropagation()}
+                      style={{ maxWidth: 420, background: "#1E1D1A", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 18, padding: "20px 20px 16px", boxShadow: "0 18px 60px rgba(0,0,0,0.5)" }}>
+                      <div style={{ fontSize: 14.5, fontWeight: 700, color: "#fff", marginBottom: 8 }}>{tr("cart.returnInfoTitle", "Refunds & returns")}</div>
+                      <div style={{ fontSize: 12.5, color: "#C9C6C1", lineHeight: 1.65 }}>
+                        {tr("ff.cart.agreeRest", "Refunds go to my Flowva balance. I can always return an item within 14 days to Flowva's address in the Netherlands.")}{" "}
+                        {(() => { const land = session?.user?.user_metadata?.land;
+                          return land && !isEUCountry(land) && RETURN_COST[land]
+                            ? tr("cart.returnCostWorld", "Flowva covers the return shipping only if my item turns out to have a defect that quality-control missed — not flagged, and not visible in the quality-control photos. If I change my mind, or I shipped an item after accepting a flagged issue, I pay the return shipping myself — usually {cost} from {countryThe}.", { cost: RETURN_COST[land], country: land, countryThe: countryDisplayEn(land) })
+                            : tr("cart.returnCost", "Flowva covers the return shipping only if my item turns out to have a defect that quality-control missed — not flagged, and not visible in the quality-control photos. If I change my mind, or I shipped an item after accepting a flagged issue, I pay the return shipping myself — usually €5–€10 within the EU."); })()}
+                      </div>
+                      <button onClick={() => setShowReturnInfo(false)}
+                        style={{ marginTop: 14, width: "100%", background: "#FF5C00", color: "#fff", border: "none", borderRadius: 12, padding: "11px", fontSize: 13.5, fontWeight: 700, cursor: "pointer" }}>
+                        {tr("sheets.gotIt", "Got it")}
+                      </button>
+                    </motion.div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </>
           )}
           {cartErr && <div style={{ color: "#F0997B", fontSize: 11.5, marginTop: 8, textAlign: "center" }}>{cartErr}</div>}

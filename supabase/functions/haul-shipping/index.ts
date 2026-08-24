@@ -55,6 +55,11 @@ const COUNTRY_CODES: Record<string, string> = {
   luxembourg: "LU", luxemburg: "LU", lu: "LU",
   ireland: "IE", ierland: "IE", ie: "IE",
   "united kingdom": "GB", uk: "GB", "great britain": "GB", engeland: "GB", gb: "GB",
+  usa: "US", us: "US", "united states": "US",
+  canada: "CA", ca: "CA",
+  australia: "AU", au: "AU",
+  norway: "NO", noorwegen: "NO", no: "NO",
+  switzerland: "CH", zwitserland: "CH", ch: "CH",
   spain: "ES", spanje: "ES", es: "ES",
   portugal: "PT", pt: "PT",
   italy: "IT", "italië": "IT", italie: "IT", it: "IT",
@@ -163,6 +168,41 @@ Deno.serve(async (req) => {
     const body = { item: { lang: "en", ...adres, productList: [{ length: 25, width: 20, height: 10, weight: kg, count: 1, categoryCode: "1" }] } };
     const res = await buckyPost("/api/rest/v2/adapt/adaptation/logistics/channel-carriage-list", body);
     return json({ ok: true, raw: res });
+  }
+
+  // ── ONDERZOEK (23-08, wereldwijd — met Kaito's expliciete akkoord): "order-probe"
+  // maakt een ECHTE test-shop-order aan bij BuckyDrop met een buitenlands adres, om te
+  // bewijzen dat het adres door de hele keten geaccepteerd wordt. Alleen admin. De
+  // orderRemark schreeuwt dat het een test is; Kaito annuleert 'm direct in het dashboard.
+  if (action === "order-probe") {
+    const { data: prof } = await admin.from("profiles").select("role").eq("id", user.id).maybeSingle();
+    if (prof?.role !== "admin") return json({ ok: false, error: "Alleen admins" }, 403);
+    const a = (payload?.adres ?? {}) as Record<string, string>;
+    const orderBody = {
+      partnerOrderNo: "test-worldwide-" + Date.now().toString(36),
+      country: String(a.country || ""),
+      countryCode: String(a.countryCode || ""),
+      province: String(a.province || "-"),
+      city: String(a.city || "-"),
+      detailAddress: String(a.detailAddress || "-"),
+      postCode: String(a.postCode || ""),
+      contactName: String(a.contactName || "Flowva Test"),
+      contactPhone: String(a.contactPhone || ""),
+      email: "contact@flowva.app",
+      orderRemark: "TEST ORDER - DO NOT PURCHASE - PLEASE CANCEL (worldwide shipping test)",
+      productList: [{
+        platform: String(payload?.platform || "TB"),
+        productCount: 1,
+        skuCode: String(payload?.skuCode || ""),
+        spuCode: String(payload?.spuCode || ""),
+        productPrice: Number(payload?.productPrice) || 0,
+        productName: String(payload?.productName || "Test"),
+        productLink: String(payload?.productLink || ""),
+        productImage: "",
+      }],
+    };
+    const res = await buckyPost("/api/rest/v2/adapt/adaptation/order/shop-order/create", orderBody);
+    return json({ ok: true, raw: res, gestuurd: orderBody });
   }
 
   const orderIds: string[] = Array.isArray(payload?.orderIds) ? payload.orderIds.map(String) : [];

@@ -42,9 +42,18 @@ const COUNTRY_CODES: Record<string, string> = {
   latvia: "LV", letland: "LV", lv: "LV",
   lithuania: "LT", litouwen: "LT", lt: "LT",
   cyprus: "CY", cy: "CY", malta: "MT", mt: "MT",
+  // 🌍 wereldwijd (23-08) — namen exact zoals het adresformulier ze opslaat
+  "united kingdom": "GB", uk: "GB", gb: "GB", "great britain": "GB",
+  usa: "US", us: "US", "united states": "US",
+  canada: "CA", ca: "CA",
+  australia: "AU", au: "AU",
+  norway: "NO", noorwegen: "NO", no: "NO",
+  switzerland: "CH", zwitserland: "CH", ch: "CH",
 };
+// GEEN stille NL-terugval meer (23-08): een onbekend land = luide fout, want een
+// pakket "per ongeluk naar Nederland" is erger dan een order die blijft hangen.
 const countryCodeFor = (name: string) =>
-  COUNTRY_CODES[(name || "").trim().toLowerCase()] ?? "NL";
+  COUNTRY_CODES[(name || "").trim().toLowerCase()] ?? null;
 
 // BuckyDrop-foutcodes die een DEFINITIEVE "item niet beschikbaar"-afwijzing betekenen
 // (uitverkocht / geen sku). 70010106 = "No product sku or stock is 0".
@@ -155,10 +164,14 @@ Deno.serve(async (req) => {
   const frozen = !!order.ship_address;
   const land = frozen ? (order.ship_country || "Netherlands") : (m.land || "Netherlands");
 
+  const landCode = countryCodeFor(land);
+  if (!landCode) {
+    return await fail(order.id, `Onbekend bezorgland "${land}" — order NIET bij BuckyDrop geplaatst (voorkomt verzending naar het verkeerde land).`);
+  }
   const orderBody = {
     partnerOrderNo: order.id,
     country: land,
-    countryCode: countryCodeFor(land),
+    countryCode: landCode,
     province: (frozen ? order.ship_city : m.stad) || "-",
     city: (frozen ? order.ship_city : m.stad) || "-",
     detailAddress: (frozen ? order.ship_address : m.adres) || "-",

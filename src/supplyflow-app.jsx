@@ -7,7 +7,7 @@ let _cartPayToken = null;
 const cartPayToken = () => (_cartPayToken ||= (globalThis.crypto?.randomUUID?.() || `cp-${Date.now()}-${Math.random().toString(36).slice(2)}`));
 const rotateCartPayToken = () => { _cartPayToken = null; };
 import { supabase, invokeAsUser, functionErrorMessage } from "./supabase";
-import { EU_COUNTRIES, normalizeCountry, EU_PROVINCES, isValidPostcode, POSTCODE_EXAMPLE } from "./countries";
+import { EU_COUNTRIES, SHIPPING_COUNTRIES, PHONE_REQUIRED_COUNTRIES, normalizeCountry, EU_PROVINCES, isValidPostcode, POSTCODE_EXAMPLE } from "./countries";
 import OrderRequest from "./OrderRequest";
 import Friends from "./Friends";
 import GroupModeGlow from "./GroupModeGlow";
@@ -1865,8 +1865,8 @@ function EditProfileSheet({ session, onClose }) {
         </div>
         <div style={{ marginBottom: 18 }}><label style={labelStyle}>Country</label>
           <select style={inputStyle} value={form.land} onChange={e => { set("land", e.target.value); set("provincie", ""); }}>
-            {form.land && !EU_COUNTRIES.includes(form.land) && <option value={form.land}>{form.land}</option>}
-            {EU_COUNTRIES.map(c => <option key={c} value={c}>{c}</option>)}
+            {form.land && !SHIPPING_COUNTRIES.includes(form.land) && <option value={form.land}>{form.land}</option>}
+            {SHIPPING_COUNTRIES.map(c => <option key={c} value={c}>{c}</option>)}
           </select>
         </div>
         {!canSave && <div style={{ fontSize: 11.5, color: "#92400E", marginBottom: 8, textAlign: "center" }}>{incomplete ? "Please fill in all fields to save." : "Check your postal code to save."}</div>}

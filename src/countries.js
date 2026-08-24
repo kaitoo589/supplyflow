@@ -11,6 +11,20 @@ export const EU_COUNTRIES = [
   "Malta", "Poland", "Portugal", "Romania", "Slovakia", "Slovenia", "Spain", "Sweden",
 ];
 
+
+// 🌍 Wereldwijd (23-08): de niet-EU-landen waar Flowva naartoe verzendt. De waarde is
+// PRECIES de naam die BuckyDrop accepteert — met echte testbestellingen bewezen
+// ("USA", niet "United States"; "United Kingdom", niet "UK"). Zwitserland bewust
+// nog niet (geen verzendlijn met invoerrechten gedekt).
+export const WORLD_COUNTRIES = ["United Kingdom", "USA", "Canada", "Australia", "Norway"];
+
+// De volledige keuzelijst voor het adresformulier: EU eerst (NL bovenaan), dan de rest.
+export const SHIPPING_COUNTRIES = [...EU_COUNTRIES, ...WORLD_COUNTRIES];
+
+// Buiten de EU is een telefoonnummer verplicht voor de douane-aangifte.
+export const PHONE_REQUIRED_COUNTRIES = new Set(WORLD_COUNTRIES);
+export const isEUCountry = (land) => EU_COUNTRIES.includes(land);
+
 // Lokale/oude spellingen → de Engelse EU-naam. Oudere accounts hebben soms de Nederlandse
 // landnaam opgeslagen ("Nederland"); BuckyDrop's vrachtberekening (channel-carriage-list)
 // kent ALLEEN de Engelse naam en geeft anders 0 routes terug → daarom normaliseren we het
@@ -72,6 +86,11 @@ export const EU_PROVINCES = {
   "Slovenia": ["Carinthia", "Central Sava", "Central Slovenia", "Coastal–Karst", "Drava", "Gorizia", "Littoral–Inner Carniola", "Lower Sava", "Mura", "Savinja", "Southeast Slovenia", "Upper Carniola"],
   "Spain": ["Andalusia", "Aragon", "Asturias", "Balearic Islands", "Basque Country", "Canary Islands", "Cantabria", "Castile and León", "Castilla-La Mancha", "Catalonia", "Community of Madrid", "Extremadura", "Galicia", "La Rioja", "Navarre", "Region of Murcia", "Valencian Community"],
   "Sweden": ["Blekinge", "Dalarna", "Gotland", "Gävleborg", "Halland", "Jämtland", "Jönköping", "Kalmar", "Kronoberg", "Norrbotten", "Skåne", "Stockholm", "Södermanland", "Uppsala", "Värmland", "Västerbotten", "Västernorrland", "Västmanland", "Västra Götaland", "Örebro", "Östergötland"],
+  "United Kingdom": ["England", "Scotland", "Wales", "Northern Ireland"],
+  "USA": ["Alabama", "Alaska", "Arizona", "Arkansas", "California", "Colorado", "Connecticut", "Delaware", "District of Columbia", "Florida", "Georgia", "Hawaii", "Idaho", "Illinois", "Indiana", "Iowa", "Kansas", "Kentucky", "Louisiana", "Maine", "Maryland", "Massachusetts", "Michigan", "Minnesota", "Mississippi", "Missouri", "Montana", "Nebraska", "Nevada", "New Hampshire", "New Jersey", "New Mexico", "New York", "North Carolina", "North Dakota", "Ohio", "Oklahoma", "Oregon", "Pennsylvania", "Rhode Island", "South Carolina", "South Dakota", "Tennessee", "Texas", "Utah", "Vermont", "Virginia", "Washington", "West Virginia", "Wisconsin", "Wyoming"],
+  "Canada": ["Alberta", "British Columbia", "Manitoba", "New Brunswick", "Newfoundland and Labrador", "Northwest Territories", "Nova Scotia", "Nunavut", "Ontario", "Prince Edward Island", "Quebec", "Saskatchewan", "Yukon"],
+  "Australia": ["Australian Capital Territory", "New South Wales", "Northern Territory", "Queensland", "South Australia", "Tasmania", "Victoria", "Western Australia"],
+  "Norway": ["Agder", "Akershus", "Buskerud", "Finnmark", "Innlandet", "Møre og Romsdal", "Nordland", "Oslo", "Rogaland", "Telemark", "Troms", "Trøndelag", "Vestfold", "Vestland", "Østfold"],
 };
 
 // Postcode-formaat per land (SOEPEL: optionele spaties/prefix, hoofdletter-ongevoelig). Doel:
@@ -87,6 +106,11 @@ export const POSTCODE_FORMATS = {
   "Poland": /^\d{2}-?\s?\d{3}$/, "Portugal": /^\d{4}-?\s?\d{3}$/, "Romania": /^\d{6}$/,
   "Slovakia": /^\d{3}\s?\d{2}$/, "Slovenia": /^(SI-?\s?)?\d{4}$/i, "Spain": /^\d{5}$/,
   "Sweden": /^\d{3}\s?\d{2}$/,
+  "United Kingdom": /^[A-Za-z]{1,2}\d[A-Za-z\d]?\s?\d[A-Za-z]{2}$/,
+  "USA": /^\d{5}(-\d{4})?$/,
+  "Canada": /^[A-Za-z]\d[A-Za-z]\s?\d[A-Za-z]\d$/,
+  "Australia": /^\d{4}$/,
+  "Norway": /^\d{4}$/,
 };
 
 // Voorbeeld-postcode per land, voor de foutmelding in het adresformulier.
@@ -97,6 +121,7 @@ export const POSTCODE_EXAMPLE = {
   "Finland": "00100", "Greece": "104 31", "Hungary": "1051", "Italy": "00100",
   "Latvia": "LV-1050", "Lithuania": "LT-01100", "Poland": "00-001", "Portugal": "1000-001",
   "Romania": "010011", "Slovakia": "811 01", "Slovenia": "1000", "Spain": "28001", "Sweden": "111 20",
+  "United Kingdom": "SW1A 1AA", "USA": "10001", "Canada": "M5V 2T6", "Australia": "2000", "Norway": "0150",
 };
 
 // Klopt het postcode-formaat voor dit land? Leeg → true (de verplicht-check regelt leegheid apart);

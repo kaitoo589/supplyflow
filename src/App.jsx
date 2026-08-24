@@ -15,10 +15,51 @@ import returnsPolicySrc from "./legal/returns-right-of-withdrawal.md?raw";
 import Fox from "./Fox";
 import { track } from "./track";
 import { takeReturn } from "./topup";
+import { useTr } from "./i18n";
+
+// 🌍 DOWNTIME (23-08): true = iedereen ziet de onderhoudspagina ("we bouwen wereldwijde
+// verzending"), behalve de eigen accounts (profiles.is_intern) en admins/agents.
+// Weer op false zetten zodra de wereldwijd-ombouw af is.
+const DOWNTIME = true;
 
 // De admin draait volledig in het gamified command center (ai-ops-hud).
 // Lokaal → poort 5181; op de live site → het gedeployde admin-dashboard.
 // VITE_HUD_URL overschrijft beide (zet die als je later admin.flowva.app koppelt).
+
+// 🌍 Onderhoudspagina tijdens de wereldwijd-ombouw (23-08). Flowva-stijl: rustig,
+// eerlijk, met de vos — en een TikTok-verwijzing zodat mensen weten waar het
+// "we zijn terug"-bericht verschijnt. Het Team-linkje onderaan opent het gewone
+// inlogscherm (eigen accounts komen daarna automatisch binnen).
+function DowntimePage({ ingelogd, onTeam }) {
+  const tr = useTr();
+  return (
+    <div style={{ minHeight: "100vh", background: "#F8F7F4", display: "flex", alignItems: "center", justifyContent: "center", padding: 24, fontFamily: "-apple-system, 'SF Pro Display', 'Segoe UI', sans-serif" }}>
+      <div style={{ maxWidth: 420, textAlign: "center" }}>
+        <div style={{ width: 84, height: 84, borderRadius: 24, background: "#FF5C00", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 46, margin: "0 auto 22px", boxShadow: "0 12px 34px rgba(255,92,0,0.35)" }}><Fox /></div>
+        <div style={{ fontSize: 13, fontWeight: 700, letterSpacing: 2, color: "#FF5C00", marginBottom: 10 }}>FLOWVA</div>
+        <h1 style={{ fontSize: 26, fontWeight: 800, color: "#111111", margin: "0 0 12px", lineHeight: 1.25 }}>
+          {tr("downtime.title", "We're going worldwide 🌍")}
+        </h1>
+        <p style={{ fontSize: 15, color: "#5A5853", lineHeight: 1.6, margin: "0 0 8px" }}>
+          {tr("downtime.body", "Flowva is offline for a little while — we're rebuilding the app so we can ship worldwide.")}
+        </p>
+        <p style={{ fontSize: 15, color: "#5A5853", lineHeight: 1.6, margin: "0 0 22px" }}>
+          {tr("downtime.body2", "We're working as fast as we can. Check back soon!")}
+        </p>
+        <a href="https://www.tiktok.com/@flowva.app" target="_blank" rel="noreferrer"
+          style={{ display: "inline-block", background: "#111111", color: "#fff", borderRadius: 12, padding: "13px 22px", fontSize: 14, fontWeight: 700, textDecoration: "none" }}>
+          {tr("downtime.tiktok", "Follow @flowva.app on TikTok — we'll post the moment we're back")}
+        </a>
+        <div style={{ marginTop: 34 }}>
+          {ingelogd
+            ? <button onClick={() => supabase.auth.signOut()} style={{ background: "none", border: "none", color: "#B7B3AD", fontSize: 11.5, cursor: "pointer" }}>{tr("downtime.logout", "Log out")}</button>
+            : <button onClick={onTeam} style={{ background: "none", border: "none", color: "#D9D6D0", fontSize: 11, cursor: "pointer" }}>Team</button>}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function AdminGate() {
   const isLocal = ["localhost", "127.0.0.1"].includes(window.location.hostname);
   const hudUrl =
@@ -114,6 +155,8 @@ function PaymentSuccess({ session }) {
 
 export default function App() {
   const [session, setSession] = useState(null);
+  const [isIntern, setIsIntern] = useState(false);
+  const [teamLogin, setTeamLogin] = useState(false);
   const [role, setRole] = useState(null);
   const [loading, setLoading] = useState(true);
   // Boot-moment: het vos-logo staat even groot in beeld en zoomt dan weg zodra de app
@@ -144,12 +187,13 @@ export default function App() {
       setSession(session);
       if (session) {
         const res = await withTimeout(
-          supabase.from("profiles").select("role").eq("id", session.user.id).single(),
+          supabase.from("profiles").select("role, is_intern").eq("id", session.user.id).single(),
           4000
         ).catch(() => null);
-        if (mounted) setRole(res?.data?.role || "customer");
+        if (mounted) { setRole(res?.data?.role || "customer"); setIsIntern(res?.data?.is_intern === true); }
       } else if (mounted) {
         setRole(null);
+        setIsIntern(false);
       }
       // Globale zichtbaarheidsvlaggen (admin bestuurt deze via app_settings). Ook
       // ZONDER sessie ophalen: gasten browsen mee en moeten dezelfde etalage zien.
@@ -231,6 +275,13 @@ export default function App() {
   // krijgen hun eigen paneel.
   if (session && role === "agent") return <AgentPanel />;
   if (session && role === "admin") return <AdminGate />;
+  // 🌍 Onderhoudsscherm: gasten en gewone klanten zien de downtime-pagina; de eigen
+  // accounts (is_intern) gaan er dwars doorheen en zien de app zoals altijd.
+  if (DOWNTIME && !(session && isIntern)) {
+    if (loading) return bootOverlay;
+    if (teamLogin && !session) return <Auth />;
+    return <DowntimePage ingelogd={!!session} onTeam={() => setTeamLogin(true)} />;
+  }
   return (
     <>
       <SupplyFlowApp session={session} factoriesVisible={factoriesVisible} />

@@ -1,6 +1,6 @@
 # Returns & Right of Withdrawal
 
-**Last updated: 23 July 2026**
+**Last updated: 24 August 2026**
 
 This Returns & Right of Withdrawal Policy explains how you can cancel an order, return goods, and obtain a refund when you buy from Flowva. It forms part of, and should be read together with, our Terms of Service and Privacy Policy.
 
@@ -19,6 +19,10 @@ This policy is written for **consumers** — that is, individuals buying for pur
 As a consumer in the European Union, you have a legal right to **withdraw from (cancel) your purchase within 14 days without giving any reason**. This is your "right of withdrawal" (in Dutch: *herroepingsrecht*) under the EU Consumer Rights Directive (2011/83/EU), as implemented in the Dutch Civil Code (Burgerlijk Wetboek, Book 6).
 
 During the withdrawal period you may change your mind for any reason — or no reason at all. You do not need to justify your decision. Some specific product types are excluded from this right; see **Section 6**.
+
+**If you live outside the EU** — we currently also deliver to the United Kingdom, the United States, Canada, Australia, and Norway — the EU right of withdrawal does not automatically apply to you by law. **Flowva nevertheless gives every customer, worldwide, the same 14-day right of withdrawal** described in this policy, under the same conditions — including the rules on who pays return shipping (Section 4). Wherever this policy refers to the EU right of withdrawal, customers outside the EU enjoy the equivalent right by contract.
+
+[LEGAL REVIEW: voluntary worldwide extension of the 14-day withdrawal right — confirm the wording, and check whether mandatory local consumer law of the non-EU destinations served (e.g. the UK Consumer Contracts Regulations 2013, which contain their own 14-day cancellation right) imposes additional or different requirements.]
 
 ### 1.2 When the 14 days start
 
@@ -136,12 +140,14 @@ Who bears the cost of sending goods back depends on **why** the goods are being 
 
 If you withdraw because you changed your mind — for example, you no longer want the item, or you ordered the wrong size or colour — **you bear the direct cost of returning the goods**, to the extent the law allows.
 
-**You send it back to us in the Netherlands, not to China.** That makes it an ordinary parcel: **usually between EUR 5 and EUR 8** within the EU, depending on your country and the carrier you choose. Our return address is:
+**You send it back to us in the Netherlands, not to China.** That makes it an ordinary parcel: **usually between EUR 5 and EUR 8** within the EU, and **typically between EUR 10 and EUR 25** from the United Kingdom, the United States, Canada, Australia, or Norway, depending on your country and the carrier you choose. Our return address is:
 
 > **Flowva — returns**
 > Kleikoeleweg 108, 6373 CD Landgraaf, Netherlands
 
 We confirm the return address and the expected cost when you start the return. You remain entitled to your refund as set out in **Section 3**, less any return-shipping costs you are responsible for and any deduction for diminished value.
+
+You may use any carrier you like. Parcels usually reach you in **lightweight mailer packaging** (a shipping bag rather than a box); that is normal for clothing lines and is not a defect. For the return, any suitable protective packaging is fine — what matters is that the items themselves come back in their original condition (see **Section 6.2**).
 
 ### 4.2 Genuine defect, faulty, or not as described (Flowva pays)
 

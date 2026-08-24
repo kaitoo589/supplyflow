@@ -5,6 +5,7 @@ import Fox from "./Fox";
 import { track } from "./track";
 import { tr } from "./i18n";
 import { exactTopUp, startTopUp, TOPUP_MIN } from "./topup";
+import { isEUCountry, RETURN_COST } from "./countries";
 import {
   ffMyGroups, ffPreview, ffCreateGroup, ffJoinGroup, ffLeaveGroup,
   ffKickMember, ffSetHost, ffSetAdmin, ffSetPrivate, ffUpdateSettings, ffAddItem, ffRemoveItem, ffFetchGroup,
@@ -666,7 +667,7 @@ export default function Friends({ session, onClose, initialJoinCode, initialGrou
           <div style={{ display: "flex", alignItems: "flex-start", gap: 8, background: "rgba(255,92,0,0.08)", border: "1px solid rgba(255,92,0,0.22)", borderRadius: 12, padding: "10px 12px", marginBottom: 12 }}>
             <span style={{ fontSize: 14, lineHeight: "18px" }}>🚚</span>
             <span style={{ fontSize: 12, color: "#C9C6C1", lineHeight: 1.55 }}>
-              {tr("cart.deliveryExplainer", "Your items reach our warehouse in about a week — you'll see photos of your actual items there. Ship whenever you're ready; door-to-door is usually 2–4 weeks in total.")}
+              {tr("cart.deliveryExplainer", "Your items reach our warehouse in about a week — you'll see photos of your actual items there. Ship whenever you're ready; door-to-door is usually 1.5–3 weeks in total.")}
             </span>
           </div>
           <div style={{ fontSize: 11, color: "#8A8780", lineHeight: 1.5, marginBottom: 12 }}>
@@ -695,7 +696,12 @@ export default function Friends({ session, onClose, initialJoinCode, initialGrou
                   {tr("ff.cart.agreeAnd", "and")}{" "}
                   <a href="/returns-policy" target="_blank" rel="noreferrer" style={{ color: "#A5B4FC" }}>{tr("ff.cart.agreeReturns", "Returns & withdrawal policy")}</a>.{" "}
                   {tr("ff.cart.agreeRest", "Refunds go to my Flowva balance, and I have a 14-day right of withdrawal.")}{" "}
-                  {tr("cart.returnCost", "If I change my mind, I pay for sending the item back — usually €5–€8 within the EU.")}
+                  {/* Retour verstuur je vanuit je EIGEN land (niet dat van de admin), dus de
+                      kostenindicatie volgt het eigen adres van dit lid (fase 3 wereldwijd). */}
+                  {(() => { const land = session?.user?.user_metadata?.land;
+                    return land && !isEUCountry(land) && RETURN_COST[land]
+                      ? tr("cart.returnCostWorld", "If I change my mind, I pay for sending the item back to our address in the Netherlands — usually {cost} from {country}.", { cost: RETURN_COST[land], country: land })
+                      : tr("cart.returnCost", "If I change my mind, I pay for sending the item back — usually €5–€8 within the EU."); })()}
                 </span>
               </label>
               <button onClick={doCheckout} disabled={cartBusy || !cartAgree}

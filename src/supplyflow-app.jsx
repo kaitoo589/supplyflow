@@ -7,7 +7,7 @@ let _cartPayToken = null;
 const cartPayToken = () => (_cartPayToken ||= (globalThis.crypto?.randomUUID?.() || `cp-${Date.now()}-${Math.random().toString(36).slice(2)}`));
 const rotateCartPayToken = () => { _cartPayToken = null; };
 import { supabase, invokeAsUser, functionErrorMessage } from "./supabase";
-import { EU_COUNTRIES, SHIPPING_COUNTRIES, PHONE_REQUIRED_COUNTRIES, normalizeCountry, EU_PROVINCES, isValidPostcode, POSTCODE_EXAMPLE } from "./countries";
+import { EU_COUNTRIES, SHIPPING_COUNTRIES, PHONE_REQUIRED_COUNTRIES, normalizeCountry, EU_PROVINCES, isValidPostcode, POSTCODE_EXAMPLE, isEUCountry, DELIVERY_DAYS, RETURN_COST } from "./countries";
 import OrderRequest from "./OrderRequest";
 import Friends from "./Friends";
 import GroupModeGlow from "./GroupModeGlow";
@@ -1312,7 +1312,11 @@ function RequestListSheet({ items, onRemove, onSetQty, onClose, onSend, sending,
               <div style={{ display: "flex", alignItems: "flex-start", gap: 8, background: "rgba(255,92,0,0.08)", border: "1px solid rgba(255,92,0,0.22)", borderRadius: 12, padding: "10px 12px", marginBottom: 12 }}>
                 <span style={{ fontSize: 14, lineHeight: "18px" }}>🚚</span>
                 <span style={{ fontSize: 12, color: "#C9C6C1", lineHeight: 1.55 }}>
-                  {tr("cart.deliveryExplainer", "Your items reach our warehouse in about a week — you'll see photos of your actual items there. Ship whenever you're ready; door-to-door is usually 2–4 weeks in total.")}
+                  {/* Niet-EU: eigen levertijd per land + de alles-inbegrepen-belofte (de grootste
+                      angst bij bestellen uit China is een douanerekening aan de deur). */}
+                  {m.land && !isEUCountry(m.land) && DELIVERY_DAYS[m.land]
+                    ? tr("cart.deliveryExplainerWorld", "Your items reach our warehouse in about a week — you'll see photos of your actual items there. Ship whenever you're ready; delivery to {country} usually takes {days} days after your parcel ships. All import duties and taxes are included — nothing extra at your door.", { country: m.land, days: DELIVERY_DAYS[m.land] })
+                    : tr("cart.deliveryExplainer", "Your items reach our warehouse in about a week — you'll see photos of your actual items there. Ship whenever you're ready; door-to-door is usually 1.5–3 weeks in total.")}
                 </span>
               </div>
 
@@ -1340,8 +1344,11 @@ function RequestListSheet({ items, onRemove, onSetQty, onClose, onSend, sending,
                 <span>I confirm <b style={{ color: "#C9C6C1" }}>my delivery address above is correct</b>, and I agree to the <a href="/terms" target="_blank" rel="noreferrer" style={{ color: "#A5B4FC" }}>Terms</a> and <a href="/returns-policy" target="_blank" rel="noreferrer" style={{ color: "#A5B4FC" }}>Returns &amp; withdrawal policy</a>. Refunds go to my Flowva balance, and I have a <b style={{ color: "#C9C6C1" }}>14-day right of withdrawal</b>.{" "}
                   {/* Wettelijke informatieplicht (art. 6:230s BW): wie de retour betaalt moet VÓÓR de koop
                       duidelijk zijn, mét kostenindicatie. Staat dit er niet, dan draait Flowva zelf op voor
-                      de retourkosten. Retour gaat naar Landgraaf, dus gewoon een EU-pakketje. */}
-                  {tr("cart.returnCost", "If I change my mind, I pay for sending the item back — usually €5–€8 within the EU.")}</span>
+                      de retourkosten. Retour gaat altijd naar Landgraaf; buiten de EU is het duurder,
+                      dus daar de eerlijke per-land indicatie (fase 3 wereldwijd). */}
+                  {m.land && !isEUCountry(m.land) && RETURN_COST[m.land]
+                    ? tr("cart.returnCostWorld", "If I change my mind, I pay for sending the item back to our address in the Netherlands — usually {cost} from {country}.", { cost: RETURN_COST[m.land], country: m.land })
+                    : tr("cart.returnCost", "If I change my mind, I pay for sending the item back — usually €5–€8 within the EU.")}</span>
               </label>
               {paying === "check" ? (
                 /* Betaald → de knop wordt een cirkel waarin het vinkje zichzelf tekent */
@@ -2055,12 +2062,12 @@ function WelcomeSheet({ onClose, onTour }) {
 // het icoon morpht (shared layoutId) z'n plek in de route in. De vos schuift mee
 // omlaag met elke gelande stop. Tik = versnellen; Skip = alles meteen.
 const HIW_STOPS = [
-  { icon: "🏷️", key: "factory", title: "Authentic Chinese brands", sub: "not available in Europe", say: "Shop authentic Chinese brands that are not available in Europe. ⭐" },
+  { icon: "🏷️", key: "factory", title: "Authentic Chinese brands", sub: "not available outside China", say: "Shop authentic Chinese brands that are not available outside China. ⭐" },
   { icon: "🛍️", key: "buy", title: "We buy it for you", sub: "Buying from China made effortless", say: "I handle the buying process for you." },
   { icon: "🏬", key: "warehouse", title: "Stored in our warehouse", sub: "30 days free storage", say: "Your items stay safely stored in our warehouse — free for 30 days." },
   { icon: "📸", key: "photos", title: "Quality-control photos", sub: "Approve before shipping — return possible for defects", say: "Before anything ships, we photograph and measure your actual item." },
   { icon: "📦", key: "parcel", title: "One parcel — taxes paid", sub: "bundling = cheaper per item", say: "Everything ships together in one parcel — taxes and import fees are included." },
-  { icon: "💸", key: "value", title: "Cut out the middleman", sub: "No retail markup.", say: "Pay local Chinese prices, without the European retail markup." },
+  { icon: "💸", key: "value", title: "Cut out the middleman", sub: "No retail markup.", say: "Pay local Chinese prices, without the retail markup." },
 ];
 const HIW_INTRO = "Hey, let's explore Flowva together!";
 const HIW_GOLDEN = "With Flowva Friends, you share a parcel with friends, reducing shipping costs for everyone.";

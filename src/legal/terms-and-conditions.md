@@ -1,10 +1,10 @@
 # Flowva — General Terms & Conditions
 
-**Last updated: 23 July 2026**
+**Last updated: 24 August 2026**
 
 These General Terms & Conditions ("**Terms**") govern your use of the Flowva platform and your purchase of products through it. Please read them carefully. By creating an account, topping up your Flowva balance, or placing an order, you agree to these Terms.
 
-Flowva sells clothing that independent Chinese labels design and make themselves. We buy it from their own shops, have it checked and packed in China, and bring it to your door in Europe. We are the seller you buy from — we are not the designer or the manufacturer.
+Flowva sells clothing that independent Chinese labels design and make themselves. We buy it from their own shops, have it checked and packed in China, and bring it to your door — in the EU and in the other countries we deliver to (see section 8.6). We are the seller you buy from — we are not the designer or the manufacturer.
 
 We are built on transparency about money: you see what an item costs at the source and exactly what we charge on top of it. These Terms are written in that same plain language. Nothing in them limits or removes the rights you have as a consumer under mandatory EU and Dutch law; where these Terms and that law conflict, the law prevails.
 
@@ -145,7 +145,7 @@ The total you pay is the sum of these clearly itemised amounts. We do not add hi
 
 It is calculated on the amounts that are actually converted: the **source price**, the **China-side handling costs** (domestic shipping and Quality-control), the **fulfilment fee** and the **international shipping charge**. Where the shipping charge includes the buffer described in section 8.1 and part of that buffer is refunded to you on reconciliation, the conversion fee charged over the refunded part is refunded with it. It is **not** charged on import VAT, on the service fee or on extended storage. The fee is shown as its own line in the cost breakdown before you confirm shipping.
 
-7.3 **Taxes, duties and DDP.** Prices for delivery into the EU are **tax-inclusive** and shipped **DDP (Delivered Duty Paid)**: import duties and import VAT are already included in what you pay, so you should not have to pay anything extra on delivery. Where a price line is shown as tax-inclusive, there is no separate VAT line added on top — the VAT is already contained in the price.
+7.3 **Taxes, duties and DDP.** Prices for delivery into the EU — and to every other destination we serve (see section 8.6) — are **tax-inclusive** and shipped **DDP (Delivered Duty Paid)**: import duties and import taxes are already included in what you pay, so you should not have to pay anything extra on delivery. Where a price line is shown as tax-inclusive, there is no separate VAT line added on top — the VAT is already contained in the price.
 [LEGAL REVIEW: confirm correct VAT treatment for goods imported from China and sold by an EU-established seller (IOSS / import VAT, place of supply, invoicing requirements, the 21% NL rate vs. the rate of the customer's country), and confirm the DDP duty/VAT-inclusive representation is accurate for all destinations served.]
 
 7.4 **Fee changes.** We may change our fee structure for future Orders. Any change applies only to Orders placed after the change and is shown transparently before you confirm.
@@ -163,6 +163,9 @@ It is calculated on the amounts that are actually converted: the **source price*
 8.4 **Risk and title.** Risk of loss or damage to the Products passes to you when you (or someone you nominate, other than the carrier) take physical possession of the Products. For Flowva Friends, see section 13 regarding delivery to the Host.
 
 8.5 **Delivery problems.** If your Order is not delivered within a reasonable time, open **Flowva support** in the app and talk to us — a real person reads and answers every message, and we sort it out from there. You can also email support@flowva.app. We will help resolve it consistent with your statutory rights, including (where applicable) re-delivery or refund.
+
+8.6 **Where we deliver.** We currently deliver to all countries of the **European Union** and to the **United Kingdom, the United States, Canada, Australia, and Norway**. The address form on the Platform always shows the current list. We may **temporarily pause new deliveries to a destination** — for example where carrier, customs, or import-tariff conditions change. A pause never affects your money or your goods: items already in our warehouse remain safely stored under the normal storage terms, and you may either wait until the destination reopens or request a refund in line with the Returns Policy.
+[LEGAL REVIEW: confirm the temporary-pause clause (unilateral suspension of delivery to a destination) is enforceable against pending orders under Dutch/EU consumer law, and whether a maximum pause duration or automatic refund right should be added.]
 
 ---
 
@@ -193,6 +196,9 @@ It is calculated on the amounts that are actually converted: the **source price*
 ## 11. Right of withdrawal and returns
 
 11.1 **14-day right of withdrawal.** As an EU consumer you generally have the right to withdraw from a distance purchase within **14 days** without giving any reason. The 14-day period normally starts on the day you (or someone you nominate, other than the carrier) receive the Products. For Flowva Friends, the 14-day period starts when the **Host** receives the combined parcel, because you nominated the Host to receive your items (see section 13.4).
+
+**Customers outside the EU.** If you take delivery outside the EU (see section 8.6), the EU right of withdrawal may not apply to you by operation of law. Flowva nevertheless **grants every customer, worldwide, the same 14-day right of withdrawal by contract**, under the same conditions set out in this section and in the Returns Policy — including the rules on who pays return shipping (section 11.5).
+[LEGAL REVIEW: voluntary worldwide extension of the withdrawal right — check whether mandatory local consumer law of the non-EU destinations served (e.g. the UK Consumer Contracts Regulations 2013, which contain their own 14-day cancellation right) imposes additional or different requirements.]
 
 11.2 **How to withdraw.** You can withdraw using the withdrawal function on the Platform, by the model withdrawal form, or by any other clear statement to returns@flowva.app. After a valid withdrawal we refund you without undue delay and within the period required by law, using the same means of payment you used for the original transaction, unless you expressly agree to a refund to your Balance instead.
 

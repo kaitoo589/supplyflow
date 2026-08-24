@@ -502,7 +502,7 @@ export default function OrderRequest({ product, session, onRequireAuth, onClose,
                   <div style={{ display: "flex", alignItems: "flex-start", gap: 8, marginTop: 11, paddingTop: 11, borderTop: "1px solid rgba(15,14,12,0.07)" }}>
                     <span style={{ fontSize: 14, lineHeight: "18px" }}>🚚</span>
                     <span style={{ fontSize: 12.5, color: "#6B6862", lineHeight: 1.5 }}>
-                      <span style={{ fontWeight: 700, color: "#111" }}>{tr("product.deliveryTitle","Usually 2–4 weeks door-to-door.")}</span>{" "}
+                      <span style={{ fontWeight: 700, color: "#111" }}>{tr("product.deliveryTitle","Usually 1.5–3 weeks door-to-door.")}</span>{" "}
                       {tr("product.deliveryBody","We buy it, photograph your actual item, and ship everything in one parcel — taxes included, nothing extra at the door.")}
                     </span>
                   </div>

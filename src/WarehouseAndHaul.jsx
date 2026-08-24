@@ -10,6 +10,7 @@ import Fox from "./Fox";
 import { garmentType } from "./garment";
 import { tr } from "./i18n";
 import { exactTopUp, startTopUp, TOPUP_MIN } from "./topup";
+import { isEUCountry, DELIVERY_DAYS } from "./countries";
 
 // Gedeeld tekort-blok voor de twee verzendschermen (solo + groep). Zelfde regel als
 // bij de mand: kom je net tekort, dan waardeer je precies dat bedrag op via iDEAL en
@@ -807,6 +808,12 @@ function NormalShippingConfirm({ session, haulItems, balance, onBack, onSuccess 
             <span style={{ fontSize: 14, fontWeight: 700, color: "#FF5C00" }}>€{toPay.toFixed(2)}</span>
           </div>
           <div style={{ marginTop: 10, fontSize: 11, color: "#555", lineHeight: 1.5 }}>✅ Duties prepaid (DDP) — nothing to pay on delivery. This is an estimate with a small buffer; about a week after shipping, the carrier's final bill comes in and you get any difference back as a shipping refund.</div>
+          {/* Niet-EU (fase 3 wereldwijd): een bedrag zonder verwachting voelt onbetrouwbaar,
+              dus hier per land de levertijd ná verzending erbij. */}
+          {(() => { const land = session?.user?.user_metadata?.land;
+            return land && !isEUCountry(land) && DELIVERY_DAYS[land] ? (
+              <div style={{ marginTop: 6, fontSize: 11, color: "#555", lineHeight: 1.5 }}>🚚 {tr("haul.deliveryDaysWorld", "Typically {days} days to {country} once shipped.", { days: DELIVERY_DAYS[land], country: land })}</div>
+            ) : null; })()}
         </motion.div>
       )}
 

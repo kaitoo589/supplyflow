@@ -25,6 +25,17 @@ export const SHIPPING_COUNTRIES = [...EU_COUNTRIES, ...WORLD_COUNTRIES];
 export const PHONE_REQUIRED_COUNTRIES = new Set(WORLD_COUNTRIES);
 export const isEUCountry = (land) => EU_COUNTRIES.includes(land);
 
+// Klant-verwachtingen per niet-EU-land (fase 3, 24-08). DELIVERY_DAYS = levertijd in dagen
+// NADAT het pakket verzonden is (uit de gemeten BuckyDrop-kledinglijnen, iets ruimer beloofd
+// dan gemeten zodat we eerder te vroeg dan te laat zijn). RETURN_COST = indicatie wat een
+// retourpakketje naar Landgraaf vanuit dat land kost (wettelijke informatieplicht vóór de koop).
+export const DELIVERY_DAYS = {
+  "United Kingdom": "7–12", "USA": "7–14", "Canada": "10–20", "Australia": "10–18", "Norway": "8–15",
+};
+export const RETURN_COST = {
+  "United Kingdom": "€10–€15", "USA": "€15–€25", "Canada": "€15–€25", "Australia": "€15–€25", "Norway": "€12–€20",
+};
+
 // Lokale/oude spellingen → de Engelse EU-naam. Oudere accounts hebben soms de Nederlandse
 // landnaam opgeslagen ("Nederland"); BuckyDrop's vrachtberekening (channel-carriage-list)
 // kent ALLEEN de Engelse naam en geeft anders 0 routes terug → daarom normaliseren we het

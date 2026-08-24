@@ -695,13 +695,13 @@ export default function Friends({ session, onClose, initialJoinCode, initialGrou
                   <a href="/terms" target="_blank" rel="noreferrer" style={{ color: "#A5B4FC" }}>{tr("ff.cart.agreeTerms", "Terms")}</a>{" "}
                   {tr("ff.cart.agreeAnd", "and")}{" "}
                   <a href="/returns-policy" target="_blank" rel="noreferrer" style={{ color: "#A5B4FC" }}>{tr("ff.cart.agreeReturns", "Returns & withdrawal policy")}</a>.{" "}
-                  {tr("ff.cart.agreeRest", "Refunds go to my Flowva balance, and I have a 14-day right of withdrawal.")}{" "}
+                  {tr("ff.cart.agreeRest", "Refunds go to my Flowva balance. I can always return an item within 14 days to Flowva's address in the Netherlands.")}{" "}
                   {/* Retour verstuur je vanuit je EIGEN land (niet dat van de admin), dus de
                       kostenindicatie volgt het eigen adres van dit lid (fase 3 wereldwijd). */}
                   {(() => { const land = session?.user?.user_metadata?.land;
                     return land && !isEUCountry(land) && RETURN_COST[land]
-                      ? tr("cart.returnCostWorld", "If I change my mind, I pay for sending the item back to our address in the Netherlands — usually {cost} from {countryThe}.", { cost: RETURN_COST[land], country: land, countryThe: countryDisplayEn(land) })
-                      : tr("cart.returnCost", "If I change my mind, I pay for sending the item back — usually €5–€8 within the EU."); })()}
+                      ? tr("cart.returnCostWorld", "Flowva covers the return shipping only if my item turns out to have a defect that quality-control missed — not flagged, and not visible in the quality-control photos. If I change my mind, or I shipped an item after accepting a flagged issue, I pay the return shipping myself — usually {cost} from {countryThe}.", { cost: RETURN_COST[land], country: land, countryThe: countryDisplayEn(land) })
+                      : tr("cart.returnCost", "Flowva covers the return shipping only if my item turns out to have a defect that quality-control missed — not flagged, and not visible in the quality-control photos. If I change my mind, or I shipped an item after accepting a flagged issue, I pay the return shipping myself — usually €5–€10 within the EU."); })()}
                 </span>
               </label>
               <button onClick={doCheckout} disabled={cartBusy || !cartAgree}

@@ -22,8 +22,6 @@ During the withdrawal period you may change your mind for any reason — or no r
 
 **If you live outside the EU** — we currently also deliver to the United Kingdom, the United States, Canada, Australia, and Norway — the EU right of withdrawal does not automatically apply to you by law. **Flowva nevertheless gives every customer, worldwide, the same 14-day right of withdrawal** described in this policy, under the same conditions — including the rules on who pays return shipping (Section 4). Wherever this policy refers to the EU right of withdrawal, customers outside the EU enjoy the equivalent right by contract.
 
-[LEGAL REVIEW: voluntary worldwide extension of the 14-day withdrawal right — confirm the wording, and check whether mandatory local consumer law of the non-EU destinations served (e.g. the UK Consumer Contracts Regulations 2013, which contain their own 14-day cancellation right) imposes additional or different requirements.]
-
 ### 1.2 When the 14 days start
 
 The 14-day withdrawal period starts on the day **after** you (or a third party you nominated, other than the carrier) take **physical possession of the goods**:
@@ -140,7 +138,7 @@ Who bears the cost of sending goods back depends on **why** the goods are being 
 
 If you withdraw because you changed your mind — for example, you no longer want the item, or you ordered the wrong size or colour — **you bear the direct cost of returning the goods**, to the extent the law allows.
 
-**You send it back to us in the Netherlands, not to China.** That makes it an ordinary parcel: **usually between EUR 5 and EUR 8** within the EU, and **typically between EUR 10 and EUR 25** from the United Kingdom, the United States, Canada, Australia, or Norway, depending on your country and the carrier you choose. Our return address is:
+**You send it back to us in the Netherlands, not to China.** That makes it an ordinary parcel: **usually between EUR 5 and EUR 10** within the EU, and **typically between EUR 10 and EUR 25** from the United Kingdom, the United States, Canada, Australia, or Norway, depending on your country and the carrier you choose. Our return address is:
 
 > **Flowva — returns**
 > Kleikoeleweg 108, 6373 CD Landgraaf, Netherlands
@@ -149,9 +147,15 @@ We confirm the return address and the expected cost when you start the return. Y
 
 You may use any carrier you like. Parcels usually reach you in **lightweight mailer packaging** (a shipping bag rather than a box); that is normal for clothing lines and is not a defect. For the return, any suitable protective packaging is fine — what matters is that the items themselves come back in their original condition (see **Section 6.2**).
 
-### 4.2 Genuine defect, faulty, or not as described (Flowva pays)
+### 4.2 A genuine defect that was missed (Flowva pays)
 
-If the item is **defective, faulty, damaged, or not as described** — in other words, it does not conform to the contract — then **Flowva pays the full cost, including return shipping**. You will not be out of pocket for sending back an item that was not right. In these cases you are entitled, depending on the circumstances and your statutory rights, to repair, replacement, a price reduction, or a full refund. These conformity rights are separate from, and in addition to, the 14-day right of withdrawal.
+Every item is inspected and photographed at quality-control before it ships, and you review those photos before confirming shipping (Section 5). **Flowva pays the full cost, including return shipping**, when an item turns out to have a **genuine defect that was missed twice**: it was **not flagged at quality-control**, and it was **not visible in the quality-control photos** you reviewed. You will not be out of pocket for a fault nobody could reasonably have seen. In that case you are entitled, depending on the circumstances and your statutory rights, to repair, replacement, a price reduction, or a full refund.
+
+Flowva does **not** cover the return shipping when:
+
+- the quality-control photos showed the item was in good condition and as described — a return is then a **change of mind** and Section 4.1 applies;
+- an issue **was flagged** at quality-control (for example a wrong colour) and you chose to **accept the item as-is** and ship it anyway — a later return for that same issue is treated as a change of mind (Section 4.1); or
+- you simply changed your mind.
 
 If you are unsure whether an item is defective or simply not what you hoped for, contact us at **returns@flowva.app** or start the flow in the app and we will help you choose the right route.
 
@@ -164,9 +168,9 @@ Every item you order is **inspected in our warehouse in China before it is shipp
 After quality-control, and **before** the item ships internationally, you review the results and **confirm shipping**. If quality-control reveals a problem — for example a defect, damage, or a measurement that does not match — you choose what happens next:
 
 - **RETURN:** the item is returned to the Brand and you receive a **refund**. Because this is a defect (a conformity problem), **Flowva bears the cost** of this return. You do not pay for a faulty item or for sending it back to the Brand; or
-- **ACCEPT:** you decide to accept the item as-is and proceed with international shipping.
+- **ACCEPT:** you decide to accept the item as-is and proceed with international shipping. If you later return the item because of the **very issue you accepted**, that return is treated as a change of mind and you pay the return shipping (Section 4.1).
 
-This quality-control gate is an **extra protection** we give you on top of your legal rights. Choosing to ACCEPT an item at this stage, or confirming shipping, **does not waive** your statutory 14-day right of withdrawal (Section 1) or your statutory conformity rights for defects discovered later. If an item that passed quality-control turns out to be defective on arrival, **Section 4.2** still applies and Flowva still bears the cost.
+This quality-control gate is an **extra protection** we give you on top of your legal rights. Choosing to ACCEPT an item at this stage, or confirming shipping, **does not waive** your statutory 14-day right of withdrawal (Section 1). If an item that passed quality-control cleanly turns out to have a defect on arrival that was not visible in the photos, **Section 4.2** applies and Flowva bears the cost.
 
 ---
 

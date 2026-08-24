@@ -1342,14 +1342,20 @@ function RequestListSheet({ items, onRemove, onSetQty, onClose, onSend, sending,
                   <input type="checkbox" className="fl-check-input" checked={agreed} onChange={(e) => setAgreed(e.target.checked)} />
                   <span className="fl-check-box" />
                 </span>
-                <span>I confirm <b style={{ color: "#C9C6C1" }}>my delivery address above is correct</b>, and I agree to the <a href="/terms" target="_blank" rel="noreferrer" style={{ color: "#A5B4FC" }}>Terms</a> and <a href="/returns-policy" target="_blank" rel="noreferrer" style={{ color: "#A5B4FC" }}>Returns &amp; withdrawal policy</a>. Refunds go to my Flowva balance, and I have a <b style={{ color: "#C9C6C1" }}>14-day right of withdrawal</b>.{" "}
+                {/* Herformulering 24-08 (Kaito): glashelder wie de retour betaalt — Flowva alleen
+                    bij een gebrek dat de Quality-control miste; bedenktijd of "accept as is" =
+                    klant betaalt. Nu ook volledig vertaald (was deels hardcoded Engels). */}
+                <span>
+                  <b style={{ color: "#C9C6C1" }}>{tr("cart.agreeAddrConfirm", "I confirm my delivery address above is correct.")}</b>{" "}
+                  {tr("ff.cart.agree", "I agree to the")} <a href="/terms" target="_blank" rel="noreferrer" style={{ color: "#A5B4FC" }}>{tr("ff.cart.agreeTerms", "Terms")}</a> {tr("ff.cart.agreeAnd", "and")} <a href="/returns-policy" target="_blank" rel="noreferrer" style={{ color: "#A5B4FC" }}>{tr("ff.cart.agreeReturns", "Returns & withdrawal policy")}</a>.{" "}
+                  {tr("ff.cart.agreeRest", "Refunds go to my Flowva balance. I can always return an item within 14 days to Flowva's address in the Netherlands.")}{" "}
                   {/* Wettelijke informatieplicht (art. 6:230s BW): wie de retour betaalt moet VÓÓR de koop
                       duidelijk zijn, mét kostenindicatie. Staat dit er niet, dan draait Flowva zelf op voor
                       de retourkosten. Retour gaat altijd naar Landgraaf; buiten de EU is het duurder,
                       dus daar de eerlijke per-land indicatie (fase 3 wereldwijd). */}
                   {m.land && !isEUCountry(m.land) && RETURN_COST[m.land]
-                    ? tr("cart.returnCostWorld", "If I change my mind, I pay for sending the item back to our address in the Netherlands — usually {cost} from {countryThe}.", { cost: RETURN_COST[m.land], country: m.land, countryThe: countryDisplayEn(m.land) })
-                    : tr("cart.returnCost", "If I change my mind, I pay for sending the item back — usually €5–€8 within the EU.")}</span>
+                    ? tr("cart.returnCostWorld", "Flowva covers the return shipping only if my item turns out to have a defect that quality-control missed — not flagged, and not visible in the quality-control photos. If I change my mind, or I shipped an item after accepting a flagged issue, I pay the return shipping myself — usually {cost} from {countryThe}.", { cost: RETURN_COST[m.land], country: m.land, countryThe: countryDisplayEn(m.land) })
+                    : tr("cart.returnCost", "Flowva covers the return shipping only if my item turns out to have a defect that quality-control missed — not flagged, and not visible in the quality-control photos. If I change my mind, or I shipped an item after accepting a flagged issue, I pay the return shipping myself — usually €5–€10 within the EU.")}</span>
               </label>
               {paying === "check" ? (
                 /* Betaald → de knop wordt een cirkel waarin het vinkje zichzelf tekent */

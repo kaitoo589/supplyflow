@@ -165,7 +165,6 @@ It is calculated on the amounts that are actually converted: the **source price*
 8.5 **Delivery problems.** If your Order is not delivered within a reasonable time, open **Flowva support** in the app and talk to us — a real person reads and answers every message, and we sort it out from there. You can also email support@flowva.app. We will help resolve it consistent with your statutory rights, including (where applicable) re-delivery or refund.
 
 8.6 **Where we deliver.** We currently deliver to all countries of the **European Union** and to the **United Kingdom, the United States, Canada, Australia, and Norway**. The address form on the Platform always shows the current list. We may **temporarily pause new deliveries to a destination** — for example where carrier, customs, or import-tariff conditions change. A pause never affects your money or your goods: items already in our warehouse remain safely stored under the normal storage terms, and you may either wait until the destination reopens or request a refund in line with the Returns Policy.
-[LEGAL REVIEW: confirm the temporary-pause clause (unilateral suspension of delivery to a destination) is enforceable against pending orders under Dutch/EU consumer law, and whether a maximum pause duration or automatic refund right should be added.]
 
 ---
 
@@ -185,9 +184,9 @@ It is calculated on the amounts that are actually converted: the **source price*
 
 10.1 **At the Quality-control stage.** If Quality-control finds that an item is defective, damaged, or not as described, you choose between:
 - **Return** — the item is returned to the Brand and you are refunded. **Flowva bears the cost**, including return shipping, because it is a defect; or
-- **Accept** — you accept the item as-is (for example with a minor cosmetic issue) and shipping proceeds.
+- **Accept** — you accept the item as-is (for example with a minor cosmetic issue) and shipping proceeds. A later return because of the **very issue you accepted** is treated as a change of mind: you may still return, but you bear the return-shipping cost (section 11.5).
 
-10.2 **After delivery.** If a Product is faulty, damaged in transit, or not as described when it reaches you, tell us **within two months of discovering the problem** (and in any event within the period your statutory rights allow). Where the problem is a genuine defect or our error, **Flowva bears the cost of the remedy, including return shipping**, and provides a repair, replacement, price reduction or refund in line with section 9 and applicable law.
+10.2 **After delivery.** If a Product turns out to be faulty or not as described when it reaches you, tell us **within two months of discovering the problem** (and in any event within the period your statutory rights allow). **Flowva bears the cost of the remedy, including return shipping**, where the problem is a **genuine defect that was missed twice**: not flagged at Quality-control, and not visible in the Quality-control photos you reviewed before confirming shipping. Where the Quality-control photos showed the item was in good condition and as described, or where an issue was flagged and you accepted the item as-is, a return is handled as a change of mind (section 11.5). Flowva then provides a repair, replacement, price reduction or refund in line with section 9 and applicable law.
 
 10.3 **How to report.** Report problems through the Platform's problem/after-sales function, or open **Flowva support** in the app — a real person reads and answers every message. You can also email returns@flowva.app. We may ask for photos or other reasonable evidence to assess the claim.
 
@@ -198,7 +197,6 @@ It is calculated on the amounts that are actually converted: the **source price*
 11.1 **14-day right of withdrawal.** As an EU consumer you generally have the right to withdraw from a distance purchase within **14 days** without giving any reason. The 14-day period normally starts on the day you (or someone you nominate, other than the carrier) receive the Products. For Flowva Friends, the 14-day period starts when the **Host** receives the combined parcel, because you nominated the Host to receive your items (see section 13.4).
 
 **Customers outside the EU.** If you take delivery outside the EU (see section 8.6), the EU right of withdrawal may not apply to you by operation of law. Flowva nevertheless **grants every customer, worldwide, the same 14-day right of withdrawal by contract**, under the same conditions set out in this section and in the Returns Policy — including the rules on who pays return shipping (section 11.5).
-[LEGAL REVIEW: voluntary worldwide extension of the withdrawal right — check whether mandatory local consumer law of the non-EU destinations served (e.g. the UK Consumer Contracts Regulations 2013, which contain their own 14-day cancellation right) imposes additional or different requirements.]
 
 11.2 **How to withdraw.** You can withdraw using the withdrawal function on the Platform, by the model withdrawal form, or by any other clear statement to returns@flowva.app. After a valid withdrawal we refund you without undue delay and within the period required by law, using the same means of payment you used for the original transaction, unless you expressly agree to a refund to your Balance instead.
 
@@ -210,8 +208,8 @@ It is calculated on the amounts that are actually converted: the **source price*
 11.4 **Starting the service early.** When you confirm international shipping, you expressly ask us to carry out and complete the service that the service fee covers, and you acknowledge that you lose your right to withdraw from **that service** once it has been fully performed. This does not affect your right to withdraw from the **Products** themselves, or any of your statutory rights in respect of defective or non-conforming goods.
 
 11.5 **Who pays return shipping.**
-- **Genuine defect / faulty / not-as-described:** **Flowva** bears the cost, including return shipping (see sections 9 and 10).
-- **Change of mind / wrong size chosen by you:** you may withdraw, but **you bear the direct cost of returning the goods**, to the extent the law allows. The Quality-control photographs and measurements shown to you before shipping are used to establish whether an item was defective or simply not what you hoped for.
+- **A genuine defect that was missed twice** — not flagged at Quality-control, and not visible in the Quality-control photos you reviewed before confirming shipping: **Flowva** bears the cost, including return shipping (see sections 9 and 10).
+- **Change of mind / wrong size chosen by you / an issue that was visible in the Quality-control photos / a flagged issue you accepted as-is:** you may withdraw, but **you bear the direct cost of returning the goods**, to the extent the law allows. The Quality-control photographs and measurements shown to you before shipping are the record used to establish which of the two situations applies.
 
 11.6 **Exclusions from withdrawal.** Certain Products are **excluded** from the right of withdrawal where EU law permits. For Flowva this applies to **sealed items that are not suitable for return for health-protection or hygiene reasons — such as swimwear and underwear — once the seal has been broken**. Where this exclusion applies, we tell you clearly on the product page before you order, and the item is delivered sealed. Exclusions never affect your separate rights in respect of **defective** or **non-conforming** goods under sections 9 and 10.
 

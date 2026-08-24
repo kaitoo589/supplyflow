@@ -86,9 +86,18 @@ export default function OrderRequest({ product, session, onRequireAuth, onClose,
 
   const hiddenVars = Array.isArray(product.hidden_variants) ? product.hidden_variants : [];
   const isHidden = (name, opt) => hiddenVars.some(h => h.name === name && h.value === opt);
-  const productVariants = product.sizes?.length > 0
-    ? product.sizes.map(g => ({ ...g, options: (g.options || []).filter(o => !isHidden(g.name, o)) })).filter(g => g.options.length > 0)
-    : null;
+  const productVariants = (() => {
+    if (!(product.sizes?.length > 0)) return null;
+    const groups = product.sizes.map(g => ({ ...g, options: (g.options || []).filter(o => !isHidden(g.name, o)) })).filter(g => g.options.length > 0);
+    // Eén-maats producten (user 2026-08-21): sommige fabrikanten leveren géén maat-groep
+    // (sjaals, capes) — dan tonen we expliciet "One size", zodat de klant bewust een
+    // maat kiest i.p.v. dat de maat-rij stilletjes ontbreekt. Veilig voor het bestellen:
+    // BuckyDrop matcht alleen op de eigenschappen die de fabrikant zelf kent.
+    if (groups.length > 0 && !groups.some(g => /size|maat/i.test(g?.name || ""))) {
+      groups.unshift({ name: "size", options: ["One size"] });
+    }
+    return groups.length ? groups : null;
+  })();
   // Door admin handmatig uitverkocht gemelde varianten (per groep+optie) — klant kan ze niet kiezen.
   const oosVariants = Array.isArray(product.oos_variants) ? product.oos_variants : [];
   const isOos = (name, opt) => oosVariants.some(o => o && o.name === name && o.value === opt);

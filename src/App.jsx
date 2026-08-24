@@ -32,6 +32,9 @@ const DOWNTIME = true;
 // inlogscherm (eigen accounts komen daarna automatisch binnen).
 function DowntimePage({ ingelogd, onTeam }) {
   const tr = useTr();
+  // Meten wie er langskwam terwijl we op zwart stonden (Kaito 23-08): eigen actie
+  // "downtime" in de trechter, zodat de admin een teller heeft.
+  useEffect(() => { track("downtime"); }, []);
   return (
     <div style={{ minHeight: "100vh", background: "#F8F7F4", display: "flex", alignItems: "center", justifyContent: "center", padding: 24, fontFamily: "-apple-system, 'SF Pro Display', 'Segoe UI', sans-serif" }}>
       <div style={{ maxWidth: 420, textAlign: "center" }}>

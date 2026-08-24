@@ -151,6 +151,20 @@ Deno.serve(async (req) => {
 
   const payload = await req.json().catch(() => ({}));
   const action = payload?.action;
+
+  // ── ONDERZOEK (23-08, wereldwijd-verkenning): "probe" vraagt de kale tarieflijst op
+  // voor een willekeurig land/gewicht. Alleen-lezen, alleen admin; raakt geen orders.
+  if (action === "probe") {
+    const { data: prof } = await admin.from("profiles").select("role").eq("id", user.id).maybeSingle();
+    if (prof?.role !== "admin") return json({ ok: false, error: "Alleen admins" }, 403);
+    const cc = String(payload?.countryCode || "").toUpperCase();
+    const kg = Math.max(0.05, Number(payload?.weightKg) || 1);
+    const adres = { country: String(payload?.country || cc), countryCode: cc, province: String(payload?.province || payload?.city || "-"), city: String(payload?.city || "-"), postCode: String(payload?.postCode || "") };
+    const body = { item: { lang: "en", ...adres, productList: [{ length: 25, width: 20, height: 10, weight: kg, count: 1, categoryCode: "1" }] } };
+    const res = await buckyPost("/api/rest/v2/adapt/adaptation/logistics/channel-carriage-list", body);
+    return json({ ok: true, raw: res });
+  }
+
   const orderIds: string[] = Array.isArray(payload?.orderIds) ? payload.orderIds.map(String) : [];
   if (!orderIds.length) return json({ ok: false, error: "No items" }, 400);
 

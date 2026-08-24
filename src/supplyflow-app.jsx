@@ -1866,7 +1866,7 @@ function EditProfileSheet({ session, onClose }) {
         <div style={{ marginBottom: 18 }}><label style={labelStyle}>Country</label>
           <select style={inputStyle} value={form.land} onChange={e => { set("land", e.target.value); set("provincie", ""); }}>
             {form.land && !SHIPPING_COUNTRIES.includes(form.land) && <option value={form.land}>{form.land}</option>}
-            {SHIPPING_COUNTRIES.map(c => <option key={c} value={c}>{c}</option>)}
+            {SHIPPING_COUNTRIES.filter(c => !(window.__flowvaPausedCountries || []).includes(c) || c === form.land).map(c => <option key={c} value={c}>{c}</option>)}
           </select>
         </div>
         {!canSave && <div style={{ fontSize: 11.5, color: "#92400E", marginBottom: 8, textAlign: "center" }}>{incomplete ? "Please fill in all fields to save." : "Check your postal code to save."}</div>}

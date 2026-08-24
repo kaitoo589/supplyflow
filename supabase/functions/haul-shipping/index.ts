@@ -34,7 +34,18 @@ const round2 = (x: number) => Math.round(x * 100) / 100;
 // (permissie op channel-carriage-list nog niet aan / sandbox / geen route voor dit land).
 // Houd IDENTIEK aan WarehouseAndHaul.jsx (SHIP_FIRST_KG/EUR + SHIP_PER_KG). DDP = duties in de prijs.
 const SHIP_FIRST_KG = 0.5, SHIP_FIRST_EUR = 9.0, SHIP_PER_KG = 8.5;
-const shippingEstimateEur = (kg: number) => round2(SHIP_FIRST_EUR + Math.max(0, kg - SHIP_FIRST_KG) * SHIP_PER_KG);
+// 🌍 per-land schatting — HOUD IDENTIEK aan WarehouseAndHaul.jsx (SHIP_LANDEN).
+const SHIP_LANDEN: Record<string, { eerste: number; perKg: number }> = {
+  "United Kingdom": { eerste: 8.0, perKg: 7.5 },
+  "USA": { eerste: 12.0, perKg: 11.5 },
+  "Canada": { eerste: 10.5, perKg: 10.0 },
+  "Australia": { eerste: 8.5, perKg: 6.0 },
+  "Norway": { eerste: 11.0, perKg: 11.0 },
+};
+const shippingEstimateEur = (kg: number, land?: string) => {
+  const c = SHIP_LANDEN[land ?? ""] ?? { eerste: SHIP_FIRST_EUR, perKg: SHIP_PER_KG };
+  return round2(c.eerste + Math.max(0, kg - SHIP_FIRST_KG) * c.perKg);
+};
 
 async function buckyPost(path: string, bodyObj: unknown) {
   const body = JSON.stringify(bodyObj ?? {});
@@ -217,6 +228,14 @@ Deno.serve(async (req) => {
   if (!addr.countryCode) {
     return json({ ok: false, error: "We don't ship to your country yet — please contact support." }, 400);
   }
+  // 🌍 pauzeknop per land (fase 2): staat dit land tijdelijk dicht, weiger dan quote én pay.
+  try {
+    const { data: cfg } = await admin.from("app_settings").select("paused_countries").eq("id", 1).single();
+    const paused: string[] = Array.isArray(cfg?.paused_countries) ? cfg.paused_countries : [];
+    if (paused.includes(addr.country)) {
+      return json({ ok: false, error: `Shipping to ${addr.country} is temporarily paused — please try again later or contact support.` }, 400);
+    }
+  } catch { /* instellingen onbereikbaar → niet blokkeren */ }
   const res = await buckyPost("/api/rest/v2/adapt/adaptation/logistics/channel-carriage-list", quoteBody(orders, addr));
   const channels = res?.success ? parseChannels(res) : [];
   const totalWeightG = orders.reduce((s, o) => s + (Number(o.weight_grams) || 0), 0);
@@ -232,7 +251,7 @@ Deno.serve(async (req) => {
     // reken af op de gewicht-schatting (DDP, duties in de prijs → p_vat 0). De prijs komt
     // 100% SERVER-SIDE uit het gewicht dat we net uit de DB laadden — nooit van de client.
     if (IS_SANDBOX || channels.length === 0) {
-      const estFreight = shippingEstimateEur(totalWeightG / 1000);
+      const estFreight = shippingEstimateEur(totalWeightG / 1000, addr.country);
       if (estFreight <= 0) return json({ ok: false, error: "Could not estimate shipping" }, 400);
       const { data, error } = await admin.rpc("pay_shipping_buffered", {
         p_uid: user.id, p_order_ids: orderIds, p_estimate: estFreight,

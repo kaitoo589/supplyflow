@@ -201,7 +201,7 @@ export default function App() {
       // Globale zichtbaarheidsvlaggen (admin bestuurt deze via app_settings). Ook
       // ZONDER sessie ophalen: gasten browsen mee en moeten dezelfde etalage zien.
       const cfg = await withTimeout(
-        supabase.from("app_settings").select("support_bot_visible, factories_visible").eq("id", 1).single(),
+        supabase.from("app_settings").select("support_bot_visible, factories_visible, paused_countries").eq("id", 1).single(),
         4000
       ).catch(() => null);
       if (mounted) {
@@ -210,6 +210,8 @@ export default function App() {
         setSupportBotVisible(cfg?.data?.support_bot_visible === true);
         // Alleen expliciet false verbergt de fabrieken — een mislukte call laat alles staan.
         if (cfg?.data) setFactoriesVisible(cfg.data.factories_visible !== false);
+        // 🌍 pauzeknop per land: gepauzeerde landen verdwijnen uit het adresformulier
+        if (cfg?.data && Array.isArray(cfg.data.paused_countries)) window.__flowvaPausedCountries = cfg.data.paused_countries;
       }
       if (mounted) setLoading(false);
     };

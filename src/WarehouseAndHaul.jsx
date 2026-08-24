@@ -46,8 +46,17 @@ function TopUpShort({ short }) {
 // dan een veiligheidsbuffer (verschil komt terug) en 21% invoer-BTW (DDP — wij schieten
 // voor, klant betaalt niets op de stoep). Houd dit GELIJK aan supabase/pay-shipping.sql.
 const SHIP_FIRST_KG = 0.5;       // first-weight blok
-const SHIP_FIRST_EUR = 9.0;      // kost van dat eerste blok
-const SHIP_PER_KG = 8.5;         // per extra kg daarboven
+const SHIP_FIRST_EUR = 9.0;      // kost van dat eerste blok (EU-standaard)
+const SHIP_PER_KG = 8.5;         // per extra kg daarboven (EU-standaard)
+// 🌍 per-land schatting (fase 2, 23-08) — geijkt op de gemeten kledinglijn-curves,
+// met ruimere buffer voor de VS (tarief-risico). HOUD IDENTIEK aan haul-shipping.
+const SHIP_LANDEN = {
+  "United Kingdom": { eerste: 8.0, perKg: 7.5 },
+  "USA": { eerste: 12.0, perKg: 11.5 },
+  "Canada": { eerste: 10.5, perKg: 10.0 },
+  "Australia": { eerste: 8.5, perKg: 6.0 },
+  "Norway": { eerste: 11.0, perKg: 11.0 },
+};
 const BUFFER_MULTIPLIER = 1.3;   // schatting kan ~30% afwijken → buffer, rest terug
 const IMPORT_VAT = 0.21;         // NL invoer-BTW op (goederen + verzending)
 const r2 = (x) => Math.round(x * 100) / 100;
@@ -63,10 +72,11 @@ function carrierLabel(name) {
   return name;
 }
 
-function shippingEstimate(weightKg) {
+function shippingEstimate(weightKg, land) {
   // r2 over de basis — IDENTIEK aan server shippingEstimateEur (rondt af vóór de ×1,25-buffer),
   // zodat het getoonde bedrag exact gelijk is aan wat de server afschrijft (geen 1-cent-drift).
-  return r2(SHIP_FIRST_EUR + Math.max(0, weightKg - SHIP_FIRST_KG) * SHIP_PER_KG);
+  const c = SHIP_LANDEN[land] || { eerste: SHIP_FIRST_EUR, perKg: SHIP_PER_KG };
+  return r2(c.eerste + Math.max(0, weightKg - SHIP_FIRST_KG) * c.perKg);
 }
 
 function Confetti({ active }) {
@@ -632,7 +642,7 @@ function NormalShippingConfirm({ session, haulItems, balance, onBack, onSuccess 
             setError("No duty-paid shipping option is available right now. Please try again in a little while.");
           } else {
             // Geen live tarief → gewicht-schatting (DDP, duties inbegrepen). Server rekent 't echte bedrag.
-            setChosen({ serviceCode: "ESTIMATE", name: "Estimated shipping", priceEur: shippingEstimate(totalWeight / 1000), taxInclusive: true });
+            setChosen({ serviceCode: "ESTIMATE", name: "Estimated shipping", priceEur: shippingEstimate(totalWeight / 1000, session?.user?.user_metadata?.land), taxInclusive: true });
           }
         }
       } catch { if (on) setError("Shipping isn't available right now. Please try again in a little while."); }
@@ -1841,7 +1851,7 @@ export function ParcelSection({ session, activeGroupId = null, parcelItems = [],
   })();
 
   const totalWeight = parcelItems.reduce((s, o) => s + (o.weight_grams || 0), 0);
-  const est = totalWeight > 0 ? shippingEstimate(totalWeight / 1000) : null;
+  const est = totalWeight > 0 ? shippingEstimate(totalWeight / 1000, session?.user?.user_metadata?.land) : null;
   const count = activeGroupId ? groupArrived.length : parcelItems.length;
 
   const thumb = (o) => (

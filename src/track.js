@@ -35,11 +35,25 @@ function visitorKey() {
 
 let lastPing = 0;
 
+// Landcode (23-08): één keer per sessie bij onze eigen /api/land halen (Vercel-header,
+// geen IP-opslag). Async — de eerste ping kan 'm missen, elke volgende vult 'm in.
+let land = null;
+try { land = sessionStorage.getItem("flowva_land") || null; } catch { /* privémodus */ }
+let landBezig = false;
+function haalLand() {
+  if (land || landBezig) return;
+  landBezig = true;
+  fetch("/api/land").then((r) => r.json()).then((j) => {
+    if (j && j.land) { land = j.land; try { sessionStorage.setItem("flowva_land", land); } catch { /* privémodus */ } }
+  }).catch(() => {});
+}
+
 // action: "visit" (ook hartslag) | "product" | "cart" | "checkout" | "topup" |
 // "topup_done" | "paid" — mijlpalen per bezoek, volgorde maakt niet uit.
 export function track(action, productId = null, lang = null) {
   const key = sessionKey();
   if (!key) return;
+  haalLand();
   // Hartslag hooguit elke 25s, anders zouden we onnodig verkeer maken.
   if (action === "visit") {
     const now = Date.now();
@@ -57,5 +71,6 @@ export function track(action, productId = null, lang = null) {
     p_product_id: productId != null ? Number(productId) : null,
     p_lang: taal || null,
     p_visitor: visitorKey(),
+    p_country: land,
   }).then(() => {}, () => {});   // stil falen: nooit de app ophouden
 }

@@ -286,6 +286,41 @@ function ProgressWheelModal({ items, onClose, onOpenItem, refundedItems = [] }) 
   );
 }
 
+// 📷 Fullscreen foto-viewer (Kaito 25-08): elke Quality-control-/meetfoto is klikbaar.
+// Linksboven downloaden (fetch→blob, want de foto's staan op het storage-domein en een
+// kaal <a download> werkt niet cross-origin), rechtsboven het kruisje; tikken ernaast sluit.
+function PhotoZoom({ url, onClose }) {
+  const [busy, setBusy] = useState(false);
+  const download = async (e) => {
+    e.stopPropagation();
+    if (busy) return;
+    setBusy(true);
+    try {
+      const r = await fetch(url);
+      const b = await r.blob();
+      const u = URL.createObjectURL(b);
+      const a = document.createElement("a");
+      a.href = u;
+      a.download = ((url.split("/").pop() || "photo.jpg").split("?")[0]) || "photo.jpg";
+      document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(() => URL.revokeObjectURL(u), 4000);
+    } catch { try { window.open(url, "_blank", "noreferrer"); } catch { /* popup geblokkeerd */ } }
+    setBusy(false);
+  };
+  const knop = { position: "fixed", top: 14, zIndex: 501, width: 40, height: 40, borderRadius: 20, border: "none", background: "rgba(255,255,255,0.16)", color: "#fff", fontSize: 17, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", WebkitTapHighlightColor: "transparent" };
+  return createPortal(
+    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.15 }} onClick={onClose}
+      style={{ position: "fixed", inset: 0, zIndex: 500, background: "rgba(0,0,0,0.93)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+      <motion.img initial={{ scale: 0.94 }} animate={{ scale: 1 }} transition={{ type: "spring", stiffness: 320, damping: 28 }}
+        src={url} referrerPolicy="no-referrer" alt="" onClick={(e) => e.stopPropagation()}
+        style={{ maxWidth: "100%", maxHeight: "100%", objectFit: "contain" }} />
+      <button onClick={download} aria-label={tr("orders.photo.download", "Download photo")} style={{ ...knop, left: 14 }}>{busy ? "…" : "⬇"}</button>
+      <button onClick={(e) => { e.stopPropagation(); onClose(); }} aria-label={tr("common.aria.closeCapitalized", "Close")} style={{ ...knop, right: 14 }}>✕</button>
+    </motion.div>,
+    document.body
+  );
+}
+
 // 🔍 Flowva Friends — item-inspectiesheet: elk squad-/pakket-item is te openen door
 // de HELE squad (product, status, gewicht, quality-control- & meetfoto's — foto's
 // tikken = fullscreen). Voor je EIGEN aangekomen item staat hier de Ready-knop:
@@ -4131,6 +4166,7 @@ export default function SupplyFlow({ session, factoriesVisible = true }) {
     : orders.filter(o => o.status === "qc_pending" && !o.ff_group_id).length;
   const qcOrder = orders.find(o => o.status === "qc_pending");
   const avatarUrl = session?.user?.user_metadata?.avatar_url || null;
+  const [zoomPhoto, setZoomPhoto] = useState(null);   // fullscreen foto-viewer (Quality-control-/meetfoto's)
 
   // 🛫 Transit-badge (Kaito 25-08, herzien ×2): vaste teller per PAKKET (niet per item —
   // 2 items in één doos = "1"). Onderweg = de badge staat er permanent, óók na het openen
@@ -4946,7 +4982,9 @@ export default function SupplyFlow({ session, factoriesVisible = true }) {
 
       {/* ORDERS TAB */}
       {tab === "orders" && !selectedOrder && (
-        <motion.div key="orders-list" {...pageTransition} style={{ paddingBottom: 80, width: "100%" }}>
+        {/* Extra ruimte onderaan als de pakket-balk zweeft (Kaito 25-08): anders verstopt
+            de balk de onderste kaart — nu kun je gewoon voorbij de balk scrollen. */}
+        <motion.div key="orders-list" {...pageTransition} style={{ paddingBottom: parcelItems.length > 0 ? 180 : 80, width: "100%" }}>
           <TreasureMap activeFilter={orderFilter} onSelect={setOrderFilter} orders={visibleOrders} />
           <div style={{ padding: "16px 20px" }}>
             {(() => {
@@ -5138,7 +5176,8 @@ export default function SupplyFlow({ session, factoriesVisible = true }) {
                 const orderImage = selectedOrder.variant_image || (feedProduct?.image?.startsWith("http") ? feedProduct.image : null);
                 return orderImage ? (
                   <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={springSoft}
-                    style={{ marginBottom: 10, borderRadius: 12, overflow: "hidden", position: "relative", background: "#fff" }}>
+                    onClick={() => setZoomPhoto(orderImage)}
+                    style={{ marginBottom: 10, borderRadius: 12, overflow: "hidden", position: "relative", background: "#fff", cursor: "pointer" }}>
                     <img src={orderImage} referrerPolicy="no-referrer" alt="your order" style={{ width: "100%", aspectRatio: "3 / 4", objectFit: "cover", display: "block" }} />
                     <div style={{ position: "absolute", top: 8, left: 8, background: "#0F0E0C", color: "#FF5C00", fontSize: 10, fontWeight: 700, padding: "4px 10px", borderRadius: 20 }}>
                       {tr("orders.detail.qcPics.yourOrderBadge", "Your order")}{selectedOrder.kleur ? ` · ${selectedOrder.kleur}` : ""}
@@ -5148,7 +5187,7 @@ export default function SupplyFlow({ session, factoriesVisible = true }) {
               })()}
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
                 {selectedOrder.qc_images.map((url, i) => (
-                  <div key={i} style={{ borderRadius: 12, overflow: "hidden", aspectRatio: "1", position: "relative" }}>
+                  <div key={i} onClick={() => setZoomPhoto(url)} style={{ borderRadius: 12, overflow: "hidden", aspectRatio: "1", position: "relative", cursor: "pointer" }}>
                     <img src={url} referrerPolicy="no-referrer" alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
                     {i === 3 && <div style={{ position: "absolute", bottom: 6, left: 6, background: "rgba(0,0,0,0.7)", color: "#fff", fontSize: 10, padding: "2px 6px", borderRadius: 6 }}>{tr("orders.detail.qcPics.weightBadge", "⚖️ Weight")}</div>}
                   </div>
@@ -5161,7 +5200,7 @@ export default function SupplyFlow({ session, factoriesVisible = true }) {
                   <div style={{ fontSize: 14, fontWeight: 600, color: "#0F0E0C", marginBottom: 12 }}>{tr("orders.detail.measPics.title", "Measurement pictures")}</div>
                   <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
                     {selectedOrder.measurement_images.map((url, i) => (
-                      <div key={i} style={{ borderRadius: 12, overflow: "hidden", aspectRatio: "1" }}>
+                      <div key={i} onClick={() => setZoomPhoto(url)} style={{ borderRadius: 12, overflow: "hidden", aspectRatio: "1", cursor: "pointer" }}>
                         <img src={url} referrerPolicy="no-referrer" alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
                       </div>
                     ))}
@@ -5931,6 +5970,9 @@ export default function SupplyFlow({ session, factoriesVisible = true }) {
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* Fullscreen foto-viewer (Quality-control-/meetfoto's) */}
+      {zoomPhoto && <PhotoZoom url={zoomPhoto} onClose={() => setZoomPhoto(null)} />}
 
       {/* Bottom nav — layout+layoutRoot isoleert de navPill (layoutId) van pagina-scroll-
           sprongen. LET OP: centreren via left/right+margin, NIET via transform — framer's

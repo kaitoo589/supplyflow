@@ -5196,9 +5196,10 @@ export default function SupplyFlow({ session, factoriesVisible = true }) {
               })()}
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
                 {selectedOrder.qc_images.map((url, i) => (
-                  <div key={i} onClick={() => setZoomPhoto(url)} style={{ borderRadius: 12, overflow: "hidden", aspectRatio: "1", position: "relative", cursor: "pointer" }}>
+                  // "⚖️ Weight"-badge op foto 4 verwijderd (Kaito 25-08): relict uit de tijd dat
+                  // foto 4 een weegschaal-foto was; het gewicht komt nu uit de BuckyDrop-data.
+                  <div key={i} onClick={() => setZoomPhoto(url)} style={{ borderRadius: 12, overflow: "hidden", aspectRatio: "1", cursor: "pointer" }}>
                     <img src={url} referrerPolicy="no-referrer" alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-                    {i === 3 && <div style={{ position: "absolute", bottom: 6, left: 6, background: "rgba(0,0,0,0.7)", color: "#fff", fontSize: 10, padding: "2px 6px", borderRadius: 6 }}>{tr("orders.detail.qcPics.weightBadge", "⚖️ Weight")}</div>}
                   </div>
                 ))}
               </div>

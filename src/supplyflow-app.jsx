@@ -4971,6 +4971,22 @@ export default function SupplyFlow({ session, factoriesVisible = true }) {
                   </div>
                 );
               })()}
+              {/* ★ Trustpilot-embleem (2026-08-25): bewust in TRUSTPILOT-stijl (hun groen,
+                  niet ons oranje) — herkenbaarheid ís het vertrouwen. Tikken = naar het
+                  echte profiel, zodat iedereen het cijfer kan controleren. Verschijnt
+                  alleen als de admin score+aantal heeft ingevuld (HUD, maandag-ritueel). */}
+              {tab === "brands" && window.__flowvaTrustpilot && (
+                <motion.a href="https://www.trustpilot.com/review/flowva.app" target="_blank" rel="noreferrer"
+                  initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} whileTap={{ scale: 0.97 }}
+                  style={{ display: "flex", alignItems: "center", gap: 10, background: "#fff", border: "1px solid #E8E6E0", borderRadius: 14, padding: "11px 14px", marginBottom: 14, textDecoration: "none", boxShadow: "0 1px 2px rgba(17,17,17,0.04), 0 6px 18px rgba(17,17,17,0.05)" }}>
+                  <span style={{ width: 30, height: 30, borderRadius: 7, background: "#00B67A", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontSize: 17, flexShrink: 0 }}>★</span>
+                  <span style={{ flex: 1, minWidth: 0 }}>
+                    <span style={{ display: "block", fontSize: 13.5, fontWeight: 800, color: "#191919" }}>Trustpilot · {window.__flowvaTrustpilot.score.toFixed(1).replace(".", ",")}</span>
+                    <span style={{ display: "block", fontSize: 11, color: "#6B6862" }}>{window.__flowvaTrustpilot.count} {tr("feed.brandCard.stat.reviewsWord", "reviews")}</span>
+                  </span>
+                  <span style={{ color: "#00B67A", fontSize: 14, fontWeight: 700, flexShrink: 0 }}>↗</span>
+                </motion.a>
+              )}
               {loadingProducts && <div style={{ textAlign: "center", padding: 40, color: "#999" }}>{tab === "brands" ? tr("feed.loading.brands", "Loading brands...") : tr("feed.loading.factories", "Loading factories...")}</div>}
               {productsError && <div style={{ textAlign: "center", padding: 40, color: "#B45309" }}>{tr("feed.error.factories", "Couldn't load: {error}", { error: productsError })}</div>}
               {!loadingProducts && !productsError && factoryCards.length === 0 && (

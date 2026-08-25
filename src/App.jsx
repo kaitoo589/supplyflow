@@ -201,7 +201,7 @@ export default function App() {
       // Globale zichtbaarheidsvlaggen (admin bestuurt deze via app_settings). Ook
       // ZONDER sessie ophalen: gasten browsen mee en moeten dezelfde etalage zien.
       const cfg = await withTimeout(
-        supabase.from("app_settings").select("support_bot_visible, factories_visible, paused_countries").eq("id", 1).single(),
+        supabase.from("app_settings").select("support_bot_visible, factories_visible, paused_countries, trustpilot_score, trustpilot_count").eq("id", 1).single(),
         4000
       ).catch(() => null);
       if (mounted) {
@@ -212,6 +212,11 @@ export default function App() {
         if (cfg?.data) setFactoriesVisible(cfg.data.factories_visible !== false);
         // 🌍 pauzeknop per land: gepauzeerde landen verdwijnen uit het adresformulier
         if (cfg?.data && Array.isArray(cfg.data.paused_countries)) window.__flowvaPausedCountries = cfg.data.paused_countries;
+        // ★ Trustpilot-embleem (handmatig bijgehouden in de HUD): alleen tonen als
+        // beide waarden gezet zijn — leeg = geen embleem (geen "4,0 · 1 review"-gêne).
+        if (cfg?.data?.trustpilot_score > 0 && cfg?.data?.trustpilot_count > 0) {
+          window.__flowvaTrustpilot = { score: Number(cfg.data.trustpilot_score), count: Number(cfg.data.trustpilot_count) };
+        }
       }
       if (mounted) setLoading(false);
     };

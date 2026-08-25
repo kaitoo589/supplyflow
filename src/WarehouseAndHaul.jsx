@@ -2469,6 +2469,17 @@ export function TransitTab({ session, orders = [], activeGroupId = null }) {
               <span style={{ fontSize: 12, fontWeight: 700, color: "#111111" }}>€{Number(haul.paid_eur || 0).toFixed(2)}</span>
             </div>
 
+            {/* ★ Review-kaartje (2026-08-25): het pakket is binnen = hét moment om om een
+                review te vragen. Trustpilot-stijl (hun groen), tikken = naar het profiel. */}
+            {delivered && (
+              <motion.a href="https://www.trustpilot.com/review/flowva.app" target="_blank" rel="noreferrer"
+                whileTap={{ scale: 0.97 }} initial={{ opacity: 0 }} animate={{ opacity: 1 }}
+                style={{ display: "flex", alignItems: "center", gap: 10, background: "#F1FBF7", border: "1px solid #B7E9D6", borderRadius: 12, padding: "10px 12px", marginBottom: 10, textDecoration: "none" }}>
+                <span style={{ width: 28, height: 28, borderRadius: 7, background: "#00B67A", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontSize: 15, flexShrink: 0 }}>★</span>
+                <span style={{ flex: 1, fontSize: 12, fontWeight: 600, color: "#0E5C41", lineHeight: 1.4 }}>{tr("transit.reviewAsk", "Enjoying your order? Leave a review on Trustpilot — it helps a lot!")}</span>
+                <span style={{ color: "#00B67A", fontSize: 13, fontWeight: 700, flexShrink: 0 }}>↗</span>
+              </motion.a>
+            )}
             {/* 🎉 Verzend-refund (user 2026-07-23): de échte vrachtrekening was lager dan onze
                 schatting → het verschil ging terug naar het saldo. Positief gebracht, en
                 bewust BOVEN de bon-knop zodat je 't als eerste ziet. */}

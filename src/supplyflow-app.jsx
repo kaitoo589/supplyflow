@@ -625,6 +625,10 @@ function OrderGroupCard({ items, onOpenItem, groupSize, onDismiss, parcel, activ
   // dé reden om te kijken moet je niet hoeven zoeken achter een uitklapper.
   const readyCard = !allInTransit && !allDelivered && items.length > 0 && refundedItems.length === 0 && items.every(o => (statusConfig[o.status]?.step ?? 0) >= whStep);
   const arrivedFmt = (ts) => { try { return ts ? new Date(ts).toLocaleDateString("en-GB") : ""; } catch { return ""; } };
+  // In-transit-kaart WEG uit Orders (Kaito 25-08): een verzonden pakket leeft in de
+  // Transit-tab — de nav-badge op Transit wijst de weg. "Parcel arrived" (alles
+  // bezorgd) blijft wél als kaart terugkomen.
+  if (allInTransit && !allDelivered) return null;
   return (
     <motion.div layout exit={{ opacity: 0, scale: 0.94, transition: { duration: 0.22, ease: [0.4, 0, 1, 1] } }} style={{ position: "relative", background: "#fff", border: "1px solid #E8E6E0", borderRadius: 16, marginBottom: 10, overflow: "hidden" }}>
       {/* Wegklikbaar (user 2026-07-22): behalve afgeleverde kaarten ook de "Parcel · In
@@ -4128,6 +4132,20 @@ export default function SupplyFlow({ session, factoriesVisible = true }) {
   const qcOrder = orders.find(o => o.status === "qc_pending");
   const avatarUrl = session?.user?.user_metadata?.avatar_url || null;
 
+  // 🛫 Transit-badge (Kaito 25-08): de "Shipped — track in In transit"-kaart is uit
+  // Orders; in de plaats telt de Transit-tab hoeveel verzonden pakketten je nog niet
+  // bekeken hebt. "Gezien" onthouden we lokaal per order-id; Transit openen wist 'm.
+  const inTransitIds = orders.filter(o => o.status === "shipped_international").map(o => o.id);
+  const [transitSeen, setTransitSeen] = useState(() => { try { return JSON.parse(localStorage.getItem("flowva_transit_seen") || "[]"); } catch { return []; } });
+  const transitBadge = inTransitIds.filter(id => !transitSeen.includes(id)).length;
+  useEffect(() => {
+    if (tab === "transit" && inTransitIds.some(id => !transitSeen.includes(id))) {
+      const next = [...new Set([...transitSeen, ...inTransitIds])];
+      setTransitSeen(next);
+      try { localStorage.setItem("flowva_transit_seen", JSON.stringify(next)); } catch { /* private mode */ }
+    }
+  }, [tab, orders]);
+
   // Cart-items die "on hold" staan wegens een prijswijziging (gededupliceerd op source_url).
   const flaggedInCart = [...new Map(
     requestList.filter((it) => it.source_url && flaggedUrls.includes(it.source_url)).map((it) => [it.source_url, it])
@@ -5946,6 +5964,9 @@ export default function SupplyFlow({ session, factoriesVisible = true }) {
                 <t.Icon size={21} color={active ? "#111111" : "#A8A5A0"} strokeWidth={active ? 2.3 : 1.8} />
                 {t.id === "orders" && warehouseCount > 0 && (
                   <div style={{ position: "absolute", top: -5, right: -8, background: "#FF5C00", borderRadius: 9, minWidth: 15, height: 15, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 9, fontWeight: 700, color: "#fff", border: "2px solid #fff", padding: "0 2px", boxSizing: "content-box" }}>{warehouseCount}</div>
+                )}
+                {t.id === "transit" && transitBadge > 0 && (
+                  <div style={{ position: "absolute", top: -5, right: -8, background: "#FF5C00", borderRadius: 9, minWidth: 15, height: 15, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 9, fontWeight: 700, color: "#fff", border: "2px solid #fff", padding: "0 2px", boxSizing: "content-box" }}>{transitBadge}</div>
                 )}
               </motion.span>
               <span style={{ position: "relative", zIndex: 1, fontSize: 10, fontWeight: active ? 700 : 500, color: active ? "#111111" : "#A8A5A0" }}>{t.label}</span>

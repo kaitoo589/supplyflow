@@ -298,10 +298,19 @@ function PhotoZoom({ url, onClose }) {
     try {
       const r = await fetch(url);
       const b = await r.blob();
+      const naam = ((url.split("/").pop() || "photo.jpg").split("?")[0]) || "photo.jpg";
+      // TELEFOON (iOS/Android): een kale download-link opent op iOS alleen een preview
+      // ("Open in Instagram…"). Het deelmenu mét bestand geeft wél "Bewaar afbeelding"
+      // → echt opgeslagen in de galerij. Pc's kennen dit meestal niet → gewone download.
+      const file = new File([b], naam, { type: b.type || "image/jpeg" });
+      if (navigator.canShare && navigator.canShare({ files: [file] })) {
+        try { await navigator.share({ files: [file] }); setBusy(false); return; }
+        catch (err) { if (err?.name === "AbortError") { setBusy(false); return; } /* anders: val door naar download */ }
+      }
       const u = URL.createObjectURL(b);
       const a = document.createElement("a");
       a.href = u;
-      a.download = ((url.split("/").pop() || "photo.jpg").split("?")[0]) || "photo.jpg";
+      a.download = naam;
       document.body.appendChild(a); a.click(); a.remove();
       setTimeout(() => URL.revokeObjectURL(u), 4000);
     } catch { try { window.open(url, "_blank", "noreferrer"); } catch { /* popup geblokkeerd */ } }

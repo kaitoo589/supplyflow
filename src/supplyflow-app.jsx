@@ -5007,17 +5007,23 @@ export default function SupplyFlow({ session, factoriesVisible = true }) {
                       <div style={{ fontSize: 13.5, color: "#8A8780" }}>{tr("feed.subtitle.brandsDefault", "Tap a store to explore its products.")}</div>
                     </div>
                     {tp && (
+                      /* Drieluik (Kaito 25-08): sterren + score (score helemaal rechts) ·
+                         logo + aantal reviews · "Tap to visit Trustpilot ↗". Compact genoeg
+                         om óók op telefoonbreedte naast de drie knopjes te passen. */
                       <motion.a href="https://www.trustpilot.com/review/flowva.app" target="_blank" rel="noreferrer"
                         whileTap={{ scale: 0.96 }} transition={springSnappy}
-                        style={{ alignSelf: "stretch", display: "inline-flex", flexDirection: "column", justifyContent: "center", gap: 6, background: "#fff", border: "1px solid #E8E6E0", borderRadius: 18, padding: "8px 14px", textDecoration: "none", WebkitTapHighlightColor: "transparent", flexShrink: 0 }}>
-                        <span style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                          <TrustStars score={tp.score} size={13.5} />
-                          <span style={{ fontSize: 13, fontWeight: 800, color: "#191919", lineHeight: 1 }}>{tp.score.toFixed(1).replace(".", ",")}</span>
-                          <span style={{ color: "#00B67A", fontSize: 12, fontWeight: 800, lineHeight: 1 }}>↗</span>
+                        style={{ alignSelf: "stretch", display: "inline-flex", flexDirection: "column", justifyContent: "center", gap: 5, background: "#fff", border: "1px solid #E8E6E0", borderRadius: 18, padding: "8px 12px", textDecoration: "none", WebkitTapHighlightColor: "transparent", flexShrink: 0 }}>
+                        <span style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
+                          <TrustStars score={tp.score} size={12.5} />
+                          <span style={{ fontSize: 12.5, fontWeight: 800, color: "#191919", lineHeight: 1 }}>{tp.score.toFixed(1).replace(".", ",")}</span>
                         </span>
-                        <span style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10 }}>
-                          <img src="/trustpilot.svg" alt="Trustpilot" style={{ height: 11, display: "block" }} />
-                          <span style={{ fontSize: 10, fontWeight: 600, color: "#8A8780", lineHeight: 1 }}>{tp.count} {tr("feed.brandCard.stat.reviewsWord", "reviews")}</span>
+                        <span style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
+                          <img src="/trustpilot.svg" alt="Trustpilot" style={{ height: 10, display: "block" }} />
+                          <span style={{ fontSize: 9.5, fontWeight: 600, color: "#8A8780", lineHeight: 1 }}>{tp.count} {tr("feed.brandCard.stat.reviewsWord", "reviews")}</span>
+                        </span>
+                        <span style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 9, fontWeight: 700, color: "#8A8780", lineHeight: 1 }}>
+                          {tr("feed.tp.visit", "Tap to visit Trustpilot")}
+                          <span style={{ color: "#00B67A", fontSize: 10, fontWeight: 800 }}>↗</span>
                         </span>
                       </motion.a>
                     )}

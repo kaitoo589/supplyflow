@@ -37,6 +37,10 @@ export const ffShareProduct   = (id, product) => rpc("ff_share_product", { p_gro
 // en de terugweg — altijd beschikbaar zolang de groepsverzending niet gelockt is.
 export const ffAdoptSolo      = (id) => rpc("ff_adopt_solo_items", { p_group_id: id });
 export const ffReleaseSolo    = (id) => rpc("ff_release_my_items", { p_group_id: id });
+// Nette ontbinding (admin): items terug naar solo, groep weg, inactieve leden gekickt
+// + support-bericht. Server weigert met 'friend_active' zodra een ander lid al
+// besteld of iets in de groepsmand gelegd heeft.
+export const ffDissolveGroup  = (id) => rpc("ff_dissolve_group_to_solo", { p_group_id: id });
 
 // Fase 3 — ready-up + betaling.
 export const ffSetReady       = (id) => rpc("ff_set_ready", { p_group_id: id });

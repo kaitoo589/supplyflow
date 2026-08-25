@@ -11,7 +11,7 @@ import { EU_COUNTRIES, SHIPPING_COUNTRIES, PHONE_REQUIRED_COUNTRIES, normalizeCo
 import OrderRequest from "./OrderRequest";
 import Friends from "./Friends";
 import GroupModeGlow from "./GroupModeGlow";
-import { ffMyGroups, ffReleaseSolo } from "./ffApi";
+import { ffMyGroups, ffDissolveGroup } from "./ffApi";
 import { garmentType } from "./garment";
 import { TransitTab, ParcelSection } from "./WarehouseAndHaul";
 import { motion, AnimatePresence, useDragControls, useMotionValue, useTransform, useSpring } from "framer-motion";
@@ -3321,6 +3321,7 @@ export default function SupplyFlow({ session, factoriesVisible = true }) {
       case "storage_month_left": return tr("support.tpl.storageMonthLeft", "“{productName}” has been in the warehouse for 60 days — you have one month left. Ship it before day 90, or it will be forfeited.", p);
       case "storage_warning": return tr("support.tpl.storageWarning", "Today is the last day you can ship “{productName}” — tomorrow it will be forfeited.", p);
       case "storage_forfeited": return tr("support.tpl.storageForfeited", "“{productName}” has been forfeited — contact support for more info.", p);
+      case "group_dissolved": return tr("support.tpl.groupDissolved", "“{groupName}” no longer exists — the friend who invited you moved their items back to solo shipping, so the group was closed. Nothing was charged to you.", { groupName: m.group_name || "The group" });
       case "custom": return m.body || "";
       default: return tr("support.tpl.unknownRefund", "Something went wrong with “{productName}” and we couldn't resolve it. To be safe, you've been fully refunded.", p);
     }
@@ -4210,6 +4211,26 @@ export default function SupplyFlow({ session, factoriesVisible = true }) {
   // stille review-kaartje in Transit blijft gewoon bestaan. Zelfde geluksmoment als de
   // bezorg-mail, maar dan voor wie de app eerder opent dan z'n mailbox.
   const [reviewAsk, setReviewAsk] = useState(null);   // haul-id waarvoor we nu vragen
+  // ↩ Groep ontbinden (Kaito 25-08): bevestigingskaart vóór "terug naar solo" —
+  // legt uit wat er gebeurt (groep weg, vrienden gekickt + berichtje).
+  const [confirmDissolve, setConfirmDissolve] = useState(null);  // { id, name }
+  const [dissolveBusy, setDissolveBusy] = useState(false);
+  const [dissolveErr, setDissolveErr] = useState("");
+  const doeDissolve = async () => {
+    if (!confirmDissolve || dissolveBusy) return;
+    setDissolveBusy(true); setDissolveErr("");
+    const r = await ffDissolveGroup(confirmDissolve.id);
+    setDissolveBusy(false);
+    if (!r.ok) {
+      setDissolveErr(r.error === "friend_active"
+        ? tr("dissolve.blocked", "A friend already ordered or added something for this group — the parcel now ships together, so it can't go back to solo.")
+        : (r.error || "Something went wrong"));
+      return;
+    }
+    setConfirmDissolve(null);
+    setActiveGroup(null);
+    loadMyGroups(); fetchOrders(); fetchHauls();
+  };
   useEffect(() => {
     if (!session || isGuest) return;
     try {
@@ -5641,27 +5662,29 @@ export default function SupplyFlow({ session, factoriesVisible = true }) {
                     </div>
                     {sw(!activeGroup)}
                   </div>
-                  {gathering.map((g) => groupRow(g, tr("profile.friends.liveLabel", "live")))}
+                  {/* Admin-groepen die nog verzamelen: rij + "terug naar solo"-knop sámen
+                      omkaderd (Kaito 25-08) — zo is duidelijk dat de knop bíj die groep hoort. */}
+                  {gathering.map((g) => {
+                    const rij = groupRow(g, tr("profile.friends.liveLabel", "live"));
+                    if (g.role !== "admin") return rij;
+                    return (
+                      <div key={`wrap-${g.group_id}`} style={{ border: "1.5px dashed rgba(255,92,0,0.4)", borderRadius: 16, padding: 6, display: "flex", flexDirection: "column", gap: 6 }}>
+                        {rij}
+                        <button onClick={() => setConfirmDissolve({ id: g.group_id, name: g.name })}
+                          style={{ width: "100%", background: "#F8F7F4", border: "1px solid #ECEAE5", borderRadius: 11, padding: "10px", fontSize: 12, fontWeight: 700, color: "#6B6862", cursor: "pointer", WebkitTapHighlightColor: "transparent" }}>
+                          ↩ {tr("profile.friends.backToSolo", "Move my warehouse items back to solo")}
+                        </button>
+                      </div>
+                    );
+                  })}
                   {placed.map((g) => groupRow(g, tr("profile.friends.followingLabel", "following")))}
                 </div>
                 {activeGroup && placed.some((g) => g.group_id === activeGroup.id) && (
                   <button onClick={() => { setFriendsGroupId(activeGroup.id); setShowFriends(true); }}
                     style={{ background: "transparent", border: "none", color: "#16A34A", fontSize: 12, fontWeight: 700, cursor: "pointer", padding: "10px 0 0", textAlign: "left" }}>{tr("profile.friends.openGroup", "Open group & see details →")}</button>
                 )}
-                {/* ↩ Solo → Groep-terugweg (Kaito 25-08): haalt MIJN magazijn-items uit de
-                    actieve groep terug naar solo (server weigert als de groepsverzending al
-                    gelockt/betaald is) en zet de weergave terug op solo. */}
-                {activeGroup && (
-                  <button onClick={async () => {
-                      const r = await ffReleaseSolo(activeGroup.id);
-                      if (!r.ok) { alert(r.error || "Could not move your items back"); return; }
-                      setActiveGroup(null);
-                      fetchOrders(); fetchHauls();
-                    }}
-                    style={{ width: "100%", marginTop: 10, background: "none", border: "1px dashed #E3E1DC", borderRadius: 12, padding: "10px", fontSize: 12, fontWeight: 700, color: "#8A8780", cursor: "pointer" }}>
-                    ↩ {tr("profile.friends.backToSolo", "Move my warehouse items back to solo")}
-                  </button>
-                )}
+                {/* De "terug naar solo"-knop staat nu ómkaderd bij de eigen admin-groep
+                    in de lijst hierboven (Kaito 25-08) — met bevestigingskaart. */}
                 <button onClick={() => { if (!requireAuth()) return; setFriendsJoinCode(null); setShowFriends(true); }}
                   style={{ width: "100%", marginTop: 12, background: "#FFF0E7", border: "1px dashed rgba(255,92,0,0.4)", color: "#FF5C00", borderRadius: 12, padding: "12px", fontSize: 13, fontWeight: 700, cursor: "pointer" }}>{tr("profile.friends.manageCta", "+ Create, join or manage groups")}</button>
               </div>
@@ -6116,6 +6139,30 @@ export default function SupplyFlow({ session, factoriesVisible = true }) {
 
       {/* Fullscreen foto-viewer (Quality-control-/meetfoto's) */}
       {zoomPhoto && <PhotoZoom url={zoomPhoto} onClose={() => setZoomPhoto(null)} />}
+
+      {/* ↩ Bevestiging "terug naar solo": blur + kaart die precies vertelt wat er gebeurt. */}
+      {confirmDissolve && createPortal(
+        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.18 }}
+          onClick={() => { if (!dissolveBusy) { setConfirmDissolve(null); setDissolveErr(""); } }}
+          style={{ position: "fixed", inset: 0, zIndex: 410, background: "rgba(15,14,12,0.45)", backdropFilter: "blur(10px)", WebkitBackdropFilter: "blur(10px)", display: "flex", alignItems: "center", justifyContent: "center", padding: 26 }}>
+          <motion.div initial={{ scale: 0.92, y: 10 }} animate={{ scale: 1, y: 0 }} transition={{ type: "spring", stiffness: 380, damping: 28 }}
+            onClick={(e) => e.stopPropagation()}
+            style={{ maxWidth: 400, width: "100%", background: "#fff", border: "1px solid #E8E6E0", borderRadius: 18, padding: "20px 20px 16px", boxShadow: "0 18px 60px rgba(0,0,0,0.25)" }}>
+            <div style={{ fontSize: 15, fontWeight: 800, color: "#0F0E0C", marginBottom: 8 }}>{tr("dissolve.title", "Move everything back to solo?")}</div>
+            <div style={{ fontSize: 12.5, color: "#555", lineHeight: 1.65, marginBottom: 12 }}>
+              {tr("dissolve.body", "Your items go back to solo shipping and “{name}” will be deleted — for your friends too. Anyone who joined is removed from the group and gets a short message. This is only possible while nobody else has ordered anything.", { name: confirmDissolve.name })}
+            </div>
+            {dissolveErr && <div style={{ fontSize: 12, color: "#DC2626", lineHeight: 1.5, marginBottom: 10 }}>{dissolveErr}</div>}
+            <button onClick={doeDissolve} disabled={dissolveBusy}
+              style={{ width: "100%", background: "#0F0E0C", color: "#fff", border: "none", borderRadius: 12, padding: "12px", fontSize: 13.5, fontWeight: 700, cursor: dissolveBusy ? "default" : "pointer", opacity: dissolveBusy ? 0.6 : 1, marginBottom: 6 }}>
+              {dissolveBusy ? "…" : `↩ ${tr("dissolve.confirm", "Yes, back to solo")}`}
+            </button>
+            <button onClick={() => { setConfirmDissolve(null); setDissolveErr(""); }} disabled={dissolveBusy}
+              style={{ width: "100%", background: "#F3F1ED", color: "#6B6862", border: "none", borderRadius: 12, padding: "11px", fontSize: 13, fontWeight: 700, cursor: "pointer" }}>
+              {tr("dissolve.cancel", "Keep the group")}
+            </button>
+          </motion.div>
+        </motion.div>, document.body)}
 
       {/* ★ Review-vraag na bezorging — blur-overlay met de vos, één keer per pakket. */}
       {reviewAsk && (

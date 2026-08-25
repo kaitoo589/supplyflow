@@ -5003,6 +5003,9 @@ export default function SupplyFlow({ session, factoriesVisible = true }) {
                         <motion.a href="https://www.trustpilot.com/review/flowva.app" target="_blank" rel="noreferrer"
                           whileTap={{ scale: 0.94 }} transition={springSnappy}
                           style={{ marginLeft: "auto", display: "inline-flex", alignItems: "center", gap: 7, background: "#fff", border: "1px solid #E8E6E0", borderRadius: 999, padding: "8px 12px", textDecoration: "none", WebkitTapHighlightColor: "transparent" }}>
+                          {/* Kaito's eigen logo-SVG (geschoond: transparant, alleen ster+woordmerk).
+                              Vervangen = nieuwe export schonen via scratchpad trustpilot-schoon.py. */}
+                          <img src="/trustpilot.svg" alt="Trustpilot" style={{ height: 15, display: "block" }} />
                           <TrustStars score={tp.score} />
                           <span style={{ fontSize: 12.5, fontWeight: 800, color: "#191919" }}>{tp.score.toFixed(1).replace(".", ",")}</span>
                           <span style={{ color: "#00B67A", fontSize: 12, fontWeight: 800 }}>↗</span>

@@ -911,29 +911,36 @@ function NormalShippingConfirm({ session, haulItems, balance, onBack, onSuccess,
               style={{ maxWidth: 430, width: "100%", background: "#fff", border: "1px solid #E8E6E0", borderRadius: 18, padding: "20px 20px 16px", boxShadow: "0 18px 60px rgba(0,0,0,0.25)" }}>
               <div style={{ fontSize: 14.5, fontWeight: 700, color: "#0F0E0C", marginBottom: 6 }}>{tr("haul.feeInfoTitle", "How your service fee is calculated")}</div>
               <div style={{ fontSize: 12.5, color: "#555", lineHeight: 1.6, marginBottom: 12 }}>
-                {tr("haul.feeInfoBody", "The fee is 8% of your products' factory prices plus the estimated international shipping (without the buffer), with a minimum of €5. It's different for every parcel — this is yours:")}
+                {tr("haul.feeInfoBody", "The fee is 8% of your products' original prices plus the estimated international shipping (without the buffer), with a minimum of €5. It's different for every parcel — this is yours:")}
               </div>
-              <div style={{ background: "#F8F7F4", border: "1px solid #EFEDE8", borderRadius: 12, padding: "10px 12px", display: "grid", gap: 4 }}>
+              {/* minWidth:0 + gewone regelafbreking: lange producttitels vouwen om in plaats
+                  van het bedrag het scherm uit te duwen (telefoon-bug 25-08). */}
+              <div style={{ background: "#F8F7F4", border: "1px solid #EFEDE8", borderRadius: 12, padding: "10px 12px", display: "grid", gap: 5 }}>
                 {haulItems.map((o, i) => (
-                  <div key={i} style={{ display: "flex", justifyContent: "space-between", gap: 8 }}>
-                    <span style={{ fontSize: 12, color: "#555", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{o.product_title || o.product}</span>
+                  <div key={i} style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 8 }}>
+                    <span style={{ fontSize: 12, color: "#555", flex: 1, minWidth: 0, lineHeight: 1.45, overflowWrap: "anywhere" }}>{o.product_title || o.product}</span>
                     <span style={{ fontSize: 12, color: "#555", flexShrink: 0 }}>€{(Number(o.price) || 0).toFixed(2)}</span>
                   </div>
                 ))}
-                <div style={{ display: "flex", justifyContent: "space-between", gap: 8 }}>
-                  <span style={{ fontSize: 12, color: "#555" }}>{tr("cost.feeBaseShipping", "Estimated international shipping")}</span>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 8 }}>
+                  <span style={{ fontSize: 12, color: "#555", flex: 1, minWidth: 0, lineHeight: 1.45 }}>{tr("cost.feeBaseShipping", "Estimated international shipping")}</span>
                   <span style={{ fontSize: 12, color: "#555", flexShrink: 0 }}>€{r2(estFreight).toFixed(2)}</span>
                 </div>
                 <div style={{ display: "flex", justifyContent: "space-between", gap: 8, marginTop: 2, paddingTop: 6, borderTop: "1px solid #E8E6E0" }}>
-                  <span style={{ fontSize: 12, fontWeight: 700, color: "#0F0E0C" }}>{tr("cost.feeBaseTotal", "Fee base")} × 8%</span>
-                  <span style={{ fontSize: 12, fontWeight: 700, color: "#0F0E0C", flexShrink: 0 }}>€{feeBase.toFixed(2)} → €{r2(feeBaseRaw * 0.08).toFixed(2)}</span>
+                  <span style={{ fontSize: 12, fontWeight: 700, color: "#0F0E0C", flex: 1, minWidth: 0 }}>{tr("cost.feeBaseTotal", "Fee base")}</span>
+                  <span style={{ fontSize: 12, fontWeight: 700, color: "#0F0E0C", flexShrink: 0 }}>€{feeBase.toFixed(2)}</span>
+                </div>
+                {/* Concreet rekenvoorbeeld: 8% van de fee base, en waarom het minimum geldt. */}
+                <div style={{ display: "flex", justifyContent: "space-between", gap: 8 }}>
+                  <span style={{ fontSize: 12, color: "#555", flex: 1, minWidth: 0 }}>× 8%</span>
+                  <span style={{ fontSize: 12, color: "#555", flexShrink: 0 }}>€{r2(feeBaseRaw * 0.08).toFixed(2)}</span>
                 </div>
                 {svcFee > r2(feeBaseRaw * 0.08) && (
-                  <div style={{ fontSize: 11.5, color: "#8A8780" }}>{tr("haul.feeInfoMin", "The 8% came out below €5, so the €5 minimum applies.")}</div>
+                  <div style={{ fontSize: 11.5, color: "#8A8780", lineHeight: 1.5 }}>{tr("haul.feeInfoMin", "8% of {base} is {fee} — below the €5 minimum, so €5 applies.", { base: `€${feeBase.toFixed(2)}`, fee: `€${r2(feeBaseRaw * 0.08).toFixed(2)}` })}</div>
                 )}
                 <div style={{ display: "flex", justifyContent: "space-between", gap: 8, marginTop: 2, paddingTop: 6, borderTop: "1px solid #E8E6E0" }}>
-                  <span style={{ fontSize: 13, fontWeight: 700, color: "#0F0E0C" }}>Service fee</span>
-                  <span style={{ fontSize: 13, fontWeight: 700, color: "#FF5C00", flexShrink: 0 }}>€{svcFee.toFixed(2)}</span>
+                  <span style={{ fontSize: 13, fontWeight: 700, color: "#0F0E0C", flex: 1, minWidth: 0 }}>Service fee</span>
+                  <span style={{ fontSize: 13, fontWeight: 700, color: "#0F0E0C", flexShrink: 0 }}>€{svcFee.toFixed(2)}</span>
                 </div>
               </div>
               <button onClick={() => setShowFeeInfo(false)}

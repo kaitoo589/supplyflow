@@ -44,7 +44,10 @@ async function sendReviewMail(to: string, name: string) {
     headers: { Authorization: `Bearer ${RESEND_API_KEY}`, "Content-Type": "application/json" },
     body: JSON.stringify({ from: RESEND_FROM, to: [to], subject: "Your Flowva parcel has arrived 🎉", html }),
   });
-  return res.ok;
+  // Foutdetail teruggeven (zonder adressen te lekken) zodat de cron-log vertelt
+  // wat Resend dwarszit — bv. ongeldige key of niet-geverifieerd afzenderdomein.
+  if (!res.ok) return { ok: false, detail: `${res.status}: ${(await res.text().catch(() => "")).slice(0, 180)}` };
+  return { ok: true, detail: "" };
 }
 
 Deno.serve(async (req) => {
@@ -62,7 +65,7 @@ Deno.serve(async (req) => {
     .limit(20);
   if (error) return json({ ok: false, error: error.message }, 500);
 
-  let sent = 0, skipped = 0;
+  let sent = 0, skipped = 0, laatsteFout = "";
   for (const h of hauls ?? []) {
     // Eerst stempelen (claim): een dubbele cron-run mailt dan nooit twee keer.
     const { data: claimed } = await admin.from("hauls")
@@ -78,12 +81,13 @@ Deno.serve(async (req) => {
     const naam = (userRes?.user?.user_metadata?.voornaam as string) || "";
     if (!email) { skipped++; continue; }
 
-    const ok = await sendReviewMail(email, naam);
-    if (ok) sent++;
+    const uitkomst = await sendReviewMail(email, naam);
+    if (uitkomst.ok) sent++;
     else {
+      laatsteFout = uitkomst.detail;
       // Mislukt (Resend-storing): stempel terugdraaien zodat de volgende run het opnieuw probeert.
       await admin.from("hauls").update({ review_mailed_at: null }).eq("id", h.id);
     }
   }
-  return json({ ok: true, sent, skipped, scanned: (hauls ?? []).length });
+  return json({ ok: true, sent, skipped, scanned: (hauls ?? []).length, lastError: laatsteFout || undefined });
 });

@@ -605,7 +605,11 @@ function NormalShippingConfirm({ session, haulItems, balance, onBack, onSuccess,
   const [chosen, setChosen] = useState(null);     // route waarop we de schatting baseren
   const [error, setError] = useState(null);
   const [addrOk, setAddrOk] = useState(false);    // "mijn adres klopt"-bevestiging vóór betalen
-  const [showShipInfo, setShowShipInfo] = useState(false); // ?-knopje bij het vinkje → overlay met de kleine lettertjes
+  const [showShipInfo, setShowShipInfo] = useState(false); // info-chip bij het vinkje → overlay met de kleine lettertjes
+  const [infoRead, setInfoRead] = useState(false);         // chip wordt rustig-grijs "Read ✓" zodra de overlay geopend is
+  const [showFeeInfo, setShowFeeInfo] = useState(false);   // ?-knopje bij de service fee → persoonlijke fee-uitsplitsing
+  const [shake, setShake] = useState(0);                   // betaalknop zonder vinkje → vakje schudt + kleurt rood
+  const [tickErr, setTickErr] = useState(false);
   const orderIds = haulItems.map(o => o.id);
   const totalWeight = haulItems.reduce((s, o) => s + (o.weight_grams || 0), 0);
   // Douane-categorieën in dit pakket (HS6-benadering). ALLEEN voor weergave — de €3 zit al
@@ -777,30 +781,15 @@ function NormalShippingConfirm({ session, haulItems, balance, onBack, onSuccess,
               <span style={{ fontSize: 13, color: "#fff" }}>€{surcharge.toFixed(2)}</span>
             </div>
           )}
-          <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
-            <span style={{ fontSize: 13, color: "#fff" }}>Service fee <span style={{ color: "#C9C6C1" }}>· 8% · min €5</span></span>
+          <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8 }}>
+            <span style={{ fontSize: 13, color: "#fff" }}>Service fee <span style={{ color: "#C9C6C1" }}>· 8% · min €5</span>{" "}
+              {/* De uitsplitsing (per pakket anders!) is verhuisd naar dit ?-knopje — het
+                  blok zelf blijft daardoor kort en scanbaar. */}
+              <button type="button" onClick={() => setShowFeeInfo(true)}
+                aria-label={tr("haul.feeInfoTitle", "How your service fee is calculated")}
+                style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: 17, height: 17, borderRadius: 9, border: "1px solid rgba(255,255,255,0.35)", background: "rgba(255,255,255,0.08)", color: "#fff", fontSize: 10.5, fontWeight: 700, cursor: "pointer", verticalAlign: "middle", padding: 0 }}>?</button>
+            </span>
             <span style={{ fontSize: 13, color: "#fff" }}>€{svcFee.toFixed(2)}</span>
-          </div>
-          {/* Volledig open kaart: waarover de fee precies gerekend wordt — elk product op z'n
-              kale prijs + de geschatte internationale verzending, en dan het percentage. */}
-          <div style={{ paddingLeft: 12, marginBottom: 8 }}>
-            <div style={{ fontSize: 11, color: "#C9C6C1", marginBottom: 3 }}>
-              {tr("cost.feeBaseTitle", "Calculated over:")}
-            </div>
-            {haulItems.map((o, i) => (
-              <div key={i} style={{ display: "flex", justifyContent: "space-between", gap: 8 }}>
-                <span style={{ fontSize: 11.5, color: "#C9C6C1", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>↳ {o.product_title || o.product}</span>
-                <span style={{ fontSize: 11.5, color: "#C9C6C1", flexShrink: 0 }}>€{(Number(o.price) || 0).toFixed(2)}</span>
-              </div>
-            ))}
-            <div style={{ display: "flex", justifyContent: "space-between", gap: 8 }}>
-              <span style={{ fontSize: 11.5, color: "#C9C6C1" }}>↳ {tr("cost.feeBaseShipping", "Estimated international shipping")}</span>
-              <span style={{ fontSize: 11.5, color: "#C9C6C1", flexShrink: 0 }}>€{r2(estFreight).toFixed(2)}</span>
-            </div>
-            <div style={{ display: "flex", justifyContent: "space-between", gap: 8, marginTop: 3, paddingTop: 3, borderTop: "1px solid #333" }}>
-              <span style={{ fontSize: 11.5, color: "#fff" }}>{tr("cost.feeBaseTotal", "Fee base")} · 8%</span>
-              <span style={{ fontSize: 11.5, color: "#fff", flexShrink: 0 }}>€{feeBase.toFixed(2)}</span>
-            </div>
           </div>
           {storageFee > 0 && (
             <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8 }}>
@@ -852,18 +841,31 @@ function NormalShippingConfirm({ session, haulItems, balance, onBack, onSuccess,
         );
       })()}
       {chosen && !error && !quoting && (
-        <label style={{ display: "flex", alignItems: "flex-start", gap: 10, marginBottom: 12, cursor: "pointer" }}>
-          <input type="checkbox" checked={addrOk} onChange={e => setAddrOk(e.target.checked)} style={{ marginTop: 1, width: 16, height: 16, accentColor: "#FF5C00", flexShrink: 0 }} />
-          {/* Kort vinkje (Kaito 25-08) — de service-fee-erkenning (art. 16(a) Richtlijn
-              2011/83) blijft in de zichtbare zin; de rest van de kleine lettertjes zit
-              achter het ?-knopje, zelfde patroon als in het mandje. */}
-          <span style={{ fontSize: 12, color: "#555", lineHeight: 1.5 }}>
-            {tr("haul.confirm.short", "I confirm my delivery address is correct, and I ask Flowva to start shipping now — the service fee is then no longer refundable.")}{" "}
-            <button type="button" onClick={(e) => { e.preventDefault(); e.stopPropagation(); setShowShipInfo(true); }}
-              aria-label={tr("haul.infoTitle", "Before you ship")}
-              style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: 17, height: 17, borderRadius: 9, border: "1px solid #D8D5CF", background: "#fff", color: "#8A8780", fontSize: 10.5, fontWeight: 700, cursor: "pointer", verticalAlign: "middle", padding: 0 }}>?</button>
-          </span>
-        </label>
+        <>
+          {/* Vinkje in een kaartje dat bij een misklik op de betaalknop schudt + rood
+              oplicht (key={shake} hertriggert de animatie). De service-fee-erkenning
+              (art. 16(a) Richtlijn 2011/83) blijft in de zichtbare zin staan. */}
+          <motion.div key={`tick-${shake}`} animate={shake ? { x: [0, -9, 9, -6, 6, 0] } : { x: 0 }} transition={{ duration: 0.4 }}
+            style={{ background: tickErr ? "#FEF2F2" : "#fff", border: `1px solid ${tickErr ? "#F87171" : "#E8E6E0"}`, borderRadius: 14, padding: "12px 14px", marginBottom: 12 }}>
+            <label style={{ display: "flex", alignItems: "flex-start", gap: 10, cursor: "pointer" }}>
+              <input type="checkbox" checked={addrOk} onChange={e => { setAddrOk(e.target.checked); if (e.target.checked) setTickErr(false); }} style={{ marginTop: 1, width: 16, height: 16, accentColor: "#FF5C00", flexShrink: 0 }} />
+              <span style={{ fontSize: 12, color: "#555", lineHeight: 1.5 }}>
+                {tr("haul.confirm.short", "I confirm my delivery address is correct, and I ask Flowva to start shipping now — the service fee is then no longer refundable.")}
+              </span>
+            </label>
+            {tickErr && <div style={{ fontSize: 11.5, color: "#DC2626", fontWeight: 600, marginTop: 6, marginLeft: 26 }}>{tr("haul.tickFirst", "Please tick this box first.")}</div>}
+            {/* Opvallende info-chip (Kaito 25-08): dit is de "kleine lettertjes"-knop die je
+                gezien móet hebben — oranje en zacht pulserend tot hij één keer geopend is,
+                daarna rustig grijs met een vinkje. */}
+            <motion.button type="button" onClick={() => { setShowShipInfo(true); setInfoRead(true); }}
+              animate={infoRead ? { scale: 1 } : { scale: [1, 1.04, 1] }}
+              transition={infoRead ? undefined : { repeat: Infinity, duration: 1.8, ease: "easeInOut" }}
+              style={{ display: "inline-flex", alignItems: "center", gap: 7, marginTop: 10, marginLeft: 26, background: infoRead ? "#F3F1ED" : "rgba(255,92,0,0.09)", border: `1px solid ${infoRead ? "#E8E6E0" : "rgba(255,92,0,0.4)"}`, borderRadius: 999, padding: "7px 13px", fontSize: 12, fontWeight: 700, color: infoRead ? "#8A8780" : "#FF5C00", cursor: "pointer" }}>
+              <span style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: 16, height: 16, borderRadius: 8, background: infoRead ? "#D8D5CF" : "#FF5C00", color: "#fff", fontSize: 10.5, fontWeight: 800 }}>{infoRead ? "✓" : "?"}</span>
+              {infoRead ? tr("haul.infoChipRead", "Shipping info — read") : tr("haul.infoChip", "Important — read before you ship")}
+            </motion.button>
+          </motion.div>
+        </>
       )}
       {/* Blur-overlay met de kleine lettertjes van het verzenden — zelfde patroon als het
           ?-knopje bij het mandje, maar in de lichte stijl van dit scherm. */}
@@ -897,10 +899,66 @@ function NormalShippingConfirm({ session, haulItems, balance, onBack, onSuccess,
           </motion.div>
         )}
       </AnimatePresence>
-      <button onClick={payLive} disabled={quoting || !!error || !chosen || !canAfford || confirming || !addrOk}
-        style={{ width: "100%", background: quoting || error || !chosen || !canAfford || confirming || !addrOk ? "#E8E6E0" : "#FF5C00", color: "#fff", border: "none", borderRadius: 12, padding: "14px", fontSize: 14, fontWeight: 700, cursor: quoting || error || !chosen || !canAfford || confirming || !addrOk ? "default" : "pointer" }}>
-        {confirming ? "Processing..." : quoting ? "Calculating…" : error ? "Unavailable" : !canAfford ? "Insufficient balance" : `Confirm & pay €${toPay.toFixed(2)}`}
-      </button>
+      {/* Persoonlijke fee-uitsplitsing (Kaito 25-08): het "Calculated over"-blok is uit het
+          kostenoverzicht gehaald en leeft nu hier — met uitleg, want hij is per pakket anders. */}
+      <AnimatePresence>
+        {showFeeInfo && (
+          <motion.div key="fee-info" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.18 }}
+            onClick={() => setShowFeeInfo(false)}
+            style={{ position: "fixed", inset: 0, zIndex: 400, background: "rgba(15,14,12,0.35)", backdropFilter: "blur(10px)", WebkitBackdropFilter: "blur(10px)", display: "flex", alignItems: "center", justifyContent: "center", padding: 26 }}>
+            <motion.div initial={{ scale: 0.92, y: 10 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.95, y: 6 }} transition={{ type: "spring", stiffness: 380, damping: 28 }}
+              onClick={(e) => e.stopPropagation()}
+              style={{ maxWidth: 430, width: "100%", background: "#fff", border: "1px solid #E8E6E0", borderRadius: 18, padding: "20px 20px 16px", boxShadow: "0 18px 60px rgba(0,0,0,0.25)" }}>
+              <div style={{ fontSize: 14.5, fontWeight: 700, color: "#0F0E0C", marginBottom: 6 }}>{tr("haul.feeInfoTitle", "How your service fee is calculated")}</div>
+              <div style={{ fontSize: 12.5, color: "#555", lineHeight: 1.6, marginBottom: 12 }}>
+                {tr("haul.feeInfoBody", "The fee is 8% of your products' factory prices plus the estimated international shipping (without the buffer), with a minimum of €5. It's different for every parcel — this is yours:")}
+              </div>
+              <div style={{ background: "#F8F7F4", border: "1px solid #EFEDE8", borderRadius: 12, padding: "10px 12px", display: "grid", gap: 4 }}>
+                {haulItems.map((o, i) => (
+                  <div key={i} style={{ display: "flex", justifyContent: "space-between", gap: 8 }}>
+                    <span style={{ fontSize: 12, color: "#555", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{o.product_title || o.product}</span>
+                    <span style={{ fontSize: 12, color: "#555", flexShrink: 0 }}>€{(Number(o.price) || 0).toFixed(2)}</span>
+                  </div>
+                ))}
+                <div style={{ display: "flex", justifyContent: "space-between", gap: 8 }}>
+                  <span style={{ fontSize: 12, color: "#555" }}>{tr("cost.feeBaseShipping", "Estimated international shipping")}</span>
+                  <span style={{ fontSize: 12, color: "#555", flexShrink: 0 }}>€{r2(estFreight).toFixed(2)}</span>
+                </div>
+                <div style={{ display: "flex", justifyContent: "space-between", gap: 8, marginTop: 2, paddingTop: 6, borderTop: "1px solid #E8E6E0" }}>
+                  <span style={{ fontSize: 12, fontWeight: 700, color: "#0F0E0C" }}>{tr("cost.feeBaseTotal", "Fee base")} × 8%</span>
+                  <span style={{ fontSize: 12, fontWeight: 700, color: "#0F0E0C", flexShrink: 0 }}>€{feeBase.toFixed(2)} → €{r2(feeBaseRaw * 0.08).toFixed(2)}</span>
+                </div>
+                {svcFee > r2(feeBaseRaw * 0.08) && (
+                  <div style={{ fontSize: 11.5, color: "#8A8780" }}>{tr("haul.feeInfoMin", "The 8% came out below €5, so the €5 minimum applies.")}</div>
+                )}
+                <div style={{ display: "flex", justifyContent: "space-between", gap: 8, marginTop: 2, paddingTop: 6, borderTop: "1px solid #E8E6E0" }}>
+                  <span style={{ fontSize: 13, fontWeight: 700, color: "#0F0E0C" }}>Service fee</span>
+                  <span style={{ fontSize: 13, fontWeight: 700, color: "#FF5C00", flexShrink: 0 }}>€{svcFee.toFixed(2)}</span>
+                </div>
+              </div>
+              <button onClick={() => setShowFeeInfo(false)}
+                style={{ marginTop: 14, width: "100%", background: "#FF5C00", color: "#fff", border: "none", borderRadius: 12, padding: "11px", fontSize: 13.5, fontWeight: 700, cursor: "pointer" }}>
+                {tr("sheets.gotIt", "Got it")}
+              </button>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+      {/* Betaalknop (Kaito 25-08): zonder vinkje niet dood-grijs, maar een leesbare knop
+          "Tick the box…" die bij een klik het vakje laat schudden — je snapt meteen wat
+          er mist in plaats van te staren naar een knop die niets doet. */}
+      {(() => {
+        const hardDisabled = quoting || !!error || !chosen || !canAfford || confirming;
+        const needsTick = !hardDisabled && !addrOk;
+        return (
+          <button
+            onClick={() => { if (needsTick) { setTickErr(true); setShake(s => s + 1); return; } payLive(); }}
+            disabled={hardDisabled}
+            style={{ width: "100%", background: hardDisabled ? "#E8E6E0" : needsTick ? "#F3F1ED" : "#FF5C00", color: hardDisabled ? "#9C9893" : needsTick ? "#6B6862" : "#fff", border: needsTick ? "1px solid #D8D5CF" : "none", borderRadius: 12, padding: "14px", fontSize: 14, fontWeight: 700, cursor: hardDisabled ? "default" : "pointer" }}>
+            {confirming ? "Processing..." : quoting ? "Calculating…" : error ? "Unavailable" : !canAfford ? "Insufficient balance" : needsTick ? `${tr("haul.tickToPay", "Tick the box to confirm & pay")} €${toPay.toFixed(2)}` : `Confirm & pay €${toPay.toFixed(2)}`}
+          </button>
+        );
+      })()}
     </div>
   );
 }

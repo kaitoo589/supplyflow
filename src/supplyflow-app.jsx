@@ -660,16 +660,9 @@ function OrderGroupCard({ items, onOpenItem, groupSize, onDismiss, parcel, activ
                     squad ? null : `€${(Number(o.price) || 0).toFixed(2)}`].filter(Boolean).join(" · ")}
                 </div>
                 <div style={{ display: "flex", flexWrap: "wrap", gap: 5, marginTop: 6 }}>
-                  <span style={{ background: s.bg, color: s.color, fontSize: 10.5, fontWeight: 700, padding: "2px 9px", borderRadius: 20 }}>{statusLabel(o)}{o.problem_type ? " · ⚠️" : ""}</span>
-                  {o.status === "qc_pending" && o.arrived_at && (() => {
-                    const d = storageDayOf(o.arrived_at);
-                    const over = d > 30;
-                    return (
-                      <span style={{ background: over ? "#FEE2E2" : d >= 24 ? "#FEF3C7" : "#D1FAE5", color: over ? "#DC2626" : d >= 24 ? "#B45309" : "#065F46", fontSize: 10.5, fontWeight: 700, padding: "2px 9px", borderRadius: 20 }}>
-                        🗓️ {over ? tr("orders.item.storageFee", "{days}/90 · storage fee", { days: d }) : tr("orders.item.storageFree", "{days}/30 free storage", { days: d })}
-                      </span>
-                    );
-                  })()}
+                  {/* "In warehouse"-chip + opslagteller hier WEG (Kaito 25-08): de kop zegt al
+                      "In our warehouse", en de teller voelde als opjagen. Alleen ⚠️ blijft. */}
+                  {o.problem_type && <span style={{ background: s.bg, color: s.color, fontSize: 10.5, fontWeight: 700, padding: "2px 9px", borderRadius: 20 }}>⚠️ {statusLabel(o)}</span>}
                   {parcelStateFor && (() => {
                     const ps = parcelStateFor(o);
                     if (!ps) return null;

@@ -622,9 +622,8 @@ function OrderGroupCard({ items, onOpenItem, groupSize, onDismiss, parcel, activ
   // pijl-kolom (de kop blijft gewoon klikbaar om uit te klappen), schuift de ring naar
   // rechts en toont de kaart een half-zichtbare collage van de Quality-control-foto's —
   // dé reden om te kijken moet je niet hoeven zoeken achter een uitklapper.
-  const readyCard = !allInTransit && !allDelivered && items.length > 0 && items.every(o => (statusConfig[o.status]?.step ?? 0) >= whStep);
-  const qcTeaseItems = readyCard ? items.filter(o => o.status === "qc_pending" && ((o.qc_images?.length || 0) + (o.measurement_images?.length || 0) > 0)) : [];
-  const teasePhotos = qcTeaseItems.flatMap(o => [...(o.qc_images || []), ...(o.measurement_images || [])]).slice(0, 4);
+  const readyCard = !allInTransit && !allDelivered && items.length > 0 && refundedItems.length === 0 && items.every(o => (statusConfig[o.status]?.step ?? 0) >= whStep);
+  const arrivedFmt = (ts) => { try { return ts ? new Date(ts).toLocaleDateString("en-GB") : ""; } catch { return ""; } };
   return (
     <motion.div layout exit={{ opacity: 0, scale: 0.94, transition: { duration: 0.22, ease: [0.4, 0, 1, 1] } }} style={{ position: "relative", background: "#fff", border: "1px solid #E8E6E0", borderRadius: 16, marginBottom: 10, overflow: "hidden" }}>
       {/* Wegklikbaar (user 2026-07-22): behalve afgeleverde kaarten ook de "Parcel · In
@@ -635,7 +634,92 @@ function OrderGroupCard({ items, onOpenItem, groupSize, onDismiss, parcel, activ
           <X size={13} strokeWidth={2.7} />
         </motion.button>
       )}
-      <motion.div whileTap={allInTransit ? undefined : { scale: 0.99 }} onClick={() => { if (!allInTransit) setOpen(o => !o); }} style={{ display: "flex", alignItems: "center", gap: 12, padding: (allDelivered || allInTransit) ? "13px 38px 13px 15px" : readyCard ? "16px 15px 12px" : "13px 15px", cursor: allInTransit ? "default" : "pointer" }}>
+      {/* Magazijn-kaart (Kaito 25-08): GEEN uitklap meer — alles staat er meteen, per item:
+          titel voluit, aankomstdatum in het magazijn, aantal/kleur/maat/prijs, de chips
+          (In warehouse · opslagteller · In your parcel) en de halve foto-collage. */}
+      {readyCard ? (
+        <div style={{ padding: "14px 15px 4px" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10 }}>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ fontSize: 11, color: "#A8A5A0" }}>{tr("orders.card.itemCount", "{count} item{s}", { count: shownItems.length, s: shownItems.length > 1 ? "s" : "" })}</div>
+              <div style={{ fontSize: 13.5, fontWeight: 800, color: "#111" }}>🏭 {tr("orders.card.inWarehouseTitle", "In our warehouse")}</div>
+            </div>
+            <motion.div whileTap={{ scale: 0.85 }} onClick={(e) => { e.stopPropagation(); setWheel(true); }} title="Tap for progress breakdown" style={{ flexShrink: 0, cursor: "pointer" }}>
+              <ProgressRing percent={percent} />
+            </motion.div>
+          </div>
+          {shownItems.map((o) => {
+            const s = statusConfig[o.status] || statusConfig.purchased;
+            const foto = [...(o.qc_images || []), ...(o.measurement_images || [])].slice(0, 4);
+            return (
+              <div key={o.id} onClick={onOpenItem ? () => onOpenItem(o) : undefined} style={{ cursor: onOpenItem ? "pointer" : "default", marginBottom: 12 }}>
+                <div style={{ fontSize: 13, fontWeight: 700, color: "#111", lineHeight: 1.35, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>{o.product_title || o.product}</div>
+                <div style={{ fontSize: 11.5, color: "#8A8780", marginTop: 2 }}>
+                  {[o.arrived_at ? tr("orders.card.arrivedOn", "Arrived {date}", { date: arrivedFmt(o.arrived_at) }) : null,
+                    tr("orders.item.pcs", "{qty} pcs", { qty: o.qty || 1 }), o.kleur, o.maat,
+                    squad ? null : `€${(Number(o.price) || 0).toFixed(2)}`].filter(Boolean).join(" · ")}
+                </div>
+                <div style={{ display: "flex", flexWrap: "wrap", gap: 5, marginTop: 6 }}>
+                  <span style={{ background: s.bg, color: s.color, fontSize: 10.5, fontWeight: 700, padding: "2px 9px", borderRadius: 20 }}>{statusLabel(o)}{o.problem_type ? " · ⚠️" : ""}</span>
+                  {o.status === "qc_pending" && o.arrived_at && (() => {
+                    const d = storageDayOf(o.arrived_at);
+                    const over = d > 30;
+                    return (
+                      <span style={{ background: over ? "#FEE2E2" : d >= 24 ? "#FEF3C7" : "#D1FAE5", color: over ? "#DC2626" : d >= 24 ? "#B45309" : "#065F46", fontSize: 10.5, fontWeight: 700, padding: "2px 9px", borderRadius: 20 }}>
+                        🗓️ {over ? tr("orders.item.storageFee", "{days}/90 · storage fee", { days: d }) : tr("orders.item.storageFree", "{days}/30 free storage", { days: d })}
+                      </span>
+                    );
+                  })()}
+                  {parcelStateFor && (() => {
+                    const ps = parcelStateFor(o);
+                    if (!ps) return null;
+                    if (ps === "locked") return <span style={{ background: "#DCFCE7", color: "#166534", fontSize: 10.5, fontWeight: 700, padding: "2px 9px", borderRadius: 20 }}>📦 {tr("parcel.chip.shipped", "In parcel — shipping paid")}</span>;
+                    if (ps === "in_solo") return <span style={{ background: "#FFF0E7", color: "#B8430A", fontSize: 10.5, fontWeight: 700, padding: "2px 9px", borderRadius: 20 }}>📦 {tr("parcel.chip.in", "In your parcel")}</span>;
+                    if (ps === "in") return (
+                      <span onClick={(e) => { e.stopPropagation(); onToggleParcel && onToggleParcel(o.id); }} style={{ background: "#FFF0E7", color: "#B8430A", fontSize: 10.5, fontWeight: 700, padding: "2px 9px", borderRadius: 20, cursor: "pointer" }}>
+                        📦 {tr("parcel.chip.in", "In your parcel")} <span style={{ opacity: 0.6 }}>· {tr("parcel.chip.holdOutShort", "hold out")}</span>
+                      </span>
+                    );
+                    if (ps === "ready") return <span style={{ background: "#DCFCE7", color: "#166534", fontSize: 10.5, fontWeight: 700, padding: "2px 9px", borderRadius: 20 }}>📦 {tr("parcel.chip.ready", "Ready")}</span>;
+                    if (ps === "confirm") return <span style={{ background: "#FEF3C7", color: "#92400E", fontSize: 10.5, fontWeight: 700, padding: "2px 9px", borderRadius: 20 }}>⏳ {tr("parcel.chip.unreadyConfirm", "Unready — inspect & confirm")}</span>;
+                    return (
+                      <span onClick={(e) => { e.stopPropagation(); onToggleParcel && onToggleParcel(o.id); }} style={{ background: "#F1EFE9", color: "#6B6862", fontSize: 10.5, fontWeight: 700, padding: "2px 9px", borderRadius: 20, cursor: "pointer" }}>
+                        ＋ {tr("parcel.chip.addBackLong", "Add back to parcel")}
+                      </span>
+                    );
+                  })()}
+                </div>
+                {foto.length > 0 ? (
+                  <div style={{ position: "relative", marginTop: 8, borderRadius: 12, overflow: "hidden", height: 62, background: "#F8F7F4", border: "1px solid #F0EEE8" }}>
+                    <div style={{ display: "flex", gap: 3 }}>
+                      {foto.map((url, i) => (
+                        <img key={i} src={url} referrerPolicy="no-referrer" alt="" style={{ flex: 1, minWidth: 0, height: 96, objectFit: "cover" }} />
+                      ))}
+                    </div>
+                    <div style={{ position: "absolute", inset: 0, background: "linear-gradient(180deg, rgba(255,255,255,0) 0%, rgba(255,255,255,0.55) 55%, rgba(255,255,255,0.94) 100%)" }} />
+                    <div style={{ position: "absolute", left: 0, right: 0, bottom: 6, textAlign: "center", fontSize: 11.5, fontWeight: 800, color: "#0369A1" }}>
+                      📸 {tr("orders.item.qcView", "View quality-control pictures")} →
+                    </div>
+                  </div>
+                ) : (
+                  <div style={{ marginTop: 8 }}>
+                    <span style={{ display: "inline-block", background: "#FEF2F2", color: "#DC2626", fontSize: 10.5, fontWeight: 700, padding: "2px 9px", borderRadius: 20 }}>
+                      ⏳ {tr("orders.item.qcAwaiting", "Awaiting quality-control pictures")}
+                    </span>
+                  </div>
+                )}
+              </div>
+            );
+          })}
+          {filterStatuses && (
+            <motion.button whileTap={{ scale: 0.97 }} onClick={(e) => { e.stopPropagation(); onClearFilter && onClearFilter(); }}
+              style={{ width: "100%", marginBottom: 12, background: "#111", color: "#fff", border: "none", borderRadius: 12, padding: "11px", fontSize: 12.5, fontWeight: 700, cursor: "pointer", WebkitTapHighlightColor: "transparent" }}>
+              {tr("orders.filter.all", "All orders")}
+            </motion.button>
+          )}
+        </div>
+      ) : (
+      <motion.div whileTap={allInTransit ? undefined : { scale: 0.99 }} onClick={() => { if (!allInTransit) setOpen(o => !o); }} style={{ display: "flex", alignItems: "center", gap: 12, padding: (allDelivered || allInTransit) ? "13px 38px 13px 15px" : "13px 15px", cursor: allInTransit ? "default" : "pointer" }}>
         <div style={{ display: "flex", flexShrink: 0 }}>
           {items.slice(0, 3).map((o, i) => (
             <div key={o.id} style={{ width: 40, height: 40, borderRadius: 9, background: "#fff", boxShadow: "0 0 0 1px #F0EEE8", overflow: "hidden", marginLeft: i ? -14 : 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
@@ -684,26 +768,9 @@ function OrderGroupCard({ items, onOpenItem, groupSize, onDismiss, parcel, activ
           </div>
         )}
       </motion.div>
-      {/* Half-zichtbare Quality-control-collage: de foto's duiken onder de witte rand weg,
-          met de klik-tekst eroverheen. Eén foto-item → meteen dat item openen (zelfde
-          bestemming als de bestaande knop); meerdere → kaart uitklappen om te kiezen. */}
-      {teasePhotos.length > 0 && (
-        <motion.div whileTap={{ scale: 0.98 }}
-          onClick={(e) => { e.stopPropagation(); if (qcTeaseItems.length === 1 && onOpenItem) onOpenItem(qcTeaseItems[0]); else setOpen(true); }}
-          style={{ position: "relative", margin: "0 12px 12px", borderRadius: 12, overflow: "hidden", cursor: "pointer", height: 62, background: "#F8F7F4", border: "1px solid #F0EEE8" }}>
-          <div style={{ display: "flex", gap: 3 }}>
-            {teasePhotos.map((url, i) => (
-              <img key={i} src={url} referrerPolicy="no-referrer" alt="" style={{ flex: 1, minWidth: 0, height: 96, objectFit: "cover" }} />
-            ))}
-          </div>
-          <div style={{ position: "absolute", inset: 0, background: "linear-gradient(180deg, rgba(255,255,255,0) 0%, rgba(255,255,255,0.55) 55%, rgba(255,255,255,0.94) 100%)" }} />
-          <div style={{ position: "absolute", left: 0, right: 0, bottom: 6, textAlign: "center", fontSize: 11.5, fontWeight: 800, color: "#0369A1" }}>
-            📸 {tr("orders.item.qcView", "View quality-control pictures")} →
-          </div>
-        </motion.div>
       )}
       <AnimatePresence initial={false}>
-        {open && (
+        {open && !readyCard && (
           <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }} transition={{ type: "spring", stiffness: 260, damping: 30 }} style={{ overflow: "hidden" }}>
             <div style={{ padding: "2px 12px 12px" }}>
               {shownItems.map(o => {

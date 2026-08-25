@@ -5417,7 +5417,17 @@ export default function SupplyFlow({ session, factoriesVisible = true }) {
           comingItems={parcelComing}
           refreshSignal={parcelRefresh}
           onEditAddress={() => { setTab("profile"); setShowEditProfile(true); }}
-          onGroupActivated={(g, opts) => { setActiveGroup({ id: g.id, name: g.name }); if (!opts?.stay) { fetchOrders(); fetchHauls(); } }}
+          onGroupActivated={(g, opts) => {
+            if (opts?.stay) {
+              // Stil vastleggen (overleeft app-switch/herlaad) ZONDER de weergave al om te
+              // schakelen — dat zou de open solo-verzendofferte laten herrekenen over
+              // items die net groepsitems werden ("Shipping unavailable"-bug 25-08).
+              try { localStorage.setItem(lsKey("flowva_active_group"), JSON.stringify({ id: g.id, name: g.name })); } catch { /* private mode */ }
+              return;
+            }
+            setActiveGroup({ id: g.id, name: g.name });
+            fetchOrders(); fetchHauls();
+          }}
           onToggleHold={activeGroup ? toggleParcelHold : undefined}
           onInspectItem={openInspectItem}
           onShipped={() => { fetchOrders(); fetchHauls(); fetchBalance(); }} />

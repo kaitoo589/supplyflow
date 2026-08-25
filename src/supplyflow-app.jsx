@@ -618,6 +618,13 @@ function OrderGroupCard({ items, onOpenItem, groupSize, onDismiss, parcel, activ
   // Service fee (solo én groep) valt nu bij VERZENDEN (per pakket) — de kaart toont alleen de itemwaarde.
   const isGroupOrder = !!items[0]?.ff_group_id;
   const total = subtotal;
+  // Magazijn-kaart (Kaito 25-08): staat álles in het magazijn (100%), dan vervalt de
+  // pijl-kolom (de kop blijft gewoon klikbaar om uit te klappen), schuift de ring naar
+  // rechts en toont de kaart een half-zichtbare collage van de Quality-control-foto's —
+  // dé reden om te kijken moet je niet hoeven zoeken achter een uitklapper.
+  const readyCard = !allInTransit && !allDelivered && items.length > 0 && items.every(o => (statusConfig[o.status]?.step ?? 0) >= whStep);
+  const qcTeaseItems = readyCard ? items.filter(o => o.status === "qc_pending" && ((o.qc_images?.length || 0) + (o.measurement_images?.length || 0) > 0)) : [];
+  const teasePhotos = qcTeaseItems.flatMap(o => [...(o.qc_images || []), ...(o.measurement_images || [])]).slice(0, 4);
   return (
     <motion.div layout exit={{ opacity: 0, scale: 0.94, transition: { duration: 0.22, ease: [0.4, 0, 1, 1] } }} style={{ position: "relative", background: "#fff", border: "1px solid #E8E6E0", borderRadius: 16, marginBottom: 10, overflow: "hidden" }}>
       {/* Wegklikbaar (user 2026-07-22): behalve afgeleverde kaarten ook de "Parcel · In
@@ -628,7 +635,7 @@ function OrderGroupCard({ items, onOpenItem, groupSize, onDismiss, parcel, activ
           <X size={13} strokeWidth={2.7} />
         </motion.button>
       )}
-      <motion.div whileTap={allInTransit ? undefined : { scale: 0.99 }} onClick={() => { if (!allInTransit) setOpen(o => !o); }} style={{ display: "flex", alignItems: "center", gap: 12, padding: (allDelivered || allInTransit) ? "13px 38px 13px 15px" : "13px 15px", cursor: allInTransit ? "default" : "pointer" }}>
+      <motion.div whileTap={allInTransit ? undefined : { scale: 0.99 }} onClick={() => { if (!allInTransit) setOpen(o => !o); }} style={{ display: "flex", alignItems: "center", gap: 12, padding: (allDelivered || allInTransit) ? "13px 38px 13px 15px" : readyCard ? "16px 15px 12px" : "13px 15px", cursor: allInTransit ? "default" : "pointer" }}>
         <div style={{ display: "flex", flexShrink: 0 }}>
           {items.slice(0, 3).map((o, i) => (
             <div key={o.id} style={{ width: 40, height: 40, borderRadius: 9, background: "#fff", boxShadow: "0 0 0 1px #F0EEE8", overflow: "hidden", marginLeft: i ? -14 : 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
@@ -668,7 +675,7 @@ function OrderGroupCard({ items, onOpenItem, groupSize, onDismiss, parcel, activ
             <ProgressRing percent={percent} />
           </motion.div>
         )}
-        {!allInTransit && (
+        {!allInTransit && !readyCard && (
           <div style={{ flexShrink: 0, display: "flex", flexDirection: "column", alignItems: "center", gap: 2 }}>
             <motion.div animate={{ rotate: open ? 0 : 180 }} transition={springSnappy} style={{ display: "flex" }}>
               <ChevronUp size={18} color="#C9C6C1" strokeWidth={2.4} />
@@ -677,6 +684,24 @@ function OrderGroupCard({ items, onOpenItem, groupSize, onDismiss, parcel, activ
           </div>
         )}
       </motion.div>
+      {/* Half-zichtbare Quality-control-collage: de foto's duiken onder de witte rand weg,
+          met de klik-tekst eroverheen. Eén foto-item → meteen dat item openen (zelfde
+          bestemming als de bestaande knop); meerdere → kaart uitklappen om te kiezen. */}
+      {teasePhotos.length > 0 && (
+        <motion.div whileTap={{ scale: 0.98 }}
+          onClick={(e) => { e.stopPropagation(); if (qcTeaseItems.length === 1 && onOpenItem) onOpenItem(qcTeaseItems[0]); else setOpen(true); }}
+          style={{ position: "relative", margin: "0 12px 12px", borderRadius: 12, overflow: "hidden", cursor: "pointer", height: 62, background: "#F8F7F4", border: "1px solid #F0EEE8" }}>
+          <div style={{ display: "flex", gap: 3 }}>
+            {teasePhotos.map((url, i) => (
+              <img key={i} src={url} referrerPolicy="no-referrer" alt="" style={{ flex: 1, minWidth: 0, height: 96, objectFit: "cover" }} />
+            ))}
+          </div>
+          <div style={{ position: "absolute", inset: 0, background: "linear-gradient(180deg, rgba(255,255,255,0) 0%, rgba(255,255,255,0.55) 55%, rgba(255,255,255,0.94) 100%)" }} />
+          <div style={{ position: "absolute", left: 0, right: 0, bottom: 6, textAlign: "center", fontSize: 11.5, fontWeight: 800, color: "#0369A1" }}>
+            📸 {tr("orders.item.qcView", "View quality-control pictures")} →
+          </div>
+        </motion.div>
+      )}
       <AnimatePresence initial={false}>
         {open && (
           <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }} transition={{ type: "spring", stiffness: 260, damping: 30 }} style={{ overflow: "hidden" }}>

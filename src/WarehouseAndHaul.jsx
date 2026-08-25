@@ -619,10 +619,12 @@ function NormalShippingConfirm({ session, haulItems, balance, onBack, onSuccess,
   const [linkCopied, setLinkCopied] = useState(false);
   const payLessRef = useRef(null);                         // de grote knop onderaan (scroll-doel)
   const [payLessFlash, setPayLessFlash] = useState(0);     // > 0 = knop knippert even (aandacht)
+  // Groepsnaam altijd "Voornaam's parcel" — vooraf aangekondigd op de kaart (Kaito 25-08).
+  const groepsNaam = (session?.user?.user_metadata?.voornaam || "").trim()
+    ? `${session.user.user_metadata.voornaam.trim()}'s parcel` : "Parcel squad";
   const maakGroep = async () => {
     setPayLess("creating"); setPayLessErr("");
-    const voornaam = session?.user?.user_metadata?.voornaam || "";
-    const naam = voornaam ? `${voornaam}'s parcel` : "Parcel squad";
+    const naam = groepsNaam;
     const r = await ffCreateGroup(naam, 5);
     if (!r.ok) { setPayLessErr(r.error || "Could not create the group"); setPayLess("open"); return; }
     const adopt = await ffAdoptSolo(r.group_id);
@@ -1045,8 +1047,11 @@ function NormalShippingConfirm({ session, haulItems, balance, onBack, onSuccess,
                   <div style={{ fontSize: 12.5, color: "#555", lineHeight: 1.6, marginBottom: 8 }}>
                     {tr("payLess.body", "Ship together with a friend who lives nearby: your items go into one group parcel, they order too, and you split one set of shipping costs — usually 40–50% less each. Your items simply wait safely in the warehouse meanwhile.")}
                   </div>
-                  <div style={{ background: "#F0FDF4", border: "1px solid #BBF7D0", borderRadius: 12, padding: "9px 12px", fontSize: 12, color: "#065F46", fontWeight: 600, lineHeight: 1.5, marginBottom: 12 }}>
+                  <div style={{ background: "#F0FDF4", border: "1px solid #BBF7D0", borderRadius: 12, padding: "9px 12px", fontSize: 12, color: "#065F46", fontWeight: 600, lineHeight: 1.5, marginBottom: 8 }}>
                     🎁 {tr("payLess.bonus", "Bonus: items waiting in a group get 60 days of free storage instead of 30.")}
+                  </div>
+                  <div style={{ fontSize: 12, color: "#8A8780", lineHeight: 1.5, marginBottom: 12 }}>
+                    👥 {tr("payLess.groupName", "We'll create “{name}” as your group — you'll be in group mode right away.", { name: groepsNaam })}
                   </div>
                   {payLessErr && <div style={{ fontSize: 12, color: "#DC2626", marginBottom: 8 }}>{payLessErr}</div>}
                   <button onClick={maakGroep} disabled={payLess === "creating"}

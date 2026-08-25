@@ -328,6 +328,11 @@ export default function Friends({ session, onClose, initialJoinCode, initialGrou
     const r = await ffJoinGroup(code.trim());
     setBusy(false);
     if (!r.ok) { setErr(r.error || "Could not join"); return; }
+    // Auto-groepsmodus (Kaito 25-08): wie joint, shopt meteen VOOR die groep — geen
+    // aparte switch meer nodig. Naam uit de preview (invite-flow) of vers opgehaald.
+    let naam = preview?.group?.name || "";
+    if (!naam) { const info = await ffFetchGroup(r.group_id); naam = info?.group?.name || ""; }
+    onShopForGroup?.({ id: r.group_id, name: naam || "Group" });
     await openLobby(r.group_id);
   }
   async function doLeave() {

@@ -1853,6 +1853,12 @@ function EditProfileSheet({ session, onClose }) {
   // ── Validatie: alle velden verplicht + postcode moet bij het land passen ──────────────
   const blank = (v) => !String(v || "").trim();
   const needsProvince = !!EU_PROVINCES[form.land];
+  // Veldnamen die bij het land passen: een Amerikaan kent geen "Province"/"Postal code"
+  // maar "State"/"ZIP code" — zelfde veld, alleen het label wisselt mee.
+  const regionLabel = form.land === "USA" || form.land === "Australia" ? "State"
+    : form.land === "United Kingdom" ? "Region"
+    : form.land === "Norway" ? "County" : "Province";
+  const postcodeLabel = form.land === "USA" ? "ZIP code" : "Postal code";
   const pcBad = !blank(form.postcode) && !isValidPostcode(form.land, form.postcode);
   const miss = {
     voornaam: blank(form.voornaam), achternaam: blank(form.achternaam), telefoon: blank(form.telefoon),
@@ -1889,14 +1895,14 @@ function EditProfileSheet({ session, onClose }) {
         <div style={{ marginBottom: 10 }}><label style={labelStyle}>Phone</label><input style={{ ...inputStyle, ...errBorder(miss.telefoon) }} value={form.telefoon} onChange={e => set("telefoon", e.target.value)} /></div>
         <div style={{ marginBottom: 10 }}><label style={labelStyle}>Address (street + no.)</label><input style={{ ...inputStyle, ...errBorder(miss.adres) }} value={form.adres} onChange={e => set("adres", e.target.value)} /></div>
         <div style={{ display: "grid", gridTemplateColumns: "1fr 2fr", gap: 10, marginBottom: pcBad ? 4 : 10 }}>
-          <div><label style={labelStyle}>Postal code</label><input style={{ ...inputStyle, ...errBorder(miss.postcode || pcBad) }} value={form.postcode} onChange={e => set("postcode", e.target.value)} /></div>
+          <div><label style={labelStyle}>{postcodeLabel}</label><input style={{ ...inputStyle, ...errBorder(miss.postcode || pcBad) }} value={form.postcode} onChange={e => set("postcode", e.target.value)} /></div>
           <div><label style={labelStyle}>City</label><input style={{ ...inputStyle, ...errBorder(miss.stad) }} value={form.stad} onChange={e => set("stad", e.target.value)} /></div>
         </div>
         {pcBad && <div style={{ fontSize: 11.5, color: "#DC2626", marginBottom: 10 }}>Enter a valid {form.land} postal code{POSTCODE_EXAMPLE[form.land] ? ` — e.g. ${POSTCODE_EXAMPLE[form.land]}` : ""}.</div>}
-        <div style={{ marginBottom: 10 }}><label style={labelStyle}>Province</label>
+        <div style={{ marginBottom: 10 }}><label style={labelStyle}>{regionLabel}</label>
           {EU_PROVINCES[form.land]
             ? <select style={{ ...inputStyle, ...errBorder(miss.provincie) }} value={form.provincie} onChange={e => set("provincie", e.target.value)}>
-                <option value="">Select your province…</option>
+                <option value="">{`Select your ${regionLabel.toLowerCase()}…`}</option>
                 {EU_PROVINCES[form.land].map(p => <option key={p} value={p}>{p}</option>)}
               </select>
             : <input style={{ ...inputStyle, ...errBorder(miss.provincie) }} value={form.provincie} onChange={e => set("provincie", e.target.value)} placeholder="Province / state / region" />}
@@ -5099,6 +5105,7 @@ export default function SupplyFlow({ session, factoriesVisible = true }) {
           forfeitedItems={parcelForfeited}
           comingItems={parcelComing}
           refreshSignal={parcelRefresh}
+          onEditAddress={() => { setTab("profile"); setShowEditProfile(true); }}
           onToggleHold={activeGroup ? toggleParcelHold : undefined}
           onInspectItem={openInspectItem}
           onShipped={() => { fetchOrders(); fetchHauls(); fetchBalance(); }} />

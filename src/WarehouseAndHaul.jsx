@@ -599,7 +599,7 @@ function ConfirmHaul(props) {
   return <NormalShippingConfirm {...props} />;
 }
 
-function NormalShippingConfirm({ session, haulItems, balance, onBack, onSuccess }) {
+function NormalShippingConfirm({ session, haulItems, balance, onBack, onSuccess, onEditAddress }) {
   const [confirming, setConfirming] = useState(false);
   const [quoting, setQuoting] = useState(true);
   const [chosen, setChosen] = useState(null);     // route waarop we de schatting baseren
@@ -825,6 +825,27 @@ function NormalShippingConfirm({ session, haulItems, balance, onBack, onSuccess 
         {!canAfford && <div style={{ fontSize: 12, color: "#B45309", marginTop: 6 }}>You're €{(toPay - balance).toFixed(2)} short.</div>}
         {!canAfford && !quoting && !error && chosen && <TopUpShort short={toPay - balance} />}
       </div>
+      {/* Adresblok direct BOVEN het "adres klopt"-vinkje (Kaito 25-08): nog één keer
+          dubbelchecken — en via Edit meteen kunnen aanpassen — vóór het echte verzenden. */}
+      {(() => {
+        const m = session?.user?.user_metadata || {};
+        const naam = `${m.voornaam || ""} ${m.achternaam || ""}`.trim();
+        if (!m.adres) return null;
+        return (
+          <div style={{ background: "#fff", border: "1px solid #E8E6E0", borderRadius: 14, padding: "12px 16px", marginBottom: 12 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
+              <span style={{ fontSize: 11.5, fontWeight: 700, color: "#8A8780", letterSpacing: 0.3 }}>{tr("cart.shippingTo", "📦 SHIPPING TO")}</span>
+              {onEditAddress && <button onClick={onEditAddress} style={{ background: "none", border: "none", color: "#FF5C00", fontSize: 12, fontWeight: 700, cursor: "pointer" }}>{tr("common.edit", "Edit")}</button>}
+            </div>
+            <div style={{ fontSize: 12.5, color: "#555", lineHeight: 1.55 }}>
+              {naam && <div style={{ color: "#0F0E0C", fontWeight: 600 }}>{naam}</div>}
+              <div>{m.adres}</div>
+              <div>{[m.postcode, m.stad].filter(Boolean).join(" ")}{m.provincie ? `, ${m.provincie}` : ""}{m.land ? `, ${m.land}` : ""}</div>
+              {m.telefoon && <div style={{ color: "#8A8780" }}>{m.telefoon}</div>}
+            </div>
+          </div>
+        );
+      })()}
       {chosen && !error && !quoting && (
         <label style={{ display: "flex", alignItems: "flex-start", gap: 10, marginBottom: 12, cursor: "pointer" }}>
           <input type="checkbox" checked={addrOk} onChange={e => setAddrOk(e.target.checked)} style={{ marginTop: 1, width: 16, height: 16, accentColor: "#FF5C00", flexShrink: 0 }} />
@@ -1630,7 +1651,7 @@ function GroupShippingPanel({ session, groupId, shipment, waitingCount, isHost, 
           : tr("group.quoted.body", "Your admin locked the group cart. You can now confirm & ship your part of the parcel on the next page.")}
       </div>
       {me && !me.paid && (
-        <button onClick={() => setPayPage(true)} style={{ width: "100%", background: "#FF5C00", color: "#fff", border: "none", borderRadius: 12, padding: "15px", fontSize: 14.5, fontWeight: 700, cursor: "pointer" }}>{tr("parcel.sheet.confirm", "Confirm & ship")} →</button>
+        <button onClick={() => setPayPage(true)} style={{ width: "100%", background: "#FF5C00", color: "#fff", border: "none", borderRadius: 12, padding: "15px", fontSize: 14.5, fontWeight: 700, cursor: "pointer" }}>{tr("parcel.sheet.confirm", "Calculate shipping cost")} →</button>
       )}
       {me && me.paid && (
         <button onClick={() => setPayPage(true)} style={{ width: "100%", background: "#F1EFE9", color: "#6B6862", border: "none", borderRadius: 12, padding: "12px", fontSize: 13, fontWeight: 700, cursor: "pointer" }}>{tr("group.quoted.viewSplit", "View the split")}</button>
@@ -1730,7 +1751,7 @@ const TRACE_LABEL = { 1: "In transit", 2: "Out for delivery", 3: "Delivered", 4:
 // items met Ready ná foto-inspectie (ff_stage_box → box_staged_at) — de server-
 // gate laat pas verzenden als ALLES Ready is. Geen stille auto-staging meer.
 // ────────────────────────────────────────────────────────────────────────────
-export function ParcelSection({ session, activeGroupId = null, parcelItems = [], heldOutItems = [], pendingRefunds = [], defectItems = [], forfeitedItems = [], comingItems = [], refreshSignal = 0, onToggleHold, onInspectItem, onShipped }) {
+export function ParcelSection({ session, activeGroupId = null, parcelItems = [], heldOutItems = [], pendingRefunds = [], defectItems = [], forfeitedItems = [], comingItems = [], refreshSignal = 0, onToggleHold, onInspectItem, onShipped, onEditAddress }) {
   const [open, setOpen] = useState(false);
   const [screen, setScreen] = useState(null);      // null | "confirm" | "success"
   const [balance, setBalance] = useState(0);
@@ -2177,7 +2198,7 @@ export function ParcelSection({ session, activeGroupId = null, parcelItems = [],
                     style={{ width: "100%", marginTop: 12, background: enabled ? "#FF5C00" : "#333", color: enabled ? "#fff" : "#777", border: "none", borderRadius: 14, padding: "15px", fontSize: 14.5, fontWeight: 700, cursor: enabled ? "pointer" : "default", WebkitTapHighlightColor: "transparent" }}>
                     {refundHold ? `⏳ ${tr("parcel.sheet.awaitingRefund", "Awaiting refund request response")}`
                       : defectHold ? `⚠️ ${tr("parcel.sheet.actionNeeded", "Action needed — choose keep or return")}`
-                      : <>{tr("parcel.sheet.confirm", "Confirm & ship")} →</>}
+                      : <>{tr("parcel.sheet.confirm", "Calculate shipping cost")} →</>}
                   </motion.button>
                 );
               })()}
@@ -2216,7 +2237,8 @@ export function ParcelSection({ session, activeGroupId = null, parcelItems = [],
         <div style={{ position: "fixed", inset: 0, zIndex: 320, background: "#F8F7F4", overflowY: "auto", WebkitOverflowScrolling: "touch" }}>
           <ConfirmHaul session={session} haulItems={parcelItems} balance={balance}
             onBack={() => { setScreen(null); setOpen(true); fetchBalance(); }}
-            onSuccess={() => setScreen("success")} />
+            onSuccess={() => setScreen("success")}
+            onEditAddress={onEditAddress ? () => { setScreen(null); setOpen(false); onEditAddress(); } : undefined} />
         </div>, document.body)}
       {screen === "success" && createPortal(
         <div style={{ position: "fixed", inset: 0, zIndex: 320, background: "#F8F7F4", overflowY: "auto", WebkitOverflowScrolling: "touch" }}>

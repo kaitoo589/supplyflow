@@ -4982,8 +4982,8 @@ export default function SupplyFlow({ session, factoriesVisible = true }) {
 
       {/* ORDERS TAB */}
       {tab === "orders" && !selectedOrder && (
-        {/* Extra ruimte onderaan als de pakket-balk zweeft (Kaito 25-08): anders verstopt
-            de balk de onderste kaart — nu kun je gewoon voorbij de balk scrollen. */}
+        /* Extra ruimte onderaan als de pakket-balk zweeft (Kaito 25-08): anders verstopt
+           de balk de onderste kaart — nu kun je gewoon voorbij de balk scrollen. */
         <motion.div key="orders-list" {...pageTransition} style={{ paddingBottom: parcelItems.length > 0 ? 180 : 80, width: "100%" }}>
           <TreasureMap activeFilter={orderFilter} onSelect={setOrderFilter} orders={visibleOrders} />
           <div style={{ padding: "16px 20px" }}>

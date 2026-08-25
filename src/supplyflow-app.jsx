@@ -5417,7 +5417,7 @@ export default function SupplyFlow({ session, factoriesVisible = true }) {
           comingItems={parcelComing}
           refreshSignal={parcelRefresh}
           onEditAddress={() => { setTab("profile"); setShowEditProfile(true); }}
-          onGroupActivated={(g) => { setActiveGroup({ id: g.id, name: g.name }); fetchOrders(); fetchHauls(); }}
+          onGroupActivated={(g, opts) => { setActiveGroup({ id: g.id, name: g.name }); if (!opts?.stay) { fetchOrders(); fetchHauls(); } }}
           onToggleHold={activeGroup ? toggleParcelHold : undefined}
           onInspectItem={openInspectItem}
           onShipped={() => { fetchOrders(); fetchHauls(); fetchBalance(); }} />

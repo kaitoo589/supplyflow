@@ -635,8 +635,13 @@ function NormalShippingConfirm({ session, haulItems, balance, onBack, onSuccess,
     const adopt = await ffAdoptSolo(r.group_id);
     if (!adopt.ok) { setPayLessErr(adopt.error || "Could not move your items"); setPayLess("open"); return; }
     const { data: g } = await supabase.from("flowva_groups").select("id, name, invite_code").eq("id", r.group_id).single();
-    setNieuweGroep(g || { id: r.group_id, name: naam, invite_code: null });
+    const groep = g || { id: r.group_id, name: naam, invite_code: null };
+    setNieuweGroep(groep);
     setPayLess("share");
+    // Groepsmodus METEEN vastzetten (Kaito 25-08): wie tijdens het delen even naar
+    // Discord/WhatsApp switcht en de pagina herlaadt, komt terug in groepsmodus —
+    // niet in solo. stay:true = scherm nog niet sluiten (dat doet pas "Done").
+    onGroupActivated && onGroupActivated(groep, { stay: true });
   };
   const orderIds = haulItems.map(o => o.id);
   const totalWeight = haulItems.reduce((s, o) => s + (o.weight_grams || 0), 0);
@@ -2468,7 +2473,7 @@ export function ParcelSection({ session, activeGroupId = null, parcelItems = [],
             onBack={() => { setScreen(null); setOpen(true); fetchBalance(); }}
             onSuccess={() => setScreen("success")}
             onEditAddress={onEditAddress ? () => { setScreen(null); setOpen(false); onEditAddress(); } : undefined}
-            onGroupActivated={onGroupActivated ? (g) => { setScreen(null); setOpen(false); onGroupActivated(g); } : undefined} />
+            onGroupActivated={onGroupActivated ? (g, opts) => { if (!opts?.stay) { setScreen(null); setOpen(false); } onGroupActivated(g, opts); } : undefined} />
         </div>, document.body)}
       {screen === "success" && createPortal(
         <div style={{ position: "fixed", inset: 0, zIndex: 320, background: "#F8F7F4", overflowY: "auto", WebkitOverflowScrolling: "touch" }}>

@@ -229,5 +229,7 @@ end; $$;
 -- NIET voor de klant: geen auth.uid()-check, raakt alle groepen → alleen service_role/cron.
 revoke all on function public.ff_expire_stale_groups(int) from public, anon, authenticated;
 
--- Optioneel automatisch draaien (vereist de pg_cron-extensie; anders vanuit admin/cron-edge):
+-- ⛔ BESLUIT KAITO 25-08: groepen verlopen NOOIT vanzelf — deze cron NIET inschakelen.
+-- (Mensen mogen weken doen over het verzamelen van vrienden; een wachtende groep kost niets.)
+-- De functie blijft bestaan voor eventueel HANDMATIG opruimen van dode groepen vanuit de admin.
 --   select cron.schedule('ff-expire-stale', '0 3 * * *', $$ select public.ff_expire_stale_groups(168) $$);

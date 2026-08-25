@@ -17,6 +17,18 @@ export default function SupportWidget({ session }) {
   // "Hide" verbergt het per apparaat; de schakelaar in Profiel zet het weer aan.
   const [hidden, setHidden] = useState(() => { try { return localStorage.getItem(HIDE_KEY) === "1"; } catch { return false; } });
   const [confirmHide, setConfirmHide] = useState(false);
+  // Positie van het verberg-kaartje: klapt vanaf het bolletje naar RECHTSONDER uit,
+  // maar geklemd binnen het scherm — waar het bolletje ook naartoe gesleept is,
+  // het kaartje is altijd volledig leesbaar (Kaito 25-08).
+  const [cardPos, setCardPos] = useState({ left: 12, top: 12 });
+  const openConfirmHide = () => {
+    const B = 232, H = 190, M = 12;
+    const rect = btnRef.current?.getBoundingClientRect();
+    const left = Math.min(Math.max(rect ? rect.left : M, M), window.innerWidth - B - M);
+    const top = Math.min(Math.max(rect ? rect.top : M, M), window.innerHeight - H - M);
+    setCardPos({ left, top });
+    setConfirmHide(true);
+  };
   useEffect(() => {
     const sync = () => { try { setHidden(localStorage.getItem(HIDE_KEY) === "1"); } catch { /* private mode */ } };
     window.addEventListener("flowva:supportHiddenChanged", sync);
@@ -292,7 +304,7 @@ export default function SupportWidget({ session }) {
         /* Kruisje getikt → het bolletje morpht (layoutId) naar dit compacte kaartje:
            wat het is, hoe je het verbergt, en waar het terug te vinden is. */
         <motion.div layoutId="support-orb" transition={springSoft}
-          style={{ x, y, position: "fixed", bottom: 20, right: 20, width: 232, background: "#fff", borderRadius: 18, padding: "12px 14px", border: `1px solid ${theme.line}`, boxShadow: theme.shadow, zIndex: 1001 }}>
+          style={{ position: "fixed", left: cardPos.left, top: cardPos.top, width: 232, background: "#fff", borderRadius: 18, padding: "12px 14px", border: `1px solid ${theme.line}`, boxShadow: theme.shadow, zIndex: 1001 }}>
           <div style={{ fontSize: 12, color: theme.ink, lineHeight: 1.5 }}>
             <Fox /> {tr("support.hideBody", "This is Flowva support — a real person answers here. Don't need the bubble? Hide it; you can turn it back on anytime in your Profile.")}
           </div>
@@ -355,7 +367,7 @@ export default function SupportWidget({ session }) {
         {!open && (
           <span
             onPointerDown={(e) => e.stopPropagation()}
-            onClick={(e) => { e.stopPropagation(); setConfirmHide(true); }}
+            onClick={(e) => { e.stopPropagation(); openConfirmHide(); }}
             aria-label="Hide support bubble"
             style={{ position: "absolute", top: -4, right: -4, width: 19, height: 19, borderRadius: 10, background: "#0F0E0C", color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", border: "2px solid #fff", cursor: "pointer" }}>
             <X size={11} strokeWidth={3} />

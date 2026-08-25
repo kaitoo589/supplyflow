@@ -10,7 +10,7 @@ import Fox from "./Fox";
 import { garmentType } from "./garment";
 import { tr } from "./i18n";
 import { exactTopUp, startTopUp, TOPUP_MIN } from "./topup";
-import { isEUCountry, DELIVERY_DAYS, countryDisplayEn } from "./countries";
+import { isEUCountry, DELIVERY_DAYS, RETURN_COST, countryDisplayEn } from "./countries";
 
 // Gedeeld tekort-blok voor de twee verzendschermen (solo + groep). Zelfde regel als
 // bij de mand: kom je net tekort, dan waardeer je precies dat bedrag op via iDEAL en
@@ -605,6 +605,7 @@ function NormalShippingConfirm({ session, haulItems, balance, onBack, onSuccess,
   const [chosen, setChosen] = useState(null);     // route waarop we de schatting baseren
   const [error, setError] = useState(null);
   const [addrOk, setAddrOk] = useState(false);    // "mijn adres klopt"-bevestiging vóór betalen
+  const [showShipInfo, setShowShipInfo] = useState(false); // ?-knopje bij het vinkje → overlay met de kleine lettertjes
   const orderIds = haulItems.map(o => o.id);
   const totalWeight = haulItems.reduce((s, o) => s + (o.weight_grams || 0), 0);
   // Douane-categorieën in dit pakket (HS6-benadering). ALLEEN voor weergave — de €3 zit al
@@ -724,7 +725,8 @@ function NormalShippingConfirm({ session, haulItems, balance, onBack, onSuccess,
             </div>
             <div style={{ flex: 1 }}>
               <div style={{ fontSize: 13, fontWeight: 600, color: "#0F0E0C" }}>{o.product_title || o.product}</div>
-              <div style={{ fontSize: 11, color: "#aaa" }}>{o.weight_grams}g</div>
+              {/* Gewicht + maat/kleur (Kaito 25-08): zodat je hier nog ziet wélke variant meegaat. */}
+              <div style={{ fontSize: 11, color: "#8A8780" }}>{[`${o.weight_grams}g`, o.kleur, o.maat].filter(Boolean).join(" · ")}</div>
             </div>
           </div>
         ))}
@@ -742,77 +744,80 @@ function NormalShippingConfirm({ session, haulItems, balance, onBack, onSuccess,
         </div>
       ) : (
         <motion.div layoutId="confirmHaul" transition={springMorph} style={{ background: "#0F0E0C", borderRadius: 14, padding: 16, marginBottom: 16 }}>
-          <div style={{ fontSize: 13, fontWeight: 700, color: "#FF5C00", marginBottom: 4 }}>Cost overview <span style={{ color: "#666", fontWeight: 500 }}>· estimate</span></div>
-          <div style={{ fontSize: 11, color: "#888", marginBottom: 12 }}>Estimated now — any difference comes back after the carrier's final bill.</div>
-          <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
-            <span style={{ fontSize: 13, color: "#888" }}>International shipping{carrier ? <span style={{ color: "#fff", fontWeight: 600 }}> · {carrier}</span> : null} <span style={{ color: "#666" }}>· duties included</span></span>
-            <span style={{ fontSize: 13, color: "#fff" }}>€{buffered.toFixed(2)}</span>
+          {/* Leesbaar donker blok (Kaito 25-08): alles wit i.p.v. grijs, en de buffer als
+              EIGEN regel met eigen bedrag — zo zie je precies wat de waarborg is die terugkomt. */}
+          <div style={{ fontSize: 13.5, fontWeight: 700, color: "#FF5C00", marginBottom: 3 }}>Estimated cost overview</div>
+          <div style={{ fontSize: 11.5, color: "#C9C6C1", marginBottom: 14 }}>This is an estimate, not the final bill — any difference comes back after the carrier's real invoice.</div>
+          <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 3 }}>
+            <span style={{ fontSize: 13, color: "#fff" }}>International shipping{carrier ? <span style={{ fontWeight: 600 }}> · {carrier}</span> : null} <span style={{ color: "#C9C6C1" }}>· duties included</span></span>
+            <span style={{ fontSize: 13, color: "#fff" }}>€{r2(estFreight).toFixed(2)}</span>
           </div>
-          {/* Buffer zichtbaar (user 2026-07-22): de ×1,25 zit in het bedrag hierboven. */}
-          <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8, paddingLeft: 12 }}>
-            <span style={{ fontSize: 11.5, color: "#666" }}>↳ {tr("cost.bufferNote", "incl. +25% buffer · refunded if the real bill is lower")}</span>
+          {/* De ×1,25-waarborg als aparte regel: basisprijs + buffer = wat je nu betaalt. */}
+          <div style={{ display: "flex", justifyContent: "space-between", gap: 8, marginBottom: 10, paddingLeft: 12 }}>
+            <span style={{ fontSize: 12, color: "#C9C6C1" }}>↳ {tr("cost.bufferNote", "+25% safety buffer — refunded if the real bill is lower")}</span>
+            <span style={{ fontSize: 12, color: "#fff", flexShrink: 0 }}>€{r2(buffered - r2(estFreight)).toFixed(2)}</span>
           </div>
           <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8 }}>
-            <span style={{ fontSize: 13, color: "#888" }}>Currency conversion <span style={{ color: "#666" }}>· {tr("cost.currencyNote", "3% · on goods + shipping + fulfillment converted to ¥")}</span></span>
+            <span style={{ fontSize: 13, color: "#fff" }}>Currency conversion <span style={{ color: "#C9C6C1" }}>· {tr("cost.currencyNote", "3% · on goods + shipping + fulfillment converted to ¥")}</span></span>
             <span style={{ fontSize: 13, color: "#fff" }}>€{currencyFee.toFixed(2)}</span>
           </div>
           {vat > 0 && (
             <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8 }}>
-              <span style={{ fontSize: 13, color: "#888" }}>Import VAT (21%)</span>
+              <span style={{ fontSize: 13, color: "#fff" }}>Import VAT (21%)</span>
               <span style={{ fontSize: 13, color: "#fff" }}>€{vat.toFixed(2)}</span>
             </div>
           )}
           <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8 }}>
-            <span style={{ fontSize: 13, color: "#888" }}>Fulfillment (¥9.9)</span>
+            <span style={{ fontSize: 13, color: "#fff" }}>Fulfillment <span style={{ color: "#C9C6C1" }}>· ¥9.9 per parcel</span></span>
             <span style={{ fontSize: 13, color: "#fff" }}>€{FULFIL_EUR.toFixed(2)}</span>
           </div>
           {surcharge > 0 && (
             <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8 }}>
-              <span style={{ fontSize: 13, color: "#888" }}>Handling surcharge <span style={{ color: "#666" }}>· {[extraItems > 0 ? `¥2 × ${extraItems} extra item${extraItems > 1 ? "s" : ""}` : null, extraKg > 0 ? `¥1.5 × ${extraKg}kg over 2kg` : null].filter(Boolean).join(" · ")}</span></span>
+              <span style={{ fontSize: 13, color: "#fff" }}>Handling surcharge <span style={{ color: "#C9C6C1" }}>· {[extraItems > 0 ? `¥2 × ${extraItems} extra item${extraItems > 1 ? "s" : ""}` : null, extraKg > 0 ? `¥1.5 × ${extraKg}kg over 2kg` : null].filter(Boolean).join(" · ")}</span></span>
               <span style={{ fontSize: 13, color: "#fff" }}>€{surcharge.toFixed(2)}</span>
             </div>
           )}
           <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
-            <span style={{ fontSize: 13, color: "#888" }}>Service fee <span style={{ color: "#666" }}>· 8% · min €5</span></span>
+            <span style={{ fontSize: 13, color: "#fff" }}>Service fee <span style={{ color: "#C9C6C1" }}>· 8% · min €5</span></span>
             <span style={{ fontSize: 13, color: "#fff" }}>€{svcFee.toFixed(2)}</span>
           </div>
           {/* Volledig open kaart: waarover de fee precies gerekend wordt — elk product op z'n
               kale prijs + de geschatte internationale verzending, en dan het percentage. */}
           <div style={{ paddingLeft: 12, marginBottom: 8 }}>
-            <div style={{ fontSize: 11, color: "#666", marginBottom: 3 }}>
+            <div style={{ fontSize: 11, color: "#C9C6C1", marginBottom: 3 }}>
               {tr("cost.feeBaseTitle", "Calculated over:")}
             </div>
             {haulItems.map((o, i) => (
               <div key={i} style={{ display: "flex", justifyContent: "space-between", gap: 8 }}>
-                <span style={{ fontSize: 11.5, color: "#7d7a75", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>↳ {o.product_title || o.product}</span>
-                <span style={{ fontSize: 11.5, color: "#7d7a75", flexShrink: 0 }}>€{(Number(o.price) || 0).toFixed(2)}</span>
+                <span style={{ fontSize: 11.5, color: "#C9C6C1", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>↳ {o.product_title || o.product}</span>
+                <span style={{ fontSize: 11.5, color: "#C9C6C1", flexShrink: 0 }}>€{(Number(o.price) || 0).toFixed(2)}</span>
               </div>
             ))}
             <div style={{ display: "flex", justifyContent: "space-between", gap: 8 }}>
-              <span style={{ fontSize: 11.5, color: "#7d7a75" }}>↳ {tr("cost.feeBaseShipping", "Estimated international shipping")}</span>
-              <span style={{ fontSize: 11.5, color: "#7d7a75", flexShrink: 0 }}>€{r2(estFreight).toFixed(2)}</span>
+              <span style={{ fontSize: 11.5, color: "#C9C6C1" }}>↳ {tr("cost.feeBaseShipping", "Estimated international shipping")}</span>
+              <span style={{ fontSize: 11.5, color: "#C9C6C1", flexShrink: 0 }}>€{r2(estFreight).toFixed(2)}</span>
             </div>
-            <div style={{ display: "flex", justifyContent: "space-between", gap: 8, marginTop: 3, paddingTop: 3, borderTop: "1px solid #26241f" }}>
-              <span style={{ fontSize: 11.5, color: "#999" }}>{tr("cost.feeBaseTotal", "Fee base")} · 8%</span>
-              <span style={{ fontSize: 11.5, color: "#999", flexShrink: 0 }}>€{feeBase.toFixed(2)}</span>
+            <div style={{ display: "flex", justifyContent: "space-between", gap: 8, marginTop: 3, paddingTop: 3, borderTop: "1px solid #333" }}>
+              <span style={{ fontSize: 11.5, color: "#fff" }}>{tr("cost.feeBaseTotal", "Fee base")} · 8%</span>
+              <span style={{ fontSize: 11.5, color: "#fff", flexShrink: 0 }}>€{feeBase.toFixed(2)}</span>
             </div>
           </div>
           {storageFee > 0 && (
             <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8 }}>
-              <span style={{ fontSize: 13, color: "#888" }}>Extended storage <span style={{ color: "#666" }}>· {storageItems} item{storageItems > 1 ? "s" : ""} over 30 days · €2 (31-60d) / €4 (61-90d)</span></span>
+              <span style={{ fontSize: 13, color: "#fff" }}>Extended storage <span style={{ color: "#C9C6C1" }}>· {storageItems} item{storageItems > 1 ? "s" : ""} over 30 days · €2 (31-60d) / €4 (61-90d)</span></span>
               <span style={{ fontSize: 13, color: "#fff" }}>€{storageFee.toFixed(2)}</span>
             </div>
           )}
           <div style={{ borderTop: "1px solid #333", paddingTop: 10, display: "flex", justifyContent: "space-between" }}>
-            <span style={{ fontSize: 14, fontWeight: 700, color: "#fff" }}>Pay now <span style={{ fontWeight: 500, color: "#9C9893", fontSize: 12 }}>· estimate</span></span>
+            <span style={{ fontSize: 14, fontWeight: 700, color: "#fff" }}>Pay now <span style={{ fontWeight: 500, color: "#C9C6C1", fontSize: 12 }}>· estimate</span></span>
             <span style={{ fontSize: 14, fontWeight: 700, color: "#FF5C00" }}>€{toPay.toFixed(2)}</span>
           </div>
-          <div style={{ marginTop: 10, fontSize: 11, color: "#555", lineHeight: 1.5 }}>✅ Duties prepaid (DDP) — nothing to pay on delivery. This is an estimate with a small buffer; about a week after shipping, the carrier's final bill comes in and you get any difference back as a shipping refund.</div>
+          <div style={{ marginTop: 10, fontSize: 11.5, color: "#C9C6C1", lineHeight: 1.55 }}>✅ Duties prepaid (DDP) — nothing to pay on delivery. About a week after shipping, the carrier's final bill comes in and you get any difference back as a shipping refund.</div>
           {/* Niet-EU (fase 3 wereldwijd): een bedrag zonder verwachting voelt onbetrouwbaar,
               dus hier per land de levertijd ná verzending erbij. */}
           {(() => { const land = session?.user?.user_metadata?.land;
             return land && !isEUCountry(land) && DELIVERY_DAYS[land] ? (
-              <div style={{ marginTop: 6, fontSize: 11, color: "#555", lineHeight: 1.5 }}>🚚 {tr("haul.deliveryDaysWorld", "Typically {days} days to {countryThe} once shipped.", { days: DELIVERY_DAYS[land], country: land, countryThe: countryDisplayEn(land) })}</div>
+              <div style={{ marginTop: 6, fontSize: 11.5, color: "#C9C6C1", lineHeight: 1.55 }}>🚚 {tr("haul.deliveryDaysWorld", "Typically {days} days to {countryThe} once shipped.", { days: DELIVERY_DAYS[land], country: land, countryThe: countryDisplayEn(land) })}</div>
             ) : null; })()}
         </motion.div>
       )}
@@ -849,15 +854,49 @@ function NormalShippingConfirm({ session, haulItems, balance, onBack, onSuccess,
       {chosen && !error && !quoting && (
         <label style={{ display: "flex", alignItems: "flex-start", gap: 10, marginBottom: 12, cursor: "pointer" }}>
           <input type="checkbox" checked={addrOk} onChange={e => setAddrOk(e.target.checked)} style={{ marginTop: 1, width: 16, height: 16, accentColor: "#FF5C00", flexShrink: 0 }} />
-          {/* Twee dingen in één vinkje, bewust geen tweede klik. De tweede zin is de
-              uitdrukkelijke instemming uit art. 16(a) Richtlijn 2011/83: zonder die
-              erkenning moet de service fee terugbetaald worden bij een herroeping. */}
+          {/* Kort vinkje (Kaito 25-08) — de service-fee-erkenning (art. 16(a) Richtlijn
+              2011/83) blijft in de zichtbare zin; de rest van de kleine lettertjes zit
+              achter het ?-knopje, zelfde patroon als in het mandje. */}
           <span style={{ fontSize: 12, color: "#555", lineHeight: 1.5 }}>
-            {tr("haul.confirm.address", "I confirm my delivery address is correct. A parcel sent to a wrong address can't be recovered.")}{" "}
-            {tr("haul.confirm.serviceFee", "I ask Flowva to start shipping now, and I understand the service fee is not refunded once that work is done.")}
+            {tr("haul.confirm.short", "I confirm my delivery address is correct, and I ask Flowva to start shipping now — the service fee is then no longer refundable.")}{" "}
+            <button type="button" onClick={(e) => { e.preventDefault(); e.stopPropagation(); setShowShipInfo(true); }}
+              aria-label={tr("haul.infoTitle", "Before you ship")}
+              style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: 17, height: 17, borderRadius: 9, border: "1px solid #D8D5CF", background: "#fff", color: "#8A8780", fontSize: 10.5, fontWeight: 700, cursor: "pointer", verticalAlign: "middle", padding: 0 }}>?</button>
           </span>
         </label>
       )}
+      {/* Blur-overlay met de kleine lettertjes van het verzenden — zelfde patroon als het
+          ?-knopje bij het mandje, maar in de lichte stijl van dit scherm. */}
+      <AnimatePresence>
+        {showShipInfo && (
+          <motion.div key="ship-info" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.18 }}
+            onClick={() => setShowShipInfo(false)}
+            style={{ position: "fixed", inset: 0, zIndex: 400, background: "rgba(15,14,12,0.35)", backdropFilter: "blur(10px)", WebkitBackdropFilter: "blur(10px)", display: "flex", alignItems: "center", justifyContent: "center", padding: 26 }}>
+            <motion.div initial={{ scale: 0.92, y: 10 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.95, y: 6 }} transition={{ type: "spring", stiffness: 380, damping: 28 }}
+              onClick={(e) => e.stopPropagation()}
+              style={{ maxWidth: 430, background: "#fff", border: "1px solid #E8E6E0", borderRadius: 18, padding: "20px 20px 16px", boxShadow: "0 18px 60px rgba(0,0,0,0.25)" }}>
+              <div style={{ fontSize: 14.5, fontWeight: 700, color: "#0F0E0C", marginBottom: 10 }}>{tr("haul.infoTitle", "Before you ship")}</div>
+              <div style={{ fontSize: 12.5, color: "#555", lineHeight: 1.65, display: "grid", gap: 8 }}>
+                <div>📍 {tr("haul.confirm.addressWarn", "A parcel sent to a wrong address can't be recovered — check it one more time above.")}</div>
+                <div>🔒 {tr("haul.confirm.feeWarn", "The service fee is not refunded once shipping work has started — that work is done for you the moment you confirm.")}</div>
+                <div>↩️ {(() => { const land = session?.user?.user_metadata?.land;
+                  return land && !isEUCountry(land) && RETURN_COST[land]
+                    ? tr("cart.returnCostWorld", "Flowva covers the return shipping only if my item turns out to have a defect that quality-control missed — not flagged, and not visible in the quality-control photos. If I change my mind, or I shipped an item after accepting a flagged issue, I pay the return shipping myself — usually {cost} from {countryThe}.", { cost: RETURN_COST[land], country: land, countryThe: countryDisplayEn(land) })
+                    : tr("cart.returnCost", "Flowva covers the return shipping only if my item turns out to have a defect that quality-control missed — not flagged, and not visible in the quality-control photos. If I change my mind, or I shipped an item after accepting a flagged issue, I pay the return shipping myself — usually €5–€10 within the EU."); })()}</div>
+                <div>
+                  📄 <a href="/terms" target="_blank" rel="noreferrer" style={{ color: "#FF5C00", fontWeight: 600 }}>{tr("ff.cart.agreeTerms", "Terms")}</a>
+                  {" · "}
+                  <a href="/returns-policy" target="_blank" rel="noreferrer" style={{ color: "#FF5C00", fontWeight: 600 }}>{tr("ff.cart.agreeReturns", "Returns & withdrawal policy")}</a>
+                </div>
+              </div>
+              <button onClick={() => setShowShipInfo(false)}
+                style={{ marginTop: 14, width: "100%", background: "#FF5C00", color: "#fff", border: "none", borderRadius: 12, padding: "11px", fontSize: 13.5, fontWeight: 700, cursor: "pointer" }}>
+                {tr("sheets.gotIt", "Got it")}
+              </button>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
       <button onClick={payLive} disabled={quoting || !!error || !chosen || !canAfford || confirming || !addrOk}
         style={{ width: "100%", background: quoting || error || !chosen || !canAfford || confirming || !addrOk ? "#E8E6E0" : "#FF5C00", color: "#fff", border: "none", borderRadius: 12, padding: "14px", fontSize: 14, fontWeight: 700, cursor: quoting || error || !chosen || !canAfford || confirming || !addrOk ? "default" : "pointer" }}>
         {confirming ? "Processing..." : quoting ? "Calculating…" : error ? "Unavailable" : !canAfford ? "Insufficient balance" : `Confirm & pay €${toPay.toFixed(2)}`}

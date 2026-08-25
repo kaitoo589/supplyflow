@@ -622,10 +622,15 @@ function NormalShippingConfirm({ session, haulItems, balance, onBack, onSuccess,
   // Groepsnaam altijd "Voornaam's parcel" — vooraf aangekondigd op de kaart (Kaito 25-08).
   const groepsNaam = (session?.user?.user_metadata?.voornaam || "").trim()
     ? `${session.user.user_metadata.voornaam.trim()}'s parcel` : "Parcel squad";
+  // Max groepsgrootte kiest de klant zelf op de kaart; de keuze IS meteen het
+  // fee-schema. HOUD DE PERCENTAGES IN SYNC met estimateMemberFee (ffApi.js) /
+  // ff_member_fee (flowva-friends-money.sql). Solo = 8% · min €5.
+  const [maxLeden, setMaxLeden] = useState(5);
+  const FEE_STAFFEL = { 2: "7%", 3: "6%", 4: "5,5%", 5: "5%", 6: "4,5%", 7: "4%" };
   const maakGroep = async () => {
     setPayLess("creating"); setPayLessErr("");
     const naam = groepsNaam;
-    const r = await ffCreateGroup(naam, 5);
+    const r = await ffCreateGroup(naam, maxLeden);
     if (!r.ok) { setPayLessErr(r.error || "Could not create the group"); setPayLess("open"); return; }
     const adopt = await ffAdoptSolo(r.group_id);
     if (!adopt.ok) { setPayLessErr(adopt.error || "Could not move your items"); setPayLess("open"); return; }
@@ -1049,6 +1054,24 @@ function NormalShippingConfirm({ session, haulItems, balance, onBack, onSuccess,
                   </div>
                   <div style={{ background: "#F0FDF4", border: "1px solid #BBF7D0", borderRadius: 12, padding: "9px 12px", fontSize: 12, color: "#065F46", fontWeight: 600, lineHeight: 1.5, marginBottom: 8 }}>
                     🎁 {tr("payLess.bonus", "Bonus: items waiting in a group get 60 days of free storage instead of 30.")}
+                  </div>
+                  {/* Groepsgrootte kiezen = meteen het fee-schema zien (Kaito 25-08):
+                      elke chip toont "aantal personen · jullie fee". */}
+                  <div style={{ marginBottom: 10 }}>
+                    <div style={{ fontSize: 12, fontWeight: 700, color: "#0F0E0C", marginBottom: 6 }}>{tr("payLess.sizeTitle", "Max group size = everyone's Flowva fee")}</div>
+                    <div style={{ display: "flex", flexWrap: "wrap", gap: 5 }}>
+                      {[2, 3, 4, 5, 6, 7].map((n) => {
+                        const sel = maxLeden === n;
+                        return (
+                          <button key={n} onClick={() => setMaxLeden(n)}
+                            style={{ flex: "1 0 auto", minWidth: 56, padding: "7px 6px", borderRadius: 10, border: `1.5px solid ${sel ? "#FF5C00" : "#E8E6E0"}`, background: sel ? "#FFF0E7" : "#fff", cursor: "pointer", WebkitTapHighlightColor: "transparent" }}>
+                            <div style={{ fontSize: 12, fontWeight: 800, color: sel ? "#FF5C00" : "#0F0E0C", lineHeight: 1.2 }}>👥 {n}</div>
+                            <div style={{ fontSize: 10.5, fontWeight: 700, color: sel ? "#FF5C00" : "#8A8780", lineHeight: 1.2 }}>{FEE_STAFFEL[n]} fee</div>
+                          </button>
+                        );
+                      })}
+                    </div>
+                    <div style={{ fontSize: 10.5, color: "#8A8780", marginTop: 5, lineHeight: 1.5 }}>{tr("payLess.sizeNote", "Solo pays 8% (min €5) — the fuller the group when you ship, the lower everyone's fee.")}</div>
                   </div>
                   <div style={{ fontSize: 12, color: "#8A8780", lineHeight: 1.5, marginBottom: 12 }}>
                     👥 {tr("payLess.groupName", "We'll create “{name}” as your group — you'll be in group mode right away.", { name: groepsNaam })}

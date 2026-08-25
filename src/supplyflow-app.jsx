@@ -4983,42 +4983,45 @@ export default function SupplyFlow({ session, factoriesVisible = true }) {
                 const subtitel = <div style={{ fontSize: 13.5, color: "#8A8780", marginBottom: 14 }}>{tr("feed.subtitle.brandsDefault", "Tap a store to explore its products.")}</div>;
                 if (genders.size < 2 && !tp) return subtitel;
                 return (
-                  <>
-                    <div style={{ display: "flex", alignItems: "center", gap: 7, marginBottom: 10, flexWrap: "wrap" }}>
-                      {genders.size >= 2 && [
-                        { key: null, label: tr("feed.gender.all", "All") },
-                        { key: "women", label: tr("feed.gender.women", "Women") },
-                        { key: "men", label: tr("feed.gender.men", "Men") },
-                      ].map(({ key, label }) => {
-                        const sel = genderFilter === key;
-                        return (
-                          <motion.button key={key ?? "all"} whileTap={{ scale: 0.93 }} transition={springSnappy}
-                            onClick={() => setGenderFilter(key)}
-                            style={{ padding: "8px 16px", borderRadius: 999, border: "1px solid " + (sel ? "#0F0E0C" : "#E8E6E0"), background: sel ? "#0F0E0C" : "#fff", color: sel ? "#fff" : "#555", fontSize: 13, fontWeight: 600, cursor: "pointer", WebkitTapHighlightColor: "transparent" }}>
-                            {label}
-                          </motion.button>
-                        );
-                      })}
-                      {tp && (
-                        /* Compact 2-regel-chipje op EXACT de hoogte van de All/Women/Men-knopjes
-                           (Kaito 25-08): boven de fractionele sterren + score, onder links het
-                           logo (Kaito's geschoonde SVG) en rechts het aantal reviews. */
-                        <motion.a href="https://www.trustpilot.com/review/flowva.app" target="_blank" rel="noreferrer"
-                          whileTap={{ scale: 0.94 }} transition={springSnappy}
-                          style={{ marginLeft: "auto", display: "inline-flex", flexDirection: "column", justifyContent: "center", gap: 3, background: "#fff", border: "1px solid #E8E6E0", borderRadius: 999, padding: "0 13px", height: 36, boxSizing: "border-box", textDecoration: "none", WebkitTapHighlightColor: "transparent" }}>
-                          <span style={{ display: "flex", alignItems: "center", gap: 5 }}>
-                            <TrustStars score={tp.score} size={10.5} />
-                            <span style={{ fontSize: 10.5, fontWeight: 800, color: "#191919", lineHeight: 1 }}>{tp.score.toFixed(1).replace(".", ",")}</span>
-                          </span>
-                          <span style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
-                            <img src="/trustpilot.svg" alt="Trustpilot" style={{ height: 8.5, display: "block" }} />
-                            <span style={{ fontSize: 8.5, fontWeight: 600, color: "#8A8780", lineHeight: 1 }}>{tp.count} {tr("feed.brandCard.stat.reviewsWord", "reviews")}</span>
-                          </span>
-                        </motion.a>
-                      )}
+                  /* Twee kolommen (Kaito 25-08): links de knopjes met de subtitel eronder,
+                     rechts de Trustpilot-chip die de VOLLE hoogte van die twee regels pakt —
+                     bovenkant gelijk met de knopjes, onderkant gelijk met de zin. */
+                  <div style={{ display: "flex", alignItems: "stretch", gap: 10, marginBottom: 14 }}>
+                    <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", justifyContent: "space-between", gap: 10 }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 7, flexWrap: "wrap" }}>
+                        {genders.size >= 2 && [
+                          { key: null, label: tr("feed.gender.all", "All") },
+                          { key: "women", label: tr("feed.gender.women", "Women") },
+                          { key: "men", label: tr("feed.gender.men", "Men") },
+                        ].map(({ key, label }) => {
+                          const sel = genderFilter === key;
+                          return (
+                            <motion.button key={key ?? "all"} whileTap={{ scale: 0.93 }} transition={springSnappy}
+                              onClick={() => setGenderFilter(key)}
+                              style={{ padding: "8px 16px", borderRadius: 999, border: "1px solid " + (sel ? "#0F0E0C" : "#E8E6E0"), background: sel ? "#0F0E0C" : "#fff", color: sel ? "#fff" : "#555", fontSize: 13, fontWeight: 600, cursor: "pointer", WebkitTapHighlightColor: "transparent" }}>
+                              {label}
+                            </motion.button>
+                          );
+                        })}
+                      </div>
+                      <div style={{ fontSize: 13.5, color: "#8A8780" }}>{tr("feed.subtitle.brandsDefault", "Tap a store to explore its products.")}</div>
                     </div>
-                    {subtitel}
-                  </>
+                    {tp && (
+                      <motion.a href="https://www.trustpilot.com/review/flowva.app" target="_blank" rel="noreferrer"
+                        whileTap={{ scale: 0.96 }} transition={springSnappy}
+                        style={{ alignSelf: "stretch", display: "inline-flex", flexDirection: "column", justifyContent: "center", gap: 6, background: "#fff", border: "1px solid #E8E6E0", borderRadius: 18, padding: "8px 14px", textDecoration: "none", WebkitTapHighlightColor: "transparent", flexShrink: 0 }}>
+                        <span style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                          <TrustStars score={tp.score} size={13.5} />
+                          <span style={{ fontSize: 13, fontWeight: 800, color: "#191919", lineHeight: 1 }}>{tp.score.toFixed(1).replace(".", ",")}</span>
+                          <span style={{ color: "#00B67A", fontSize: 12, fontWeight: 800, lineHeight: 1 }}>↗</span>
+                        </span>
+                        <span style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10 }}>
+                          <img src="/trustpilot.svg" alt="Trustpilot" style={{ height: 11, display: "block" }} />
+                          <span style={{ fontSize: 10, fontWeight: 600, color: "#8A8780", lineHeight: 1 }}>{tp.count} {tr("feed.brandCard.stat.reviewsWord", "reviews")}</span>
+                        </span>
+                      </motion.a>
+                    )}
+                  </div>
                 );
               })()}
               {loadingProducts && <div style={{ textAlign: "center", padding: 40, color: "#999" }}>{tab === "brands" ? tr("feed.loading.brands", "Loading brands...") : tr("feed.loading.factories", "Loading factories...")}</div>}

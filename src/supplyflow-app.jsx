@@ -4986,7 +4986,7 @@ export default function SupplyFlow({ session, factoriesVisible = true }) {
                   /* Twee kolommen (Kaito 25-08): links de knopjes met de subtitel eronder,
                      rechts de Trustpilot-chip die de VOLLE hoogte van die twee regels pakt —
                      bovenkant gelijk met de knopjes, onderkant gelijk met de zin. */
-                  <div style={{ display: "flex", alignItems: "stretch", gap: 10, marginBottom: 14 }}>
+                  <div style={{ display: "flex", alignItems: "stretch", gap: 8, marginBottom: 14 }}>
                     <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", justifyContent: "space-between", gap: 10 }}>
                       <div style={{ display: "flex", alignItems: "center", gap: 7, flexWrap: "wrap" }}>
                         {genders.size >= 2 && [
@@ -5012,18 +5012,20 @@ export default function SupplyFlow({ session, factoriesVisible = true }) {
                          om óók op telefoonbreedte naast de drie knopjes te passen. */
                       <motion.a href="https://www.trustpilot.com/review/flowva.app" target="_blank" rel="noreferrer"
                         whileTap={{ scale: 0.96 }} transition={springSnappy}
-                        style={{ alignSelf: "stretch", display: "inline-flex", flexDirection: "column", justifyContent: "center", gap: 5, background: "#fff", border: "1px solid #E8E6E0", borderRadius: 18, padding: "8px 12px", textDecoration: "none", WebkitTapHighlightColor: "transparent", flexShrink: 0 }}>
+                        style={{ alignSelf: "stretch", display: "inline-flex", flexDirection: "column", justifyContent: "center", gap: 5, background: "#fff", border: "1px solid #E8E6E0", borderRadius: 18, padding: "7px 11px", textDecoration: "none", WebkitTapHighlightColor: "transparent", flexShrink: 0, WebkitTextSizeAdjust: "100%" }}>
                         <span style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
                           <TrustStars score={tp.score} size={12.5} />
                           <span style={{ fontSize: 12.5, fontWeight: 800, color: "#191919", lineHeight: 1 }}>{tp.score.toFixed(1).replace(".", ",")}</span>
                         </span>
                         <span style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
-                          <img src="/trustpilot.svg" alt="Trustpilot" style={{ height: 10, display: "block" }} />
-                          <span style={{ fontSize: 9.5, fontWeight: 600, color: "#8A8780", lineHeight: 1 }}>{tp.count} {tr("feed.brandCard.stat.reviewsWord", "reviews")}</span>
+                          <img src="/trustpilot.svg" alt="Trustpilot" style={{ height: 9.5, display: "block" }} />
+                          <span style={{ fontSize: 9, fontWeight: 600, color: "#8A8780", lineHeight: 1 }}>{tp.count} {tr("feed.brandCard.stat.reviewsWord", "reviews")}</span>
                         </span>
-                        <span style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 9, fontWeight: 700, color: "#8A8780", lineHeight: 1 }}>
-                          {tr("feed.tp.visit", "Tap to visit Trustpilot")}
-                          <span style={{ color: "#00B67A", fontSize: 10, fontWeight: 800 }}>↗</span>
+                        {/* ↗ als SVG (het ↗-TEKEN wordt op iPhone een dikke blauwe emoji) en een
+                            korte zin — de lange maakte de chip zo breed dat de knopjes omklapten. */}
+                        <span style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 8.5, fontWeight: 700, color: "#8A8780", lineHeight: 1, whiteSpace: "nowrap" }}>
+                          {tr("feed.tp.visit", "Visit Trustpilot")}
+                          <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="#00B67A" strokeWidth="3.4" strokeLinecap="round" strokeLinejoin="round" style={{ display: "block" }}><path d="M7 17L17 7M9 7h8v8" /></svg>
                         </span>
                       </motion.a>
                     )}

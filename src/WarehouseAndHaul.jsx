@@ -2386,9 +2386,12 @@ export function TransitTab({ session, orders = [], activeGroupId = null }) {
   // Geleverde pakketten (trace_status 3) blijven standaard staan; de knop verbergt ze.
   const deliveredCount = modeHauls.filter(h => h.trace_status === 3).length;
   const shownHauls = hideDelivered ? modeHauls.filter(h => h.trace_status !== 3) : modeHauls;
+  // Meldt de wissel aan de hoofd-app (nav-badge telt bezorgde pakketten alleen mee
+  // zolang ze niet verborgen zijn).
   const toggleHideDelivered = () => setHideDelivered((v) => {
     const nv = !v;
     try { localStorage.setItem("flowva_hide_delivered", nv ? "1" : "0"); } catch {}
+    try { window.dispatchEvent(new Event("flowva:hideDeliveredChanged")); } catch {}
     return nv;
   });
 

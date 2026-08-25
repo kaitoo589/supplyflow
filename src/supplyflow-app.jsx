@@ -4003,7 +4003,7 @@ export default function SupplyFlow({ session, factoriesVisible = true }) {
   };
   // Parcels (oudste eerst) — zelfde set + nummering als de In transit-tab.
   const fetchHauls = async () => {
-    const { data } = await supabase.from("hauls").select("id, items, created_at, status, settled_at, refund_eur").eq("user_id", session.user.id).in("status", ["confirmed", "shipped"]).order("created_at", { ascending: true });
+    const { data } = await supabase.from("hauls").select("id, items, created_at, status, settled_at, refund_eur, trace_status").eq("user_id", session.user.id).in("status", ["confirmed", "shipped"]).order("created_at", { ascending: true });
     setHauls(data || []);
   };
 
@@ -4132,19 +4132,24 @@ export default function SupplyFlow({ session, factoriesVisible = true }) {
   const qcOrder = orders.find(o => o.status === "qc_pending");
   const avatarUrl = session?.user?.user_metadata?.avatar_url || null;
 
-  // 🛫 Transit-badge (Kaito 25-08): de "Shipped — track in In transit"-kaart is uit
-  // Orders; in de plaats telt de Transit-tab hoeveel verzonden pakketten je nog niet
-  // bekeken hebt. "Gezien" onthouden we lokaal per order-id; Transit openen wist 'm.
-  const inTransitIds = orders.filter(o => o.status === "shipped_international").map(o => o.id);
-  const [transitSeen, setTransitSeen] = useState(() => { try { return JSON.parse(localStorage.getItem("flowva_transit_seen") || "[]"); } catch { return []; } });
-  const transitBadge = inTransitIds.filter(id => !transitSeen.includes(id)).length;
+  // 🛫 Transit-badge (Kaito 25-08, herzien ×2): vaste teller per PAKKET (niet per item —
+  // 2 items in één doos = "1"). Onderweg = de badge staat er permanent, óók na het openen
+  // van de tab. Bezorgd = hij blijft staan tot je in Transit op "Hide delivered parcels"
+  // drukt; druk je op "Show delivered parcels", dan telt hij weer mee. De toggle in de
+  // Transit-tab meldt zich via een window-event zodat de nav direct meetelt.
+  const [hideDeliveredPref, setHideDeliveredPref] = useState(() => { try { return localStorage.getItem("flowva_hide_delivered") === "1"; } catch { return false; } });
   useEffect(() => {
-    if (tab === "transit" && inTransitIds.some(id => !transitSeen.includes(id))) {
-      const next = [...new Set([...transitSeen, ...inTransitIds])];
-      setTransitSeen(next);
-      try { localStorage.setItem("flowva_transit_seen", JSON.stringify(next)); } catch { /* private mode */ }
-    }
-  }, [tab, orders]);
+    const sync = () => { try { setHideDeliveredPref(localStorage.getItem("flowva_hide_delivered") === "1"); } catch {} };
+    window.addEventListener("flowva:hideDeliveredChanged", sync);
+    return () => window.removeEventListener("flowva:hideDeliveredChanged", sync);
+  }, []);
+  const transitBadge = (() => {
+    const statusById = new Map(orders.map(o => [o.id, o.status]));
+    return hauls.filter(h => {
+      if (h.trace_status === 3) return !hideDeliveredPref;   // bezorgd: telt tot je 'm verbergt
+      return (Array.isArray(h.items) ? h.items : []).some(id => statusById.get(id) === "shipped_international");
+    }).length;
+  })();
 
   // Cart-items die "on hold" staan wegens een prijswijziging (gededupliceerd op source_url).
   const flaggedInCart = [...new Map(

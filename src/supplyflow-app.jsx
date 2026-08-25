@@ -2166,7 +2166,7 @@ function WelcomeSheet({ onClose, onTour }) {
 
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={advance}
-      style={{ position: "fixed", inset: 0, zIndex: 300, background: "rgba(0,0,0,0.55)", backdropFilter: "blur(9px)", WebkitBackdropFilter: "blur(9px)", display: "flex", flexDirection: "column", alignItems: "center", overflowY: "auto", overscrollBehavior: "contain", padding: "0 22px 40px", cursor: step >= 5 ? "default" : "pointer" }}>
+      style={{ position: "fixed", inset: 0, zIndex: 320, background: "rgba(0,0,0,0.55)", backdropFilter: "blur(9px)", WebkitBackdropFilter: "blur(9px)", display: "flex", flexDirection: "column", alignItems: "center", overflowY: "auto", overscrollBehavior: "contain", padding: "0 22px 40px", cursor: step >= 5 ? "default" : "pointer" }}>
 
 
       {/* VOS dead-center tot de wolk verschijnt */}
@@ -2354,7 +2354,7 @@ function HowItWorksSheet({ onClose }) {
 
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={advance}
-      style={{ position: "fixed", inset: 0, zIndex: 300, background: "rgba(0,0,0,0.55)", backdropFilter: "blur(9px)", WebkitBackdropFilter: "blur(9px)", display: "flex", flexDirection: "column", alignItems: "center", overflowY: "auto", overscrollBehavior: "contain", padding: "0 22px 40px", cursor: done ? "default" : "pointer" }}>
+      style={{ position: "fixed", inset: 0, zIndex: 320, background: "rgba(0,0,0,0.55)", backdropFilter: "blur(9px)", WebkitBackdropFilter: "blur(9px)", display: "flex", flexDirection: "column", alignItems: "center", overflowY: "auto", overscrollBehavior: "contain", padding: "0 22px 40px", cursor: done ? "default" : "pointer" }}>
 
       {/* top-hoek: Skip (het kruisje is weg — Skip is voldoende) */}
       <div style={{ position: "sticky", top: 0, alignSelf: "stretch", display: "flex", justifyContent: "flex-start", alignItems: "center", padding: "15px 2px 8px", zIndex: 5, background: "linear-gradient(rgba(15,14,12,0.5), rgba(15,14,12,0))" }}>
@@ -4200,6 +4200,13 @@ export default function SupplyFlow({ session, factoriesVisible = true }) {
   const qcOrder = orders.find(o => o.status === "qc_pending");
   const avatarUrl = session?.user?.user_metadata?.avatar_url || null;
   const [zoomPhoto, setZoomPhoto] = useState(null);   // fullscreen foto-viewer (Quality-control-/meetfoto's)
+  // 💬 Support-bolletje verborgen? (kruisje op het bolletje ↔ schakelaar in Profiel)
+  const [supportHidden, setSupportHidden] = useState(() => { try { return localStorage.getItem("supportWidget:hidden") === "1"; } catch { return false; } });
+  useEffect(() => {
+    const sync = () => { try { setSupportHidden(localStorage.getItem("supportWidget:hidden") === "1"); } catch { /* private mode */ } };
+    window.addEventListener("flowva:supportHiddenChanged", sync);
+    return () => window.removeEventListener("flowva:supportHiddenChanged", sync);
+  }, []);
 
   // 🛫 Transit-badge (Kaito 25-08, herzien ×2): vaste teller per PAKKET (niet per item —
   // 2 items in één doos = "1"). Onderweg = de badge staat er permanent, óók na het openen
@@ -4479,8 +4486,11 @@ export default function SupplyFlow({ session, factoriesVisible = true }) {
             <span style={{ position: "absolute", top: 10, left: 10, background: "#FF5C00", color: "#fff", fontSize: 10.5, fontWeight: 700, padding: "3px 8px", borderRadius: 8, boxShadow: "0 2px 8px rgba(17,17,17,0.18)", whiteSpace: "nowrap" }}>{tr("product.badge.vote", "Vote")}</span>
           </>
         ) : (
+          // Plusje opent DIRECT het product (Kaito 25-08) — het actiemenu met per-item
+          // reviews is geschrapt: te veel items voor losse reviews, en de kaart zelf
+          // is toch al klikbaar. Het plusje blijft als duidelijke "tap to view"-hint.
           <motion.div layoutId={`plus-${p.id}`} transition={{ duration: 0.34, ease: [0.32, 0.72, 0, 1] }}
-            onClick={e => { e.stopPropagation(); setActionProduct(p); }}
+            onClick={e => { e.stopPropagation(); setSelectedProduct(p); }}
             whileTap={{ scale: 0.82 }}
             style={{ position: "absolute", right: 10, bottom: 10, width: 36, height: 36, borderRadius: 18, background: "#FF5C00", display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 4px 14px rgba(255,92,0,0.4)", cursor: "pointer", WebkitTapHighlightColor: "transparent" }}>
             <Plus size={19} color="#fff" strokeWidth={2.6} />
@@ -5644,6 +5654,25 @@ export default function SupplyFlow({ session, factoriesVisible = true }) {
             </div>
             <div style={{ color: "#C9C6C1", fontSize: 18 }}>→</div>
           </a>
+          {/* 💬 Support-bolletje aan/uit (Kaito 25-08): wie het wegtikte via het kruisje
+              op het bolletje, zet het hier weer aan. Per apparaat onthouden. */}
+          <div onClick={() => {
+              const nv = !supportHidden;
+              setSupportHidden(nv);
+              try { nv ? localStorage.setItem("supportWidget:hidden", "1") : localStorage.removeItem("supportWidget:hidden"); } catch { /* private mode */ }
+              try { window.dispatchEvent(new Event("flowva:supportHiddenChanged")); } catch { /* geen window */ }
+            }}
+            style={{ background: "#fff", border: "1px solid #E8E6E0", borderRadius: 16, padding: "15px 18px", marginBottom: 12, display: "flex", alignItems: "center", gap: 12, cursor: "pointer" }}>
+            <div style={{ width: 38, height: 38, borderRadius: 11, background: "#FFF0E7", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18, flexShrink: 0 }}>💬</div>
+            <div style={{ flex: 1 }}>
+              <div style={{ fontSize: 14, fontWeight: 700, color: "#0F0E0C" }}>{tr("profile.supportBubble", "Support bubble")}</div>
+              <div style={{ fontSize: 12, color: "#A8A5A0" }}>{tr("profile.supportBubbleSub", "The floating chat button on your screen")}</div>
+            </div>
+            <div role="switch" aria-checked={!supportHidden} style={{ width: 46, height: 27, borderRadius: 999, background: !supportHidden ? "#FF5C00" : "#E3E1DC", position: "relative", flexShrink: 0, transition: "background .25s" }}>
+              <motion.div animate={{ x: !supportHidden ? 19 : 0 }} transition={springBouncy}
+                style={{ position: "absolute", top: 3, left: 3, width: 21, height: 21, borderRadius: "50%", background: "#fff", boxShadow: "0 1px 3px rgba(0,0,0,0.25)" }} />
+            </div>
+          </div>
           <TransactionHistory session={session} />
           <div style={{ background: "#fff", border: "1px solid #E8E6E0", borderRadius: 16, padding: "16px 20px", marginBottom: 12 }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>

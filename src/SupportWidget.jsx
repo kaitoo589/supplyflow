@@ -8,10 +8,27 @@ import Fox from "./Fox";
 import { tr, useLangVersion } from "./i18n";
 
 const POS_KEY = "supportWidget:pos";
+const HIDE_KEY = "supportWidget:hidden";
 
 export default function SupportWidget({ session }) {
   useLangVersion(); // her-render bij taalwissel
   const [open, setOpen] = useState(false);
+  // Wegtikbaar (Kaito 25-08): kruisje op het bolletje → compact uitleg-kaartje →
+  // "Hide" verbergt het per apparaat; de schakelaar in Profiel zet het weer aan.
+  const [hidden, setHidden] = useState(() => { try { return localStorage.getItem(HIDE_KEY) === "1"; } catch { return false; } });
+  const [confirmHide, setConfirmHide] = useState(false);
+  useEffect(() => {
+    const sync = () => { try { setHidden(localStorage.getItem(HIDE_KEY) === "1"); } catch { /* private mode */ } };
+    window.addEventListener("flowva:supportHiddenChanged", sync);
+    return () => window.removeEventListener("flowva:supportHiddenChanged", sync);
+  }, []);
+  const hideForever = () => {
+    try { localStorage.setItem(HIDE_KEY, "1"); } catch { /* private mode */ }
+    setConfirmHide(false);
+    setOpen(false);
+    setHidden(true);
+    try { window.dispatchEvent(new Event("flowva:supportHiddenChanged")); } catch { /* geen window */ }
+  };
   const [panelPos, setPanelPos] = useState({ bottom: 92, right: 20 });
   const [questions, setQuestions] = useState([]);
   const [draft, setDraft] = useState("");
@@ -134,6 +151,8 @@ export default function SupportWidget({ session }) {
     if (q.status === "error") return tr("support.error", "Something went wrong — please try again in a moment.");
     return null; // pending/escalated: wacht op een echt mens
   };
+
+  if (hidden) return null;
 
   return (
     <div style={{ fontFamily: theme.font }}>
@@ -269,8 +288,29 @@ export default function SupportWidget({ session }) {
         )}
       </AnimatePresence>
 
+      {confirmHide ? (
+        /* Kruisje getikt → het bolletje morpht (layoutId) naar dit compacte kaartje:
+           wat het is, hoe je het verbergt, en waar het terug te vinden is. */
+        <motion.div layoutId="support-orb" transition={springSoft}
+          style={{ x, y, position: "fixed", bottom: 20, right: 20, width: 232, background: "#fff", borderRadius: 18, padding: "12px 14px", border: `1px solid ${theme.line}`, boxShadow: theme.shadow, zIndex: 1001 }}>
+          <div style={{ fontSize: 12, color: theme.ink, lineHeight: 1.5 }}>
+            <Fox /> {tr("support.hideBody", "This is Flowva support — a real person answers here. Don't need the bubble? Hide it; you can turn it back on anytime in your Profile.")}
+          </div>
+          <div style={{ display: "flex", gap: 6, marginTop: 10 }}>
+            <button onClick={hideForever}
+              style={{ flex: 1, background: theme.ink, color: "#fff", border: "none", borderRadius: 10, padding: "8px 0", fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: theme.font }}>
+              {tr("support.hideBtn", "Hide")}
+            </button>
+            <button onClick={() => setConfirmHide(false)}
+              style={{ flex: 1, background: theme.field, color: theme.ink, border: "none", borderRadius: 10, padding: "8px 0", fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: theme.font }}>
+              {tr("support.keepBtn", "Keep")}
+            </button>
+          </div>
+        </motion.div>
+      ) : (
       <motion.button
         ref={btnRef}
+        layoutId="support-orb"
         drag
         dragConstraints={dragArea}
         dragMomentum={false}
@@ -310,7 +350,19 @@ export default function SupportWidget({ session }) {
         }}
       >
         {open ? <X size={24} /> : <MessageCircle size={24} />}
+        {/* ✕-badge (Kaito 25-08): opent het verberg-kaartje. stopPropagation op pointerdown
+            zodat het tikken niet als slepen of als chat-openen telt. */}
+        {!open && (
+          <span
+            onPointerDown={(e) => e.stopPropagation()}
+            onClick={(e) => { e.stopPropagation(); setConfirmHide(true); }}
+            aria-label="Hide support bubble"
+            style={{ position: "absolute", top: -4, right: -4, width: 19, height: 19, borderRadius: 10, background: "#0F0E0C", color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", border: "2px solid #fff", cursor: "pointer" }}>
+            <X size={11} strokeWidth={3} />
+          </span>
+        )}
       </motion.button>
+      )}
     </div>
   );
 }

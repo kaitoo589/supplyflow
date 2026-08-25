@@ -5000,15 +5000,20 @@ export default function SupplyFlow({ session, factoriesVisible = true }) {
                         );
                       })}
                       {tp && (
+                        /* Compact 2-regel-chipje op EXACT de hoogte van de All/Women/Men-knopjes
+                           (Kaito 25-08): boven de fractionele sterren + score, onder links het
+                           logo (Kaito's geschoonde SVG) en rechts het aantal reviews. */
                         <motion.a href="https://www.trustpilot.com/review/flowva.app" target="_blank" rel="noreferrer"
                           whileTap={{ scale: 0.94 }} transition={springSnappy}
-                          style={{ marginLeft: "auto", display: "inline-flex", alignItems: "center", gap: 7, background: "#fff", border: "1px solid #E8E6E0", borderRadius: 999, padding: "8px 12px", textDecoration: "none", WebkitTapHighlightColor: "transparent" }}>
-                          {/* Kaito's eigen logo-SVG (geschoond: transparant, alleen ster+woordmerk).
-                              Vervangen = nieuwe export schonen via scratchpad trustpilot-schoon.py. */}
-                          <img src="/trustpilot.svg" alt="Trustpilot" style={{ height: 15, display: "block" }} />
-                          <TrustStars score={tp.score} />
-                          <span style={{ fontSize: 12.5, fontWeight: 800, color: "#191919" }}>{tp.score.toFixed(1).replace(".", ",")}</span>
-                          <span style={{ color: "#00B67A", fontSize: 12, fontWeight: 800 }}>↗</span>
+                          style={{ marginLeft: "auto", display: "inline-flex", flexDirection: "column", justifyContent: "center", gap: 3, background: "#fff", border: "1px solid #E8E6E0", borderRadius: 999, padding: "0 13px", height: 36, boxSizing: "border-box", textDecoration: "none", WebkitTapHighlightColor: "transparent" }}>
+                          <span style={{ display: "flex", alignItems: "center", gap: 5 }}>
+                            <TrustStars score={tp.score} size={10.5} />
+                            <span style={{ fontSize: 10.5, fontWeight: 800, color: "#191919", lineHeight: 1 }}>{tp.score.toFixed(1).replace(".", ",")}</span>
+                          </span>
+                          <span style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
+                            <img src="/trustpilot.svg" alt="Trustpilot" style={{ height: 8.5, display: "block" }} />
+                            <span style={{ fontSize: 8.5, fontWeight: 600, color: "#8A8780", lineHeight: 1 }}>{tp.count} {tr("feed.brandCard.stat.reviewsWord", "reviews")}</span>
+                          </span>
                         </motion.a>
                       )}
                     </div>

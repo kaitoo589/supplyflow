@@ -4986,7 +4986,7 @@ export default function SupplyFlow({ session, factoriesVisible = true }) {
                   /* Twee kolommen (Kaito 25-08): links de knopjes met de subtitel eronder,
                      rechts de Trustpilot-chip die de VOLLE hoogte van die twee regels pakt —
                      bovenkant gelijk met de knopjes, onderkant gelijk met de zin. */
-                  <div style={{ display: "flex", alignItems: "flex-start", gap: 6, marginBottom: 14 }}>
+                  <div style={{ display: "flex", alignItems: "stretch", gap: 7, marginBottom: 14 }}>
                     <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", gap: 10 }}>
                       <div style={{ display: "flex", alignItems: "center", gap: 7, flexWrap: "wrap" }}>
                         {genders.size >= 2 && [
@@ -4998,7 +4998,7 @@ export default function SupplyFlow({ session, factoriesVisible = true }) {
                           return (
                             <motion.button key={key ?? "all"} whileTap={{ scale: 0.93 }} transition={springSnappy}
                               onClick={() => setGenderFilter(key)}
-                              style={{ padding: "8px 16px", borderRadius: 999, border: "1px solid " + (sel ? "#0F0E0C" : "#E8E6E0"), background: sel ? "#0F0E0C" : "#fff", color: sel ? "#fff" : "#555", fontSize: 13, fontWeight: 600, cursor: "pointer", WebkitTapHighlightColor: "transparent" }}>
+                              style={{ padding: "8px 13px", borderRadius: 999, border: "1px solid " + (sel ? "#0F0E0C" : "#E8E6E0"), background: sel ? "#0F0E0C" : "#fff", color: sel ? "#fff" : "#555", fontSize: 13, fontWeight: 600, cursor: "pointer", WebkitTapHighlightColor: "transparent" }}>
                               {label}
                             </motion.button>
                           );
@@ -5012,14 +5012,14 @@ export default function SupplyFlow({ session, factoriesVisible = true }) {
                          om óók op telefoonbreedte naast de drie knopjes te passen. */
                       <motion.a href="https://www.trustpilot.com/review/flowva.app" target="_blank" rel="noreferrer"
                         whileTap={{ scale: 0.96 }} transition={springSnappy}
-                        style={{ alignSelf: "flex-start", display: "inline-flex", flexDirection: "column", gap: 4, background: "#fff", border: "1px solid #E8E6E0", borderRadius: 16, padding: "7px 10px", textDecoration: "none", WebkitTapHighlightColor: "transparent", flexShrink: 0, WebkitTextSizeAdjust: "100%" }}>
+                        style={{ alignSelf: "stretch", display: "inline-flex", flexDirection: "column", justifyContent: "space-between", gap: 4, background: "#fff", border: "1px solid #E8E6E0", borderRadius: 16, padding: "8px 12px", textDecoration: "none", WebkitTapHighlightColor: "transparent", flexShrink: 0, WebkitTextSizeAdjust: "100%" }}>
                         <span style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
-                          <TrustStars score={tp.score} size={11} />
-                          <span style={{ fontSize: 11.5, fontWeight: 800, color: "#191919", lineHeight: 1 }}>{tp.score.toFixed(1).replace(".", ",")}</span>
+                          <TrustStars score={tp.score} size={12} />
+                          <span style={{ fontSize: 12, fontWeight: 800, color: "#191919", lineHeight: 1 }}>{tp.score.toFixed(1).replace(".", ",")}</span>
                         </span>
                         <span style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
-                          <img src="/trustpilot.svg" alt="Trustpilot" style={{ height: 9, display: "block" }} />
-                          <span style={{ fontSize: 8.5, fontWeight: 600, color: "#8A8780", lineHeight: 1 }}>{tp.count} {tr("feed.brandCard.stat.reviewsWord", "reviews")}</span>
+                          <img src="/trustpilot.svg" alt="Trustpilot" style={{ height: 9.5, display: "block" }} />
+                          <span style={{ fontSize: 9, fontWeight: 600, color: "#8A8780", lineHeight: 1 }}>{tp.count} {tr("feed.brandCard.stat.reviewsWord", "reviews")}</span>
                         </span>
                         {/* ↗ als SVG (het ↗-TEKEN wordt op iPhone een dikke blauwe emoji) en een
                             korte zin — de lange maakte de chip zo breed dat de knopjes omklapten. */}

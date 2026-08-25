@@ -601,6 +601,7 @@ function RefundRequest({ order, onSubmitted, locked = false }) {
 function OrderGroupCard({ items, onOpenItem, groupSize, onDismiss, parcel, activeFilter, onClearFilter, squad, parcelStateFor, onToggleParcel, refundedItems = [] }) {
   const [open, setOpen] = useState(false);
   const [wheel, setWheel] = useState(false);
+  const [storageInfo, setStorageInfo] = useState(false); // ?-knopje in de opslag-chip → uitleg gratis/fee/verbeuren
   // Datum altijd dd/mm/jjjj (uit created_at; valt terug op het tekst-date-veld).
   const date = (() => { const c = items[0]?.created_at; if (c) { try { return new Date(c).toLocaleDateString("en-GB"); } catch {} } return items[0]?.date || ""; })();
   const percent = Math.round(items.reduce((s, o) => s + productProgress(o), 0) / items.length);
@@ -639,11 +640,10 @@ function OrderGroupCard({ items, onOpenItem, groupSize, onDismiss, parcel, activ
           (In warehouse · opslagteller · In your parcel) en de halve foto-collage. */}
       {readyCard ? (
         <div style={{ padding: "14px 15px 4px" }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10 }}>
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ fontSize: 11, color: "#A8A5A0" }}>{tr("orders.card.itemCount", "{count} item{s}", { count: shownItems.length, s: shownItems.length > 1 ? "s" : "" })}</div>
-              <div style={{ fontSize: 13.5, fontWeight: 800, color: "#111" }}>🏭 {tr("orders.card.inWarehouseTitle", "In our warehouse")}</div>
-            </div>
+          {/* Strakke kop (Kaito 25-08): geen "1 item"-regeltje meer — gewoon de titel
+              linksboven met de ring er op ooghoogte naast. Aantal blijkt uit de items zelf. */}
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, marginBottom: 10 }}>
+            <div style={{ fontSize: 14.5, fontWeight: 800, color: "#111" }}>🏭 {tr("orders.card.inWarehouseTitle", "In our warehouse")}</div>
             <motion.div whileTap={{ scale: 0.85 }} onClick={(e) => { e.stopPropagation(); setWheel(true); }} title="Tap for progress breakdown" style={{ flexShrink: 0, cursor: "pointer" }}>
               <ProgressRing percent={percent} />
             </motion.div>
@@ -678,6 +678,19 @@ function OrderGroupCard({ items, onOpenItem, groupSize, onDismiss, parcel, activ
                     return (
                       <span onClick={(e) => { e.stopPropagation(); onToggleParcel && onToggleParcel(o.id); }} style={{ background: "#F1EFE9", color: "#6B6862", fontSize: 10.5, fontWeight: 700, padding: "2px 9px", borderRadius: 20, cursor: "pointer" }}>
                         ＋ {tr("parcel.chip.addBackLong", "Add back to parcel")}
+                      </span>
+                    );
+                  })()}
+                  {/* Opslag-teller terug (Kaito 25-08), mét onvermijdbaar oranje ?-bolletje
+                      dat uitlegt wat maand 2 en 3 kosten en wanneer een item vervalt. */}
+                  {o.status === "qc_pending" && o.arrived_at && (() => {
+                    const d = storageDayOf(o.arrived_at);
+                    const over = d > 30;
+                    return (
+                      <span style={{ display: "inline-flex", alignItems: "center", gap: 6, background: over ? "#FEE2E2" : d >= 24 ? "#FEF3C7" : "#D1FAE5", color: over ? "#DC2626" : d >= 24 ? "#B45309" : "#065F46", fontSize: 10.5, fontWeight: 700, padding: "2px 4px 2px 9px", borderRadius: 20 }}>
+                        🗓️ {over ? tr("orders.item.storageFee", "{days}/90 · storage fee", { days: d }) : tr("orders.item.storageFree", "{days}/30 free storage", { days: d })}
+                        <span onClick={(e) => { e.stopPropagation(); setStorageInfo(true); }}
+                          style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: 15, height: 15, borderRadius: 8, background: "#FF5C00", color: "#fff", fontSize: 9.5, fontWeight: 800, cursor: "pointer", flexShrink: 0 }}>?</span>
                       </span>
                     );
                   })()}
@@ -893,6 +906,27 @@ function OrderGroupCard({ items, onOpenItem, groupSize, onDismiss, parcel, activ
       <AnimatePresence>
         {wheel && <ProgressWheelModal items={items} refundedItems={refundedItems} onClose={() => setWheel(false)} onOpenItem={onOpenItem} />}
       </AnimatePresence>
+      {/* Opslag-uitleg als blur-overlay via een portal (de kaart is een ge-layoutte
+          motion.div — position:fixed zonder portal zou daarbinnen "meebewegen"). */}
+      {storageInfo && createPortal(
+        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.18 }}
+          onClick={() => setStorageInfo(false)}
+          style={{ position: "fixed", inset: 0, zIndex: 400, background: "rgba(15,14,12,0.35)", backdropFilter: "blur(10px)", WebkitBackdropFilter: "blur(10px)", display: "flex", alignItems: "center", justifyContent: "center", padding: 26 }}>
+          <motion.div initial={{ scale: 0.92, y: 10 }} animate={{ scale: 1, y: 0 }} transition={{ type: "spring", stiffness: 380, damping: 28 }}
+            onClick={(e) => e.stopPropagation()}
+            style={{ maxWidth: 430, width: "100%", background: "#fff", border: "1px solid #E8E6E0", borderRadius: 18, padding: "20px 20px 16px", boxShadow: "0 18px 60px rgba(0,0,0,0.25)" }}>
+            <div style={{ fontSize: 14.5, fontWeight: 700, color: "#0F0E0C", marginBottom: 10 }}>{tr("orders.storageInfoTitle", "Free storage & what it costs later")}</div>
+            <div style={{ fontSize: 12.5, color: "#555", lineHeight: 1.65, display: "grid", gap: 8 }}>
+              <div>🆓 {tr("orders.storageInfo1", "Your first 30 days of storage are free.")}</div>
+              <div>💶 {tr("orders.storageInfo2", "Day 31–60: €2 per item · day 61–90: €4 per item — added when you pay for shipping.")}</div>
+              <div>⏳ {tr("orders.storageInfo3", "After day 90 an item is forfeited — so ship before then.")}</div>
+            </div>
+            <button onClick={() => setStorageInfo(false)}
+              style={{ marginTop: 14, width: "100%", background: "#FF5C00", color: "#fff", border: "none", borderRadius: 12, padding: "11px", fontSize: 13.5, fontWeight: 700, cursor: "pointer" }}>
+              {tr("sheets.gotIt", "Got it")}
+            </button>
+          </motion.div>
+        </motion.div>, document.body)}
     </motion.div>
   );
 }

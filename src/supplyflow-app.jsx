@@ -4200,6 +4200,27 @@ export default function SupplyFlow({ session, factoriesVisible = true }) {
   const qcOrder = orders.find(o => o.status === "qc_pending");
   const avatarUrl = session?.user?.user_metadata?.avatar_url || null;
   const [zoomPhoto, setZoomPhoto] = useState(null);   // fullscreen foto-viewer (Quality-control-/meetfoto's)
+  // ★ Review-vraag in de app (Kaito 25-08): één keer per BEZORGD pakket, bij de eerste
+  // app-opening erna. "Niet nu" = nooit meer voor dat pakket (lokaal onthouden); het
+  // stille review-kaartje in Transit blijft gewoon bestaan. Zelfde geluksmoment als de
+  // bezorg-mail, maar dan voor wie de app eerder opent dan z'n mailbox.
+  const [reviewAsk, setReviewAsk] = useState(null);   // haul-id waarvoor we nu vragen
+  useEffect(() => {
+    if (!session || isGuest) return;
+    try {
+      const done = JSON.parse(localStorage.getItem("flowva_review_prompted") || "[]");
+      const kandidaat = (hauls || []).find(h => h.trace_status === 3 && !done.includes(h.id));
+      if (kandidaat) setReviewAsk(kandidaat.id);
+    } catch { /* private mode */ }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [hauls, session]);
+  const closeReviewAsk = () => {
+    try {
+      const done = JSON.parse(localStorage.getItem("flowva_review_prompted") || "[]");
+      if (reviewAsk && !done.includes(reviewAsk)) { done.push(reviewAsk); localStorage.setItem("flowva_review_prompted", JSON.stringify(done)); }
+    } catch { /* private mode */ }
+    setReviewAsk(null);
+  };
   // 💬 Support-bolletje verborgen? (kruisje op het bolletje ↔ schakelaar in Profiel)
   const [supportHidden, setSupportHidden] = useState(() => { try { return localStorage.getItem("supportWidget:hidden") === "1"; } catch { return false; } });
   useEffect(() => {
@@ -6075,6 +6096,29 @@ export default function SupplyFlow({ session, factoriesVisible = true }) {
 
       {/* Fullscreen foto-viewer (Quality-control-/meetfoto's) */}
       {zoomPhoto && <PhotoZoom url={zoomPhoto} onClose={() => setZoomPhoto(null)} />}
+
+      {/* ★ Review-vraag na bezorging — blur-overlay met de vos, één keer per pakket. */}
+      {reviewAsk && (
+        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.2 }}
+          onClick={closeReviewAsk}
+          style={{ position: "fixed", inset: 0, zIndex: 410, background: "rgba(15,14,12,0.45)", backdropFilter: "blur(10px)", WebkitBackdropFilter: "blur(10px)", display: "flex", alignItems: "center", justifyContent: "center", padding: 26 }}>
+          <motion.div initial={{ scale: 0.92, y: 12 }} animate={{ scale: 1, y: 0 }} transition={{ type: "spring", stiffness: 360, damping: 26 }}
+            onClick={(e) => e.stopPropagation()}
+            style={{ maxWidth: 340, width: "100%", background: "#fff", borderRadius: 22, padding: "24px 22px 18px", boxShadow: "0 24px 70px rgba(0,0,0,0.32)", textAlign: "center" }}>
+            <div style={{ fontSize: 40, marginBottom: 8 }}><Fox /></div>
+            <div style={{ fontSize: 17, fontWeight: 800, color: "#0F0E0C", marginBottom: 6 }}>{tr("reviewAsk.title", "Your parcel was delivered 🎉")}</div>
+            <div style={{ fontSize: 13.5, color: "#555", lineHeight: 1.6, marginBottom: 16 }}>{tr("reviewAsk.body", "Got a minute? Share your experience on Trustpilot — good or bad, we read everything.")}</div>
+            <a href="https://www.trustpilot.com/evaluate/flowva.app" target="_blank" rel="noreferrer" onClick={closeReviewAsk}
+              style={{ display: "block", background: "#00B67A", color: "#fff", borderRadius: 13, padding: "13px", fontSize: 14.5, fontWeight: 700, textDecoration: "none", marginBottom: 8 }}>
+              {tr("reviewAsk.go", "★ Review Flowva on Trustpilot")}
+            </a>
+            <button onClick={closeReviewAsk}
+              style={{ width: "100%", background: "#F3F1ED", color: "#6B6862", border: "none", borderRadius: 13, padding: "12px", fontSize: 13.5, fontWeight: 700, cursor: "pointer" }}>
+              {tr("reviewAsk.later", "Not now")}
+            </button>
+          </motion.div>
+        </motion.div>
+      )}
 
       {/* Bottom nav — layout+layoutRoot isoleert de navPill (layoutId) van pagina-scroll-
           sprongen. LET OP: centreren via left/right+margin, NIET via transform — framer's

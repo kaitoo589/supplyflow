@@ -617,6 +617,8 @@ function NormalShippingConfirm({ session, haulItems, balance, onBack, onSuccess,
   const [nieuweGroep, setNieuweGroep] = useState(null);    // { id, name, invite_code }
   const [payLessErr, setPayLessErr] = useState("");
   const [linkCopied, setLinkCopied] = useState(false);
+  const payLessRef = useRef(null);                         // de grote knop onderaan (scroll-doel)
+  const [payLessFlash, setPayLessFlash] = useState(0);     // > 0 = knop knippert even (aandacht)
   const maakGroep = async () => {
     setPayLess("creating"); setPayLessErr("");
     const voornaam = session?.user?.user_metadata?.voornaam || "";
@@ -820,6 +822,12 @@ function NormalShippingConfirm({ session, haulItems, balance, onBack, onSuccess,
             <span style={{ fontSize: 14, fontWeight: 700, color: "#fff" }}>Pay now <span style={{ fontWeight: 500, color: "#C9C6C1", fontSize: 12 }}>· estimate</span></span>
             <span style={{ fontSize: 14, fontWeight: 700, color: "#FF5C00" }}>€{toPay.toFixed(2)}</span>
           </div>
+          {/* 💸 Tweede vindplaats (Kaito 25-08): direct onder het totaalbedrag — klik scrollt
+              naar de grote Want to pay less?-knop onderaan en laat die even knipperen. */}
+          <div onClick={() => { payLessRef.current?.scrollIntoView({ behavior: "smooth", block: "center" }); setPayLessFlash(f => f + 1); }}
+            style={{ marginTop: 8, display: "flex", alignItems: "center", justifyContent: "center", gap: 6, background: "rgba(255,92,0,0.12)", border: "1px solid rgba(255,92,0,0.35)", borderRadius: 10, padding: "8px 12px", fontSize: 12.5, fontWeight: 700, color: "#FF8A4D", cursor: "pointer", WebkitTapHighlightColor: "transparent" }}>
+            💸 {tr("payLess.button", "Want to pay less?")} ↓
+          </div>
           <div style={{ marginTop: 10, fontSize: 11.5, color: "#C9C6C1", lineHeight: 1.55 }}>✅ Duties prepaid (DDP) — nothing to pay on delivery. About a week after shipping, the carrier's final bill comes in and you get any difference back as a shipping refund.</div>
           {/* Niet-EU (fase 3 wereldwijd): een bedrag zonder verwachting voelt onbetrouwbaar,
               dus hier per land de levertijd ná verzending erbij. */}
@@ -985,12 +993,16 @@ function NormalShippingConfirm({ session, haulItems, balance, onBack, onSuccess,
           </button>
         );
       })()}
-      {/* 💸 Solo → Groep: de klant trekt zélf aan de bel op het prijs-moment. */}
+      {/* 💸 Solo → Groep: de klant trekt zélf aan de bel op het prijs-moment. Echt VAKJE
+          (zoals de betaalknop) i.p.v. een losse zin; knippert even na de klik bovenin. */}
       {chosen && !error && !quoting && (
-        <button onClick={() => setPayLess("open")}
-          style={{ width: "100%", marginTop: 10, background: "none", border: "none", color: "#FF5C00", fontSize: 13, fontWeight: 700, cursor: "pointer", padding: 6, WebkitTapHighlightColor: "transparent" }}>
+        <motion.button ref={payLessRef} key={`payless-flash-${payLessFlash}`}
+          onClick={() => setPayLess("open")}
+          animate={payLessFlash > 0 ? { scale: [1, 1.04, 1, 1.03, 1], boxShadow: ["0 0 0 0 rgba(255,92,0,0)", "0 0 0 6px rgba(255,92,0,0.25)", "0 0 0 0 rgba(255,92,0,0)", "0 0 0 6px rgba(255,92,0,0.18)", "0 0 0 0 rgba(255,92,0,0)"] } : {}}
+          transition={{ duration: 1.1, ease: "easeInOut" }}
+          style={{ width: "100%", marginTop: 10, background: "#FFF0E7", border: "1.5px solid rgba(255,92,0,0.5)", color: "#FF5C00", borderRadius: 12, padding: "14px", fontSize: 14, fontWeight: 700, cursor: "pointer", WebkitTapHighlightColor: "transparent" }}>
           💸 {tr("payLess.button", "Want to pay less?")}
-        </button>
+        </motion.button>
       )}
       <AnimatePresence>
         {payLess !== "idle" && (

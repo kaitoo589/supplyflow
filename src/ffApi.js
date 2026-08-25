@@ -33,6 +33,11 @@ export const ffSetAdmin       = (id, uid) => rpc("ff_set_admin", { p_group_id: i
 export const ffSetPrivate     = (id, priv) => rpc("ff_set_private", { p_group_id: id, p_private: priv });
 export const ffShareProduct   = (id, product) => rpc("ff_share_product", { p_group_id: id, p_product: product });
 
+// Solo → Groep (25-08): magazijn-items verhuizen naar een groep (meteen Ready)
+// en de terugweg — altijd beschikbaar zolang de groepsverzending niet gelockt is.
+export const ffAdoptSolo      = (id) => rpc("ff_adopt_solo_items", { p_group_id: id });
+export const ffReleaseSolo    = (id) => rpc("ff_release_my_items", { p_group_id: id });
+
 // Fase 3 — ready-up + betaling.
 export const ffSetReady       = (id) => rpc("ff_set_ready", { p_group_id: id });
 export const ffUnready        = (id) => rpc("ff_unready",   { p_group_id: id });

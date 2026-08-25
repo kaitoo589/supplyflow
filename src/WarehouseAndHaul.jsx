@@ -11,6 +11,7 @@ import { garmentType } from "./garment";
 import { tr } from "./i18n";
 import { exactTopUp, startTopUp, TOPUP_MIN } from "./topup";
 import { isEUCountry, DELIVERY_DAYS, RETURN_COST, countryDisplayEn } from "./countries";
+import { ffCreateGroup, ffAdoptSolo, inviteLink, whatsappShare } from "./ffApi";
 
 // Gedeeld tekort-blok voor de twee verzendschermen (solo + groep). Zelfde regel als
 // bij de mand: kom je net tekort, dan waardeer je precies dat bedrag op via iDEAL en
@@ -599,7 +600,7 @@ function ConfirmHaul(props) {
   return <NormalShippingConfirm {...props} />;
 }
 
-function NormalShippingConfirm({ session, haulItems, balance, onBack, onSuccess, onEditAddress }) {
+function NormalShippingConfirm({ session, haulItems, balance, onBack, onSuccess, onEditAddress, onGroupActivated }) {
   const [confirming, setConfirming] = useState(false);
   const [quoting, setQuoting] = useState(true);
   const [chosen, setChosen] = useState(null);     // route waarop we de schatting baseren
@@ -610,6 +611,24 @@ function NormalShippingConfirm({ session, haulItems, balance, onBack, onSuccess,
   const [showFeeInfo, setShowFeeInfo] = useState(false);   // ?-knopje bij de service fee → persoonlijke fee-uitsplitsing
   const [shake, setShake] = useState(0);                   // betaalknop zonder vinkje → vakje schudt + kleurt rood
   const [tickErr, setTickErr] = useState(false);
+  // 💸 Solo → Groep (Kaito 25-08): "Want to pay less?" onder de betaalknop → uitlegkaart →
+  // groep aanmaken + magazijn-items verhuizen (RPC) → deel-link → terug naar Orders in groepsmodus.
+  const [payLess, setPayLess] = useState("idle");          // idle | open | creating | share
+  const [nieuweGroep, setNieuweGroep] = useState(null);    // { id, name, invite_code }
+  const [payLessErr, setPayLessErr] = useState("");
+  const [linkCopied, setLinkCopied] = useState(false);
+  const maakGroep = async () => {
+    setPayLess("creating"); setPayLessErr("");
+    const voornaam = session?.user?.user_metadata?.voornaam || "";
+    const naam = voornaam ? `${voornaam}'s parcel` : "Parcel squad";
+    const r = await ffCreateGroup(naam, 5);
+    if (!r.ok) { setPayLessErr(r.error || "Could not create the group"); setPayLess("open"); return; }
+    const adopt = await ffAdoptSolo(r.group_id);
+    if (!adopt.ok) { setPayLessErr(adopt.error || "Could not move your items"); setPayLess("open"); return; }
+    const { data: g } = await supabase.from("flowva_groups").select("id, name, invite_code").eq("id", r.group_id).single();
+    setNieuweGroep(g || { id: r.group_id, name: naam, invite_code: null });
+    setPayLess("share");
+  };
   const orderIds = haulItems.map(o => o.id);
   const totalWeight = haulItems.reduce((s, o) => s + (o.weight_grams || 0), 0);
   // Douane-categorieën in dit pakket (HS6-benadering). ALLEEN voor weergave — de €3 zit al
@@ -966,6 +985,72 @@ function NormalShippingConfirm({ session, haulItems, balance, onBack, onSuccess,
           </button>
         );
       })()}
+      {/* 💸 Solo → Groep: de klant trekt zélf aan de bel op het prijs-moment. */}
+      {chosen && !error && !quoting && (
+        <button onClick={() => setPayLess("open")}
+          style={{ width: "100%", marginTop: 10, background: "none", border: "none", color: "#FF5C00", fontSize: 13, fontWeight: 700, cursor: "pointer", padding: 6, WebkitTapHighlightColor: "transparent" }}>
+          💸 {tr("payLess.button", "Want to pay less?")}
+        </button>
+      )}
+      <AnimatePresence>
+        {payLess !== "idle" && (
+          <motion.div key="payless" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.18 }}
+            onClick={() => { if (payLess !== "creating" && payLess !== "share") setPayLess("idle"); }}
+            style={{ position: "fixed", inset: 0, zIndex: 400, background: "rgba(15,14,12,0.35)", backdropFilter: "blur(10px)", WebkitBackdropFilter: "blur(10px)", display: "flex", alignItems: "center", justifyContent: "center", padding: 26 }}>
+            <motion.div initial={{ scale: 0.92, y: 10 }} animate={{ scale: 1, y: 0 }} transition={{ type: "spring", stiffness: 380, damping: 28 }}
+              onClick={(e) => e.stopPropagation()}
+              style={{ maxWidth: 430, width: "100%", background: "#fff", border: "1px solid #E8E6E0", borderRadius: 18, padding: "20px 20px 16px", boxShadow: "0 18px 60px rgba(0,0,0,0.25)" }}>
+              {payLess === "share" && nieuweGroep ? (
+                <>
+                  <div style={{ fontSize: 15, fontWeight: 800, color: "#0F0E0C", marginBottom: 6 }}>{tr("payLess.readyTitle", "Your group is ready! 🎉")}</div>
+                  <div style={{ fontSize: 12.5, color: "#555", lineHeight: 1.6, marginBottom: 12 }}>
+                    {tr("payLess.readyBody", "Your items are now in the group parcel. Share this link with a friend who lives nearby — when they join and order, you ship together and both save.")}
+                  </div>
+                  {nieuweGroep.invite_code && (
+                    <div style={{ background: "#F8F7F4", border: "1px solid #EFEDE8", borderRadius: 12, padding: "9px 12px", fontSize: 11.5, color: "#555", overflowWrap: "anywhere", marginBottom: 8 }}>
+                      {inviteLink(nieuweGroep.invite_code)}
+                    </div>
+                  )}
+                  <div style={{ display: "flex", gap: 6, marginBottom: 8 }}>
+                    <button onClick={() => { try { navigator.clipboard.writeText(inviteLink(nieuweGroep.invite_code)); setLinkCopied(true); setTimeout(() => setLinkCopied(false), 2000); } catch { /* clipboard geblokkeerd */ } }}
+                      style={{ flex: 1, background: "#0F0E0C", color: "#fff", border: "none", borderRadius: 11, padding: "11px 0", fontSize: 12.5, fontWeight: 700, cursor: "pointer" }}>
+                      {linkCopied ? tr("payLess.copied", "✓ Copied") : tr("payLess.copy", "Copy link")}
+                    </button>
+                    <a href={whatsappShare(nieuweGroep.invite_code, nieuweGroep.name)} target="_blank" rel="noreferrer"
+                      style={{ flex: 1, background: "#25D366", color: "#fff", borderRadius: 11, padding: "11px 0", fontSize: 12.5, fontWeight: 700, textAlign: "center", textDecoration: "none" }}>
+                      WhatsApp
+                    </a>
+                  </div>
+                  <button onClick={() => { setPayLess("idle"); onGroupActivated && onGroupActivated(nieuweGroep); }}
+                    style={{ width: "100%", background: "#FF5C00", color: "#fff", border: "none", borderRadius: 12, padding: "12px", fontSize: 13.5, fontWeight: 700, cursor: "pointer" }}>
+                    {tr("payLess.done", "Done — back to my orders")}
+                  </button>
+                  <div style={{ fontSize: 11, color: "#8A8780", marginTop: 8, lineHeight: 1.5, textAlign: "center" }}>{tr("payLess.undo", "Changed your mind? Switch your items back to solo anytime via Profile.")}</div>
+                </>
+              ) : (
+                <>
+                  <div style={{ fontSize: 15, fontWeight: 800, color: "#0F0E0C", marginBottom: 6 }}>{tr("payLess.title", "Pay less with Flowva Friends")}</div>
+                  <div style={{ fontSize: 12.5, color: "#555", lineHeight: 1.6, marginBottom: 8 }}>
+                    {tr("payLess.body", "Ship together with a friend who lives nearby: your items go into one group parcel, they order too, and you split one set of shipping costs — usually 40–50% less each. Your items simply wait safely in the warehouse meanwhile.")}
+                  </div>
+                  <div style={{ background: "#F0FDF4", border: "1px solid #BBF7D0", borderRadius: 12, padding: "9px 12px", fontSize: 12, color: "#065F46", fontWeight: 600, lineHeight: 1.5, marginBottom: 12 }}>
+                    🎁 {tr("payLess.bonus", "Bonus: items waiting in a group get 60 days of free storage instead of 30.")}
+                  </div>
+                  {payLessErr && <div style={{ fontSize: 12, color: "#DC2626", marginBottom: 8 }}>{payLessErr}</div>}
+                  <button onClick={maakGroep} disabled={payLess === "creating"}
+                    style={{ width: "100%", background: "#FF5C00", color: "#fff", border: "none", borderRadius: 12, padding: "12px", fontSize: 13.5, fontWeight: 700, cursor: payLess === "creating" ? "default" : "pointer", opacity: payLess === "creating" ? 0.6 : 1, marginBottom: 6 }}>
+                    {payLess === "creating" ? "…" : tr("payLess.invite", "Invite a friend")}
+                  </button>
+                  <button onClick={() => setPayLess("idle")}
+                    style={{ width: "100%", background: "#F3F1ED", color: "#6B6862", border: "none", borderRadius: 12, padding: "11px", fontSize: 13, fontWeight: 700, cursor: "pointer" }}>
+                    {tr("payLess.keepSolo", "No thanks, ship solo")}
+                  </button>
+                </>
+              )}
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
@@ -1855,7 +1940,7 @@ const TRACE_LABEL = { 1: "In transit", 2: "Out for delivery", 3: "Delivered", 4:
 // items met Ready ná foto-inspectie (ff_stage_box → box_staged_at) — de server-
 // gate laat pas verzenden als ALLES Ready is. Geen stille auto-staging meer.
 // ────────────────────────────────────────────────────────────────────────────
-export function ParcelSection({ session, activeGroupId = null, parcelItems = [], heldOutItems = [], pendingRefunds = [], defectItems = [], forfeitedItems = [], comingItems = [], refreshSignal = 0, onToggleHold, onInspectItem, onShipped, onEditAddress }) {
+export function ParcelSection({ session, activeGroupId = null, parcelItems = [], heldOutItems = [], pendingRefunds = [], defectItems = [], forfeitedItems = [], comingItems = [], refreshSignal = 0, onToggleHold, onInspectItem, onShipped, onEditAddress, onGroupActivated }) {
   const [open, setOpen] = useState(false);
   const [screen, setScreen] = useState(null);      // null | "confirm" | "success"
   const [balance, setBalance] = useState(0);
@@ -2342,7 +2427,8 @@ export function ParcelSection({ session, activeGroupId = null, parcelItems = [],
           <ConfirmHaul session={session} haulItems={parcelItems} balance={balance}
             onBack={() => { setScreen(null); setOpen(true); fetchBalance(); }}
             onSuccess={() => setScreen("success")}
-            onEditAddress={onEditAddress ? () => { setScreen(null); setOpen(false); onEditAddress(); } : undefined} />
+            onEditAddress={onEditAddress ? () => { setScreen(null); setOpen(false); onEditAddress(); } : undefined}
+            onGroupActivated={onGroupActivated ? (g) => { setScreen(null); setOpen(false); onGroupActivated(g); } : undefined} />
         </div>, document.body)}
       {screen === "success" && createPortal(
         <div style={{ position: "fixed", inset: 0, zIndex: 320, background: "#F8F7F4", overflowY: "auto", WebkitOverflowScrolling: "touch" }}>

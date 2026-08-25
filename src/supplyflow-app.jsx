@@ -11,7 +11,7 @@ import { EU_COUNTRIES, SHIPPING_COUNTRIES, PHONE_REQUIRED_COUNTRIES, normalizeCo
 import OrderRequest from "./OrderRequest";
 import Friends from "./Friends";
 import GroupModeGlow from "./GroupModeGlow";
-import { ffMyGroups } from "./ffApi";
+import { ffMyGroups, ffReleaseSolo } from "./ffApi";
 import { garmentType } from "./garment";
 import { TransitTab, ParcelSection } from "./WarehouseAndHaul";
 import { motion, AnimatePresence, useDragControls, useMotionValue, useTransform, useSpring } from "framer-motion";
@@ -757,10 +757,12 @@ function OrderGroupCard({ items, onOpenItem, groupSize, onDismiss, parcel, activ
                       dat uitlegt wat maand 2 en 3 kosten en wanneer een item vervalt. */}
                   {o.status === "qc_pending" && o.arrived_at && (() => {
                     const d = storageDayOf(o.arrived_at);
-                    const over = d > 30;
+                    // Groepsitems: 60 dagen gratis / verbeurd op 121 (solo: 30/91) — besluit A 25-08.
+                    const vrij = o.ff_group_id ? 60 : 30, max = o.ff_group_id ? 120 : 90;
+                    const over = d > vrij;
                     return (
-                      <span style={{ display: "inline-flex", alignItems: "center", gap: 6, background: over ? "#FEE2E2" : d >= 24 ? "#FEF3C7" : "#D1FAE5", color: over ? "#DC2626" : d >= 24 ? "#B45309" : "#065F46", fontSize: 10.5, fontWeight: 700, padding: "2px 4px 2px 9px", borderRadius: 20 }}>
-                        🗓️ {over ? tr("orders.item.storageFee", "{days}/90 · storage fee", { days: d }) : tr("orders.item.storageFree", "{days}/30 free storage", { days: d })}
+                      <span style={{ display: "inline-flex", alignItems: "center", gap: 6, background: over ? "#FEE2E2" : d >= vrij - 6 ? "#FEF3C7" : "#D1FAE5", color: over ? "#DC2626" : d >= vrij - 6 ? "#B45309" : "#065F46", fontSize: 10.5, fontWeight: 700, padding: "2px 4px 2px 9px", borderRadius: 20 }}>
+                        🗓️ {over ? tr("orders.item.storageFee", "{days}/{max} · storage fee", { days: d, max }) : tr("orders.item.storageFree", "{days}/{max} free storage", { days: d, max: vrij })}
                         <span onClick={(e) => { e.stopPropagation(); setStorageInfo(true); }}
                           style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: 15, height: 15, borderRadius: 8, background: "#FF5C00", color: "#fff", fontSize: 9.5, fontWeight: 800, cursor: "pointer", flexShrink: 0 }}>?</span>
                       </span>
@@ -868,10 +870,12 @@ function OrderGroupCard({ items, onOpenItem, groupSize, onDismiss, parcel, activ
                           (€2/stuk 31-60 · €4/stuk 61-90 · dag 91 = verbeurd, aparte chip). */}
                       {o.status === "qc_pending" && o.arrived_at && (() => {
                         const d = storageDayOf(o.arrived_at);
-                        const over = d > 30;
+                        // Groepsitems: 60 dagen gratis / verbeurd op 121 (solo: 30/91) — besluit A 25-08.
+                        const vrij = o.ff_group_id ? 60 : 30, max = o.ff_group_id ? 120 : 90;
+                        const over = d > vrij;
                         return (
-                          <div style={{ display: "inline-block", background: over ? "#FEE2E2" : d >= 24 ? "#FEF3C7" : "#D1FAE5", color: over ? "#DC2626" : d >= 24 ? "#B45309" : "#065F46", fontSize: 10.5, fontWeight: 700, padding: "2px 9px", borderRadius: 20, marginLeft: 5 }}>
-                            🗓️ {over ? tr("orders.item.storageFee", "{days}/90 · storage fee", { days: d }) : tr("orders.item.storageFree", "{days}/30 free storage", { days: d })}
+                          <div style={{ display: "inline-block", background: over ? "#FEE2E2" : d >= vrij - 6 ? "#FEF3C7" : "#D1FAE5", color: over ? "#DC2626" : d >= vrij - 6 ? "#B45309" : "#065F46", fontSize: 10.5, fontWeight: 700, padding: "2px 9px", borderRadius: 20, marginLeft: 5 }}>
+                            🗓️ {over ? tr("orders.item.storageFee", "{days}/{max} · storage fee", { days: d, max }) : tr("orders.item.storageFree", "{days}/{max} free storage", { days: d, max: vrij })}
                           </div>
                         );
                       })()}
@@ -992,6 +996,7 @@ function OrderGroupCard({ items, onOpenItem, groupSize, onDismiss, parcel, activ
               <div>🆓 {tr("orders.storageInfo1", "Your first 30 days of storage are free.")}</div>
               <div>💶 {tr("orders.storageInfo2", "Day 31–60: €2 per item · day 61–90: €4 per item — added when you pay for shipping.")}</div>
               <div>⏳ {tr("orders.storageInfo3", "After day 90 an item is forfeited — so ship before then.")}</div>
+              <div>👯 {tr("orders.storageInfoGroup", "In a Flowva Friends group? Then your first 60 days are free and everything shifts 30 days later.")}</div>
             </div>
             <button onClick={() => setStorageInfo(false)}
               style={{ marginTop: 14, width: "100%", background: "#FF5C00", color: "#fff", border: "none", borderRadius: 12, padding: "11px", fontSize: 13.5, fontWeight: 700, cursor: "pointer" }}>
@@ -5391,6 +5396,7 @@ export default function SupplyFlow({ session, factoriesVisible = true }) {
           comingItems={parcelComing}
           refreshSignal={parcelRefresh}
           onEditAddress={() => { setTab("profile"); setShowEditProfile(true); }}
+          onGroupActivated={(g) => { setActiveGroup({ id: g.id, name: g.name }); fetchOrders(); fetchHauls(); }}
           onToggleHold={activeGroup ? toggleParcelHold : undefined}
           onInspectItem={openInspectItem}
           onShipped={() => { fetchOrders(); fetchHauls(); fetchBalance(); }} />
@@ -5641,6 +5647,20 @@ export default function SupplyFlow({ session, factoriesVisible = true }) {
                 {activeGroup && placed.some((g) => g.group_id === activeGroup.id) && (
                   <button onClick={() => { setFriendsGroupId(activeGroup.id); setShowFriends(true); }}
                     style={{ background: "transparent", border: "none", color: "#16A34A", fontSize: 12, fontWeight: 700, cursor: "pointer", padding: "10px 0 0", textAlign: "left" }}>{tr("profile.friends.openGroup", "Open group & see details →")}</button>
+                )}
+                {/* ↩ Solo → Groep-terugweg (Kaito 25-08): haalt MIJN magazijn-items uit de
+                    actieve groep terug naar solo (server weigert als de groepsverzending al
+                    gelockt/betaald is) en zet de weergave terug op solo. */}
+                {activeGroup && (
+                  <button onClick={async () => {
+                      const r = await ffReleaseSolo(activeGroup.id);
+                      if (!r.ok) { alert(r.error || "Could not move your items back"); return; }
+                      setActiveGroup(null);
+                      fetchOrders(); fetchHauls();
+                    }}
+                    style={{ width: "100%", marginTop: 10, background: "none", border: "1px dashed #E3E1DC", borderRadius: 12, padding: "10px", fontSize: 12, fontWeight: 700, color: "#8A8780", cursor: "pointer" }}>
+                    ↩ {tr("profile.friends.backToSolo", "Move my warehouse items back to solo")}
+                  </button>
                 )}
                 <button onClick={() => { if (!requireAuth()) return; setFriendsJoinCode(null); setShowFriends(true); }}
                   style={{ width: "100%", marginTop: 12, background: "#FFF0E7", border: "1px dashed rgba(255,92,0,0.4)", color: "#FF5C00", borderRadius: 12, padding: "12px", fontSize: 13, fontWeight: 700, cursor: "pointer" }}>{tr("profile.friends.manageCta", "+ Create, join or manage groups")}</button>

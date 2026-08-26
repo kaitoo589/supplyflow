@@ -144,9 +144,19 @@ Deno.serve(async (req) => {
   // ALLE levende groep-orders via service-role (NIET .eq user_id): niet-geretourneerd en
   // niet geannuleerd/gerefund. We gaten op ALLES wat nog niet klaar-in-de-doos is.
   const { data: allOrders } = await admin.from("orders")
-    .select("id,qty,weight_grams,length_cm,width_cm,height_cm,bd_category_code,status,return_status,box_staged_at")
+    .select("id,user_id,qty,weight_grams,length_cm,width_cm,height_cm,bd_category_code,status,return_status,box_staged_at")
     .eq("ff_group_id", groupId);
   const alive = (allOrders || []).filter((o) => !o.return_status && o.status !== "cancelled" && o.status !== "refunded");
+  // GATE (user 2026-08-26): élk groepslid moet minstens één levend item hebben — anders
+  // zou het pakket vertrekken terwijl een lid nog helemaal niets bestelde. De client toont
+  // dezelfde regel als gate-kaart; dit is de waterdichte server-kant.
+  const { data: mems } = await admin.from("flowva_group_members").select("user_id,display_name").eq("group_id", groupId);
+  const aliveUsers = new Set(alive.map((o) => o.user_id));
+  const emptyMems = (mems || []).filter((m) => !aliveUsers.has(m.user_id));
+  if (emptyMems.length) {
+    const names = emptyMems.map((m) => m.display_name || "A member").join(", ");
+    return json({ ok: false, error: `${names} has nothing in the warehouse yet — the group can only ship once every member has at least one item, all set to Ready.`, needMembers: true }, 200);
+  }
   // WATERDICHT: een groep-pakket mag pas verzonden worden als ELK levend item (behalve
   // retours) in het magazijn is én in de doos zit. Items die nog ONDERWEG zijn blokkeren —
   // anders vertrekt het pakket zonder dat lid z'n bestelling. Dit gaat vóór quote én lock.

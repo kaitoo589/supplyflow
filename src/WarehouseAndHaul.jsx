@@ -1251,15 +1251,20 @@ export function WarehouseTab({ session, haulItems: allHaulItems = [], setHaulIte
   const [squadOrders, setSquadOrders] = useState([]);
   const [squadAdminId, setSquadAdminId] = useState(null);
   const [squadHostId, setSquadHostId] = useState(null);
+  const [squadMembers, setSquadMembers] = useState([]);
   const [shipState, setShipState] = useState(null);
 
   // Gedeelde groep-status: ff_group_orders geeft per groep-item box_staged_at + return_status terug.
   const fetchSquadOrders = async () => {
-    if (!activeGroupId) { setSquadOrders([]); setSquadAdminId(null); setSquadHostId(null); return; }
+    if (!activeGroupId) { setSquadOrders([]); setSquadAdminId(null); setSquadHostId(null); setSquadMembers([]); return; }
     const { data } = await supabase.rpc("ff_group_orders", { p_group_id: activeGroupId });
     setSquadOrders(data?.orders || []);
     setSquadAdminId(data?.admin_id || null);
     setSquadHostId(data?.host_id || null);
+    // Ledenlijst erbij (user 2026-08-26): een lid zonder items blokkeert verzending —
+    // de gate-kaart in GroupShippingPanel benoemt hem bij naam.
+    const { data: mem } = await supabase.rpc("ff_group_members", { p_group_id: activeGroupId });
+    setSquadMembers(mem?.members || []);
   };
   // Verzend-settlement-status: bevroren quote + per-lid aandeel + wie al betaalde.
   const fetchShipState = async () => {
@@ -1346,6 +1351,8 @@ export function WarehouseTab({ session, haulItems: allHaulItems = [], setHaulIte
   const isHost = !activeGroupId || session.user.id === squadHostId; // alleen de host mag verzenden
   const canShip = groupReady && isHost;
   const hostName = (squadOrders.find((o) => o.user_id === squadHostId) || {}).member;
+  // Leden zonder énig levend item — die houden het groepspakket tegen (user 2026-08-26).
+  const emptyMemberNames = activeGroupId ? (squadMembers || []).filter((m) => !groupAlive.some((o) => o.user_id === m.user_id)).map((m) => m.display_name || tr("inspect.friendFallback", "Friend")) : [];
 
   const addToHaul = (order) => {
     if (typeof setHaulItems !== "function") return;
@@ -1459,7 +1466,7 @@ export function WarehouseTab({ session, haulItems: allHaulItems = [], setHaulIte
         <GroupShippingPanel
           session={session} groupId={activeGroupId} shipment={shipState}
           waitingCount={waitingCount} isHost={isHost} hostName={hostName}
-          haulCount={haulItems.length}
+          haulCount={haulItems.length} emptyMembers={emptyMemberNames}
           onRefresh={() => { fetchShipState(); fetchSquadOrders(); fetchWarehouseOrders(); fetchBalance(); }}
         />
       ) : (
@@ -1598,10 +1605,11 @@ export function WarehouseTab({ session, haulItems: allHaulItems = [], setHaulIte
 // ── Groep-verzending (gewicht-gesplitst, directe betaling). Vervangt de solo "Confirm
 //    parcel & ship" in groep-modus: host bevriest één gecombineerde quote → elk lid betaalt
 //    z'n gewichtsaandeel → laatste betaling verzendt administratief naar het host-adres. ──
-function GroupShippingPanel({ session, groupId, shipment, waitingCount, isHost, hostName, haulCount, onRefresh }) {
+function GroupShippingPanel({ session, groupId, shipment, waitingCount, isHost, hostName, haulCount, emptyMembers = [], onRefresh }) {
   const [busy, setBusy] = useState(false);
   const [pick, setPick] = useState(null); // null = dicht; object = auto-gekozen route ter bevestiging
   const [msg, setMsg] = useState("");
+  const [showLockInfo, setShowLockInfo] = useState(false); // "?"-uitleg: wat is de groep locken?
   const [payPage, setPayPage] = useState(false); // volledige betaalpagina (per-lid cost overview)
   const [openInfo, setOpenInfo] = useState(() => new Set()); // klikbare "?"-uitleg (buffer / 3% currency)
   const [addrOk, setAddrOk] = useState(false);
@@ -1621,7 +1629,8 @@ function GroupShippingPanel({ session, groupId, shipment, waitingCount, isHost, 
     setBusy(true); setMsg("");
     const { data, error } = await supabase.functions.invoke("haul-shipping-group", { body: { action: "quote", groupId } });
     setBusy(false);
-    if (error || !data?.ok) { setMsg(data?.error || error?.message || "Could not get a shipping quote"); return; }
+    // Rauwe "Edge Function returned a non-2xx"-teksten nooit aan de klant tonen (user 2026-08-26).
+    if (error || !data?.ok) { setMsg(data?.error || tr("group.gate.error", "Something went wrong — please try again in a moment.")); return; }
     if (!data.channels?.length) { setMsg(data.isSandbox ? "Sandbox: no live channels yet" : "No shipping options available right now"); return; }
     // AUTO-KEUZE, identiek aan solo (user 2026-07-21: geen keuzelijst meer): YunExpress
     // (Vera's hoofdlijn) → DHL (reserve) → goedkoopste DDP. BuckyDrop bepaalt bij het echte
@@ -1635,7 +1644,7 @@ function GroupShippingPanel({ session, groupId, shipment, waitingCount, isHost, 
     setBusy(true); setMsg("");
     const { data, error } = await supabase.functions.invoke("haul-shipping-group", { body: { action: "lock", groupId, serviceCode } });
     setBusy(false);
-    if (error || !data?.ok) { setMsg(data?.error || error?.message || "Could not lock the quote"); return; }
+    if (error || !data?.ok) { setMsg(data?.error || tr("group.gate.error", "Something went wrong — please try again in a moment.")); return; }
     setPick(null); onRefresh();
   };
   const pay = async () => {
@@ -1654,23 +1663,59 @@ function GroupShippingPanel({ session, groupId, shipment, waitingCount, isHost, 
   };
   const err = msg ? <div style={{ fontSize: 11, color: "#B91C1C", textAlign: "center", marginTop: 8 }}>{msg}</div> : null;
 
+  // Klikbaar "?"-uitlegblokje (user 2026-08-26): op élk pre-lock scherm uitleggen wat
+  // "locking the group" is — mensen snappen het stappensysteem anders niet.
+  const lockInfoBlock = (
+    <div style={{ marginTop: 9 }}>
+      <button onClick={() => setShowLockInfo((v) => !v)} style={{ background: "none", border: "none", color: "#FF5C00", fontSize: 11.5, fontWeight: 700, cursor: "pointer", padding: 0 }}>
+        {showLockInfo ? "▴" : "?"} {tr("group.lockInfo.link", "What is “locking the group”?")}
+      </button>
+      {showLockInfo && (
+        <div style={{ background: "#F8F7F4", border: "1px solid #E8E6E0", borderRadius: 12, padding: "11px 13px", marginTop: 7, textAlign: "left" }}>
+          {[
+            ["🧊", tr("group.lockInfo.b1", "Locking freezes the box: nothing can be added or removed anymore, and Ready can't be changed.")],
+            ["✅", tr("group.lockInfo.b2", "It's only possible once every member has at least one item in the parcel and every item is set to Ready.")],
+            ["⚖️", tr("group.lockInfo.b3", "After locking, everyone pays their own share of the shipping (split by weight) plus their own fee — within 72 hours.")],
+            ["📦", tr("group.lockInfo.b4", "When everyone has paid, everything ships as ONE box to {host}.", { host: hostName || tr("group.lock.hostFallback", "the host") })],
+          ].map(([icon, text], i) => (
+            <div key={i} style={{ display: "flex", gap: 8, alignItems: "flex-start", marginBottom: i < 3 ? 7 : 0 }}>
+              <span style={{ fontSize: 12.5, flexShrink: 0, lineHeight: 1.45 }}>{icon}</span>
+              <span style={{ fontSize: 11.5, color: "#5F5C56", lineHeight: 1.45 }}>{text}</span>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+
   // ── Nog geen vergrendelde quote ──
   if (!shipment) {
-    if (haulCount === 0 && waitingCount === 0) return null;
+    if (haulCount === 0 && waitingCount === 0 && emptyMembers.length === 0) return null;
+    // Lid zonder énig item (user 2026-08-26): duidelijke gate-kaart i.p.v. een rauwe
+    // edge-function-fout — de server dwingt dezelfde regel af.
+    if (emptyMembers.length > 0) {
+      return <div style={{ ...wrap, textAlign: "center", color: "#92400E", background: "#FFF7ED", borderColor: "#FCD9B6", fontSize: 13, lineHeight: 1.5 }}>
+        🛍️ {tr("group.gate.emptyMembers", "Waiting for {names} — nothing in the warehouse yet. The group can only ship once every member has at least one item in the parcel, all set to Ready.", { names: emptyMembers.join(", ") })}
+        {lockInfoBlock}
+      </div>;
+    }
     if (waitingCount > 0) {
-      return <div style={{ ...wrap, textAlign: "center", color: "#92400E", background: "#FFF7ED", borderColor: "#FCD9B6", fontSize: 13 }}>
-        ⏳ Waiting for your squad — {waitingCount} item{waitingCount === 1 ? "" : "s"} still on the way or not confirmed Ready yet. Everything ships in one parcel.
+      return <div style={{ ...wrap, textAlign: "center", color: "#92400E", background: "#FFF7ED", borderColor: "#FCD9B6", fontSize: 13, lineHeight: 1.5 }}>
+        ⏳ {tr("group.gate.waiting", "Waiting for your squad — {count} item{s} still on the way or not set to Ready yet. Everything ships in one parcel.", { count: waitingCount, s: waitingCount === 1 ? "" : "s" })}
+        {lockInfoBlock}
       </div>;
     }
     if (!isHost) {
-      return <div style={{ ...wrap, textAlign: "center", fontSize: 13, color: "#6b6b6b" }}>
-        ✓ Everyone hit Ready — the box is complete. The host{hostName ? ` (${hostName})` : ""} locks the shipping quote, then you each pay your share.
+      return <div style={{ ...wrap, textAlign: "center", fontSize: 13, color: "#6b6b6b", lineHeight: 1.5 }}>
+        ✓ {tr("group.gate.readyNonHost", "Everyone hit Ready — the box is complete. {host} locks the shipping quote, then you each pay your share.", { host: hostName || tr("group.lock.hostFallback", "The host") })}
+        {lockInfoBlock}
       </div>;
     }
     if (pick === null) {
       return <div style={{ marginBottom: 20 }}>
-        <button disabled={busy} onClick={getQuote} style={darkBtn(busy)}>{busy ? "Getting quote…" : "Arrange shipping →"}</button>
+        <button disabled={busy} onClick={getQuote} style={darkBtn(busy)}>{busy ? tr("group.gate.gettingQuote", "Getting quote…") : tr("group.gate.arrange", "Arrange shipping →")}</button>
         {err}
+        <div style={{ textAlign: "center" }}>{lockInfoBlock}</div>
       </div>;
     }
     // LOCK-KAART (user 2026-07-22): host bevestigt alleen de route — GEEN totaalprijs meer
@@ -2082,6 +2127,8 @@ export function ParcelSection({ session, activeGroupId = null, parcelItems = [],
   const actionItems = alive.filter((o) => o.dispute_status === "bucky_flagged" || o.dispute_status === "pending");
   const isHost = !activeGroupId || session.user.id === squadHostId;
   const hostName = ((squadOrders || []).find((o) => o.user_id === squadHostId) || {}).member;
+  // Leden zonder énig levend item — die houden het groepspakket tegen (user 2026-08-26).
+  const emptyMemberNames = activeGroupId ? (squadMembers || []).filter((m) => !alive.some((o) => o.user_id === m.user_id)).map((m) => m.display_name || tr("inspect.friendFallback", "Friend")) : [];
 
   // GROEP: het pakket toont ieders aangekomen items (behalve wat jij zelf apart houdt —
   // dat staat in de eigen "held out"-sectie). Solo: gewoon je eigen pakket-items.
@@ -2427,6 +2474,7 @@ export function ParcelSection({ session, activeGroupId = null, parcelItems = [],
                 <div style={{ marginTop: 12 }}>
                   <GroupShippingPanel session={session} groupId={activeGroupId} shipment={shipState}
                     waitingCount={waitingCount} isHost={isHost} hostName={hostName} haulCount={count}
+                    emptyMembers={emptyMemberNames}
                     onRefresh={() => { fetchSquad(); onShipped?.(); }} />
                 </div>
               ) : (() => {

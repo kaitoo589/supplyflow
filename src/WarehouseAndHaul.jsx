@@ -1977,6 +1977,7 @@ export function ParcelSection({ session, activeGroupId = null, parcelItems = [],
   const [balance, setBalance] = useState(0);
   const [squadOrders, setSquadOrders] = useState([]);
   const [squadHostId, setSquadHostId] = useState(null);
+  const [squadMembers, setSquadMembers] = useState([]);
   const [shipState, setShipState] = useState(null);
   // 📦-vlucht: bij het openen springt het doosje naast "Your orders' journey in China"
   // (de reiskaart, [data-journey-box]) in een BOOG omlaag naar linksboven in de sheet —
@@ -2031,10 +2032,14 @@ export function ParcelSection({ session, activeGroupId = null, parcelItems = [],
     setBalance(data?.balance || 0);
   };
   const fetchSquad = async () => {
-    if (!activeGroupId) { setSquadOrders([]); setSquadHostId(null); setShipState(null); return; }
+    if (!activeGroupId) { setSquadOrders([]); setSquadHostId(null); setSquadMembers([]); setShipState(null); return; }
     const { data } = await supabase.rpc("ff_group_orders", { p_group_id: activeGroupId });
     setSquadOrders(data?.orders || []);
     setSquadHostId(data?.host_id || null);
+    // Ledenlijst apart ophalen (user 2026-08-26): een vers gejoind lid zonder items
+    // moet óók een eigen sectie in het pakket krijgen ("nog niks in het magazijn").
+    const { data: mem } = await supabase.rpc("ff_group_members", { p_group_id: activeGroupId });
+    setSquadMembers(mem?.members || []);
     const { data: s } = await supabase.rpc("ff_group_shipping_state", { p_group_id: activeGroupId });
     setShipState(s?.shipment || null);
   };
@@ -2088,10 +2093,16 @@ export function ParcelSection({ session, activeGroupId = null, parcelItems = [],
   const memberSections = (() => {
     if (!activeGroupId) return [];
     const byUser = new Map();
+    // ÉLK groepslid krijgt een sectie — óók zonder items (user 2026-08-26): wie net
+    // gejoind is, ziet zichzelf (en de rest ziet hem) meteen in het pakket staan,
+    // met een "nog niks in het magazijn"-regel i.p.v. onzichtbaar te blijven.
+    for (const m of squadMembers) byUser.set(m.user_id, { userId: m.user_id, name: m.display_name, items: [] });
     for (const o of alive) {
       if (heldIds.has(o.id)) continue;
       if (!byUser.has(o.user_id)) byUser.set(o.user_id, { userId: o.user_id, name: o.member, items: [] });
-      byUser.get(o.user_id).items.push(o);
+      const sec = byUser.get(o.user_id);
+      if (!sec.name) sec.name = o.member;
+      sec.items.push(o);
     }
     const list = [...byUser.values()];
     list.sort((a, b) => (a.userId === session.user.id ? -1 : b.userId === session.user.id ? 1 : 0));
@@ -2207,7 +2218,8 @@ export function ParcelSection({ session, activeGroupId = null, parcelItems = [],
                 </FoldReveal>
               )}
 
-              {count === 0 && (
+              {/* Alleen solo — in groepsmodus vertellen de leden-secties zelf wie wat (nog niet) heeft. */}
+              {count === 0 && !activeGroupId && (
                 <FoldReveal i={1} n={count + 5} skip={didReveal.current}>
                 <div style={{ fontSize: 12.5, color: "#9C9893", padding: "10px 2px 4px" }}>{tr("parcel.sheet.empty", "No items in your parcel yet — they appear here when they arrive in the warehouse.")}</div>
                 </FoldReveal>
@@ -2228,6 +2240,19 @@ export function ParcelSection({ session, activeGroupId = null, parcelItems = [],
                         <span style={{ background: "rgba(255,92,0,0.16)", color: "#FF8A3D", fontSize: 9.5, fontWeight: 800, padding: "2px 8px", borderRadius: 20, textTransform: "none" }}>🏠 {tr("orders.squad.host", "Host")}</span>
                       )}
                     </div>
+                    {/* Lid zonder items (user 2026-08-26): laat de sectie tóch zien, met een
+                        vriendelijke lege-regel — jij: "bestel iets", ander: "nog niks". */}
+                    {sec.items.length === 0 && (
+                      own ? (
+                        <div style={{ background: "#1A1917", borderRadius: 13, padding: "12px 13px", fontSize: 12, color: "#9C9893", lineHeight: 1.5 }}>
+                          🛍️ {tr("parcel.row.emptyOwn", "You have no items in the warehouse yet — order something and it'll appear here!")}
+                        </div>
+                      ) : (
+                        <div style={{ background: "#1A1917", borderRadius: 13, padding: "12px 13px", fontSize: 12, color: "#9C9893", lineHeight: 1.5 }}>
+                          🛍️ {tr("parcel.row.emptyOther", "{name} has no items in the warehouse yet.", { name: sec.name || tr("inspect.friendFallback", "Friend") })}
+                        </div>
+                      )
+                    )}
                     {sec.items.map((o) => {
                       const arrived = o.status === "qc_pending";
                       const ready = arrived && !!o.box_staged_at;

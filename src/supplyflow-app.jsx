@@ -4837,7 +4837,9 @@ export default function SupplyFlow({ session, factoriesVisible = true }) {
       <div style={{ padding: "16px 20px 10px", display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 9, minWidth: 0 }}>
           <div style={{ width: 30, height: 30, borderRadius: "50%", background: "#111111", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 15, boxShadow: activeGroup ? "0 0 0 2px rgba(255,92,0,0.6)" : "none", transition: "box-shadow .3s", flexShrink: 0 }}><Fox /></div>
-          <div style={{ fontSize: 12, fontWeight: 700, letterSpacing: 2.5, color: "#111111", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>FLOWVA{activeGroup && <span style={{ color: "#FF5C00" }}> {tr("feed.header.friendsSuffix", "FRIENDS")}</span>}</div>
+          {/* In groepsmodus is de tekst langer — iets kleiner + minder letterafstand zodat
+              "FLOWVA FRIENDS" ook op een smalle telefoon volledig leesbaar blijft (Kaito 26-08). */}
+          <div style={{ fontSize: activeGroup ? 11 : 12, fontWeight: 700, letterSpacing: activeGroup ? 1.5 : 2.5, color: "#111111", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>FLOWVA{activeGroup && <span style={{ color: "#FF5C00" }}> {tr("feed.header.friendsSuffix", "FRIENDS")}</span>}</div>
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
           <div style={{ background: "#EFEDE8", borderRadius: 20, padding: "7px 13px", display: "flex", gap: 6, alignItems: "baseline" }}>
@@ -4956,7 +4958,14 @@ export default function SupplyFlow({ session, factoriesVisible = true }) {
             {/* Merkpagina (user 2026-08-12): heeft de store een brand_logo → dan staat op de
                 titelplek de "All brands"-pill (zelfde hoogte als de drie knopjes) en komt het
                 logo als volle-breedte header eronder. Zonder logo: gewoon de naam. */}
-            <div style={{ fontSize: 30, fontWeight: 800, letterSpacing: -0.6, color: "#111111", marginBottom: 2, minWidth: 0 }}>{showFavoritesOnly ? tr("feed.title.favorites", "Favorites") : selectedFactory ? (tab === "brands" && selectedFactory.brand_logo ? backPillEl(true) : selectedFactory.name) : tab === "brands" ? <>{tr("feed.title.brandFeed.word1", "Brand")} <span style={{ color: "#FF5C00" }}>{tr("feed.title.brandFeed.word2", "Feed")}</span></> : <>{tr("feed.title.factoryFeed.word1", "Factory")} <span style={{ color: "#FF5C00" }}>{tr("feed.title.factoryFeed.word2", "Feed")}</span></>}</div>
+            <div style={{ fontSize: 30, fontWeight: 800, letterSpacing: -0.6, color: "#111111", marginBottom: 2, minWidth: 0 }}>{showFavoritesOnly ? tr("feed.title.favorites", "Favorites") : selectedFactory ? (tab === "brands" && selectedFactory.brand_logo ? backPillEl(true) : selectedFactory.name) : tab === "brands" ? (
+              // "Chinese Brand Feed" (Kaito 26-08) — bewust als twee regels gezet, anders
+              // breekt de lange titel op telefoons op een willekeurige plek af.
+              <span style={{ display: "block", fontSize: 24, lineHeight: 1.12 }}>
+                <span style={{ display: "block" }}>{tr("feed.title.brandFeed.word1", "Chinese Brand")}</span>
+                <span style={{ color: "#FF5C00" }}>{tr("feed.title.brandFeed.word2", "Feed")}</span>
+              </span>
+            ) : <>{tr("feed.title.factoryFeed.word1", "Factory")} <span style={{ color: "#FF5C00" }}>{tr("feed.title.factoryFeed.word2", "Feed")}</span></>}</div>
             <div style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
               {/* 💸 opent ALTIJD de vos-tour; de volledige tekst-sheet komt pas via
                   "See the full breakdown" in de tour (geen boogvlucht meer nodig). */}

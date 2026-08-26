@@ -3501,6 +3501,26 @@ export default function SupplyFlow({ session, factoriesVisible = true }) {
     try { return JSON.parse(localStorage.getItem(lsKey("flowva_active_group")) || "null"); } catch { return null; }
   });
   const [groupToast, setGroupToast] = useState(null);   // {kind,name} als de actieve groep van status wisselt
+  // 🔁 Globale foto-herkansing (Kaito 26-08): een netwerk-hikje liet foto's app-breed
+  // (productpagina, size charts, galerij, Quality-control) permanent leeg of als 📦 achter
+  // tot je het scherm opnieuw opende. Elke <img> die faalt krijgt nu één stille tweede
+  // poging; pas als die óók faalt mag de gewone fallback draaien. 'error' bubbelt niet,
+  // dus we vangen hem met capture op window — dat dekt élke foto in de hele app.
+  useEffect(() => {
+    const onImgError = (e) => {
+      const img = e.target;
+      if (!(img instanceof HTMLImageElement)) return;
+      const src = img.currentSrc || img.src || "";
+      if (!src.startsWith("http")) return;
+      if (img.dataset.retried) return;               // tweede fout → fallback mag het overnemen
+      img.dataset.retried = "1";
+      e.stopPropagation();                            // hou de 📦-fallback bij de eerste fout nog even tegen
+      const schoon = src.replace(/[?&]retry=1/, "");
+      setTimeout(() => { img.src = schoon + (schoon.includes("?") ? "&" : "?") + "retry=1"; }, 900);
+    };
+    window.addEventListener("error", onImgError, true);
+    return () => window.removeEventListener("error", onImgError, true);
+  }, []);
   // Verzend-lock van de groep-order in het detailscherm (user 2026-07-22, keuze B): zodra de
   // host de verzending vergrendelt, mag niemand nog Ready wijzigen of een refund aanvragen.
   const [selGroupShipLocked, setSelGroupShipLocked] = useState(false);
@@ -4595,11 +4615,9 @@ export default function SupplyFlow({ session, factoriesVisible = true }) {
             <>
               <img src={p.image} referrerPolicy="no-referrer" alt={p.title} decoding="async" loading="lazy"
                 onError={(e) => {
-                  // Netwerk-hikje bij honderden foto's tegelijk? Eén stille herkansing
-                  // vóór het 📦-doosje (Kaito 26-08: doosjes terwijl de foto's gewoon bestaan).
-                  const img = e.currentTarget;
-                  if (!img.dataset.retried) { img.dataset.retried = "1"; setTimeout(() => { img.src = p.image + (p.image.includes("?") ? "&" : "?") + "retry=1"; }, 900); return; }
-                  img.style.display = "none"; const fb = img.nextSibling; if (fb) fb.style.display = "flex";
+                  // De globale foto-herkansing (App-effect) vangt de éérste fout af en probeert
+                  // opnieuw; komt de fout hier aan, dan is ook de herkansing mislukt → 📦.
+                  e.currentTarget.style.display = "none"; const fb = e.currentTarget.nextSibling; if (fb) fb.style.display = "flex";
                 }}
                 style={{ width: "100%", height: "100%", objectFit: "cover" }} />
               <span style={{ display: "none", width: "100%", height: "100%", alignItems: "center", justifyContent: "center" }}>📦</span>

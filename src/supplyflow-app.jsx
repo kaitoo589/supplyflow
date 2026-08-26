@@ -1009,6 +1009,39 @@ function OrderGroupCard({ items, onOpenItem, groupSize, onDismiss, parcel, activ
   );
 }
 
+// 🔒-kaart (Kaito 26-08): zodra de groep-verzending gelockt is, vervangt deze kaart de
+// reiskaart bovenaan Orders — één boodschap: de doos is bevroren, en dit is de betaalstand.
+// Zodra het pakket verzonden is neemt de Transit-badge het over en komt de reiskaart terug.
+function GroupLockedCard({ shipment }) {
+  const paid = Number(shipment?.members_paid) || 0;
+  const total = Number(shipment?.members_total) || 0;
+  const allPaid = shipment?.status === "consolidating" || (total > 0 && paid >= total);
+  return (
+    <div style={{ margin: "10px 20px 0", background: "#fff", borderRadius: 18, boxShadow: "0 1px 2px rgba(17,17,17,0.04), 0 6px 18px rgba(17,17,17,0.05)", padding: "16px 18px", display: "flex", alignItems: "center", gap: 15 }}>
+      {/* data-journey-box: de pakket-vlucht van de sheet blijft hieraan verankerd. */}
+      <motion.span data-journey-box initial={{ scale: 0.4, rotate: -12, opacity: 0 }} animate={{ scale: 1, rotate: 0, opacity: 1 }}
+        transition={{ type: "spring", stiffness: 260, damping: 15 }}
+        style={{ fontSize: 40, lineHeight: 1, display: "inline-block", transition: "opacity 0.25s" }}>🔒</motion.span>
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ fontSize: 14, fontWeight: 700, color: "#111111" }}>{tr("orders.locked.title", "Your group is locked")}</div>
+        <div style={{ fontSize: 11, color: "#A8A5A0", marginTop: 1 }}>
+          {allPaid ? tr("orders.locked.allPaid", "✓ All paid — your parcel is being prepared") : tr("orders.locked.subtitle", "The box is frozen — everyone pays their own share")}
+        </div>
+        {total > 0 && (
+          <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 8 }}>
+            <div style={{ flex: 1, height: 6, borderRadius: 999, background: "#F3F1ED", overflow: "hidden" }}>
+              <motion.div initial={{ width: 0 }} animate={{ width: `${Math.min(100, (paid / total) * 100)}%` }}
+                transition={{ type: "spring", stiffness: 120, damping: 20 }}
+                style={{ height: "100%", background: allPaid ? "#10B981" : "#FF5C00", borderRadius: 999 }} />
+            </div>
+            <span style={{ fontSize: 11, fontWeight: 700, color: allPaid ? "#10B981" : "#FF5C00", flexShrink: 0 }}>{tr("orders.locked.paid", "{paid} of {total} paid", { paid, total })}</span>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 function TreasureMap({ activeFilter, onSelect, orders }) {
   const countFor = (statuses) => orders.filter(o => statuses.includes(o.status)).length;
   return (
@@ -3482,16 +3515,21 @@ export default function SupplyFlow({ session, factoriesVisible = true }) {
   // Verzend-lock van de ACTIEVE groep (user 2026-07-22): zodra de admin de verzending lockt
   // mag je niks meer aan de groep-mand toevoegen. De groep-status blijft 'gathering', dus dit
   // is het enige betrouwbare signaal. Herchecken bij het openen van een product.
-  const [activeGroupShipLocked, setActiveGroupShipLocked] = useState(false);
+  // Volledige shipment-status bewaren (user 2026-08-26): de 🔒-kaart bovenaan Orders
+  // toont hiermee live de betaalstand ({paid} of {total} paid). Lichte poll houdt 'm bij.
+  const [activeGroupShipment, setActiveGroupShipment] = useState(null);
+  const activeGroupShipLocked = ["quoted", "consolidating", "shipped"].includes(activeGroupShipment?.status);
   useEffect(() => {
-    if (!activeGroup?.id) { setActiveGroupShipLocked(false); return; }
+    if (!activeGroup?.id) { setActiveGroupShipment(null); return; }
     let on = true;
-    supabase.rpc("ff_group_shipping_state", { p_group_id: activeGroup.id }).then(({ data }) => {
-      if (on) setActiveGroupShipLocked(["quoted", "consolidating", "shipped"].includes(data?.shipment?.status));
+    const load = () => supabase.rpc("ff_group_shipping_state", { p_group_id: activeGroup.id }).then(({ data }) => {
+      if (on) setActiveGroupShipment(data?.shipment || null);
     });
-    return () => { on = false; };
+    load();
+    const t = setInterval(load, 12000);
+    return () => { on = false; clearInterval(t); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeGroup?.id, selectedProduct?.id, showRequestList]);
+  }, [activeGroup?.id, selectedProduct?.id, showRequestList, tab]);
   // Favorieten (per apparaat) + filter in de feed.
   const [favorites, setFavorites] = useState(() => { try { return JSON.parse(localStorage.getItem(lsKey("flowva_favorites")) || "[]"); } catch { return []; } });
   const [showFavoritesOnly, setShowFavoritesOnly] = useState(false);
@@ -5150,7 +5188,10 @@ export default function SupplyFlow({ session, factoriesVisible = true }) {
         /* Extra ruimte onderaan als de pakket-balk zweeft (Kaito 25-08): anders verstopt
            de balk de onderste kaart — nu kun je gewoon voorbij de balk scrollen. */
         <motion.div key="orders-list" {...pageTransition} style={{ paddingBottom: parcelItems.length > 0 ? 180 : 80, width: "100%" }}>
-          <TreasureMap activeFilter={orderFilter} onSelect={setOrderFilter} orders={visibleOrders} />
+          {/* Gelockte groep (Kaito 26-08): reiskaart → 🔒-kaart met de betaalstand. */}
+          {activeGroup && ["quoted", "consolidating"].includes(activeGroupShipment?.status)
+            ? <GroupLockedCard shipment={activeGroupShipment} />
+            : <TreasureMap activeFilter={orderFilter} onSelect={setOrderFilter} orders={visibleOrders} />}
           <div style={{ padding: "16px 20px" }}>
             {(() => {
               // Groepeer orders per aankoop (request_group_id); losse orders = eigen groep.

@@ -1673,7 +1673,7 @@ function GroupShippingPanel({ session, groupId, shipment, waitingCount, isHost, 
   const LOCK_BULLETS = [
     ["🧊", tr("group.lockInfo.b1", "Locking freezes the box: nothing can be added or removed anymore, and Ready can't be changed.")],
     ["✅", tr("group.lockInfo.b2", "It's only possible once every member has at least one item in the parcel and every item is set to Ready.")],
-    ["⚖️", tr("group.lockInfo.b3", "After locking, everyone pays their own share of the shipping (split by weight) plus their own fee — within 72 hours.")],
+    ["⚖️", tr("group.lockInfo.b3", "After locking, everyone pays their own share of the shipping (split by weight) plus their own fee. There's no deadline — but storage is only free for 60 days, so nudge slow payers yourself.")],
     ["📦", tr("group.lockInfo.b4", "When everyone has paid, everything ships as ONE box to {host}.", { host: hostName || tr("group.lock.hostFallback", "the host") })],
   ];
   const bulletRows = LOCK_BULLETS.map(([icon, text], i) => (
@@ -1756,7 +1756,7 @@ function GroupShippingPanel({ session, groupId, shipment, waitingCount, isHost, 
       </div>
       {[
         ["🔒", tr("group.lock.point1", "The box locks — no more adding, removing or Ready changes after this")],
-        ["⚖️", tr("group.lock.point2", "Everyone pays their own share, split by weight — within 72 hours")],
+        ["⚖️", tr("group.lock.point2", "Everyone pays their own share, split by weight — no deadline, whenever they're ready")],
         ["💶", tr("group.lock.point3", "Prices show on the next screen · you pay an estimate, any overpayment comes back as a refund")],
       ].map(([icon, text], i) => (
         <div key={i} style={{ display: "flex", gap: 9, alignItems: "flex-start", marginBottom: i < 2 ? 7 : 12 }}>
@@ -1775,7 +1775,6 @@ function GroupShippingPanel({ session, groupId, shipment, waitingCount, isHost, 
     const members = shipment.members || [];
     const me = members.find((m) => m.user_id === myId);
     const unpaid = members.filter((m) => !m.paid).length;
-    const deadlinePassed = shipment.pay_deadline && new Date(shipment.pay_deadline).getTime() < Date.now();
     const myTotal = Number(me?.share_total) || 0;
     const canAfford = balance >= myTotal;
 
@@ -2064,7 +2063,10 @@ function GroupShippingPanel({ session, groupId, shipment, waitingCount, isHost, 
       {me && me.paid && (
         <button onClick={() => setPayPage(true)} style={{ width: "100%", background: "#F1EFE9", color: "#6B6862", border: "none", borderRadius: 12, padding: "12px", fontSize: 13, fontWeight: 700, cursor: "pointer" }}>{tr("group.quoted.viewSplit", "View the split")}</button>
       )}
-      {isHost && deadlinePassed && unpaid > 0 && (
+      {/* Geen 72-uurs-deadline meer (user 2026-08-26): iedereen heeft onbeperkt de tijd.
+          De host kan — zodra z'n eigen deel betaald is — wel altijd kiezen om zonder de
+          treuzelaars te verzenden; urgen doe je zelf (opslag is maar 60 dagen gratis). */}
+      {isHost && me?.paid && unpaid > 0 && (
         <button disabled={busy} onClick={drop} style={{ width: "100%", marginTop: 8, background: "#FFF7ED", color: "#92400E", border: "1px solid #FCD9B6", borderRadius: 12, padding: "11px", fontSize: 12.5, fontWeight: 700, cursor: "pointer" }}>{tr("group.quoted.dropUnpaid", "Ship without {count} unpaid member{s} →", { count: unpaid, s: unpaid === 1 ? "" : "s" })}</button>
       )}
       {err}

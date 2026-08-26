@@ -5921,7 +5921,10 @@ export default function SupplyFlow({ session, factoriesVisible = true }) {
           <div style={{ position: "fixed", bottom: 90, left: "50%", transform: "translateX(-50%)", zIndex: 350, background: "#0F0E0C", color: "#fff", borderRadius: 999, padding: "10px 18px", fontSize: 13, fontWeight: 600, boxShadow: "0 8px 30px rgba(0,0,0,0.4)", maxWidth: "90%", textAlign: "center" }}>{infoToast}</div>
         )}
         {activeGroupShopping && (tab === "feed" || tab === "brands") && !selectedProduct && !showFriends && !showRequestList && !showVable && !hypeProduct && (
-          <motion.div layoutId="squad-pop" layoutRoot initial={{ y: 24, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 30, opacity: 0, scale: 0.96 }} whileTap={{ scale: 0.97 }} transition={springMorph}
+          // Groeps-kar-balk EXACT als de solo-balk (Kaito 26-08): geen ✕ meer (groepsmodus
+          // verlaat je via Profiel) en geen layout-morph — de sheet schuift net als solo
+          // gewoon omhoog. De oranje gloed blijft als groeps-herkenning.
+          <motion.div key="squad-pop-bar" initial={{ y: 24, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ opacity: 0, transition: { duration: 0.1 } }} whileTap={{ scaleX: 1.03, scaleY: 0.93 }} transition={springMorph}
             onClick={() => { setFriendsGroupId(activeGroup.id); setShowFriends(true); }}
             style={{ position: "fixed", bottom: 86, left: 0, right: 0, margin: "0 auto", width: "calc(100% - 40px)", maxWidth: 390, background: "#111111", borderRadius: 999, overflow: "hidden", cursor: "pointer", zIndex: 301, boxShadow: "0 12px 40px rgba(17,17,17,0.35), 0 0 12px rgba(255,92,0,0.5)", border: "1px solid rgba(255,92,0,0.6)" }}>
             <div style={{ padding: "11px 18px", display: "flex", alignItems: "center", gap: 12 }}>
@@ -5934,8 +5937,6 @@ export default function SupplyFlow({ session, factoriesVisible = true }) {
                 style={{ width: 30, height: 30, borderRadius: "50%", background: "rgba(255,92,0,0.15)", display: "flex", alignItems: "center", justifyContent: "center" }}>
                 <ChevronUp size={16} color="#FF5C00" strokeWidth={2.5} />
               </motion.div>
-              <button onClick={(e) => { e.stopPropagation(); setActiveGroup(null); }} aria-label={tr("feed.aria.exitGroupMode", "exit group mode")}
-                style={{ background: "rgba(255,255,255,0.08)", border: "none", color: "#9C9893", width: 26, height: 26, borderRadius: "50%", fontSize: 12, cursor: "pointer", flexShrink: 0 }}>✕</button>
             </div>
           </motion.div>
         )}

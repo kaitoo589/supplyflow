@@ -1057,9 +1057,10 @@ export default function Friends({ session, onClose, initialJoinCode, initialGrou
   return (
     <>
       <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.2 }} style={backdrop} onClick={onClose} />
-      <motion.div layoutId="squad-pop" layoutRoot transition={springMorph}
-        initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} style={sheet}>
-        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1, transition: { delay: 0.14, duration: 0.2 } }} exit={{ opacity: 0, transition: { duration: 0.08 } }}>
+      {/* Zelfde beweging als de solo-kar (Kaito 26-08): één soepele schuif omhoog i.p.v.
+          de balk→sheet-morph die halverwege leek te haperen. Inhoud meteen zichtbaar. */}
+      <motion.div initial={{ y: "104%" }} animate={{ y: 0 }} exit={{ y: "104%" }} transition={springMorph} style={sheet}>
+        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1, transition: { duration: 0.15 } }} exit={{ opacity: 0, transition: { duration: 0.08 } }}>
           <div style={{ padding: "8px 0 0", display: "flex", justifyContent: "center" }}>
             <div style={{ width: 36, height: 4, background: "rgba(255,255,255,0.2)", borderRadius: 2 }} />
           </div>

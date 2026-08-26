@@ -1663,8 +1663,21 @@ function GroupShippingPanel({ session, groupId, shipment, waitingCount, isHost, 
   };
   const err = msg ? <div style={{ fontSize: 11, color: "#B91C1C", textAlign: "center", marginTop: 8 }}>{msg}</div> : null;
 
-  // Klikbaar "?"-uitlegblokje (user 2026-08-26): op élk pre-lock scherm uitleggen wat
-  // "locking the group" is — mensen snappen het stappensysteem anders niet.
+  // "Wat is de groep locken?"-uitleg (user 2026-08-26): voor LEDEN en wacht-kaarten een
+  // uitklap-linkje; voor de HOST alleen een ?-bolletje op de lock-knop dat een overlay
+  // opent — de lock-kaart zelf legt het daarna immers al uit.
+  const LOCK_BULLETS = [
+    ["🧊", tr("group.lockInfo.b1", "Locking freezes the box: nothing can be added or removed anymore, and Ready can't be changed.")],
+    ["✅", tr("group.lockInfo.b2", "It's only possible once every member has at least one item in the parcel and every item is set to Ready.")],
+    ["⚖️", tr("group.lockInfo.b3", "After locking, everyone pays their own share of the shipping (split by weight) plus their own fee — within 72 hours.")],
+    ["📦", tr("group.lockInfo.b4", "When everyone has paid, everything ships as ONE box to {host}.", { host: hostName || tr("group.lock.hostFallback", "the host") })],
+  ];
+  const bulletRows = LOCK_BULLETS.map(([icon, text], i) => (
+    <div key={i} style={{ display: "flex", gap: 8, alignItems: "flex-start", marginBottom: i < 3 ? 7 : 0 }}>
+      <span style={{ fontSize: 12.5, flexShrink: 0, lineHeight: 1.45 }}>{icon}</span>
+      <span style={{ fontSize: 11.5, color: "#5F5C56", lineHeight: 1.45, textAlign: "left" }}>{text}</span>
+    </div>
+  ));
   const lockInfoBlock = (
     <div style={{ marginTop: 9 }}>
       <button onClick={() => setShowLockInfo((v) => !v)} style={{ background: "none", border: "none", color: "#FF5C00", fontSize: 11.5, fontWeight: 700, cursor: "pointer", padding: 0 }}>
@@ -1672,17 +1685,7 @@ function GroupShippingPanel({ session, groupId, shipment, waitingCount, isHost, 
       </button>
       {showLockInfo && (
         <div style={{ background: "#F8F7F4", border: "1px solid #E8E6E0", borderRadius: 12, padding: "11px 13px", marginTop: 7, textAlign: "left" }}>
-          {[
-            ["🧊", tr("group.lockInfo.b1", "Locking freezes the box: nothing can be added or removed anymore, and Ready can't be changed.")],
-            ["✅", tr("group.lockInfo.b2", "It's only possible once every member has at least one item in the parcel and every item is set to Ready.")],
-            ["⚖️", tr("group.lockInfo.b3", "After locking, everyone pays their own share of the shipping (split by weight) plus their own fee — within 72 hours.")],
-            ["📦", tr("group.lockInfo.b4", "When everyone has paid, everything ships as ONE box to {host}.", { host: hostName || tr("group.lock.hostFallback", "the host") })],
-          ].map(([icon, text], i) => (
-            <div key={i} style={{ display: "flex", gap: 8, alignItems: "flex-start", marginBottom: i < 3 ? 7 : 0 }}>
-              <span style={{ fontSize: 12.5, flexShrink: 0, lineHeight: 1.45 }}>{icon}</span>
-              <span style={{ fontSize: 11.5, color: "#5F5C56", lineHeight: 1.45 }}>{text}</span>
-            </div>
-          ))}
+          {bulletRows}
         </div>
       )}
     </div>
@@ -1712,10 +1715,26 @@ function GroupShippingPanel({ session, groupId, shipment, waitingCount, isHost, 
       </div>;
     }
     if (pick === null) {
+      // HOST-knop heet "Lock the group" (user 2026-08-26) — zelfde term als overal.
+      // Het ?-bolletje rechts opent de uitleg-overlay; klik op de rest haalt de offerte.
       return <div style={{ marginBottom: 20 }}>
-        <button disabled={busy} onClick={getQuote} style={darkBtn(busy)}>{busy ? tr("group.gate.gettingQuote", "Getting quote…") : tr("group.gate.arrange", "Arrange shipping →")}</button>
+        <button disabled={busy} onClick={getQuote} style={{ ...darkBtn(busy), display: "flex", alignItems: "center", justifyContent: "center", gap: 9 }}>
+          <span>{busy ? tr("group.gate.gettingQuote", "Getting quote…") : <>🔒 {tr("group.gate.lockCta", "Lock the group →")}</>}</span>
+          {!busy && (
+            <span onClick={(e) => { e.stopPropagation(); setShowLockInfo(true); }}
+              style={{ width: 20, height: 20, borderRadius: 999, background: "rgba(255,92,0,0.18)", color: "#FF5C00", fontSize: 12, fontWeight: 800, display: "inline-flex", alignItems: "center", justifyContent: "center", flexShrink: 0, cursor: "pointer" }}>?</span>
+          )}
+        </button>
         {err}
-        <div style={{ textAlign: "center" }}>{lockInfoBlock}</div>
+        {showLockInfo && (
+          <div onClick={() => setShowLockInfo(false)} style={{ position: "fixed", inset: 0, zIndex: 460, background: "rgba(0,0,0,0.55)", backdropFilter: "blur(6px)", WebkitBackdropFilter: "blur(6px)", display: "flex", alignItems: "center", justifyContent: "center", padding: 22 }}>
+            <div onClick={(e) => e.stopPropagation()} style={{ background: "#fff", borderRadius: 18, padding: "18px 17px", maxWidth: 400, width: "100%", boxShadow: "0 18px 60px rgba(0,0,0,0.35)" }}>
+              <div style={{ fontSize: 14.5, fontWeight: 800, marginBottom: 11, color: "#0F0E0C" }}>🔒 {tr("group.lockInfo.title", "Locking the group")}</div>
+              {bulletRows}
+              <button onClick={() => setShowLockInfo(false)} style={{ width: "100%", background: "#0F0E0C", color: "#FF5C00", border: "none", borderRadius: 12, padding: "12px", fontSize: 13.5, fontWeight: 700, cursor: "pointer", marginTop: 13 }}>{tr("sheets.gotIt", "Got it")}</button>
+            </div>
+          </div>
+        )}
       </div>;
     }
     // LOCK-KAART (user 2026-07-22): host bevestigt alleen de route — GEEN totaalprijs meer

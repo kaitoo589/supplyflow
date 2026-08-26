@@ -33,7 +33,18 @@ const round2 = (x: number) => Math.round(x * 100) / 100;
 // channel-carriage-list nog niet aan / sandbox / geen route). IDENTIEK aan solo haul-shipping
 // + WarehouseAndHaul.jsx. DDP = duties in de prijs. ff_pay_group_shipping zet ×1,25 + split erop.
 const SHIP_FIRST_KG = 0.5, SHIP_FIRST_EUR = 9.0, SHIP_PER_KG = 8.5;
-const shippingEstimateEur = (kg: number) => round2(SHIP_FIRST_EUR + Math.max(0, kg - SHIP_FIRST_KG) * SHIP_PER_KG);
+// 🌍 per-land schatting — HOUD IDENTIEK aan solo haul-shipping + WarehouseAndHaul.jsx.
+const SHIP_LANDEN: Record<string, { eerste: number; perKg: number }> = {
+  "United Kingdom": { eerste: 8.0, perKg: 7.5 },
+  "USA": { eerste: 12.0, perKg: 11.5 },
+  "Canada": { eerste: 10.5, perKg: 10.0 },
+  "Australia": { eerste: 8.5, perKg: 6.0 },
+  "Norway": { eerste: 11.0, perKg: 11.0 },
+};
+const shippingEstimateEur = (kg: number, land?: string) => {
+  const c = SHIP_LANDEN[land ?? ""] ?? { eerste: SHIP_FIRST_EUR, perKg: SHIP_PER_KG };
+  return round2(c.eerste + Math.max(0, kg - SHIP_FIRST_KG) * c.perKg);
+};
 
 async function buckyPost(path: string, bodyObj: unknown) {
   const body = JSON.stringify(bodyObj ?? {});
@@ -45,6 +56,8 @@ async function buckyPost(path: string, bodyObj: unknown) {
   try { return JSON.parse(text); } catch { return { success: false, info: text }; }
 }
 
+// Landnaam (EN/NL) of 2-letter code → IATA 2-letter code. Dekt EU/EEA + wereldwijd-landen —
+// HOUD IDENTIEK aan solo haul-shipping.
 const COUNTRY_CODES: Record<string, string> = {
   netherlands: "NL", nederland: "NL", holland: "NL", nl: "NL",
   belgium: "BE", "belgië": "BE", belgie: "BE", be: "BE",
@@ -53,6 +66,11 @@ const COUNTRY_CODES: Record<string, string> = {
   luxembourg: "LU", luxemburg: "LU", lu: "LU",
   ireland: "IE", ierland: "IE", ie: "IE",
   "united kingdom": "GB", uk: "GB", "great britain": "GB", engeland: "GB", gb: "GB",
+  usa: "US", us: "US", "united states": "US",
+  canada: "CA", ca: "CA",
+  australia: "AU", au: "AU",
+  norway: "NO", noorwegen: "NO", no: "NO",
+  switzerland: "CH", zwitserland: "CH", ch: "CH",
   spain: "ES", spanje: "ES", es: "ES",
   portugal: "PT", pt: "PT",
   italy: "IT", "italië": "IT", italie: "IT", it: "IT",
@@ -120,6 +138,16 @@ function parseChannels(res: any) {
     .sort((a: any, b: any) => a.priceEur - b.priceEur);
 }
 
+// Alleen de shipping lines die wij in BuckyDrop actief hebben (user 2026-07-21):
+// YunExpress (hoofd) + DHL (reserve). channel-carriage-list geeft ÁLLE kanalen terug en
+// negeert de dashboard-vinkjes. Vangnet: levert de filter niets op voor deze route, dan
+// tonen we alles — een groep moet altijd kunnen verzenden.
+const ACTIVE_LINES = /yunexpress|dhl/i;
+function offeredChannels(channels: any[]) {
+  const active = channels.filter((c: any) => ACTIVE_LINES.test(c.name));
+  return active.length ? active : channels;
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: cors });
   if (req.method !== "POST") return json({ ok: false, error: "Method not allowed" }, 405);
@@ -168,9 +196,18 @@ Deno.serve(async (req) => {
   if (counting.some((o) => !o.box_staged_at)) return json({ ok: false, error: "Everyone must add their items to the box first", needStaging: true }, 200);
   if (counting.some((o) => !Number(o.weight_grams))) return json({ ok: false, error: "Some items have no weight yet", needWeight: true }, 200);
 
-  // Bezorgadres = de host (= de caller).
+  // Bezorgadres = de host (= de caller). Onbekend land → zachte fout (200) zodat de klant
+  // de échte melding ziet i.p.v. een generieke non-2xx (user 2026-08-26).
   const addr = addressOf(user.user_metadata || {});
-  if (!addr.countryCode) return json({ ok: false, error: "We don't ship to the host's country yet — contact support." }, 400);
+  if (!addr.countryCode) return json({ ok: false, error: "We don't ship to the host's country yet — contact support.", needCountry: true }, 200);
+  // 🌍 pauzeknop per land (zoals solo): staat het HOST-land tijdelijk dicht, weiger quote én lock.
+  try {
+    const { data: cfg } = await admin.from("app_settings").select("paused_countries").eq("id", 1).single();
+    const paused: string[] = Array.isArray(cfg?.paused_countries) ? cfg.paused_countries : [];
+    if (paused.includes(addr.country)) {
+      return json({ ok: false, error: `Shipping to ${addr.country} is temporarily paused — please try again later or contact support.`, needCountry: true }, 200);
+    }
+  } catch { /* instellingen onbereikbaar → niet blokkeren */ }
   // De host is de bezorgontvanger → een volledig adres is vereist (anders kan BuckyDrop niet quoten).
   const hmeta = user.user_metadata || {};
   const addrComplete = String(hmeta.postcode || "").trim() && String(hmeta.adres || "").trim() && String(hmeta.stad || hmeta.provincie || "").trim();
@@ -178,6 +215,7 @@ Deno.serve(async (req) => {
 
   const res = await buckyPost("/api/rest/v2/adapt/adaptation/logistics/channel-carriage-list", quoteBody(counting, addr));
   const channels = res?.success ? parseChannels(res) : [];
+  const offered = offeredChannels(channels);
   const totalWeightG = counting.reduce((s, o) => s + (Number(o.weight_grams) || 0), 0);
   if (!channels.length) console.error("GROUP_QUOTE_EMPTY", JSON.stringify({ success: res?.success, code: res?.code, msg: res?.message ?? res?.info, postCode: addr.postCode, province: addr.province }));
 
@@ -186,21 +224,21 @@ Deno.serve(async (req) => {
       // Geen live vrachttarief (permissie nog niet aan / sandbox / geen route) → TERUGVAL:
       // bied de host één synthetische DDP-schatting aan zodat de groep tóch kan verzenden.
       // De ECHTE prijs bevriest server-side in "lock"; ff_pay_group_shipping splitst per gewicht.
-      const estFreight = shippingEstimateEur(totalWeightG / 1000);
+      const estFreight = shippingEstimateEur(totalWeightG / 1000, addr.country);
       if (estFreight <= 0) return json({ ok: false, error: "Could not estimate shipping" }, 400);
       return json({
         ok: true, isSandbox: IS_SANDBOX, totalWeightG, isEstimate: true,
         channels: [{ serviceCode: "ESTIMATE", name: "Estimated shipping", priceEur: estFreight, minDays: 0, maxDays: 0, taxInclusive: true, available: true }],
       });
     }
-    return json({ ok: true, isSandbox: IS_SANDBOX, channels, totalWeightG });
+    return json({ ok: true, isSandbox: IS_SANDBOX, channels: offered, totalWeightG });
   }
 
   if (action === "lock") {
     // TERUGVAL: geen live vrachttarief → bevries de gewicht-schatting (DDP). Prijs komt
     // 100% SERVER-SIDE uit het groep-gewicht; de host stuurt nooit een bedrag mee.
     if (IS_SANDBOX || channels.length === 0) {
-      const estFreight = shippingEstimateEur(totalWeightG / 1000);
+      const estFreight = shippingEstimateEur(totalWeightG / 1000, addr.country);
       if (estFreight <= 0) return json({ ok: false, error: "Could not estimate shipping" }, 400);
       const { data, error } = await admin.rpc("ff_lock_group_shipping_quote", {
         p_group_id: groupId, p_estimate: estFreight, p_total_weight_g: totalWeightG,
@@ -210,7 +248,7 @@ Deno.serve(async (req) => {
       return json(data);
     }
     const serviceCode = String(payload?.serviceCode ?? "");
-    const ch = channels.find((c: any) => c.serviceCode === serviceCode);
+    const ch = offered.find((c: any) => c.serviceCode === serviceCode);
     if (!ch) return json({ ok: false, error: "Chosen shipping option is no longer available" }, 400);
     // Alleen DDP/duty-paid lijnen — dan klopt de "duties included"-belofte en is er geen losse BTW.
     if (!ch.taxInclusive) return json({ ok: false, error: "Only duty-paid (DDP) shipping is supported" }, 400);

@@ -4219,11 +4219,24 @@ export default function SupplyFlow({ session, factoriesVisible = true }) {
   const [pendingShare, setPendingShare] = useState(null);        // { id, name, invite_code }
   const [pendingShareCopied, setPendingShareCopied] = useState(false);
   useEffect(() => {
-    if (!session?.user?.id) return;
-    try {
-      const v = JSON.parse(localStorage.getItem(`flowva_pending_share_${session.user.id}`) || "null");
-      if (v?.id) setPendingShare(v);
-    } catch { /* private mode */ }
+    // Herstel bij mount ÉN bij elke terugkeer naar het tabblad (focus/visibility):
+    // wie de link in Discord plakt en terugkomt, ziet de kaart gewoon weer staan —
+    // en staat gegarandeerd in groepsmodus, wat de browser intussen ook deed.
+    const check = () => {
+      if (!session?.user?.id) return;
+      try {
+        const v = JSON.parse(localStorage.getItem(`flowva_pending_share_${session.user.id}`) || "null");
+        if (v?.id) {
+          setPendingShare((cur) => cur || v);
+          setActiveGroup((cur) => cur || { id: v.id, name: v.name });
+        }
+      } catch { /* private mode */ }
+    };
+    check();
+    window.addEventListener("visibilitychange", check);
+    window.addEventListener("focus", check);
+    return () => { window.removeEventListener("visibilitychange", check); window.removeEventListener("focus", check); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [session?.user?.id]);
   const sluitPendingShare = () => {
     try { localStorage.removeItem(`flowva_pending_share_${session?.user?.id}`); } catch { /* private mode */ }
@@ -5441,15 +5454,15 @@ export default function SupplyFlow({ session, factoriesVisible = true }) {
           refreshSignal={parcelRefresh}
           onEditAddress={() => { setTab("profile"); setShowEditProfile(true); }}
           onGroupActivated={(g, opts) => {
-            if (opts?.stay) {
-              // Stil vastleggen (overleeft app-switch/herlaad) ZONDER de weergave al om te
-              // schakelen — dat zou de open solo-verzendofferte laten herrekenen over
-              // items die net groepsitems werden ("Shipping unavailable"-bug 25-08).
-              try { localStorage.setItem(lsKey("flowva_active_group"), JSON.stringify({ id: g.id, name: g.name })); } catch { /* private mode */ }
-              return;
-            }
+            // HERBOUWD 26-08: meteen omschakelen naar groepsmodus + Orders verversen, en
+            // bij share:true de deelkaart op schijf verankeren en tonen — de kaart leeft
+            // in de hoofd-app en overleeft daardoor tab-wissels, sessie-refreshes en herladen.
             setActiveGroup({ id: g.id, name: g.name });
             fetchOrders(); fetchHauls();
+            if (opts?.share) {
+              try { localStorage.setItem(`flowva_pending_share_${session?.user?.id}`, JSON.stringify(g)); } catch { /* private mode */ }
+              setPendingShare(g);
+            }
           }}
           onToggleHold={activeGroup ? toggleParcelHold : undefined}
           onInspectItem={openInspectItem}

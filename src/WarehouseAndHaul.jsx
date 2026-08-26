@@ -614,10 +614,8 @@ function NormalShippingConfirm({ session, haulItems, balance, onBack, onSuccess,
   const [tickErr, setTickErr] = useState(false);
   // 💸 Solo → Groep (Kaito 25-08): "Want to pay less?" onder de betaalknop → uitlegkaart →
   // groep aanmaken + magazijn-items verhuizen (RPC) → deel-link → terug naar Orders in groepsmodus.
-  const [payLess, setPayLess] = useState("idle");          // idle | open | creating | share
-  const [nieuweGroep, setNieuweGroep] = useState(null);    // { id, name, invite_code }
+  const [payLess, setPayLess] = useState("idle");          // idle | open | creating
   const [payLessErr, setPayLessErr] = useState("");
-  const [linkCopied, setLinkCopied] = useState(false);
   const [showFriendsDemo, setShowFriendsDemo] = useState(false); // 🦊 vos-tour bovenop de kaart; sluit terug naar de kaart
   const payLessRef = useRef(null);                         // de grote knop onderaan (scroll-doel)
   const [payLessFlash, setPayLessFlash] = useState(0);     // > 0 = knop knippert even (aandacht)
@@ -638,15 +636,12 @@ function NormalShippingConfirm({ session, haulItems, balance, onBack, onSuccess,
     if (!adopt.ok) { setPayLessErr(adopt.error || "Could not move your items"); setPayLess("open"); return; }
     const { data: g } = await supabase.from("flowva_groups").select("id, name, invite_code").eq("id", r.group_id).single();
     const groep = g || { id: r.group_id, name: naam, invite_code: null };
-    setNieuweGroep(groep);
-    setPayLess("share");
-    // Groepsmodus METEEN vastzetten (Kaito 25-08): wie tijdens het delen even naar
-    // Discord/WhatsApp switcht en de pagina herlaadt, komt terug in groepsmodus —
-    // niet in solo. stay:true = scherm nog niet sluiten (dat doet pas "Done").
-    onGroupActivated && onGroupActivated(groep, { stay: true });
-    // Óók het deel-scherm zelf overleeft een herlaad (Kaito 26-08): bewaren tot "Done" —
-    // de hoofd-app toont het dan opnieuw als "hervat"-kaart.
-    try { localStorage.setItem(`flowva_pending_share_${session?.user?.id}`, JSON.stringify(groep)); } catch { /* private mode */ }
+    setPayLess("idle");
+    // HERBOUWD (Kaito 26-08, na 3 pogingen): het deel-scherm leeft NIET meer hier maar
+    // in de hoofd-app — direct groepsmodus aan, Orders tonen, en dáár de deelkaart
+    // (op schijf verankerd; komt bij elke tab-terugkeer/herlaad terug tot "Done").
+    // Zo kan het verversen van orders dit scherm nooit meer wegvagen.
+    onGroupActivated && onGroupActivated(groep, { share: true });
   };
   const orderIds = haulItems.map(o => o.id);
   const totalWeight = haulItems.reduce((s, o) => s + (o.weight_grams || 0), 0);
@@ -1028,39 +1023,15 @@ function NormalShippingConfirm({ session, haulItems, balance, onBack, onSuccess,
       <AnimatePresence>
         {payLess !== "idle" && (
           <motion.div key="payless" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.18 }}
-            onClick={() => { if (payLess !== "creating" && payLess !== "share") setPayLess("idle"); }}
+            onClick={() => { if (payLess !== "creating") setPayLess("idle"); }}
             style={{ position: "fixed", inset: 0, zIndex: 400, background: "rgba(15,14,12,0.35)", backdropFilter: "blur(10px)", WebkitBackdropFilter: "blur(10px)", display: "flex", alignItems: "center", justifyContent: "center", padding: 26 }}>
             <motion.div initial={{ scale: 0.92, y: 10 }} animate={{ scale: 1, y: 0 }} transition={{ type: "spring", stiffness: 380, damping: 28 }}
               onClick={(e) => e.stopPropagation()}
               style={{ maxWidth: 430, width: "100%", background: "#fff", border: "1px solid #E8E6E0", borderRadius: 18, padding: "20px 20px 16px", boxShadow: "0 18px 60px rgba(0,0,0,0.25)" }}>
-              {payLess === "share" && nieuweGroep ? (
-                <>
-                  <div style={{ fontSize: 15, fontWeight: 800, color: "#0F0E0C", marginBottom: 6 }}>{tr("payLess.readyTitle", "Your group is ready! 🎉")}</div>
-                  <div style={{ fontSize: 12.5, color: "#555", lineHeight: 1.6, marginBottom: 12 }}>
-                    {tr("payLess.readyBody", "Your items are now in the group parcel. Share this link with a friend who lives nearby — when they join and order, you ship together and both save.")}
-                  </div>
-                  {nieuweGroep.invite_code && (
-                    <div style={{ background: "#F8F7F4", border: "1px solid #EFEDE8", borderRadius: 12, padding: "9px 12px", fontSize: 11.5, color: "#555", overflowWrap: "anywhere", marginBottom: 8 }}>
-                      {inviteLink(nieuweGroep.invite_code)}
-                    </div>
-                  )}
-                  <div style={{ display: "flex", gap: 6, marginBottom: 8 }}>
-                    <button onClick={() => { try { navigator.clipboard.writeText(inviteLink(nieuweGroep.invite_code)); setLinkCopied(true); setTimeout(() => setLinkCopied(false), 2000); } catch { /* clipboard geblokkeerd */ } }}
-                      style={{ flex: 1, background: "#0F0E0C", color: "#fff", border: "none", borderRadius: 11, padding: "11px 0", fontSize: 12.5, fontWeight: 700, cursor: "pointer" }}>
-                      {linkCopied ? tr("payLess.copied", "✓ Copied") : tr("payLess.copy", "Copy link")}
-                    </button>
-                    <a href={whatsappShare(nieuweGroep.invite_code, nieuweGroep.name)} target="_blank" rel="noreferrer"
-                      style={{ flex: 1, background: "#25D366", color: "#fff", borderRadius: 11, padding: "11px 0", fontSize: 12.5, fontWeight: 700, textAlign: "center", textDecoration: "none" }}>
-                      WhatsApp
-                    </a>
-                  </div>
-                  <button onClick={() => { try { localStorage.removeItem(`flowva_pending_share_${session?.user?.id}`); } catch { /* private mode */ } setPayLess("idle"); onGroupActivated && onGroupActivated(nieuweGroep); }}
-                    style={{ width: "100%", background: "#FF5C00", color: "#fff", border: "none", borderRadius: 12, padding: "12px", fontSize: 13.5, fontWeight: 700, cursor: "pointer" }}>
-                    {tr("payLess.done", "Done — back to my orders")}
-                  </button>
-                  <div style={{ fontSize: 11, color: "#8A8780", marginTop: 8, lineHeight: 1.5, textAlign: "center" }}>{tr("payLess.undo", "Changed your mind? Switch your items back to solo anytime via Profile.")}</div>
-                </>
-              ) : (
+              {/* Alleen nog de pitch — het deel-scherm ("Your group is ready") leeft sinds
+                  26-08 in de hoofd-app, verankerd op schijf, zodat het elke tab-wissel
+                  en herlaad overleeft. */}
+              {(
                 <>
                   <div style={{ fontSize: 15, fontWeight: 800, color: "#0F0E0C", marginBottom: 6 }}>{tr("payLess.title", "Pay less with Flowva Friends")}</div>
                   <div style={{ fontSize: 12.5, color: "#555", lineHeight: 1.6, marginBottom: 8 }}>

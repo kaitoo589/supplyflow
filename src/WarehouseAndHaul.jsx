@@ -1658,13 +1658,6 @@ function GroupShippingPanel({ session, groupId, shipment, waitingCount, isHost, 
     if (error || !data?.ok) { setMsg(data?.error || error?.message || "Payment failed"); return; }
     onRefresh();
   };
-  const drop = async () => {
-    setBusy(true); setMsg("");
-    const { data, error } = await supabase.rpc("ff_drop_unpaid_and_requote", { p_group_id: groupId });
-    setBusy(false);
-    if (error || !data?.ok) { setMsg(data?.error || error?.message || "Could not re-open shipping"); return; }
-    onRefresh();
-  };
   const err = msg ? <div style={{ fontSize: 11, color: "#B91C1C", textAlign: "center", marginTop: 8 }}>{msg}</div> : null;
 
   // "Wat is de groep locken?"-uitleg (user 2026-08-26): voor LEDEN en wacht-kaarten een
@@ -1774,7 +1767,6 @@ function GroupShippingPanel({ session, groupId, shipment, waitingCount, isHost, 
   if (shipment.status === "quoted") {
     const members = shipment.members || [];
     const me = members.find((m) => m.user_id === myId);
-    const unpaid = members.filter((m) => !m.paid).length;
     const myTotal = Number(me?.share_total) || 0;
     const canAfford = balance >= myTotal;
 
@@ -2063,12 +2055,9 @@ function GroupShippingPanel({ session, groupId, shipment, waitingCount, isHost, 
       {me && me.paid && (
         <button onClick={() => setPayPage(true)} style={{ width: "100%", background: "#F1EFE9", color: "#6B6862", border: "none", borderRadius: 12, padding: "12px", fontSize: 13, fontWeight: 700, cursor: "pointer" }}>{tr("group.quoted.viewSplit", "View the split")}</button>
       )}
-      {/* Geen 72-uurs-deadline meer (user 2026-08-26): iedereen heeft onbeperkt de tijd.
-          De host kan — zodra z'n eigen deel betaald is — wel altijd kiezen om zonder de
-          treuzelaars te verzenden; urgen doe je zelf (opslag is maar 60 dagen gratis). */}
-      {isHost && me?.paid && unpaid > 0 && (
-        <button disabled={busy} onClick={drop} style={{ width: "100%", marginTop: 8, background: "#FFF7ED", color: "#92400E", border: "1px solid #FCD9B6", borderRadius: 12, padding: "11px", fontSize: 12.5, fontWeight: 700, cursor: "pointer" }}>{tr("group.quoted.dropUnpaid", "Ship without {count} unpaid member{s} →", { count: unpaid, s: unpaid === 1 ? "" : "s" })}</button>
-      )}
+      {/* Geen deadline en géén "ship zonder wanbetaler"-optie (user 2026-08-26): een groep
+          verzendt alleen compleet — anders heeft samen zitten geen nut. Duurt het lang,
+          dan port de groep elkaar zelf aan (opslag is maar 60 dagen gratis). */}
       {err}
     </div>;
   }

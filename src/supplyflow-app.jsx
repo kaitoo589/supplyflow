@@ -4593,8 +4593,14 @@ export default function SupplyFlow({ session, factoriesVisible = true }) {
         <motion.div layoutId={`pimg-${p.id}`} data-pcard-img={p.id} transition={springMorph} style={{ background: "#fff", aspectRatio: "3 / 4", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 48, overflow: "hidden" }}>
           {p.image?.startsWith("http") ? (
             <>
-              <img src={p.image} referrerPolicy="no-referrer" alt={p.title} decoding="async"
-                onError={(e) => { e.currentTarget.style.display = "none"; const fb = e.currentTarget.nextSibling; if (fb) fb.style.display = "flex"; }}
+              <img src={p.image} referrerPolicy="no-referrer" alt={p.title} decoding="async" loading="lazy"
+                onError={(e) => {
+                  // Netwerk-hikje bij honderden foto's tegelijk? Eén stille herkansing
+                  // vóór het 📦-doosje (Kaito 26-08: doosjes terwijl de foto's gewoon bestaan).
+                  const img = e.currentTarget;
+                  if (!img.dataset.retried) { img.dataset.retried = "1"; setTimeout(() => { img.src = p.image + (p.image.includes("?") ? "&" : "?") + "retry=1"; }, 900); return; }
+                  img.style.display = "none"; const fb = img.nextSibling; if (fb) fb.style.display = "flex";
+                }}
                 style={{ width: "100%", height: "100%", objectFit: "cover" }} />
               <span style={{ display: "none", width: "100%", height: "100%", alignItems: "center", justifyContent: "center" }}>📦</span>
             </>
@@ -4959,11 +4965,10 @@ export default function SupplyFlow({ session, factoriesVisible = true }) {
                 titelplek de "All brands"-pill (zelfde hoogte als de drie knopjes) en komt het
                 logo als volle-breedte header eronder. Zonder logo: gewoon de naam. */}
             <div style={{ fontSize: 30, fontWeight: 800, letterSpacing: -0.6, color: "#111111", marginBottom: 2, minWidth: 0 }}>{showFavoritesOnly ? tr("feed.title.favorites", "Favorites") : selectedFactory ? (tab === "brands" && selectedFactory.brand_logo ? backPillEl(true) : selectedFactory.name) : tab === "brands" ? (
-              // "Chinese Brand Feed" (Kaito 26-08) — bewust als twee regels gezet, anders
-              // breekt de lange titel op telefoons op een willekeurige plek af.
-              <span style={{ display: "block", fontSize: 24, lineHeight: 1.12 }}>
-                <span style={{ display: "block" }}>{tr("feed.title.brandFeed.word1", "Chinese Brand")}</span>
-                <span style={{ color: "#FF5C00" }}>{tr("feed.title.brandFeed.word2", "Feed")}</span>
+              // "Chinese Brands" op één regel (Kaito 26-08) — iets kleiner dan de andere
+              // koppen zodat hij op telefoons naast de drie knopjes past.
+              <span style={{ display: "block", fontSize: 22, lineHeight: 1.3, paddingTop: 6 }}>
+                {tr("feed.title.brandFeed.word1", "Chinese")} <span style={{ color: "#FF5C00" }}>{tr("feed.title.brandFeed.word2", "Brands")}</span>
               </span>
             ) : <>{tr("feed.title.factoryFeed.word1", "Factory")} <span style={{ color: "#FF5C00" }}>{tr("feed.title.factoryFeed.word2", "Feed")}</span></>}</div>
             <div style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>

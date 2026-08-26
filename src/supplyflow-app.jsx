@@ -5717,8 +5717,9 @@ export default function SupplyFlow({ session, factoriesVisible = true }) {
                       <div key={`wrap-${g.group_id}`} style={{ border: "1.5px dashed rgba(255,92,0,0.4)", borderRadius: 16, padding: 6, display: "flex", flexDirection: "column", gap: 6 }}>
                         {rij}
                         <button onClick={() => setConfirmDissolve({ id: g.group_id, name: g.name })}
-                          style={{ width: "100%", background: "#F8F7F4", border: "1px solid #ECEAE5", borderRadius: 11, padding: "10px", fontSize: 12, fontWeight: 700, color: "#6B6862", cursor: "pointer", WebkitTapHighlightColor: "transparent" }}>
-                          ↩ {tr("profile.friends.backToSolo", "Move my warehouse items back to solo")}
+                          style={{ width: "100%", background: "#F8F7F4", border: "1px solid #ECEAE5", borderRadius: 11, padding: "9px 10px", cursor: "pointer", WebkitTapHighlightColor: "transparent" }}>
+                          <div style={{ fontSize: 12, fontWeight: 700, color: "#6B6862" }}>↩ {tr("profile.friends.backToSolo", "Move my warehouse items back to solo")}</div>
+                          <div style={{ fontSize: 10.5, fontWeight: 600, color: "#A8A5A0", marginTop: 2 }}>{tr("profile.friends.backToSoloSub", "and delete this group")}</div>
                         </button>
                       </div>
                     );

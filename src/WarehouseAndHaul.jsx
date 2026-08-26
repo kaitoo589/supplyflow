@@ -642,6 +642,9 @@ function NormalShippingConfirm({ session, haulItems, balance, onBack, onSuccess,
     // Discord/WhatsApp switcht en de pagina herlaadt, komt terug in groepsmodus —
     // niet in solo. stay:true = scherm nog niet sluiten (dat doet pas "Done").
     onGroupActivated && onGroupActivated(groep, { stay: true });
+    // Óók het deel-scherm zelf overleeft een herlaad (Kaito 26-08): bewaren tot "Done" —
+    // de hoofd-app toont het dan opnieuw als "hervat"-kaart.
+    try { localStorage.setItem(`flowva_pending_share_${session?.user?.id}`, JSON.stringify(groep)); } catch { /* private mode */ }
   };
   const orderIds = haulItems.map(o => o.id);
   const totalWeight = haulItems.reduce((s, o) => s + (o.weight_grams || 0), 0);
@@ -1045,7 +1048,7 @@ function NormalShippingConfirm({ session, haulItems, balance, onBack, onSuccess,
                       WhatsApp
                     </a>
                   </div>
-                  <button onClick={() => { setPayLess("idle"); onGroupActivated && onGroupActivated(nieuweGroep); }}
+                  <button onClick={() => { try { localStorage.removeItem(`flowva_pending_share_${session?.user?.id}`); } catch { /* private mode */ } setPayLess("idle"); onGroupActivated && onGroupActivated(nieuweGroep); }}
                     style={{ width: "100%", background: "#FF5C00", color: "#fff", border: "none", borderRadius: 12, padding: "12px", fontSize: 13.5, fontWeight: 700, cursor: "pointer" }}>
                     {tr("payLess.done", "Done — back to my orders")}
                   </button>

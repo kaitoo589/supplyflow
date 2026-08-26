@@ -11,7 +11,7 @@ import { EU_COUNTRIES, SHIPPING_COUNTRIES, PHONE_REQUIRED_COUNTRIES, normalizeCo
 import OrderRequest from "./OrderRequest";
 import Friends from "./Friends";
 import GroupModeGlow from "./GroupModeGlow";
-import { ffMyGroups, ffDissolveGroup } from "./ffApi";
+import { ffMyGroups, ffDissolveGroup, inviteLink, whatsappShare } from "./ffApi";
 import { garmentType } from "./garment";
 import { TransitTab, ParcelSection } from "./WarehouseAndHaul";
 import { motion, AnimatePresence, useDragControls, useMotionValue, useTransform, useSpring } from "framer-motion";
@@ -4211,6 +4211,24 @@ export default function SupplyFlow({ session, factoriesVisible = true }) {
   // stille review-kaartje in Transit blijft gewoon bestaan. Zelfde geluksmoment als de
   // bezorg-mail, maar dan voor wie de app eerder opent dan z'n mailbox.
   const [reviewAsk, setReviewAsk] = useState(null);   // haul-id waarvoor we nu vragen
+  // 🔗 Hervat "Your group is ready" (Kaito 26-08): het deel-scherm van de payLess-flow
+  // wordt tot "Done" lokaal bewaard — herlaadt de telefoon de pagina (Discord-switch),
+  // dan komt de kaart hier gewoon terug in plaats van te verdwijnen.
+  const [pendingShare, setPendingShare] = useState(null);        // { id, name, invite_code }
+  const [pendingShareCopied, setPendingShareCopied] = useState(false);
+  useEffect(() => {
+    if (!session?.user?.id) return;
+    try {
+      const v = JSON.parse(localStorage.getItem(`flowva_pending_share_${session.user.id}`) || "null");
+      if (v?.id) setPendingShare(v);
+    } catch { /* private mode */ }
+  }, [session?.user?.id]);
+  const sluitPendingShare = () => {
+    try { localStorage.removeItem(`flowva_pending_share_${session?.user?.id}`); } catch { /* private mode */ }
+    if (pendingShare) { setActiveGroup({ id: pendingShare.id, name: pendingShare.name }); fetchOrders(); fetchHauls(); }
+    setPendingShare(null);
+  };
+
   // ↩ Groep ontbinden (Kaito 25-08): bevestigingskaart vóór "terug naar solo" —
   // legt uit wat er gebeurt (groep weg, vrienden gekickt + berichtje).
   const [confirmDissolve, setConfirmDissolve] = useState(null);  // { id, name }
@@ -4229,6 +4247,9 @@ export default function SupplyFlow({ session, factoriesVisible = true }) {
     }
     setConfirmDissolve(null);
     setActiveGroup(null);
+    // Eventuele bewaarde "Your group is ready"-kaart van deze groep opruimen.
+    try { localStorage.removeItem(`flowva_pending_share_${session?.user?.id}`); } catch { /* private mode */ }
+    setPendingShare(null);
     loadMyGroups(); fetchOrders(); fetchHauls();
   };
   useEffect(() => {
@@ -6149,6 +6170,39 @@ export default function SupplyFlow({ session, factoriesVisible = true }) {
 
       {/* Fullscreen foto-viewer (Quality-control-/meetfoto's) */}
       {zoomPhoto && <PhotoZoom url={zoomPhoto} onClose={() => setZoomPhoto(null)} />}
+
+      {/* 🔗 Hervatte "Your group is ready"-kaart (na herlaad tijdens het delen). */}
+      {pendingShare && createPortal(
+        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.18 }}
+          style={{ position: "fixed", inset: 0, zIndex: 410, background: "rgba(15,14,12,0.45)", backdropFilter: "blur(10px)", WebkitBackdropFilter: "blur(10px)", display: "flex", alignItems: "center", justifyContent: "center", padding: 26 }}>
+          <motion.div initial={{ scale: 0.92, y: 10 }} animate={{ scale: 1, y: 0 }} transition={{ type: "spring", stiffness: 380, damping: 28 }}
+            style={{ maxWidth: 430, width: "100%", background: "#fff", border: "1px solid #E8E6E0", borderRadius: 18, padding: "20px 20px 16px", boxShadow: "0 18px 60px rgba(0,0,0,0.25)" }}>
+            <div style={{ fontSize: 15, fontWeight: 800, color: "#0F0E0C", marginBottom: 6 }}>{tr("payLess.readyTitle", "Your group is ready! 🎉")}</div>
+            <div style={{ fontSize: 12.5, color: "#555", lineHeight: 1.6, marginBottom: 12 }}>
+              {tr("payLess.readyBody", "Your items are now in the group parcel. Share this link with a friend who lives nearby — when they join and order, you ship together and both save.")}
+            </div>
+            {pendingShare.invite_code && (
+              <div style={{ background: "#F8F7F4", border: "1px solid #EFEDE8", borderRadius: 12, padding: "9px 12px", fontSize: 11.5, color: "#555", overflowWrap: "anywhere", marginBottom: 8 }}>
+                {inviteLink(pendingShare.invite_code)}
+              </div>
+            )}
+            <div style={{ display: "flex", gap: 6, marginBottom: 8 }}>
+              <button onClick={() => { try { navigator.clipboard.writeText(inviteLink(pendingShare.invite_code)); setPendingShareCopied(true); setTimeout(() => setPendingShareCopied(false), 2000); } catch { /* clipboard geblokkeerd */ } }}
+                style={{ flex: 1, background: "#0F0E0C", color: "#fff", border: "none", borderRadius: 11, padding: "11px 0", fontSize: 12.5, fontWeight: 700, cursor: "pointer" }}>
+                {pendingShareCopied ? tr("payLess.copied", "✓ Copied") : tr("payLess.copy", "Copy link")}
+              </button>
+              <a href={whatsappShare(pendingShare.invite_code, pendingShare.name)} target="_blank" rel="noreferrer"
+                style={{ flex: 1, background: "#25D366", color: "#fff", borderRadius: 11, padding: "11px 0", fontSize: 12.5, fontWeight: 700, textAlign: "center", textDecoration: "none" }}>
+                WhatsApp
+              </a>
+            </div>
+            <button onClick={sluitPendingShare}
+              style={{ width: "100%", background: "#FF5C00", color: "#fff", border: "none", borderRadius: 12, padding: "12px", fontSize: 13.5, fontWeight: 700, cursor: "pointer" }}>
+              {tr("payLess.done", "Done — back to my orders")}
+            </button>
+            <div style={{ fontSize: 11, color: "#8A8780", marginTop: 8, lineHeight: 1.5, textAlign: "center" }}>{tr("payLess.undo", "Changed your mind? Switch your items back to solo anytime via Profile.")}</div>
+          </motion.div>
+        </motion.div>, document.body)}
 
       {/* ↩ Bevestiging "terug naar solo": blur + kaart die precies vertelt wat er gebeurt. */}
       {confirmDissolve && createPortal(

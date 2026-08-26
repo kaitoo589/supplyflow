@@ -12,6 +12,7 @@ import OrderRequest from "./OrderRequest";
 import Friends from "./Friends";
 import GroupModeGlow from "./GroupModeGlow";
 import { ffMyGroups, ffDissolveGroup, inviteLink, whatsappShare } from "./ffApi";
+import FriendsTour from "./FriendsTour";
 import { garmentType } from "./garment";
 import { TransitTab, ParcelSection } from "./WarehouseAndHaul";
 import { motion, AnimatePresence, useDragControls, useMotionValue, useTransform, useSpring } from "framer-motion";
@@ -4214,6 +4215,7 @@ export default function SupplyFlow({ session, factoriesVisible = true }) {
   // 🔗 Hervat "Your group is ready" (Kaito 26-08): het deel-scherm van de payLess-flow
   // wordt tot "Done" lokaal bewaard — herlaadt de telefoon de pagina (Discord-switch),
   // dan komt de kaart hier gewoon terug in plaats van te verdwijnen.
+  const [showFriendsTour, setShowFriendsTour] = useState(false); // 🦊 Friends-demo vanuit Profiel
   const [pendingShare, setPendingShare] = useState(null);        // { id, name, invite_code }
   const [pendingShareCopied, setPendingShareCopied] = useState(false);
   useEffect(() => {
@@ -5718,6 +5720,11 @@ export default function SupplyFlow({ session, factoriesVisible = true }) {
                     in de lijst hierboven (Kaito 25-08) — met bevestigingskaart. */}
                 <button onClick={() => { if (!requireAuth()) return; setFriendsJoinCode(null); setShowFriends(true); }}
                   style={{ width: "100%", marginTop: 12, background: "#FFF0E7", border: "1px dashed rgba(255,92,0,0.4)", color: "#FF5C00", borderRadius: 12, padding: "12px", fontSize: 13, fontWeight: 700, cursor: "pointer" }}>{tr("profile.friends.manageCta", "+ Create, join or manage groups")}</button>
+                {/* 🦊 Vos-demo (Kaito 26-08): dezelfde tour als op de Pay less-kaart. */}
+                <button onClick={() => setShowFriendsTour(true)}
+                  style={{ width: "100%", marginTop: 8, background: "none", border: "none", color: "#FF5C00", fontSize: 12, fontWeight: 700, cursor: "pointer", padding: 4, WebkitTapHighlightColor: "transparent" }}>
+                  🦊 {tr("profile.friends.demoLink", "How does Flowva Friends work? · See the demo")}
+                </button>
               </div>
             );
           })()}
@@ -6171,6 +6178,11 @@ export default function SupplyFlow({ session, factoriesVisible = true }) {
 
       {/* Fullscreen foto-viewer (Quality-control-/meetfoto's) */}
       {zoomPhoto && <PhotoZoom url={zoomPhoto} onClose={() => setZoomPhoto(null)} />}
+
+      {/* 🦊 Friends-demo vanuit Profiel. */}
+      <AnimatePresence>
+        {showFriendsTour && <FriendsTour zIndex={460} onClose={() => setShowFriendsTour(false)} />}
+      </AnimatePresence>
 
       {/* 🔗 Hervatte "Your group is ready"-kaart (na herlaad tijdens het delen). */}
       {pendingShare && createPortal(

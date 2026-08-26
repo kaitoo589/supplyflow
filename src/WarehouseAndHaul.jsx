@@ -12,6 +12,7 @@ import { tr } from "./i18n";
 import { exactTopUp, startTopUp, TOPUP_MIN } from "./topup";
 import { isEUCountry, DELIVERY_DAYS, RETURN_COST, countryDisplayEn } from "./countries";
 import { ffCreateGroup, ffAdoptSolo, inviteLink, whatsappShare } from "./ffApi";
+import FriendsTour from "./FriendsTour";
 
 // Gedeeld tekort-blok voor de twee verzendschermen (solo + groep). Zelfde regel als
 // bij de mand: kom je net tekort, dan waardeer je precies dat bedrag op via iDEAL en
@@ -617,6 +618,7 @@ function NormalShippingConfirm({ session, haulItems, balance, onBack, onSuccess,
   const [nieuweGroep, setNieuweGroep] = useState(null);    // { id, name, invite_code }
   const [payLessErr, setPayLessErr] = useState("");
   const [linkCopied, setLinkCopied] = useState(false);
+  const [showFriendsDemo, setShowFriendsDemo] = useState(false); // 🦊 vos-tour bovenop de kaart; sluit terug naar de kaart
   const payLessRef = useRef(null);                         // de grote knop onderaan (scroll-doel)
   const [payLessFlash, setPayLessFlash] = useState(0);     // > 0 = knop knippert even (aandacht)
   // Groepsnaam altijd "Voornaam's parcel" — vooraf aangekondigd op de kaart (Kaito 25-08).
@@ -941,6 +943,10 @@ function NormalShippingConfirm({ session, haulItems, balance, onBack, onSuccess,
           </motion.div>
         )}
       </AnimatePresence>
+      {/* 🦊 Vos-tour bovenop de Pay less-kaart (z boven de overlay); kaart blijft open. */}
+      <AnimatePresence>
+        {showFriendsDemo && <FriendsTour zIndex={460} onClose={() => setShowFriendsDemo(false)} />}
+      </AnimatePresence>
       {/* Persoonlijke fee-uitsplitsing (Kaito 25-08): het "Calculated over"-blok is uit het
           kostenoverzicht gehaald en leeft nu hier — met uitleg, want hij is per pakket anders. */}
       <AnimatePresence>
@@ -1084,6 +1090,12 @@ function NormalShippingConfirm({ session, haulItems, balance, onBack, onSuccess,
                   <div style={{ fontSize: 12, color: "#8A8780", lineHeight: 1.5, marginBottom: 12 }}>
                     👥 {tr("payLess.groupName", "We'll create “{name}” as your group — you'll be in group mode right away.", { name: groepsNaam })}
                   </div>
+                  {/* 🦊 Demo-link (Kaito 26-08): opent de vos-tour BOVENOP deze kaart —
+                      na "Got it" sta je weer precies hier en snap je wat je aanzet. */}
+                  <button onClick={() => setShowFriendsDemo(true)}
+                    style={{ width: "100%", background: "none", border: "none", color: "#FF5C00", fontSize: 12, fontWeight: 700, cursor: "pointer", padding: "2px 0 10px", WebkitTapHighlightColor: "transparent" }}>
+                    🦊 {tr("payLess.demoLink", "How does Flowva Friends work? · Quick demo")}
+                  </button>
                   {payLessErr && <div style={{ fontSize: 12, color: "#DC2626", marginBottom: 8 }}>{payLessErr}</div>}
                   <button onClick={maakGroep} disabled={payLess === "creating"}
                     style={{ width: "100%", background: "#FF5C00", color: "#fff", border: "none", borderRadius: 12, padding: "12px", fontSize: 13.5, fontWeight: 700, cursor: payLess === "creating" ? "default" : "pointer", opacity: payLess === "creating" ? 0.6 : 1, marginBottom: 6 }}>

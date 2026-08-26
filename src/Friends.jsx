@@ -6,6 +6,7 @@ import { track } from "./track";
 import { tr } from "./i18n";
 import { exactTopUp, startTopUp, TOPUP_MIN } from "./topup";
 import { isEUCountry, RETURN_COST, countryDisplayEn } from "./countries";
+import FriendsTour from "./FriendsTour";
 import {
   ffMyGroups, ffPreview, ffCreateGroup, ffJoinGroup, ffLeaveGroup,
   ffKickMember, ffSetHost, ffSetAdmin, ffSetPrivate, ffUpdateSettings, ffAddItem, ffRemoveItem, ffFetchGroup,
@@ -181,6 +182,7 @@ export default function Friends({ session, onClose, initialJoinCode, initialGrou
   const [cartConfirm, setCartConfirm] = useState(false);
   const [cartAgree, setCartAgree] = useState(false);
   const [showReturnInfo, setShowReturnInfo] = useState(false); // ?-knopje bij het vinkje → blur-overlay met de retourregel
+  const [showDemo, setShowDemo] = useState(false);             // 🦊 Friends-vos-tour vanaf het join-scherm
   const [adminAddr, setAdminAddr] = useState(null);   // bezorgadres van de admin (checkout-view)
   // Adres van de admin ophalen zodra de checkout opent (alleen leden krijgen het).
   const lobbyGid = lobby?.group?.id;
@@ -528,6 +530,12 @@ export default function Friends({ session, onClose, initialJoinCode, initialGrou
               <button style={{ ...primaryBtn, opacity: busy || preview.is_full || preview.is_private || preview.status !== "gathering" ? 0.5 : 1 }}
                 disabled={busy || preview.is_full || preview.is_private || preview.status !== "gathering"} onClick={doJoin}>
                 {preview.is_private ? "Private group" : preview.is_full ? "Group is full" : preview.status !== "gathering" ? "Group is closed" : busy ? "Joining…" : `Join ${preview.name} →`}
+              </button>
+              {/* 🦊 Demo vóór het joinen (Kaito 26-08): een genodigde weet vaak niet eens wat
+                  Flowva ís — de vos-tour legt het uit; daarna sta je gewoon weer hier. */}
+              <button onClick={() => setShowDemo(true)}
+                style={{ width: "100%", marginTop: 10, background: "none", border: "none", color: "#FF5C00", fontSize: 12, fontWeight: 700, cursor: "pointer", padding: 4, WebkitTapHighlightColor: "transparent" }}>
+                🦊 {tr("ff.join.demoLink", "New here? See how Flowva Friends works · Quick demo")}
               </button>
             </div>
           ) : initialJoinCode ? (
@@ -1070,6 +1078,10 @@ export default function Friends({ session, onClose, initialJoinCode, initialGrou
       {shareCopied && (
         <div style={{ position: "fixed", bottom: 24, left: "50%", transform: "translateX(-50%)", zIndex: 420, background: "#0F0E0C", color: "#fff", borderRadius: 999, padding: "10px 18px", fontSize: 13, fontWeight: 600, boxShadow: "0 8px 30px rgba(0,0,0,0.5)" }}>🔗 Invite link copied!</div>
       )}
+      {/* 🦊 Friends-vos-tour bovenop de sheet; sluiten = terug op het join-scherm. */}
+      <AnimatePresence>
+        {showDemo && <FriendsTour zIndex={460} onClose={() => setShowDemo(false)} />}
+      </AnimatePresence>
       <AnimatePresence>
         {showLeaveConfirm && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.18 }}

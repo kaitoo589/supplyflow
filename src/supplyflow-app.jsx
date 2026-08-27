@@ -5006,13 +5006,7 @@ export default function SupplyFlow({ session, factoriesVisible = true }) {
             {/* Merkpagina (user 2026-08-12): heeft de store een brand_logo → dan staat op de
                 titelplek de "All brands"-pill (zelfde hoogte als de drie knopjes) en komt het
                 logo als volle-breedte header eronder. Zonder logo: gewoon de naam. */}
-            <div style={{ fontSize: 30, fontWeight: 800, letterSpacing: -0.6, color: "#111111", marginBottom: 2, minWidth: 0 }}>{showFavoritesOnly ? tr("feed.title.favorites", "Favorites") : selectedFactory ? (tab === "brands" && selectedFactory.brand_logo ? backPillEl(true) : selectedFactory.name) : tab === "brands" ? (
-              // "Chinese Brands" op één regel (Kaito 26-08) — iets kleiner dan de andere
-              // koppen zodat hij op telefoons naast de drie knopjes past.
-              <span style={{ display: "block", fontSize: 22, lineHeight: 1.3, paddingTop: 6 }}>
-                {tr("feed.title.brandFeed.word1", "Chinese")} <span style={{ color: "#FF5C00" }}>{tr("feed.title.brandFeed.word2", "Brands")}</span>
-              </span>
-            ) : <>{tr("feed.title.factoryFeed.word1", "Factory")} <span style={{ color: "#FF5C00" }}>{tr("feed.title.factoryFeed.word2", "Feed")}</span></>}</div>
+            <div style={{ fontSize: 30, fontWeight: 800, letterSpacing: -0.6, color: "#111111", marginBottom: 2, minWidth: 0 }}>{showFavoritesOnly ? tr("feed.title.favorites", "Favorites") : selectedFactory ? (tab === "brands" && selectedFactory.brand_logo ? backPillEl(true) : selectedFactory.name) : tab === "brands" ? <>{tr("feed.title.brandFeed.word1", "Brand")} <span style={{ color: "#FF5C00" }}>{tr("feed.title.brandFeed.word2", "Feed")}</span></> : <>{tr("feed.title.factoryFeed.word1", "Factory")} <span style={{ color: "#FF5C00" }}>{tr("feed.title.factoryFeed.word2", "Feed")}</span></>}</div>
             <div style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
               {/* 💸 opent ALTIJD de vos-tour; de volledige tekst-sheet komt pas via
                   "See the full breakdown" in de tour (geen boogvlucht meer nodig). */}

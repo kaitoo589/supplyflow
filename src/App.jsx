@@ -20,7 +20,7 @@ import { useTr } from "./i18n";
 // 🌍 DOWNTIME (23-08): true = iedereen ziet de onderhoudspagina ("we bouwen wereldwijde
 // verzending"), behalve de eigen accounts (profiles.is_intern) en admins/agents.
 // Weer op false zetten zodra de wereldwijd-ombouw af is.
-const DOWNTIME = true;
+const DOWNTIME = false;
 
 // De admin draait volledig in het gamified command center (ai-ops-hud).
 // Lokaal → poort 5181; op de live site → het gedeployde admin-dashboard.

@@ -2682,6 +2682,24 @@ export function TransitTab({ session, orders = [], activeGroupId = null }) {
   const [hideDelivered, setHideDelivered] = useState(() => { try { return localStorage.getItem("flowva_hide_delivered") === "1"; } catch { return false; } });
   const [receipt, setReceipt] = useState(null); // pakket waarvan de volledige bon getoond wordt
   const [proofZoom, setProofZoom] = useState(null); // bewijsfoto die groot bekeken wordt (in-app viewer)
+  // Groepspakket in Transit (Kaito 27-08): zelfde kaart als solo, gevoed door
+  // ff_group_shipping_state (per-lid aandeel + refund) + ff_group_orders (ieders items).
+  const [groupShip, setGroupShip] = useState(null);
+  const [groupOrders, setGroupOrders] = useState([]);
+  const [groupReceipt, setGroupReceipt] = useState(false);
+  const [showRefundWhy, setShowRefundWhy] = useState(false);
+  useEffect(() => {
+    if (!activeGroupId) { setGroupShip(null); setGroupOrders([]); return; }
+    let on = true;
+    (async () => {
+      const { data: s } = await supabase.rpc("ff_group_shipping_state", { p_group_id: activeGroupId });
+      if (on) setGroupShip(s?.shipment || null);
+      const { data: g } = await supabase.rpc("ff_group_orders", { p_group_id: activeGroupId });
+      if (on) setGroupOrders(g?.orders || []);
+    })();
+    return () => { on = false; };
+  }, [activeGroupId, session]);
+  const groupParcelShown = !!(activeGroupId && groupShip && ["consolidating", "shipped"].includes(groupShip.status));
 
   useEffect(() => {
     (async () => {
@@ -2733,7 +2751,7 @@ export function TransitTab({ session, orders = [], activeGroupId = null }) {
 
       {loading && <div style={{ textAlign: "center", padding: 40, color: "#999" }}>Loading...</div>}
 
-      {!loading && modeHauls.length === 0 && (
+      {!loading && modeHauls.length === 0 && !groupParcelShown && (
         <div style={{ textAlign: "center", padding: "50px 0", color: "#aaa" }}>
           <div style={{ width: 64, height: 64, borderRadius: "50%", background: "#F3F1ED", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 14px" }}>
             <Plane size={26} color="#A8A5A0" strokeWidth={1.8} />
@@ -2742,6 +2760,117 @@ export function TransitTab({ session, orders = [], activeGroupId = null }) {
           <div style={{ fontSize: 13 }}>Confirm a parcel in your warehouse and it will appear here.</div>
         </div>
       )}
+
+      {/* 📦 GROEPSPAKKET (Kaito 27-08): zelfde kaart als solo, maar met ieders items per lid
+          en jóuw aandeel/refund. Verschijnt zodra iedereen betaald heeft (consolidating). */}
+      {groupParcelShown && (() => {
+        const gs = groupShip;
+        const members = Array.isArray(gs.members) ? gs.members : [];
+        const me = members.find((m) => m.user_id === session.user.id);
+        const settled = !!gs.settled_at;
+        const myRefund = Number(me?.refund_eur || 0);
+        const myShare = Number(me?.share_total || 0);
+        const gItems = (groupOrders || []).filter((o) => o.status === "shipped_international");
+        const secties = members.map((m) => ({ m, items: gItems.filter((o) => o.user_id === m.user_id) })).filter((s) => s.items.length);
+        const statusLabel = settled ? "Shipped" : "Preparing shipment";
+        return (
+          <motion.div key="group-parcel" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={springSoft}
+            style={{ background: "#fff", borderRadius: 18, padding: "15px 16px", marginBottom: 12, boxShadow: "0 1px 2px rgba(17,17,17,0.04), 0 6px 18px rgba(17,17,17,0.05)" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
+              <div>
+                <div style={{ fontSize: 14, fontWeight: 700, color: "#111111" }}>👯 {tr("parcel.bar.titleGroup", "Group parcel")} · {gItems.length} item{gItems.length !== 1 ? "s" : ""}</div>
+                <div style={{ fontSize: 11.5, color: "#A8A5A0" }}>{gs.locked_at ? new Date(gs.locked_at).toLocaleDateString("en-GB") : ""}{gs.total_weight_g ? ` · ${gs.total_weight_g}g` : ""}</div>
+              </div>
+              <div style={{ background: settled ? "#FFF0E7" : "#F0EEE8", color: settled ? "#FF5C00" : "#8A8780", fontSize: 11, fontWeight: 700, padding: "5px 11px", borderRadius: 16, whiteSpace: "nowrap" }}>
+                {settled ? "✈ " : ""}{statusLabel}
+              </div>
+            </div>
+
+            {secties.map(({ m, items }) => (
+              <div key={m.user_id} style={{ marginBottom: 8 }}>
+                <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: 0.5, color: "#8A8780", textTransform: "uppercase", marginBottom: 2 }}>{m.user_id === session.user.id ? tr("parcel.row.you", "You") : m.member}</div>
+                {items.map((o, i) => (
+                  <div key={o.id} style={{ display: "flex", alignItems: "center", gap: 10, padding: "7px 0", borderBottom: i < items.length - 1 ? "1px solid #F4F2EE" : "none" }}>
+                    <div style={{ flexShrink: 0, width: 38, height: 38, borderRadius: 9, background: "#fff", border: "1px solid #F0EEE8", overflow: "hidden", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                      {o.variant_image ? <img src={o.variant_image} referrerPolicy="no-referrer" alt="" style={{ width: "100%", height: "100%", objectFit: "contain" }} />
+                        : o.qc_images?.[0] ? <img src={o.qc_images[0]} referrerPolicy="no-referrer" alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                        : <span style={{ fontSize: 17 }}>📦</span>}
+                    </div>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontSize: 12.5, fontWeight: 600, color: "#111111", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{o.product_title}</div>
+                      <div style={{ fontSize: 11, color: "#A8A5A0" }}>{o.qty || 1} pcs{o.kleur ? ` · ${o.kleur}` : ""}</div>
+                    </div>
+                    <div style={{ flexShrink: 0, fontSize: 12, fontWeight: 700, color: o.weight_grams ? "#111111" : "#C2BEB6" }}>{o.weight_grams ? `${o.weight_grams} g` : "—"}</div>
+                  </div>
+                ))}
+              </div>
+            ))}
+
+            <div style={{ display: "flex", justifyContent: "space-between", marginBottom: settled && myRefund > 0 ? 8 : 10 }}>
+              <span style={{ fontSize: 12, color: "#8A8780" }}>
+                {gs.locked_at
+                  ? tr("transit.paidOn", "Paid {date} at {time}", { date: new Date(gs.locked_at).toLocaleDateString("en-GB"), time: new Date(gs.locked_at).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" }) })
+                  : tr("transit.paid", "Paid")} <span style={{ color: "#A8A5A0" }}>· {tr("group.pay.yourShare", "Your share")} · {tr("transit.estimated", "estimated")}</span>
+              </span>
+              <span style={{ fontSize: 12, fontWeight: 700, color: "#111111" }}>€{myShare.toFixed(2)}</span>
+            </div>
+
+            {settled && myRefund > 0 && (
+              <div style={{ background: "#F0FDF4", border: "1px solid #BBF7D0", borderRadius: 12, padding: "10px 12px", marginBottom: 10 }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                  <span style={{ fontSize: 12.5, fontWeight: 800, color: "#065F46", display: "inline-flex", alignItems: "center", gap: 6 }}>
+                    🎉 {tr("transit.refundTitle", "You got money back")}
+                    <button onClick={() => setShowRefundWhy(true)} aria-label={tr("transit.group.whyTitle", "How the group refund works")}
+                      style={{ width: 17, height: 17, borderRadius: 999, border: "none", background: "rgba(6,95,70,0.14)", color: "#065F46", fontSize: 10.5, fontWeight: 800, cursor: "pointer", padding: 0 }}>?</button>
+                  </span>
+                  <span style={{ fontSize: 14.5, fontWeight: 800, color: "#10B981" }}>+€{myRefund.toFixed(2)}</span>
+                </div>
+                <div style={{ fontSize: 11, color: "#047857", marginTop: 3, lineHeight: 1.45 }}>
+                  {tr("transit.group.refundBody", "The real shipping bill came in lower than our estimate — the difference was split across the group by weight, and your share went straight back to your balance.")}
+                </div>
+              </div>
+            )}
+
+            <button onClick={() => setGroupReceipt(true)}
+              style={{ width: "100%", marginBottom: 10, background: "#F8F7F4", border: "1px solid #ECEAE5", borderRadius: 10, padding: "9px", fontSize: 12.5, fontWeight: 700, color: "#6B6862", cursor: "pointer", WebkitTapHighlightColor: "transparent" }}>
+              🧾 {tr("group.pay.seeReceipt", "See receipt")} ›
+            </button>
+
+            {settled && gs.settle_proof_url && (
+              <div style={{ marginBottom: 10 }}>
+                <div style={{ fontSize: 11.5, color: "#FF5C00", fontWeight: 600, marginBottom: 6, display: "flex", alignItems: "center", gap: 6 }}>
+                  🧾 {tr("transit.group.proofDocs", "Proof of total group refund")}
+                  <button onClick={() => setShowRefundWhy(true)} aria-label={tr("transit.group.whyTitle", "How the group refund works")}
+                    style={{ width: 16, height: 16, borderRadius: 999, border: "none", background: "rgba(255,92,0,0.14)", color: "#FF5C00", fontSize: 10, fontWeight: 800, cursor: "pointer", padding: 0 }}>?</button>
+                </div>
+                <motion.button whileTap={{ scale: 0.93 }} onClick={() => setProofZoom(gs.settle_proof_url)}
+                  style={{ display: "block", padding: 0, border: "none", background: "none", cursor: "zoom-in", WebkitTapHighlightColor: "transparent" }}>
+                  <span style={{ position: "relative", display: "block", width: 68, height: 68, borderRadius: 11, overflow: "hidden", border: "1.5px solid #DAD6CE", background: "#F8F7F4", boxShadow: "0 2px 6px rgba(17,17,17,0.10)" }}>
+                    <img src={gs.settle_proof_url} referrerPolicy="no-referrer" alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                    <span style={{ position: "absolute", right: 3, bottom: 3, width: 19, height: 19, borderRadius: "50%", background: "rgba(15,14,12,0.72)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 9.5 }}>🔍</span>
+                  </span>
+                  <span style={{ display: "block", marginTop: 4, maxWidth: 74, fontSize: 9.5, fontWeight: 700, color: "#6B6862", textAlign: "center", lineHeight: 1.25 }}>{tr("transit.labelBill", "Shipping bill")}</span>
+                </motion.button>
+              </div>
+            )}
+
+            {gs.tracking_no ? (
+              <div style={{ background: "#F8F7F4", borderRadius: 12, padding: "12px 13px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <div style={{ minWidth: 0 }}>
+                  <div style={{ fontSize: 10.5, color: "#A8A5A0", marginBottom: 1 }}>{carrierLabel(gs.service_name) || "Carrier"} · tracking</div>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: "#111111", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{gs.tracking_no}</div>
+                </div>
+                <a href={`https://t.17track.net/en#nums=${gs.tracking_no}`} target="_blank" rel="noreferrer" style={{ fontSize: 12, color: "#FF5C00", fontWeight: 600, textDecoration: "none", whiteSpace: "nowrap", marginLeft: 10 }}>Open ↗</a>
+              </div>
+            ) : (
+              <div style={{ display: "flex", alignItems: "center", gap: 8, background: "#F8F7F4", borderRadius: 12, padding: "10px 12px" }}>
+                <MapPin size={14} color="#A8A5A0" />
+                <span style={{ fontSize: 12, color: "#8A8780" }}>Live tracking starts once your parcel ships</span>
+              </div>
+            )}
+          </motion.div>
+        );
+      })()}
 
       {shownHauls.map((haul, hi) => {
         const items = (haul.items || []).map(orderById).filter(Boolean);
@@ -2968,6 +3097,96 @@ export function TransitTab({ session, orders = [], activeGroupId = null }) {
           </div>
         );
       })()}
+
+      {/* 🧾 Groepsbon (Kaito 27-08): eigen kosten volledig — plus wat je teamgenoten
+          betaalden (en terugkregen), overzichtelijk onder elkaar. */}
+      {groupReceipt && groupShip && (() => {
+        const gs = groupShip;
+        const members = Array.isArray(gs.members) ? gs.members : [];
+        const me = members.find((m) => m.user_id === session.user.id) || {};
+        const others = members.filter((m) => m.user_id !== session.user.id);
+        const settled = !!gs.settled_at;
+        const myItems = (groupOrders || []).filter((o) => o.user_id === session.user.id && o.status === "shipped_international");
+        const goods = me.goods_eur != null ? Number(me.goods_eur) : myItems.reduce((s, o) => s + (Number(o.price) || 0) * (o.qty || 1), 0);
+        const domestic = Number(me.domestic_eur || 0);
+        const qc = Number(me.qc_eur || 0);
+        const ship = Number(me.ship_eur || 0);
+        const vat = Number(me.vat_eur || 0);
+        const refund = settled ? Number(me.refund_eur || 0) : 0;
+        const fees = Math.max(0, Number(me.share_total || 0) - ship - vat);
+        const realShip = settled ? Math.max(0, ship - refund) : ship;
+        const grand = goods + domestic + qc + realShip + vat + fees;
+        const rEur = (x) => `€${Number(x || 0).toFixed(2)}`;
+        const rline = (label, val, dim) => (
+          <div style={{ display: "flex", justifyContent: "space-between", padding: "5px 0", fontSize: 13, color: dim ? "#8A8780" : "#3A3733" }}>
+            <span>{label}</span><span style={{ fontWeight: 600 }}>{rEur(val)}</span>
+          </div>
+        );
+        return (
+          <div onClick={() => setGroupReceipt(false)} style={{ position: "fixed", inset: 0, zIndex: 2100, background: "rgba(0,0,0,0.5)", display: "flex", alignItems: "flex-end", justifyContent: "center" }}>
+            <div onClick={(e) => e.stopPropagation()} style={{ width: "100%", maxWidth: 460, background: "#fff", borderRadius: "20px 20px 0 0", padding: "18px 22px 34px", maxHeight: "88vh", overflowY: "auto" }}>
+              <div style={{ width: 36, height: 4, background: "#E8E6E0", borderRadius: 2, margin: "0 auto 14px" }} />
+              <div style={{ fontSize: 16, fontWeight: 800, color: "#0F0E0C" }}>🧾 {tr("parcel.bar.titleGroup", "Group parcel")}</div>
+              <div style={{ fontSize: 12, color: "#8A8780", marginBottom: 14 }}>{tr("transit.group.receiptSub", "Your own costs — plus what your squad paid")}</div>
+              <div style={{ fontSize: 11, fontWeight: 700, color: "#10B981", letterSpacing: 0.4, margin: "6px 0 2px" }}>✓ {tr("group.pay.alreadyPaid", "ALREADY PAID AT CHECKOUT")}</div>
+              {rline(tr("group.pay.goods", "Product"), goods, true)}
+              {rline(tr("group.pay.domestic", "Domestic shipping · ¥5"), domestic, true)}
+              {rline(tr("group.pay.qc", "Quality-control · ¥6"), qc, true)}
+              <div style={{ fontSize: 11, fontWeight: 700, color: "#B45309", letterSpacing: 0.4, margin: "12px 0 2px" }}>✈ {tr("group.pay.shipSection", "SHIPPING")} · {tr("group.pay.yourShare", "Your share")} · {settled ? tr("transit.finalBill", "final bill") : tr("transit.estimated", "estimated")}</div>
+              {settled ? (
+                <div style={{ display: "flex", justifyContent: "space-between", padding: "5px 0", fontSize: 13, color: "#3A3733" }}>
+                  <span>{tr("group.pay.shipping", "International shipping")}</span>
+                  <span style={{ fontWeight: 600 }}><span style={{ color: "#A8A5A0", textDecoration: "line-through", fontWeight: 500, marginRight: 6 }}>{rEur(ship)}</span>{rEur(realShip)}</span>
+                </div>
+              ) : rline(tr("group.pay.shipping", "International shipping"), ship)}
+              {settled && refund > 0 && (
+                <div style={{ display: "flex", justifyContent: "space-between", padding: "5px 0", fontSize: 12.5, fontWeight: 700, color: "#10B981" }}>
+                  <span>🎉 {tr("transit.shippingRefund", "Refunded to your balance")}</span><span>+{rEur(refund)}</span>
+                </div>
+              )}
+              {vat > 0 && rline(tr("group.pay.vat", "Import VAT (21%)"), vat)}
+              {fees > 0 && rline(tr("transit.fees", "Fulfillment, service fee & currency"), fees)}
+              <div style={{ borderTop: "2px solid #0F0E0C", marginTop: 10, paddingTop: 10, display: "flex", justifyContent: "space-between", fontSize: 15, fontWeight: 800, color: "#0F0E0C" }}>
+                <span>{tr("transit.group.receiptTotal", "Total for your share")}</span><span>{rEur(grand)}</span>
+              </div>
+              <div style={{ fontSize: 11, fontWeight: 700, color: "#8A8780", letterSpacing: 0.4, margin: "16px 0 2px" }}>👯 {tr("transit.group.squadPaid", "What your squad paid")}</div>
+              {others.map((m) => (
+                <div key={m.user_id} style={{ display: "flex", justifyContent: "space-between", padding: "5px 0", fontSize: 13, color: "#3A3733", gap: 8 }}>
+                  <span style={{ minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{m.member} <span style={{ color: "#A8A5A0" }}>· {(Number(m.weight_g) / 1000).toFixed(2)} kg</span></span>
+                  <span style={{ fontWeight: 600, flexShrink: 0 }}>
+                    {rEur(m.share_total)}
+                    {settled && Number(m.refund_eur) > 0 && <span style={{ color: "#10B981", fontWeight: 700 }}> · {tr("transit.group.back", "{amount} back", { amount: "+" + rEur(m.refund_eur) })}</span>}
+                  </span>
+                </div>
+              ))}
+              <div style={{ fontSize: 10.5, color: settled ? "#047857" : "#A8A5A0", marginTop: 8, lineHeight: 1.5 }}>
+                {settled
+                  ? tr("transit.group.receiptNoteSettled", "The carrier's real bill came in lower than our estimate — the difference was split over the group by weight, and everyone's share went back to their balance.")
+                  : tr("transit.receiptNote", "Shipping is an estimate with a buffer — if the real bill is lower you get the difference back as a refund.")}
+              </div>
+              <button onClick={() => setGroupReceipt(false)} style={{ width: "100%", marginTop: 16, background: "#0F0E0C", color: "#fff", border: "none", borderRadius: 12, padding: "13px", fontSize: 13.5, fontWeight: 700, cursor: "pointer" }}>{tr("common.close", "Close")}</button>
+            </div>
+          </div>
+        );
+      })()}
+
+      {/* 💸 "Waarom kreeg ik dit terug?"-overlay (Kaito 27-08): de ratio-uitleg. */}
+      {showRefundWhy && (
+        <div onClick={() => setShowRefundWhy(false)} style={{ position: "fixed", inset: 0, zIndex: 2200, background: "rgba(15,14,12,0.35)", backdropFilter: "blur(10px)", WebkitBackdropFilter: "blur(10px)", display: "flex", alignItems: "center", justifyContent: "center", padding: 26 }}>
+          <div onClick={(e) => e.stopPropagation()} style={{ maxWidth: 430, width: "100%", background: "#fff", border: "1px solid #E8E6E0", borderRadius: 18, padding: "20px 20px 16px", boxShadow: "0 18px 60px rgba(0,0,0,0.25)" }}>
+            <div style={{ fontSize: 14.5, fontWeight: 700, color: "#0F0E0C", marginBottom: 10 }}>💸 {tr("transit.group.whyTitle", "How the group refund works")}</div>
+            <div style={{ fontSize: 12.5, color: "#555", lineHeight: 1.65, display: "grid", gap: 8 }}>
+              <div>📦 {tr("transit.group.why1", "Your group parcel shipped on an estimated price with a +25% safety buffer.")}</div>
+              <div>🧾 {tr("transit.group.why2", "About a week later the carrier's real bill came in lower — that difference is one refund for the whole parcel.")}</div>
+              <div>⚖️ {tr("transit.group.why3", "That group refund is split over the members by the weight of their items — the heavier your share of the box, the bigger your part. It was added to your balance automatically.")}</div>
+            </div>
+            <button onClick={() => setShowRefundWhy(false)}
+              style={{ marginTop: 14, width: "100%", background: "#FF5C00", color: "#fff", border: "none", borderRadius: 12, padding: "11px", fontSize: 13.5, fontWeight: 700, cursor: "pointer" }}>
+              {tr("sheets.gotIt", "Got it")}
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* 🔍 In-app bewijs-viewer met knijp-zoom (user 2026-08-18): twee vingers =
           zoomen, dubbeltikken = snel in/uit, slepen = bewegen als je ingezoomd bent,

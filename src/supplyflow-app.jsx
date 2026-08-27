@@ -1016,6 +1016,7 @@ function GroupLockedCard({ shipment }) {
   const paid = Number(shipment?.members_paid) || 0;
   const total = Number(shipment?.members_total) || 0;
   const allPaid = shipment?.status === "consolidating" || (total > 0 && paid >= total);
+  const [showInfo, setShowInfo] = useState(false); // ?-uitleg: wat betekent "locked"? (Kaito 27-08)
   return (
     <div style={{ margin: "10px 20px 0", background: "#fff", borderRadius: 18, boxShadow: "0 1px 2px rgba(17,17,17,0.04), 0 6px 18px rgba(17,17,17,0.05)", padding: "16px 18px", display: "flex", alignItems: "center", gap: 15 }}>
       {/* data-journey-box: de pakket-vlucht van de sheet blijft hieraan verankerd. */}
@@ -1038,6 +1039,29 @@ function GroupLockedCard({ shipment }) {
           </div>
         )}
       </div>
+      {/* Onmisbaar ?-bolletje (Kaito 27-08): klanten (en Kaito) vergeten wat "locked" is. */}
+      <motion.button whileTap={{ scale: 0.88 }} onClick={() => setShowInfo(true)} aria-label={tr("group.lockInfo.title", "Locking the group")}
+        style={{ width: 27, height: 27, borderRadius: 999, border: "none", background: "rgba(255,92,0,0.14)", color: "#FF5C00", fontSize: 13.5, fontWeight: 800, cursor: "pointer", flexShrink: 0, WebkitTapHighlightColor: "transparent" }}>?</motion.button>
+      {/* Portal: de Orders-lijst zit in een transform-wrapper, dus fixed werkt alleen via body. */}
+      {showInfo && createPortal(
+        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} onClick={() => setShowInfo(false)}
+          style={{ position: "fixed", inset: 0, zIndex: 400, background: "rgba(15,14,12,0.35)", backdropFilter: "blur(10px)", WebkitBackdropFilter: "blur(10px)", display: "flex", alignItems: "center", justifyContent: "center", padding: 26 }}>
+          <motion.div initial={{ scale: 0.92, y: 10 }} animate={{ scale: 1, y: 0 }} transition={{ type: "spring", stiffness: 380, damping: 28 }}
+            onClick={(e) => e.stopPropagation()}
+            style={{ maxWidth: 430, width: "100%", background: "#fff", border: "1px solid #E8E6E0", borderRadius: 18, padding: "20px 20px 16px", boxShadow: "0 18px 60px rgba(0,0,0,0.25)" }}>
+            <div style={{ fontSize: 14.5, fontWeight: 700, color: "#0F0E0C", marginBottom: 10 }}>🔒 {tr("group.lockInfo.title", "Locking the group")}</div>
+            <div style={{ fontSize: 12.5, color: "#555", lineHeight: 1.65, display: "grid", gap: 8 }}>
+              <div>🧊 {tr("group.lockInfo.b1", "Locking freezes the box: nothing can be added or removed anymore, and Ready can't be changed.")}</div>
+              <div>✅ {tr("group.lockInfo.b2", "It's only possible once every member has at least one item in the parcel and every item is set to Ready.")}</div>
+              <div>⚖️ {tr("group.lockInfo.b3", "After locking, everyone pays their own share of the shipping (split by weight) plus their own fee. There's no deadline — but storage is only free for 60 days, so nudge slow payers yourself.")}</div>
+              <div>📦 {tr("group.lockInfo.b4", "When everyone has paid, everything ships as ONE box to {host}.", { host: tr("group.lock.hostFallback", "the host") })}</div>
+            </div>
+            <button onClick={() => setShowInfo(false)}
+              style={{ marginTop: 14, width: "100%", background: "#FF5C00", color: "#fff", border: "none", borderRadius: 12, padding: "11px", fontSize: 13.5, fontWeight: 700, cursor: "pointer" }}>
+              {tr("sheets.gotIt", "Got it")}
+            </button>
+          </motion.div>
+        </motion.div>, document.body)}
     </div>
   );
 }
